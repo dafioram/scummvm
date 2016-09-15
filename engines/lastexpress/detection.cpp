@@ -203,6 +203,10 @@ public:
 		_guiOptions = GUIO2(GUIO_NOSUBTITLES, GUIO_NOSFX);
 	}
 
+	const char *getEngineId() const {
+		return "lastexpress";
+	}
+
 	const char *getName() const {
 		return "Lastexpress";
 	}

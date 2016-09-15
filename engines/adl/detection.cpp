@@ -319,6 +319,10 @@ class AdlMetaEngine : public AdvancedMetaEngine {
 public:
 	AdlMetaEngine() : AdvancedMetaEngine(gameFileDescriptions, sizeof(AdlGameDescription), adlGames, optionsList) { }
 
+	const char *getEngineId() const {
+		return "adl";
+	}
+
 	const char *getName() const {
 		return "ADL";
 	}

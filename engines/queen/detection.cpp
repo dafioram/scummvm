@@ -498,6 +498,10 @@ public:
 		_singleId = "queen";
 	}
 
+	const char *getEngineId() const {
+		return "queen";
+	}
+
 	virtual const char *getName() const {
 		return "Queen";
 	}

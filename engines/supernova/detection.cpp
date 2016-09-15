@@ -87,6 +87,10 @@ public:
 //		_singleId = "supernova";
 	}
 
+	const char *getEngineId() const {
+		return "supernova";
+	}
+
 	virtual const char *getName() const {
 		return "Supernova Engine";
 	}

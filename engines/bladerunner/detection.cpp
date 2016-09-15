@@ -41,6 +41,10 @@ public:
 	BladeRunnerMetaEngine() : AdvancedMetaEngine(BladeRunner::gameDescriptions, sizeof(BladeRunner::gameDescriptions[0]), BladeRunner::bladeRunnerGames) {
 	}
 
+	const char *getEngineId() const {
+		return "bladerunner";
+	}
+
 	virtual const char *getName() const {
 		return "Blade Runner Engine";
 	}

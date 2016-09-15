@@ -209,6 +209,10 @@ public:
 		_singleId = "toltecs";
 	}
 
+	const char *getEngineId() const {
+		return "toltecs";
+	}
+
 	virtual const char *getName() const {
 		return "Toltecs Engine";
 	}

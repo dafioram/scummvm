@@ -153,6 +153,10 @@ public:
 		_directoryGlobs = directoryGlobs;
 	}
 
+        const char *getEngineId() const {
+                return "prince";
+        }
+
 	virtual const char *getName() const {
 		return "Prince Engine";
 	}

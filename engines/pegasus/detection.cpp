@@ -137,6 +137,10 @@ public:
 		_singleId = "pegasus";
 	}
 
+	virtual const char *getEngineId() const {
+		return "pegasus";
+	}
+
 	virtual const char *getName() const {
 		return "The Journeyman Project: Pegasus Prime";
 	}

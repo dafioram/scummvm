@@ -955,6 +955,10 @@ using namespace Scumm;
 
 class ScummMetaEngine : public MetaEngine {
 public:
+	virtual const char *getEngineId() const {
+		return "scumm";
+	}
+
 	virtual const char *getName() const;
 	virtual const char *getOriginalCopyright() const;
 

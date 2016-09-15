@@ -524,6 +524,10 @@ public:
 		_singleId = "made";
 	}
 
+	const char *getEngineId() const {
+		return "made";
+	}
+
 	virtual const char *getName() const {
 		return "MADE";
 	}
