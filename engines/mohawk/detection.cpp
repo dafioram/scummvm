@@ -129,7 +129,6 @@ Common::String MohawkEngine_Riven::getDatafileLanguageName() const {
 } // End of Namespace Mohawk
 
 static const PlainGameDescriptor mohawkGames[] = {
-	{"mohawk", "Mohawk Game"},
 	{"myst", "Myst"},
 	{"makingofmyst", "The Making of Myst"},
 	{"riven", "Riven: The Sequel to Myst"},
@@ -189,7 +188,6 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 class MohawkMetaEngine : public AdvancedMetaEngine {
 public:
 	MohawkMetaEngine() : AdvancedMetaEngine(Mohawk::gameDescriptions, sizeof(Mohawk::MohawkGameDescription), mohawkGames, optionsList) {
-		_singleId = "mohawk";
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
