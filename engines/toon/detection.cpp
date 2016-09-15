@@ -140,7 +140,7 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Toon";
+		return "Toonstruck";
 	}
 
 	virtual const char *getOriginalCopyright() const {

@@ -46,11 +46,11 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Blade Runner Engine";
+		return "Blade Runner";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Blade Runner (C) Westwood Studios.";
+		return "Blade Runner (C) Westwood Studios";
 	}
 
 	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;

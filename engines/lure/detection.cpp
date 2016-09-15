@@ -219,7 +219,7 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Lure";
+		return "Lure of the Temptress";
 	}
 
 	virtual const char *getOriginalCopyright() const {

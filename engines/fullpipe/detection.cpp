@@ -137,11 +137,11 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Fullpipe Engine";
+		return "Full Pipe";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Fullpipe Engine (C) Pipe Studio";
+		return "Full Pipe (C) Pipe Studio";
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;

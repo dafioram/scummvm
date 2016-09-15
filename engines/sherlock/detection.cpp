@@ -141,11 +141,11 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Sherlock Engine";
+		return "Sherlock";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Sherlock Engine (C) 1992-1996 Mythos Software, 1992-1996 (C) Electronic Arts";
+		return "Sherlock (C) 1992-1996 Mythos Software, (C) 1992-1996 Electronic Arts";
 	}
 
 	/**

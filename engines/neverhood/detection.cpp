@@ -206,11 +206,11 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Neverhood Engine";
+		return "The Neverhood Chronicles";
 	}
 
 	virtual const char *getOriginalCopyright() const {
-		return "Neverhood (C) The Neverhood, Inc.";
+		return "The Neverhood Chronicles (C) The Neverhood, Inc.";
 	}
 
 	virtual bool hasFeature(MetaEngineFeature f) const;

@@ -472,7 +472,7 @@ public:
 	}
 
 	virtual const char *getName() const {
-		return "Magic Composer Engine";
+		return "Magic Composer";
 	}
 
 	virtual const char *getOriginalCopyright() const {
