@@ -940,9 +940,9 @@ void OptionsDialog::addControlControls(GuiObject *boss, const Common::String &pr
 	// Keyboard and joystick mouse speed
 	if (g_system->hasFeature(OSystem::kFeatureKbdMouseSpeed)) {
 		if (g_system->getOverlayWidth() > 320)
-			_kbdMouseSpeedDesc = new StaticTextWidget(boss, prefix + "grKbdMouseSpeedDesc", _("Pointer Speed:"), _("Speed for keyboard/joystick mouse pointer control"));
+			_kbdMouseSpeedDesc = new StaticTextWidget(boss, prefix + "grKbdMouseSpeedDesc", _("Pointer speed:"), _("Speed for keyboard/joystick mouse pointer control"));
 		else
-			_kbdMouseSpeedDesc = new StaticTextWidget(boss, prefix + "grKbdMouseSpeedDesc", _c("Pointer Speed:", "lowres"), _("Speed for keyboard/joystick mouse pointer control"));
+			_kbdMouseSpeedDesc = new StaticTextWidget(boss, prefix + "grKbdMouseSpeedDesc", _c("Pointer speed:", "lowres"), _("Speed for keyboard/joystick mouse pointer control"));
 		_kbdMouseSpeedSlider = new SliderWidget(boss, prefix + "grKbdMouseSpeedSlider", _("Speed for keyboard/joystick mouse pointer control"), kKbdMouseSpeedChanged);
 		_kbdMouseSpeedLabel = new StaticTextWidget(boss, prefix + "grKbdMouseSpeedLabel", "  ");
 		_kbdMouseSpeedSlider->setMinValue(0);
@@ -953,9 +953,9 @@ void OptionsDialog::addControlControls(GuiObject *boss, const Common::String &pr
 	// Joystick deadzone
 	if (g_system->hasFeature(OSystem::kFeatureJoystickDeadzone)) {
 		if (g_system->getOverlayWidth() > 320)
-			_joystickDeadzoneDesc = new StaticTextWidget(boss, prefix + "grJoystickDeadzoneDesc", _("Joy Deadzone:"), _("Analog joystick Deadzone"));
+			_joystickDeadzoneDesc = new StaticTextWidget(boss, prefix + "grJoystickDeadzoneDesc", _("Joy deadzone:"), _("Analog joystick Deadzone"));
 		else
-			_joystickDeadzoneDesc = new StaticTextWidget(boss, prefix + "grJoystickDeadzoneDesc", _c("Joy Deadzone:", "lowres"), _("Analog joystick Deadzone"));
+			_joystickDeadzoneDesc = new StaticTextWidget(boss, prefix + "grJoystickDeadzoneDesc", _c("Joy deadzone:", "lowres"), _("Analog joystick Deadzone"));
 		_joystickDeadzoneSlider = new SliderWidget(boss, prefix + "grJoystickDeadzoneSlider", _("Analog joystick Deadzone"), kJoystickDeadzoneChanged);
 		_joystickDeadzoneLabel = new StaticTextWidget(boss, prefix + "grJoystickDeadzoneLabel", "  ");
 		_joystickDeadzoneSlider->setMinValue(1);
@@ -1029,9 +1029,9 @@ void OptionsDialog::addGraphicControls(GuiObject *boss, const Common::String &pr
 void OptionsDialog::addAudioControls(GuiObject *boss, const Common::String &prefix) {
 	// The MIDI mode popup & a label
 	if (g_system->getOverlayWidth() > 320)
-		_midiPopUpDesc = new StaticTextWidget(boss, prefix + "auMidiPopupDesc", _domain == Common::ConfigManager::kApplicationDomain ? _("Preferred Device:") : _("Music Device:"), _domain == Common::ConfigManager::kApplicationDomain ? _("Specifies preferred sound device or sound card emulator") : _("Specifies output sound device or sound card emulator"));
+		_midiPopUpDesc = new StaticTextWidget(boss, prefix + "auMidiPopupDesc", _domain == Common::ConfigManager::kApplicationDomain ? _("Preferred device:") : _("Music device:"), _domain == Common::ConfigManager::kApplicationDomain ? _("Specifies preferred sound device or sound card emulator") : _("Specifies output sound device or sound card emulator"));
 	else
-		_midiPopUpDesc = new StaticTextWidget(boss, prefix + "auMidiPopupDesc", _domain == Common::ConfigManager::kApplicationDomain ? _c("Preferred Dev.:", "lowres") : _c("Music Device:", "lowres"), _domain == Common::ConfigManager::kApplicationDomain ? _("Specifies preferred sound device or sound card emulator") : _("Specifies output sound device or sound card emulator"));
+		_midiPopUpDesc = new StaticTextWidget(boss, prefix + "auMidiPopupDesc", _domain == Common::ConfigManager::kApplicationDomain ? _c("Preferred dev.:", "lowres") : _c("Music device:", "lowres"), _domain == Common::ConfigManager::kApplicationDomain ? _("Specifies preferred sound device or sound card emulator") : _("Specifies output sound device or sound card emulator"));
 	_midiPopUp = new PopUpWidget(boss, prefix + "auMidiPopup", _("Specifies output sound device or sound card emulator"));
 
 	// Populate it
@@ -1072,7 +1072,7 @@ void OptionsDialog::addAudioControls(GuiObject *boss, const Common::String &pref
 }
 
 void OptionsDialog::addMIDIControls(GuiObject *boss, const Common::String &prefix) {
-	_gmDevicePopUpDesc = new StaticTextWidget(boss, prefix + "auPrefGmPopupDesc", _("GM Device:"), _("Specifies default sound device for General MIDI output"));
+	_gmDevicePopUpDesc = new StaticTextWidget(boss, prefix + "auPrefGmPopupDesc", _("GM device:"), _("Specifies default sound device for General MIDI output"));
 	_gmDevicePopUp = new PopUpWidget(boss, prefix + "auPrefGmPopup");
 
 	// Populate
@@ -1127,7 +1127,7 @@ void OptionsDialog::addMIDIControls(GuiObject *boss, const Common::String &prefi
 }
 
 void OptionsDialog::addMT32Controls(GuiObject *boss, const Common::String &prefix) {
-	_mt32DevicePopUpDesc = new StaticTextWidget(boss, prefix + "auPrefMt32PopupDesc", _("MT-32 Device:"), _("Specifies default sound device for Roland MT-32/LAPC1/CM32l/CM64 output"));
+	_mt32DevicePopUpDesc = new StaticTextWidget(boss, prefix + "auPrefMt32PopupDesc", _("MT-32 device:"), _("Specifies default sound device for Roland MT-32/LAPC1/CM32l/CM64 output"));
 	_mt32DevicePopUp = new PopUpWidget(boss, prefix + "auPrefMt32Popup");
 
 	// Native mt32 setting
@@ -1137,7 +1137,7 @@ void OptionsDialog::addMT32Controls(GuiObject *boss, const Common::String &prefi
 		_mt32Checkbox = new CheckboxWidget(boss, prefix + "mcMt32Checkbox", _c("True Roland MT-32 (no GM emulation)", "lowres"), _("Check if you want to use your real hardware Roland-compatible sound device connected to your computer"));
 
 	// GS Extensions setting
-	_enableGSCheckbox = new CheckboxWidget(boss, prefix + "mcGSCheckbox", _("Roland GS Device (enable MT-32 mappings)"), _("Check if you want to enable patch mappings to emulate an MT-32 on a Roland GS device"));
+	_enableGSCheckbox = new CheckboxWidget(boss, prefix + "mcGSCheckbox", _("Roland GS device (enable MT-32 mappings)"), _("Check if you want to enable patch mappings to emulate an MT-32 on a Roland GS device"));
 
 	const PluginList p = MusicMan.getPlugins();
 	// Make sure the null device is the first one in the list to avoid undesired
@@ -1173,7 +1173,7 @@ void OptionsDialog::addMT32Controls(GuiObject *boss, const Common::String &prefi
 void OptionsDialog::addSubtitleControls(GuiObject *boss, const Common::String &prefix, int maxSliderVal) {
 
 	if (g_system->getOverlayWidth() > 320) {
-		_subToggleDesc = new StaticTextWidget(boss, prefix + "subToggleDesc", _("Text and Speech:"));
+		_subToggleDesc = new StaticTextWidget(boss, prefix + "subToggleDesc", _("Text and speech:"));
 
 		_subToggleGroup = new RadiobuttonGroup(boss, kSubtitleToggle);
 
@@ -1183,7 +1183,7 @@ void OptionsDialog::addSubtitleControls(GuiObject *boss, const Common::String &p
 
 		_subSpeedDesc = new StaticTextWidget(boss, prefix + "subSubtitleSpeedDesc", _("Subtitle speed:"));
 	} else {
-		_subToggleDesc = new StaticTextWidget(boss, prefix + "subToggleDesc", _c("Text and Speech:", "lowres"));
+		_subToggleDesc = new StaticTextWidget(boss, prefix + "subToggleDesc", _c("Text and speech:", "lowres"));
 
 		_subToggleGroup = new RadiobuttonGroup(boss, kSubtitleToggle);
 
@@ -1538,7 +1538,7 @@ void GlobalOptionsDialog::build() {
 	_curTheme = new StaticTextWidget(tab, "GlobalOptions_Misc.CurTheme", g_gui.theme()->getThemeName());
 
 
-	_rendererPopUpDesc = new StaticTextWidget(tab, "GlobalOptions_Misc.RendererPopupDesc", _("GUI Renderer:"));
+	_rendererPopUpDesc = new StaticTextWidget(tab, "GlobalOptions_Misc.RendererPopupDesc", _("GUI renderer:"));
 	_rendererPopUp = new PopUpWidget(tab, "GlobalOptions_Misc.RendererPopup");
 
 	if (g_system->getOverlayWidth() > 320) {
@@ -1567,7 +1567,7 @@ void GlobalOptionsDialog::build() {
 
 
 #ifdef USE_TRANSLATION
-	_guiLanguagePopUpDesc = new StaticTextWidget(tab, "GlobalOptions_Misc.GuiLanguagePopupDesc", _("GUI Language:"), _("Language of ScummVM GUI"));
+	_guiLanguagePopUpDesc = new StaticTextWidget(tab, "GlobalOptions_Misc.GuiLanguagePopupDesc", _("GUI language:"), _("Language of ScummVM GUI"));
 	_guiLanguagePopUp = new PopUpWidget(tab, "GlobalOptions_Misc.GuiLanguagePopup");
 #ifdef USE_DETECTLANG
 	_guiLanguagePopUp->appendEntry(_("<default>"), Common::kTranslationAutodetectId);
