@@ -34,6 +34,7 @@
 #include "sci/parser/vocabulary.h"
 #include "sci/resource.h"
 #include "sci/resource_intern.h"
+#include "sci/resource_patcher.h"
 #include "sci/util.h"
 
 namespace Sci {
@@ -414,6 +415,9 @@ void ResourceManager::disposeVolumeFileStream(Common::SeekableReadStream *fileSt
 
 void ResourceManager::loadResource(Resource *res) {
 	res->_source->loadResource(this, res);
+	if (_patcher) {
+		_patcher->applyPatch(*res);
+	}
 }
 
 
@@ -703,6 +707,9 @@ int ResourceManager::addAppropriateSources() {
 	if (Common::File::exists("altres.map"))
 		addSource(new VolumeResourceSource("altres.000", addExternalMap("altres.map"), 0));
 
+	_patcher = new ResourcePatcher(g_sci->getGameId(), g_sci->getLanguage());
+	addSource(_patcher);
+
 	return 1;
 }
 
@@ -960,7 +967,7 @@ void ResourceManager::freeResourceSources() {
 }
 
 ResourceManager::ResourceManager(const bool detectionMode) :
-	_detectionMode(detectionMode) {}
+	_detectionMode(detectionMode), _patcher(nullptr) {}
 
 void ResourceManager::init() {
 	_maxMemoryLRU = 256 * 1024; // 256KiB
@@ -972,6 +979,7 @@ void ResourceManager::init() {
 #ifdef ENABLE_SCI32
 	_currentDiscNo = 1;
 #endif
+
 	// FIXME: put this in an Init() function, so that we can error out if detection fails completely
 
 	_mapVersion = detectMapVersion();
