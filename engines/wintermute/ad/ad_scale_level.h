@@ -36,7 +36,7 @@ namespace Wintermute {
 
 class AdScaleLevel : public BaseObject {
 public:
-	DECLARE_PERSISTENT(AdScaleLevel, BaseObject)
+	DECLARE_PERSISTENT(AdScaleLevel, BaseObject, override)
 	AdScaleLevel(BaseGame *inGame);
 	virtual ~AdScaleLevel();
 	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;

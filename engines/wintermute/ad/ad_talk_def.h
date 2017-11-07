@@ -41,7 +41,7 @@ public:
 	AdSpriteSet *_defaultSpriteSet;
 	BaseSprite *getDefaultSprite(TDirection Dir);
 	bool loadDefaultSprite();
-	DECLARE_PERSISTENT(AdTalkDef, BaseObject)
+	DECLARE_PERSISTENT(AdTalkDef, BaseObject, override)
 
 	AdTalkDef(BaseGame *inGame);
 	virtual ~AdTalkDef();

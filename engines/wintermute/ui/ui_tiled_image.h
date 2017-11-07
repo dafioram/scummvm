@@ -39,7 +39,7 @@ class UITiledImage : public BaseObject {
 	using Wintermute::BaseObject::display;
 
 public:
-	DECLARE_PERSISTENT(UITiledImage, BaseObject)
+	DECLARE_PERSISTENT(UITiledImage, BaseObject, override)
 	void correctSize(int32 *width, int32 *height);
 	bool loadFile(const char *filename);
 	bool loadBuffer(char *buffer, bool complete = true);

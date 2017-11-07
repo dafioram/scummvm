@@ -40,7 +40,7 @@ public:
 	AdNodeState *getNodeState(const char *name, bool saving);
 	void setFilename(const char *filename);
 	const char *getFilename() const;
-	DECLARE_PERSISTENT(AdSceneState, BaseClass)
+	DECLARE_PERSISTENT(AdSceneState, BaseClass, )
 	AdSceneState(BaseGame *inGame);
 	virtual ~AdSceneState();
 private:

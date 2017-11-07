@@ -34,7 +34,7 @@ class AdSceneNode;
 class AdLayer : public BaseObject {
 public:
 	bool _closeUp;
-	DECLARE_PERSISTENT(AdLayer, BaseObject)
+	DECLARE_PERSISTENT(AdLayer, BaseObject, override)
 	bool _active;
 	int32 _height;
 	int32 _width;

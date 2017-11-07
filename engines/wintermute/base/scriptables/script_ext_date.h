@@ -37,7 +37,7 @@ namespace Wintermute {
 class SXDate : public BaseScriptable {
 public:
 	int scCompare(BaseScriptable *Value);
-	DECLARE_PERSISTENT(SXDate, BaseScriptable)
+	DECLARE_PERSISTENT(SXDate, BaseScriptable, )
 	SXDate(BaseGame *inGame, ScStack *Stack);
 	virtual ~SXDate();
 	ScValue *scGetProperty(const Common::String &name);

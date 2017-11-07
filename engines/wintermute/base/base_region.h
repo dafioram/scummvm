@@ -40,7 +40,7 @@ public:
 	bool mimic(BaseRegion *region, float scale = 100.0f, int x = 0, int y = 0);
 	bool getBoundingRect(Rect32 *rect);
 	bool ptInPolygon(int32 x, int32 y);
-	DECLARE_PERSISTENT(BaseRegion, BaseObject)
+	DECLARE_PERSISTENT(BaseRegion, BaseObject, override)
 	bool _active;
 	int32 _editorSelectedPoint;
 	BaseRegion(BaseGame *inGame);
@@ -51,7 +51,7 @@ public:
 	bool loadBuffer(char *buffer, bool complete = true);
 	Rect32 _rect;
 	BaseArray<BasePoint *> _points;
-	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) { return saveAsText(buffer, indent, nullptr); }
+	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override { return saveAsText(buffer, indent, nullptr); }
 	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent, const char *nameOverride);
 
 	// scripting interface

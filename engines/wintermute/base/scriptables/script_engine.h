@@ -80,7 +80,7 @@ public:
 	bool resetScript(ScScript *script);
 	bool emptyScriptCache();
 	byte *getCompiledScript(const char *filename, uint32 *outSize, bool ignoreCache = false);
-	DECLARE_PERSISTENT(ScEngine, BaseClass)
+	DECLARE_PERSISTENT(ScEngine, BaseClass, )
 	bool cleanup();
 	int getNumScripts(int *running = nullptr, int *waiting = nullptr, int *persistent = nullptr);
 	bool tick();

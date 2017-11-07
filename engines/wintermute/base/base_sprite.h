@@ -43,7 +43,7 @@ public:
 	BaseSurface *getSurface();
 	void cleanup();
 	void setDefaults();
-	DECLARE_PERSISTENT(BaseSprite, BaseScriptHolder)
+	DECLARE_PERSISTENT(BaseSprite, BaseScriptHolder, override)
 
 	bool getBoundingRect(Rect32 *rect, int x, int y, float scaleX = Graphics::kDefaultZoomX, float scaleY = Graphics::kDefaultZoomY);
 	int32 _moveY;
@@ -62,7 +62,7 @@ public:
 	BaseSprite(BaseGame *inGame, BaseObject *owner = nullptr);
 	virtual ~BaseSprite();
 	BaseArray<BaseFrame *> _frames;
-	bool saveAsText(BaseDynamicBuffer *buffer, int indent);
+	bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;
 
 	// scripting interface
 	virtual ScValue *scGetProperty(const Common::String &name) override;

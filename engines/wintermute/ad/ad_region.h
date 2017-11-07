@@ -35,7 +35,7 @@ namespace Wintermute {
 
 class AdRegion : public BaseRegion {
 public:
-	DECLARE_PERSISTENT(AdRegion, BaseRegion)
+	DECLARE_PERSISTENT(AdRegion, BaseRegion, override)
 
 	AdRegion(BaseGame *inGame);
 	virtual ~AdRegion();

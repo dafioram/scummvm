@@ -42,7 +42,7 @@ public:
 	int getWidth() const;
 	Rect32 *getRect();
 	bool setRect(int32 left, int32 top, int32 right, int32 bottom, bool noCheck = false);
-	DECLARE_PERSISTENT(BaseViewport, BaseClass)
+	DECLARE_PERSISTENT(BaseViewport, BaseClass, )
 	int32 _offsetY;
 	int32 _offsetX;
 	BaseObject *_mainObject;

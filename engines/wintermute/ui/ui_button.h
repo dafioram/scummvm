@@ -38,12 +38,12 @@ namespace Wintermute {
 class UIButton : public UIObject {
 public:
 
-	DECLARE_PERSISTENT(UIButton, UIObject)
+	DECLARE_PERSISTENT(UIButton, UIObject, override)
 	void press();
-	virtual bool display() { return display(0, 0); }
-	virtual bool display(int offsetX, int offsetY);
+	virtual bool display() override { return display(0, 0); }
+	virtual bool display(int offsetX, int offsetY) override;
 
-	void correctSize();
+	void correctSize() override;
 
 	UIButton(BaseGame *inGame = nullptr);
 	virtual ~UIButton();

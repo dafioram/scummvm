@@ -36,7 +36,7 @@ namespace Wintermute {
 
 class AdPathPoint : public BasePoint {
 public:
-	DECLARE_PERSISTENT(AdPathPoint, BasePoint)
+	DECLARE_PERSISTENT(AdPathPoint, BasePoint, )
 	AdPathPoint(int initX, int initY, int initDistance);
 	AdPathPoint();
 	virtual ~AdPathPoint();

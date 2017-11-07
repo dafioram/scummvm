@@ -37,7 +37,7 @@ class AdItem;
 
 class AdInventory : public BaseObject {
 public:
-	DECLARE_PERSISTENT(AdInventory, BaseObject)
+	DECLARE_PERSISTENT(AdInventory, BaseObject, )
 	bool removeItem(const char *name);
 	bool removeItem(AdItem *Item);
 	bool insertItem(const char *name, const char *insertAfter = nullptr);

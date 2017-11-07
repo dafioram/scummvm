@@ -38,7 +38,7 @@ class BaseRegion;
 class PartParticle;
 class PartEmitter : public BaseObject {
 public:
-	DECLARE_PERSISTENT(PartEmitter, BaseObject)
+	DECLARE_PERSISTENT(PartEmitter, BaseObject, )
 
 	PartEmitter(BaseGame *inGame, BaseScriptHolder *Owner);
 	virtual ~PartEmitter(void);

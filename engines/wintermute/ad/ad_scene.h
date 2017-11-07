@@ -77,7 +77,7 @@ public:
 	bool _initialized;
 	bool correctTargetPoint(int32 startX, int32 startY, int32 *x, int32 *y, bool checkFreeObjects = false, BaseObject *requester = nullptr);
 	bool correctTargetPoint2(int32 startX, int32 startY, int32 *targetX, int32 *targetY, bool checkFreeObjects, BaseObject *requester);
-	DECLARE_PERSISTENT(AdScene, BaseObject)
+	DECLARE_PERSISTENT(AdScene, BaseObject, override)
 	bool displayRegionContent(AdRegion *region = nullptr, bool display3DOnly = false);
 	bool displayRegionContentOld(AdRegion *region = nullptr);
 	static bool compareObjs(const AdObject *obj1, const AdObject *obj2);
@@ -109,7 +109,7 @@ public:
 	uint32 _scrollTimeH;
 	uint32 _lastTimeH;
 
-	virtual bool display();
+	virtual bool display() override;
 	uint32 _pfMaxTime;
 	bool initLoop();
 	void pathFinderStep();
@@ -152,7 +152,7 @@ public:
 	BaseArray<AdScaleLevel *> _scaleLevels;
 	BaseArray<AdRotLevel *> _rotLevels;
 
-	virtual bool restoreDeviceObjects();
+	virtual bool restoreDeviceObjects() override;
 	int getPointsDist(const BasePoint &p1, const BasePoint &p2, BaseObject *requester = nullptr);
 
 	// scripting interface

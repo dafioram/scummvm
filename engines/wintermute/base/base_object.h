@@ -100,13 +100,13 @@ public:
 	bool _editorOnly;
 	bool _is3D;
 
-	DECLARE_PERSISTENT(BaseObject, BaseScriptHolder)
+	DECLARE_PERSISTENT(BaseObject, BaseScriptHolder, override)
 	virtual bool showCursor();
 	BaseSprite *_cursor;
 	bool _sharedCursors;
 	BaseSprite *_activeCursor;
-	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent);
-	virtual bool listen(BaseScriptHolder *param1, uint32 param2);
+	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;
+	virtual bool listen(BaseScriptHolder *param1, uint32 param2) override;
 
 	bool _movable;
 	bool _zoomable;

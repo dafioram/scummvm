@@ -40,7 +40,7 @@ public:
 	void setName(const char *name);
 	void setFilename(const char *filename);
 	void setCursor(const char *filename);
-	DECLARE_PERSISTENT(AdNodeState, BaseClass)
+	DECLARE_PERSISTENT(AdNodeState, BaseClass, )
 	AdNodeState(BaseGame *inGame);
 	virtual ~AdNodeState();
 	const char *getName() const { return _name; }

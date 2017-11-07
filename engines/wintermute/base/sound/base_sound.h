@@ -50,7 +50,7 @@ public:
 	bool setPositionTime(uint32 time);
 	bool isPlaying();
 	bool isPaused();
-	DECLARE_PERSISTENT(BaseSound, BaseClass)
+	DECLARE_PERSISTENT(BaseSound, BaseClass, )
 	bool resume();
 	bool pause(bool freezePaused = false);
 	bool stop();

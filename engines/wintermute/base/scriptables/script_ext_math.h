@@ -36,7 +36,7 @@ namespace Wintermute {
 
 class SXMath : public BaseScriptable {
 public:
-	DECLARE_PERSISTENT(SXMath, BaseScriptable)
+	DECLARE_PERSISTENT(SXMath, BaseScriptable, )
 	SXMath(BaseGame *inGame);
 	virtual ~SXMath();
 	virtual ScValue *scGetProperty(const Common::String &name);

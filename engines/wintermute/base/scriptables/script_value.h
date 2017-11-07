@@ -46,7 +46,7 @@ public:
 	static int compareStrict(ScValue *val1, ScValue *val2);
 	TValType getTypeTolerant();
 	void cleanup(bool ignoreNatives = false);
-	DECLARE_PERSISTENT(ScValue, BaseClass)
+	DECLARE_PERSISTENT(ScValue, BaseClass, )
 
 	bool _isConstVar;
 	bool saveAsText(BaseDynamicBuffer *buffer, int indent);

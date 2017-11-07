@@ -36,7 +36,7 @@ namespace Wintermute {
 class BaseSubFrame;
 class BaseFontBitmap : public BaseFont {
 public:
-	DECLARE_PERSISTENT(BaseFontBitmap, BaseFont)
+	DECLARE_PERSISTENT(BaseFontBitmap, BaseFont, override)
 	bool loadBuffer(char *buffer);
 	bool loadFile(const Common::String &filename);
 	virtual int getTextWidth(const byte *text, int maxLength = -1) override;

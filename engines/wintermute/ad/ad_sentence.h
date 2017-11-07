@@ -49,7 +49,7 @@ public:
 	char *_currentSkelAnim;
 	bool update(TDirection dir = DI_DOWN);
 	bool setupTalkFile(const char *soundFilename);
-	DECLARE_PERSISTENT(AdSentence, BaseClass)
+	DECLARE_PERSISTENT(AdSentence, BaseClass, )
 	bool finish();
 	void setSound(BaseSound *Sound);
 	bool _soundStarted;

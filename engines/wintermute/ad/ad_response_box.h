@@ -52,9 +52,9 @@ public:
 	const char *getLastResponseText() const;
 	const char *getLastResponseTextOrig() const;
 
-	DECLARE_PERSISTENT(AdResponseBox, BaseObject)
+	DECLARE_PERSISTENT(AdResponseBox, BaseObject, override)
 	ScScript *_waitingScript;
-	virtual bool listen(BaseScriptHolder *param1, uint32 param2);
+	virtual bool listen(BaseScriptHolder *param1, uint32 param2) override;
 	typedef enum {
 		EVENT_PREV,
 		EVENT_NEXT,
@@ -62,7 +62,7 @@ public:
 	} TResponseEvent;
 
 	bool weedResponses();
-	bool display();
+	bool display() override;
 
 	bool createButtons();
 	bool invalidateButtons();

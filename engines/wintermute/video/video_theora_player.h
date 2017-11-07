@@ -50,7 +50,7 @@ private:
 	Video::VideoDecoder *_theoraDecoder;
 	Graphics::Surface _surface;
 public:
-	DECLARE_PERSISTENT(VideoTheoraPlayer, BaseClass)
+	DECLARE_PERSISTENT(VideoTheoraPlayer, BaseClass, )
 
 	VideoTheoraPlayer(BaseGame *inGame);
 	virtual ~VideoTheoraPlayer(void);

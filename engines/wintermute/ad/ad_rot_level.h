@@ -36,7 +36,7 @@ namespace Wintermute {
 class AdRotLevel : public BaseObject {
 	float _rotation;
 public:
-	DECLARE_PERSISTENT(AdRotLevel, BaseObject)
+	DECLARE_PERSISTENT(AdRotLevel, BaseObject, override)
 	AdRotLevel(BaseGame *inGame);
 	virtual ~AdRotLevel();
 	float getRotation() const { return _rotation; }

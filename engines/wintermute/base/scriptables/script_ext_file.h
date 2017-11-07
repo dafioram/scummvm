@@ -39,7 +39,7 @@ class BaseFile;
 
 class SXFile : public BaseScriptable {
 public:
-	DECLARE_PERSISTENT(SXFile, BaseScriptable)
+	DECLARE_PERSISTENT(SXFile, BaseScriptable, )
 	ScValue *scGetProperty(const Common::String &name);
 	bool scSetProperty(const char *name, ScValue *value);
 	bool scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack, const char *name);

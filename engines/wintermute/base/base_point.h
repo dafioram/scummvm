@@ -36,7 +36,7 @@ namespace Wintermute {
 
 class BasePoint: public BaseClass {
 public:
-	DECLARE_PERSISTENT(BasePoint, BaseClass)
+	DECLARE_PERSISTENT(BasePoint, BaseClass, )
 	BasePoint();
 	BasePoint(int initX, int initY);
 	int32 y;

@@ -38,7 +38,7 @@ namespace Wintermute {
 
 class AdSceneNode : public BaseObject {
 public:
-	DECLARE_PERSISTENT(AdSceneNode, BaseObject)
+	DECLARE_PERSISTENT(AdSceneNode, BaseObject, )
 	bool setRegion(AdRegion *region);
 	bool setEntity(AdEntity *entity);
 	AdEntity *_entity;

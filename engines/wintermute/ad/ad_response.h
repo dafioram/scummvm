@@ -37,7 +37,7 @@ namespace Wintermute {
 class BaseFont;
 class AdResponse : public BaseObject {
 public:
-	DECLARE_PERSISTENT(AdResponse, BaseObject)
+	DECLARE_PERSISTENT(AdResponse, BaseObject, )
 	bool setIcon(const char *filename);
 	bool setFont(const char *filename);
 	bool setIconHover(const char *filename);

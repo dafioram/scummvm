@@ -43,13 +43,13 @@ typedef void(*SYS_INSTANCE_CALLBACK)(void *instance, void *data);
 namespace Wintermute {
 
 
-#define DECLARE_PERSISTENT(className, parentClass)\
+#define DECLARE_PERSISTENT(className, parentClass, override)\
 	static const char _className[];\
 	static void *persistBuild(void);\
-	virtual const char *getClassName();\
+	virtual const char *getClassName() override;\
 	static bool persistLoad(void* Instance, BasePersistenceManager* PersistMgr);\
 	className(TDynamicConstructor p1, TDynamicConstructor p2) : parentClass(p1, p2) { /*memset(this, 0, sizeof(class_name));*/ };\
-	virtual bool persist(BasePersistenceManager *persistMgr);\
+	virtual bool persist(BasePersistenceManager *persistMgr) override;\
 	void* operator new (size_t size);\
 	void operator delete(void* p);\
 

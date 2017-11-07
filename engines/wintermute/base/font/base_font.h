@@ -37,7 +37,7 @@ namespace Wintermute {
 
 class BaseFont: public BaseObject {
 public:
-	DECLARE_PERSISTENT(BaseFont, BaseObject)
+	DECLARE_PERSISTENT(BaseFont, BaseObject, )
 	virtual int getTextWidth(const byte *text, int maxLength = -1);
 	virtual int getTextHeight(const byte *text, int width);
 	virtual void drawText(const byte *text, int x, int y, int width, TTextAlign align = TAL_LEFT, int max_height = -1, int maxLength = -1);

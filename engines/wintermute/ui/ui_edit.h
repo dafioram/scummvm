@@ -37,13 +37,13 @@ namespace Wintermute {
 class BaseFont;
 class UIEdit : public UIObject {
 public:
-	DECLARE_PERSISTENT(UIEdit, UIObject)
+	DECLARE_PERSISTENT(UIEdit, UIObject, override)
 
 	int insertChars(int pos, const byte *chars, int num);
 	int deleteChars(int start, int end);
 
-	virtual bool display(int offsetX, int offsetY);
-	virtual bool handleKeypress(Common::Event *event, bool printable = false);
+	virtual bool display(int offsetX, int offsetY) override;
+	virtual bool handleKeypress(Common::Event *event, bool printable = false) override;
 
 	void setCursorChar(const char *character);
 
@@ -52,7 +52,7 @@ public:
 
 	bool loadFile(const char *filename);
 	bool loadBuffer(char *buffer, bool complete = true);
-	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent);
+	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;
 
 	// scripting interface
 	virtual ScValue *scGetProperty(const Common::String &name) override;

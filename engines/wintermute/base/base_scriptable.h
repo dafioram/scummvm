@@ -42,7 +42,7 @@ class ScScript;
 class BaseScriptable : public BaseNamedObject {
 public:
 	virtual ScScript *invokeMethodThread(const char *methodName);
-	DECLARE_PERSISTENT(BaseScriptable, BaseNamedObject)
+	DECLARE_PERSISTENT(BaseScriptable, BaseNamedObject, )
 
 	BaseScriptable(BaseGame *inGame, bool noValue = false, bool persistable = true);
 	virtual ~BaseScriptable();

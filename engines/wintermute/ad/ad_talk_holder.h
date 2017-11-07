@@ -35,7 +35,7 @@ namespace Wintermute {
 
 class AdTalkHolder : public AdObject {
 public:
-	DECLARE_PERSISTENT(AdTalkHolder, AdObject)
+	DECLARE_PERSISTENT(AdTalkHolder, AdObject, override)
 	virtual BaseSprite *getTalkStance(const char *stance);
 	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;
 	BaseSprite *_sprite;

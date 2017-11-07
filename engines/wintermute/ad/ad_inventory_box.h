@@ -39,14 +39,14 @@ class UIWindow;
 class AdInventoryBox : public BaseObject {
 public:
 	bool _hideSelected;
-	DECLARE_PERSISTENT(AdInventoryBox, BaseObject)
+	DECLARE_PERSISTENT(AdInventoryBox, BaseObject, override)
 	bool _visible;
-	virtual bool display();
+	virtual bool display() override;
 	UIButton *_closeButton;
 	int32 _spacing;
 	int32 _scrollOffset;
 	Rect32 _itemsArea;
-	bool listen(BaseScriptHolder *param1, uint32 param2);
+	bool listen(BaseScriptHolder *param1, uint32 param2) override;
 	UIWindow *_window;
 	AdInventoryBox(BaseGame *inGame);
 	virtual ~AdInventoryBox();

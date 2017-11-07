@@ -66,7 +66,7 @@ public:
 	bool createMethodThread(ScScript *original, const Common::String &methodName);
 	ScScript *invokeEventHandler(const Common::String &eventName, bool unbreakable = false);
 	uint32 _timeSlice;
-	DECLARE_PERSISTENT(ScScript, BaseClass)
+	DECLARE_PERSISTENT(ScScript, BaseClass, )
 	void runtimeError(const char *fmt, ...);
 	bool run();
 	bool finish(bool includingThreads = false);

@@ -37,7 +37,7 @@ namespace Wintermute {
 class BasePoint;
 class AdPath : public BaseClass {
 public:
-	DECLARE_PERSISTENT(AdPath, BaseClass)
+	DECLARE_PERSISTENT(AdPath, BaseClass, )
 	BasePoint *getCurrent();
 	bool setReady(bool ready = true);
 	void addPoint(BasePoint *point);

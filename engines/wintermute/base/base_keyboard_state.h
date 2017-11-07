@@ -39,7 +39,7 @@ namespace Wintermute {
 
 class BaseKeyboardState : public BaseScriptable {
 public:
-	DECLARE_PERSISTENT(BaseKeyboardState, BaseScriptable)
+	DECLARE_PERSISTENT(BaseKeyboardState, BaseScriptable, )
 	BaseKeyboardState(BaseGame *inGame);
 	virtual ~BaseKeyboardState();
 	bool readKey(Common::Event *event);

@@ -38,13 +38,13 @@ public:
 	VideoTheoraPlayer *_theora;
 	bool setSprite(const char *filename);
 	void setItem(const char *itemName);
-	DECLARE_PERSISTENT(AdEntity, AdTalkHolder)
+	DECLARE_PERSISTENT(AdEntity, AdTalkHolder, override)
 	void updatePosition();
 	virtual int32 getHeight() override;
 	BaseRegion *_region;
 	virtual bool saveAsText(BaseDynamicBuffer *buffer, int indent) override;
-	virtual bool update();
-	virtual bool display();
+	virtual bool update() override;
+	virtual bool display() override;
 	AdEntity(BaseGame *inGame);
 	virtual ~AdEntity();
 	bool loadFile(const char *filename);

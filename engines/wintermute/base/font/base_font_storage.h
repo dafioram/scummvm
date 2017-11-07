@@ -40,7 +40,7 @@ class BaseFont;
 
 class BaseFontStorage : public BaseClass {
 public:
-	DECLARE_PERSISTENT(BaseFontStorage, BaseClass)
+	DECLARE_PERSISTENT(BaseFontStorage, BaseClass, )
 	bool cleanup(bool warn = false);
 	bool removeFont(BaseFont *font);
 	BaseFont *addFont(const Common::String &filename);

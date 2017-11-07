@@ -42,7 +42,7 @@ public:
 	BaseSprite *getSprite(TDirection dir);
 	bool isInTimeInterval(uint32 time, TDirection dir);
 	bool loadSprite();
-	DECLARE_PERSISTENT(AdTalkNode, BaseClass)
+	DECLARE_PERSISTENT(AdTalkNode, BaseClass, )
 
 	AdTalkNode(BaseGame *inGame);
 	virtual ~AdTalkNode();

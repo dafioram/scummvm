@@ -59,7 +59,7 @@ public:
 	virtual bool resetSoundPan() override;
 	virtual bool updateSounds() override;
 	bool reset();
-	DECLARE_PERSISTENT(AdObject, BaseObject)
+	DECLARE_PERSISTENT(AdObject, BaseObject, override)
 	virtual void talk(const char *text, const char *sound = nullptr, uint32 duration = 0, const char *stances = nullptr, TTextAlign align = TAL_CENTER);
 	virtual int32 getHeight() override;
 

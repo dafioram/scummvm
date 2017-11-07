@@ -40,7 +40,7 @@ public:
 	const char *getContext() const { return _context; }
 	int32 _id;
 
-	DECLARE_PERSISTENT(AdResponseContext, BaseClass)
+	DECLARE_PERSISTENT(AdResponseContext, BaseClass, )
 	AdResponseContext(BaseGame *inGame);
 	virtual ~AdResponseContext();
 private:

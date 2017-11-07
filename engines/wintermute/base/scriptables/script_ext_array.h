@@ -37,7 +37,7 @@ class SXArray : public BaseScriptable {
 public:
 	bool push(ScValue *val);
 	bool validNumber(const char *origStr, char *outStr);
-	DECLARE_PERSISTENT(SXArray, BaseScriptable)
+	DECLARE_PERSISTENT(SXArray, BaseScriptable, )
 	SXArray(BaseGame *inGame, ScStack *stack);
 	SXArray(BaseGame *inGame);
 	virtual ~SXArray();

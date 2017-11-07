@@ -42,7 +42,7 @@ public:
 	bool deactivate();
 	bool display();
 	bool update();
-	DECLARE_PERSISTENT(BaseFader, BaseObject)
+	DECLARE_PERSISTENT(BaseFader, BaseObject, )
 	BaseFader(BaseGame *inGame);
 	virtual ~BaseFader();
 private:
