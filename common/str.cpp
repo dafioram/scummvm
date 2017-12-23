@@ -208,6 +208,7 @@ void String::decRefCount(int *oldRefCount) {
 }
 
 String &String::operator=(const char *str) {
+	assert(str);
 	uint32 len = strlen(str);
 	ensureCapacity(len, false);
 	_size = len;
