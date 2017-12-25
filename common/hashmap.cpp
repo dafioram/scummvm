@@ -30,7 +30,7 @@ namespace Common {
 
 // Hash function for strings, taken from CPython.
 uint hashit(const char *p) {
-	uint hash = *p << 7;
+	uint hash = byte(*p) << 7;
 	byte c;
 	int size = 0;
 	while ((c = *p++)) {
@@ -42,7 +42,7 @@ uint hashit(const char *p) {
 
 // Like hashit, but converts every char to lowercase before hashing.
 uint hashit_lower(const char *p) {
-	uint hash = tolower(*p) << 7;
+	uint hash = byte(tolower(*p)) << 7;
 	byte c;
 	int size = 0;
 	while ((c = *p++)) {
