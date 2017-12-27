@@ -40,13 +40,14 @@ SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
 	_numServerSuspensions(0),
 	_needsUpdate(false),
 	_sample(nullptr),
-	_newChannelVolumes(16, -1),
+	_newChannelVolumes(kNumMappedChannels, -1),
 	_newChannelVolumesIndex(0),
-	_channelList(16, 0xff),
+	_channelList(kNumMappedChannels, 0xff),
 	_outOfRangeChannel(false),
 	_defaultReverbMode(0),
-	_mappedChannels(16),
-	_mappedNodes(16) {
+	_mappedChannels(kNumMappedChannels),
+	_mappedNodes(kNumMappedChannels),
+	_restoringSaveGame(false) {
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32
@@ -75,7 +76,7 @@ SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
 			deviceFlags |= MDT_TOWNS;
 	}
 
-	const uint32 dev = MidiDriver::detectDevice(deviceFlags);
+	const MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(deviceFlags);
 	const MusicType musicType = MidiDriver::getMusicType(dev);
 
 	if (features.useAltWinGMSound() && musicType != MT_GM) {
@@ -92,11 +93,12 @@ SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
 	switch (musicType) {
 	case MT_ADLIB:
 		// FIXME: There's no Amiga sound option, so we hook it up to AdLib
-		if (platform == Common::kPlatformAmiga || platform == Common::kPlatformMacintosh)
+		if (platform == Common::kPlatformAmiga || platform == Common::kPlatformMacintosh) {
 			error("TODO AmigaMac");
 //			_driver.reset(makeAmigaMacDriver(resMan, _soundVersion));
-		else {
-			_driver.reset(makeAdLibDriver(resMan, _soundVersion));
+		} else {
+			// TODO: Wrong!
+			_driver.reset(static_cast<Sci1SoundDriver *>(makeAdLibDriver(resMan, _soundVersion)));
 		}
 		break;
 	case MT_PCJR:
@@ -207,7 +209,7 @@ void SoundManager::soundServer() {
 	}
 
 	updateChannelVolumes();
-	static_cast<Sci1SoundDriver &>(*_driver).service();
+	_driver->service();
 }
 
 void SoundManager::updateChannelList() {
@@ -224,14 +226,14 @@ void SoundManager::updateChannelList() {
 	const ChannelList oldChannelList(_channelList);
 
 	if (_playlist[0]) {
-		int8 low, high;
-		static_cast<Sci1SoundDriver &>(*_driver).getValidChannelRange(low, high);
+		int8 minChannelNo, maxChannelNo;
+		_driver->getValidChannelRange(minChannelNo, maxChannelNo);
 
 		uint8 reverbMode = _playlist[0]->reverbMode;
 		if (reverbMode == kDefaultReverbMode) {
 			reverbMode = _defaultReverbMode;
 		}
-		static_cast<Sci1SoundDriver &>(*_driver).setReverbMode(reverbMode);
+		_driver->setReverbMode(reverbMode);
 
 		MappedChannels oldMappedChannels;
 		int numFreeVoices = _driver->getNumVoices();
@@ -256,13 +258,12 @@ void SoundManager::updateChannelList() {
 			oldMappedChannels = _mappedChannels;
 			const int oldNumFreeVoices = numFreeVoices;
 
-			// macro BackupList
 			// loopDoTracks:
 			int basePriority = 0;
 			for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo, basePriority += 16) {
 				Sci1Sound::Track &track = sound.tracks[trackNo];
-				if (track.channelNo == kEndOfTracks ||
-					track.channelNo == kSampleTrack ||
+				if (track.channelNo == Sci1Sound::Track::kEndOfTracks ||
+					track.channelNo == Sci1Sound::Track::kSampleTrack ||
 					track.channelNo == kControlChannel) {
 
 					continue;
@@ -274,7 +275,7 @@ void SoundManager::updateChannelList() {
 					continue;
 				}
 
-				uint8 key = (i << 4) | track.channelNo;
+				const uint8 key = (i << 4) | track.channelNo;
 
 				uint8 priority = channel.priority;
 				if (priority != 0) {
@@ -290,7 +291,7 @@ void SoundManager::updateChannelList() {
 					for (int channelNo = 0; channelNo < kNumMappedChannels; ++channelNo) {
 						MappedChannel &mappedChannel = _mappedChannels[channelNo];
 						if (mappedChannel.key == MappedChannel::kUnmapped) {
-							if (channelNo >= low && channelNo <= high) {
+							if (channelNo >= minChannelNo && channelNo <= maxChannelNo) {
 								bestRemapIndex = channelNo;
 							}
 						} else if (mappedChannel.key == key) {
@@ -378,6 +379,9 @@ void SoundManager::updateChannelList() {
 				continue;
 			}
 
+			Sci1Sound *sound = _playlist[mc.playlistIndex()];
+			assert(sound);
+
 			if (mc.locked) {
 				// copyBedCh
 				_channelList[channelNo] = mc.key;
@@ -394,15 +398,14 @@ void SoundManager::updateChannelList() {
 				// a direct equality comparison; we do not, so need to mask out
 				// the playlist index here.
 				if (mc.channelNo() == (oldChannelList[channelNo] & 0xf) &&
-					_mappedNodes[channelNo] == _playlist[mc.playlistIndex()].get()) {
+					_mappedNodes[channelNo] == _playlist[mc.playlistIndex()]) {
 					continue;
 				}
 
-				updateChannel1();
+				updateChannel(*sound, sound->channels[mc.channelNo()], channelNo);
 			} else {
 				// noCopyBedCh
-				Sci1Sound *sound = _playlist[mc.playlistIndex()].get();
-				for (int innerChannelNo = low; innerChannelNo < high; ++innerChannelNo) {
+				for (int innerChannelNo = minChannelNo; innerChannelNo < maxChannelNo; ++innerChannelNo) {
 					if (_mappedNodes[innerChannelNo] == sound &&
 						// SSCI stored the old channel list separately premasked
 						// so used a direct equality comparison; we do not, so
@@ -428,7 +431,7 @@ void SoundManager::updateChannelList() {
 			}
 
 			int8 lastOpenChannelNo = -1;
-			for (int j = high; j >= low; --j) {
+			for (int j = maxChannelNo; j >= minChannelNo; --j) {
 				if (_channelList[j] != MappedChannel::kUnmapped) {
 					lastOpenChannelNo = j;
 					break;
@@ -438,8 +441,9 @@ void SoundManager::updateChannelList() {
 
 			_channelList[lastOpenChannelNo] = mc.key;
 
-			Sci1Sound &sound = *_playlist[mc.playlistIndex()];
-			updateChannel2();
+			Sci1Sound *sound = _playlist[mc.playlistIndex()];
+			assert(sound);
+			updateChannel(*sound, sound->channels[mc.channelNo()], lastOpenChannelNo);
 		}
 	} else {
 		// SSCI fills _channelList with 0xFFs here, but this was already just
@@ -448,10 +452,10 @@ void SoundManager::updateChannelList() {
 
 	// cleanupChnls
 	for (int i = kNumMappedChannels - 1; i >= 0; --i) {
-		if ((oldChannelList[i] & 0xf) != 0xf && _channelList[i] == MappedChannel::kUnmapped) {
-			// TODO: damper pedal off
-			// TODO: all notes off
-			// TODO: driver release voices
+		if (oldChannelList[i] != MappedChannel::kUnmapped && _channelList[i] == MappedChannel::kUnmapped) {
+			_driver->controllerChange(i, kDamperPedalController, 0);
+			_driver->controllerChange(i, kAllNotesOffController, 0);
+			_driver->controllerChange(i, kMaxVoicesController, 0);
 		}
 	}
 
@@ -465,55 +469,109 @@ void SoundManager::updateChannelList() {
 			_mappedNodes[i] = nullptr;
 		} else {
 			const int8 playlistIndex = _channelList[i] >> 4;
-			_mappedNodes[i] = _playlist[playlistIndex].get();
+			_mappedNodes[i] = _playlist[playlistIndex];
 		}
 	}
+}
+
+int8 SoundManager::preemptChannel(const int &numFreeVoices) {
+	// 'lowest' is weird here since these priority values are inverted, so the
+	// biggest number is the lowest priority
+	int8 lowestPriority = 0, lowestPriorityChannelNo = kUnknownChannel;
+	for (int i = 0; i < kNumMappedChannels; ++i) {
+		MappedChannel &mc = _mappedChannels[i];
+		if (mc.priority >= lowestPriority) {
+			lowestPriority = mc.priority;
+			lowestPriorityChannelNo = i;
+		}
+	}
+
+	if (lowestPriorityChannelNo != kUnknownChannel) {
+		_mappedChannels[lowestPriorityChannelNo] = MappedChannel();
+	}
+
+	return lowestPriorityChannelNo;
+}
+
+/**
+ * Converts a 16-bit number into two MIDI bytes.
+ */
+static inline void convert16To7(const uint16 word, byte &lsb, byte &msb) {
+	msb = (word >> 7) & ~1;
+	lsb = word & 0xFF;
+	if (lsb & 0x80) {
+		msb |= 1;
+	}
+}
+
+static inline uint16 convert7To16(byte lsb, byte msb) {
+	return (msb << 7) | lsb;
+}
+
+void SoundManager::updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const int8 hwChannelNo) {
+	Sci1SoundDriver &driver = static_cast<Sci1SoundDriver &>(*_driver);
+	driver.controllerChange(hwChannelNo, kAllNotesOffController, 0);
+	driver.controllerChange(hwChannelNo, kMaxVoicesController, channel.polyphony);
+	driver.programChange(hwChannelNo, channel.program);
+	_newChannelVolumes[hwChannelNo] = kNoVolumeChange;
+	driver.controllerChange(hwChannelNo, kVolumeController, channel.volume * sound.volume / kMaxVolume);
+	driver.controllerChange(hwChannelNo, kPanController, channel.pan);
+	driver.controllerChange(hwChannelNo, kModulationController, channel.modulation);
+	driver.controllerChange(hwChannelNo, kDamperPedalController, channel.damperPedalOn ? 127 : 0);
+
+	byte lsb, msb;
+	convert16To7(channel.pitchBend, lsb, msb);
+	driver.pitchBend(hwChannelNo, lsb, msb);
+
+	driver.controllerChange(hwChannelNo, kSingleVoiceNoteController, channel.currentNote);
 }
 
 void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 	_playlistIndex = playlistIndex << 4;
 	++sound.ticksElapsed;
 
-	SciSpan<const byte> base = sound.resource;
+	assert(sound.resource);
+	SciSpan<const byte> base = *sound.resource;
 
 	bool allTracksEnded = false;
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
 		Sci1Sound::Track &track = sound.tracks[trackNo];
-		if (track.channelNo == kEndOfTracks) {
+		if (track.channelNo == Sci1Sound::Track::kEndOfTracks) {
 			allTracksEnded = true;
 			break;
 		}
 
-		if (track.channelNo == kSampleTrack) {
+		if (track.channelNo == Sci1Sound::Track::kSampleTrack) {
 			continue;
 		}
 
 		Sci1Sound::Channel &channel = sound.channels[track.channelNo];
 
-		int8 realChannelNo = kUnknownChannel;
+		int8 hwChannelNo = kUnknownChannel;
+		bool outOfRangeChannel;
 		if (channel.flags & Sci1Sound::kOutOfRange) {
-			realChannelNo = track.channelNo;
-			_outOfRangeChannel = true;
+			outOfRangeChannel = true;
+			hwChannelNo = track.channelNo;
 		} else {
-			_outOfRangeChannel = false;
+			outOfRangeChannel = false;
 			const uint8 key = _playlistIndex | track.channelNo;
-			for (uint i = 0; i < _channelList.size(); ++i) {
+			for (uint i = 0; i < kNumMappedChannels; ++i) {
 				if (_channelList[i] != key) {
 					continue;
 				}
 
-				realChannelNo = i;
+				hwChannelNo = i;
 				break;
 			}
 		}
 
 		// restorePtr
-		// TODO: This cannot go any higher due to _outOfRangeChannel state unless it can be verified that that state does not continue in any way
+		// TODO: Move up to avoid unnecessary calculations
 		if (track.position == 0) {
 			continue;
 		}
 
-		// TODO: In SSCI rest check was after position calculation so it could use track data, since we abstract that maybe it is not needed to have this so low? Same issue with _outOfRangeChannel applies here though
+		// TODO: In SSCI rest check was after position calculation so it could use track data, since we abstract that maybe it is not needed to have this so low? Move up to avoid unnecessary calculations
 		if (track.rest) {
 			--track.rest;
 			if (track.rest == kTimingOverflowFlag) {
@@ -555,28 +613,28 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 			} else {
 				switch (command) {
 				case kNoteOff:
-					noteOff(sound, realChannelNo);
+					sendNoteOff(sound, trackNo, hwChannelNo);
 					break;
 				case kNoteOn:
-					noteOn(sound, realChannelNo);
+					sendNoteOn(sound, trackNo, hwChannelNo);
 					break;
 				case kKeyPressure:
-					keyPressure(sound, realChannelNo);
+					sendKeyPressure(sound, trackNo, hwChannelNo);
 					break;
 				case kControllerChange:
-					controllerChange(sound, realChannelNo);
+					sendControllerChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kProgramChange:
-					programChange(sound, realChannelNo);
+					sendProgramChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kChannelPressure:
-					channelPressure(sound, realChannelNo);
+					sendChannelPressure(sound, trackNo, hwChannelNo);
 					break;
 				case kPitchBend:
-					pitchBend(sound, realChannelNo);
+					sendPitchBend(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kSysEx:
-					sysEx(sound, realChannelNo);
+					sendSysEx(sound, trackNo, hwChannelNo);
 					break;
 				default:
 					warning("Unknown command %u in track %d", command, trackNo);
@@ -598,7 +656,8 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 	}
 
 	if (!allTracksEnded) {
-		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {			Sci1Sound::Track &track = sound.tracks[i];
+		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+			Sci1Sound::Track &track = sound.tracks[i];
 			if (track.position != 0) {
 				// At least one track is still running
 				return;
@@ -620,18 +679,177 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 	}
 }
 
+void SoundManager::sendNoteOff(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+	const int8 note = sound.consume(trackNo);
+	const int8 velocity = sound.consume(trackNo);
+
+	Sci1Sound::Channel &channel = sound.channels[sound.tracks[trackNo].channelNo];
+	if (channel.currentNote == note) {
+		channel.currentNote = kNoCurrentNode;
+	}
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		_driver->noteOff(hwChannelNo & 0xf, note, velocity);
+	}
+}
+
+void SoundManager::sendNoteOn(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+	if (sound.peek(trackNo, 1) == 0) {
+		return sendNoteOff(sound, trackNo, hwChannelNo);
+	}
+
+	const int8 note = sound.consume(trackNo);
+	const int8 velocity = sound.consume(trackNo);
+
+	sound.channels[sound.tracks[trackNo].channelNo].currentNote = note;
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		_driver->noteOn(hwChannelNo & 0xf, note, velocity);
+	}
+}
+
+void SoundManager::sendKeyPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+	const int8 note = sound.consume(trackNo);
+	const int8 pressure = sound.consume(trackNo);
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		_driver->keyPressure(hwChannelNo, note, pressure);
+	}
+}
+
+void SoundManager::sendControllerChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
+	const int8 controllerNo = sound.consume(trackNo);
+	int8 value = sound.consume(trackNo);
+
+	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+
+	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
+		return;
+	}
+
+	Sci1Sound::Channel &channel = sound.channels[sound.tracks[trackNo].channelNo];
+
+	switch (controllerNo) {
+	case kVolumeController:
+		// SSCI treated hwChannelNo as unsigned here so had only a single check
+		if (hwChannelNo < 0 || hwChannelNo >= kNumMappedChannels * 2) {
+			return;
+		}
+
+		// There appears to be a masking error in SSCI where out of range
+		// channels would write out of bounds into the save mute flags (they
+		// used 0xff instead of 0xf); we do not do that, this might cause volume
+		// issues since any pending volumes would have been applied again in
+		// SSCI and won't here.
+		if (hwChannelNo >= kNumMappedChannels) {
+			warning("Out of range volume change applied to channel %d", hwChannelNo);
+		}
+
+		_newChannelVolumes[inRangeChannelNo] = kNoVolumeChange;
+
+		channel.volume = value;
+		value = value * sound.volume / kMaxVolume;
+
+		break;
+	case kPanController:
+		channel.pan = value;
+		break;
+	case kModulationController:
+		channel.modulation = value;
+		break;
+	case kDamperPedalController:
+		channel.damperPedalOn = (value != 0);
+		break;
+	case kMaxVoicesController:
+		_needsUpdate = true;
+		channel.polyphony = value & 0xf;
+		break;
+	case kSingleVoiceNoteController:
+		channel.muted = (value != 0);
+		if (channel.muted) {
+			value = 1;
+		}
+		break;
+	}
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		_driver->controllerChange(inRangeChannelNo, controllerNo, value);
+	}
+}
+
+void SoundManager::sendProgramChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
+	const int8 programNo = sound.consume(trackNo);
+	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+
+	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
+		return;
+	}
+
+	sound.channels[sound.tracks[trackNo].channelNo].program = programNo;
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		_driver->programChange(inRangeChannelNo, programNo);
+	}
+}
+
+void SoundManager::sendChannelPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+	const int8 pressure = sound.consume(trackNo);
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		// In SSCI the channel was not masked here, unlike in other functions
+		_driver->channelPressure(hwChannelNo, pressure);
+	}
+}
+
+void SoundManager::sendPitchBend(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
+	const int8 lsb = sound.consume(trackNo);
+	const int8 msb = sound.consume(trackNo);
+
+	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+
+	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
+		return;
+	}
+
+	sound.channels[sound.tracks[trackNo].channelNo].pitchBend = convert7To16(lsb, msb);
+
+	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+		// In SSCI the channel was not masked here, unlike in other functions
+		_driver->pitchBend(inRangeChannelNo, lsb, msb);
+	}
+}
+
+void SoundManager::sendSysEx(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+	skipCommand(sound, trackNo, kSysEx);
+}
+
+void SoundManager::skipCommand(Sci1Sound &sound, const int8 trackNo, const Command command) {
+	switch (command) {
+	case kSysEx:
+		while (sound.consume(trackNo) != kEndOfSysEx);
+		break;
+	default:
+		sound.advance(trackNo);
+		// fall through
+	case kProgramChange:
+	case kChannelPressure:
+		sound.advance(trackNo);
+		break;
+	}
+}
+
 void SoundManager::updateChannelVolumes() {
 	int8 &channelNo = _newChannelVolumesIndex;
 	const int8 originalChannel = channelNo;
 	int numUpdates = 0;
 	do {
 		int8 &volume = _newChannelVolumes[channelNo];
-		if (volume != -1) {
-			static_cast<Sci1SoundDriver &>(*_driver).controllerChange(channelNo, kVolumeController, volume);
+		if (volume != kNoVolumeChange) {
+			_driver->controllerChange(channelNo, kVolumeController, volume);
 			++numUpdates;
-			volume = -1;
+			volume = kNoVolumeChange;
 		}
-		if (++channelNo == 16) {
+		if (++channelNo == kNumMappedChannels) {
 			channelNo = 0;
 		}
 	} while (numUpdates < 2 && channelNo != originalChannel);

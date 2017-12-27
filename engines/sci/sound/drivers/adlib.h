@@ -61,6 +61,17 @@ public:
 
 	virtual int getNumVoices() const override { return 9; }
 
+	virtual DeviceId getDeviceId() const override {
+		switch (_version) {
+		case SCI_VERSION_0_EARLY:
+			return 1;
+		case SCI_VERSION_0_LATE:
+			return 4;
+		default:
+			return 0;
+		}
+	}
+
 	virtual void service(Sci0Sound &) override {
 		debug("TODO: Service");
 	}
@@ -99,7 +110,7 @@ public:
 
 	virtual int getNumVoices() const override { return 9; }
 
-	virtual SoundDriver::DeviceId getDeviceId() const override { return 0; }
+	virtual DeviceId getDeviceId() const override { return 0; }
 
 	virtual void getValidChannelRange(int8 &low, int8 &high) const override { low = 0; high = 8; }
 
@@ -123,8 +134,8 @@ public:
 		debug("TODO: Channel %d program %d", channelIndex, programNo);
 	}
 
-	virtual void pitchBend(const int8 channelIndex, const int16 pitch) override {
-		debug("TODO: Channel %d pitch %d", channelIndex, pitch);
+	virtual void pitchBend(const int8 channelIndex, const int8 lsb, const int8 msb) override {
+		debug("TODO: Channel %d pitch %d %d", channelIndex, lsb, msb);
 	}
 
 	virtual void keyPressure(const int8 channelIndex, const int8 note, const int8 pressure) override {

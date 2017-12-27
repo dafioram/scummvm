@@ -182,7 +182,7 @@ public:
 	 * Programmatically sets the pitch bend for all notes in a channel. For MIDI
 	 * devices, this is equivalent to a MIDI Pitch Bend Change message.
 	 */
-	virtual void pitchBend(const int8 channelIndex, const int16 pitch) = 0;
+	virtual void pitchBend(const int8 channelIndex, const int8 lsb, const int8 msb) = 0;
 
 	/**
 	 * Sets the aftertouch key pressure for a single note. For MIDI devices,

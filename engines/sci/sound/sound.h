@@ -35,12 +35,12 @@
 namespace Audio { class Mixer; }
 
 namespace Sci {
-class SoundDriver;
+class Sci1SoundDriver;
 
 enum Sci0PlayStrategy {
 	/**
 	 * The caller should synchronously invoke `service` on the driver until
-	 * `signal` is -1.
+	 * `signal` is kFinished.
 	 */
 	kSync = 0,
 
@@ -161,6 +161,14 @@ struct Sci1Sound {
 	Resource *resource;
 
 	struct Track {
+		enum SpecialChannel {
+			/** Track is the end-of-file marker. */
+			kEndOfTracks = -1,
+
+			/** Track contains a digital sample. */
+			kSampleTrack = -2
+		};
+
 		/** The current playback position of the track, in bytes. */
 		uint16 position;
 
@@ -174,7 +182,14 @@ struct Sci1Sound {
 		/** TODO: The currently active operation?? for the track? */
 		int8 command;
 
-		/** TODO: The channel for the track. -1 if track is unused, -2 if track is a digital sample. */
+		/**
+		 * The channel for the track, with extra bits used for properties.
+		 * The bit layout is:
+		 * 0-3 channel number
+		 * 4   out of range
+		 * 5   locked
+		 * 6   muted
+		 */
 		int8 channelNo;
 
 		/** The position of the start of the current sound loop, in bytes. */
@@ -188,8 +203,15 @@ struct Sci1Sound {
 	} tracks[kNumTracks];
 
 	struct Channel {
-		/** MIDI pitch bend value, L 0 C 16384 H 32639. */
-		uint32 pitchBend;
+		// NOTE: In SSCI, damper pedal state & pitch bend are packed into a
+		// single word where the pitch bend is mask 0x7f7f and the damper pedal
+		// flag is mask 0x8000.
+
+		/** Whether or not the damper pedal is on. */
+		bool damperPedalOn;
+
+		/** MIDI pitch bend value. */
+		int16 pitchBend;
 
 		// NOTE: In SSCI, polyphony & priority are packed into a single byte,
 		// with priority in the high 4 bits and polyphony in the low 4 bits.
@@ -338,9 +360,9 @@ struct Sci1Sound {
 	 */
 	bool isSample;
 
-	byte peek(const int8 trackNo) {
+	byte peek(const int8 trackNo, const int8 extra = 0) {
 		const uint16 trackOffset = resource->getUint16LEAt(trackNo * sizeof(uint16));
-		return resource->getUint8At(trackOffset + tracks[trackNo].position);
+		return resource->getUint8At(trackOffset + tracks[trackNo].position + extra);
 	}
 
 	byte consume(const int8 trackNo) {
@@ -379,7 +401,7 @@ private:
 	/**
 	 * The sound driver.
 	 */
-	Common::ScopedPtr<SoundDriver> _driver;
+	Common::ScopedPtr<Sci1SoundDriver> _driver;
 
 #pragma mark -
 #pragma mark MIDI server
@@ -397,18 +419,14 @@ private:
 	}
 
 	void soundServer();
-	void updateChannelList();
 	void fadeSound(Sci1Sound &sound);
 	// TODO: was parseNode
 	void parseNextNode(Sci1Sound &sound, const int8 playlistIndex);
+
 	void updateChannelVolumes();
 
-	enum {
-		kPlaylistSize = 16
-	};
-
-	// TODO: Can this be merged with _sounds?
-	Common::ScopedPtr<Sci1Sound> _playlist[kPlaylistSize];
+	// TODO: was doChannelList
+	void updateChannelList();
 
 	// TODO: was playPos
 	// TODO: Don't use state to retain temporaries like this,
@@ -416,17 +434,19 @@ private:
 	// playlist index in upper 4 bits, lower 4 bits unused.
 	uint8 _playlistIndex;
 	// TODO: was ghostChnl
+	// TODO: Checked only in PitchBend, Controller, ProgramChange
 	bool _outOfRangeChannel;
-
-	enum {
-		kEndOfTracks = -1,
-		kSampleTrack = -2
-	};
 
 	enum {
 		kUnknownChannel = -1,
 		kControlChannel = 15,
+
+		// TODO: used for rest/delay
 		kTimingOverflowFlag = 0x8000
+	};
+
+	enum {
+		kNoCurrentNode = -1
 	};
 
 	enum Message {
@@ -443,11 +463,24 @@ private:
 		kProgramChange = 0xc0,
 		kChannelPressure = 0xd0,
 		kPitchBend = 0xe0,
-		kSysEx = 0xf0
+		kSysEx = 0xf0,
+
+		kEndOfSysEx = 0xf7
 	};
 
-	enum ControllerId {
-		kVolumeController = 7
+	enum Controller {
+		kModulationController = 1,
+		kVolumeController = 7,
+		kPanController = 10,
+		kDamperPedalController = 64,
+		kMaxVoicesController = 75,
+		kSingleVoiceNoteController = 78,
+		kAllNotesOffController = 123
+	};
+
+	enum {
+		kPlaylistSize = 16,
+		kNumMappedChannels = 16
 	};
 
 	// TODO: was sampleList, appears totally broken in SCI1.1+ so unclear what
@@ -457,19 +490,18 @@ private:
 	// pointer is to a Sci1Sound object.
 	Sci1Sound *_sample;
 
+	Sci1Sound *_playlist[kPlaylistSize];
+
 	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
 	typedef Common::Array<uint8> ChannelList;
 
 	// TODO: was chList
-	// Channel position in _playlist in upper 4 bits, channel number in lower 4 bits.
+	// Index maps to mappedChannels. Original channel's position in _playlist in
+	// upper 4 bits, original channel number in lower 4 bits.
 	ChannelList _channelList;
 
-	enum {
-		kNumMappedChannels = 16
-	};
-
 	// TODO: Not sure if this is the right name for this thing. Maybe
-	// PhysicalChannel or OutputChannel instead?
+	// PhysicalChannel or OutputChannel or HardwareChannel instead?
 	struct MappedChannel {
 		enum {
 			kUnmapped = 0xFF
@@ -519,6 +551,10 @@ private:
 	typedef Common::Array<Sci1Sound *> MappedNodes;
 	MappedNodes _mappedNodes;
 
+	enum {
+		kNoVolumeChange = -1
+	};
+
 	/**
 	 * A list of new volume changes per channel.
 	 */
@@ -527,18 +563,42 @@ private:
 	// TODO: was requestChnl
 	int8 _newChannelVolumesIndex;
 
+	// TODO: was updateChannel1 & 2 (identical)
+	void updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const int8 hwChannelNo);
+
+	// TODO: was preemptChn1 & 2 (identical)
+	int8 preemptChannel(const int &numFreeVoices);
+
+	// TODO: was controlChnl
+	void parseControlChannel(Sci1Sound &sound);
+
+	void sendNoteOff(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
+	void sendNoteOn(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
+	void sendKeyPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
+	void sendControllerChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
+	void sendProgramChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
+	void sendChannelPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
+	void sendPitchBend(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
+	void sendSysEx(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
+	void skipCommand(Sci1Sound &sound, const int8 trackNo, const Command command);
+
+	// TODO: was DoEnd
+	void finishSound(Sci1Sound &sound);
+
 	/**
 	 * The number of times the sound server has been suspended.
 	 */
 	int _numServerSuspensions;
 
 	enum {
-		kDefaultReverbMode = 127
+		kDefaultReverbMode = 127,
+		kMaxVolume = 127
 	};
 
 	uint8 _defaultReverbMode;
 
 	bool _needsUpdate;
+	bool _restoringSaveGame;
 
 #pragma mark -
 #pragma mark Kernel
