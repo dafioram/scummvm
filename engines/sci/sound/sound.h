@@ -24,6 +24,7 @@
 #define SCI_SOUND_SOUND_H
 
 #include "common/array.h"
+#include "common/mutex.h"
 #include "common/ptr.h"
 #include "common/serializer.h"
 #include "common/scummsys.h"
@@ -34,6 +35,7 @@
 namespace Audio { class Mixer; }
 
 namespace Sci {
+class SoundDriver;
 
 enum Sci0PlayStrategy {
 	/**
@@ -101,14 +103,21 @@ struct Sci0Sound {
 /**
  * A representation of the current state of a sound in SCI1+.
  */
-struct SciSound {
+struct Sci1Sound {
 	enum {
 		kNumTracks = 16,
 		kNumChannels = 15
 	};
 
 	enum ChannelFlags {
-		/** TODO: Channel cannot be preempted? */
+		/**
+		 * Normal channel.
+		 */
+		kNoFlags = 0,
+
+		/**
+		 * Channel cannot be preempted or mapped to a different output channel.
+		 */
 		kLocked = 1,
 
 		/**
@@ -151,33 +160,34 @@ struct SciSound {
 	 */
 	Resource *resource;
 
-	struct {
-		/** The current playback position, in bytes. */
-		uint32 position;
+	struct Track {
+		/** The current playback position of the track, in bytes. */
+		uint16 position;
 
 		/**
 		 * TODO: Something to do with delaying for N ticks to avoid polyphony
 		 * overflow?
+		 * TODO: Rename to 'delay'
 		 */
-		uint32 rest;
+		uint16 rest;
 
 		/** TODO: The currently active operation?? for the track? */
 		int8 command;
 
-		/** TODO: The currently active channel for the track? */
+		/** TODO: The channel for the track. -1 if track is unused, -2 if track is a digital sample. */
 		int8 channelNo;
 
 		/** The position of the start of the current sound loop, in bytes. */
-		uint32 loopPosition;
+		uint16 loopPosition;
 
 		/** The state of `rest` at the loop point. */
-		uint32 loopRest;
+		uint16 loopRest;
 
 		/** The state of `command` at the loop point. */
 		int8 loopCommand;
 	} tracks[kNumTracks];
 
-	struct {
+	struct Channel {
 		/** MIDI pitch bend value, L 0 C 16384 H 32639. */
 		uint32 pitchBend;
 
@@ -262,11 +272,11 @@ struct SciSound {
 	bool fixedPriority;
 
 	/**
-	 * The priority of this sound. Sounds with higher values are placed in the
-	 * playback queue ahead of other sounds and will preempt playback of sounds
-	 * with lower priorities.
+	 * The priority of this sound (0-15). Sounds with higher values are placed
+	 * in the playback queue ahead of other sounds and will preempt playback of
+	 * sounds with lower priorities.
 	 */
-	uint8 priority;
+	int8 priority;
 
 	/**
 	 * If true, the sound will loop at the (TODO: nearest?) loop point.
@@ -327,227 +337,212 @@ struct SciSound {
 	 * through Audio/Audio32. Added around SCI1.1?
 	 */
 	bool isSample;
-};
 
-/**
- * Common Sound driver interface for all SCI revisions.
- */
-class SoundDriver {
-public:
-	SoundDriver(Resource *patch) : _patch(patch) {}
+	byte peek(const int8 trackNo) {
+		const uint16 trackOffset = resource->getUint16LEAt(trackNo * sizeof(uint16));
+		return resource->getUint8At(trackOffset + tracks[trackNo].position);
+	}
 
-	virtual ~SoundDriver() {}
+	byte consume(const int8 trackNo) {
+		const byte message = peek(trackNo);
+		++tracks[trackNo].position;
+		return message;
+	}
 
-	/**
-	 * Returns the resource number for the patch resource for this driver.
-	 */
-	virtual int getPatchNumber() const = 0;
-
-	/**
-	 * Returns the number of simultaneous voices this driver supports.
-	 */
-	virtual int getNumVoices() const = 0;
-
-	/**
-	 * Returns the number of digital audio converters this driver supports.
-	 */
-	virtual int getNumDacs() const = 0;
-
-protected:
-	/**
-	 * An optional Patch resource for the driver.
-	 */
-	Resource *_patch;
-};
-
-/**
- * Sound driver interface for SCI0.
- */
-class Sci0SoundDriver : public SoundDriver {
-public:
-	// ops (offsets):
-	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
-	// 2 - init device (constructor)
-	// 4 - shutdown device (destructor)
-	// 6 - start sound
-	// 8 - advance playback
-	// 10 - set volume
-	// 12 - fade sound
-	// 14 - stop sound
-	// 16 - pause sound
-	// 18 - restore sound
-
-	/**
-	 * Advances sound playback. The given object will be updated with
-	 * information about the new playback state of the driver, if it was time
-	 * to advance playback. This should be called at least once per tick.
-	 */
-	virtual void service(Sci0Sound &) = 0;
-
-	/**
-	 * Begins playback of the sound in the given object.
-	 */
-	virtual Sci0PlayStrategy play(Sci0Sound &) = 0;
-
-	/**
-	 * Fade out the sound using the volume in the given Sci0Sound object.
-	 */
-	virtual void fade(Sci0Sound &) = 0;
-
-	/**
-	 * Stops playback.
-	 */
-	virtual void stop(Sci0Sound &) = 0;
-
-	/**
-	 * Pauses playback.
-	 */
-	virtual void pause(Sci0Sound &) = 0;
-
-	/**
-	 * Restores the driver's playback state to match the given object.
-	 */
-	virtual void restore(Sci0Sound &) = 0;
-
-	/**
-	 * Updates the master volume of the driver from the volume in the given
-	 * object.
-	 */
-	virtual void setMasterVolume(Sci0Sound &) = 0;
-};
-
-/**
- * Sound driver interface for SCI1+.
- */
-class Sci1SoundDriver : public SoundDriver {
-public:
-	// ops:
-	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
-	// 1 - init device (constructor)
-	// 2 - shutdown device (destructor)
-	// 3 - service driver
-	// 4 - note off
-	// 5 - note on
-	// 6 - poly aftertouch/pressure
-	// 7 - controller change
-	// 8 - program/patch change
-	// 9 - channel aftertouch/pressure
-	// 10 - pitch bend
-	// 11 - get/set reverb
-	// 12 - get/set global volume
-	// 13 - get/set sound on/off
-	// 14 - play sample
-	// 15 - stop sample
-	// 16 - TODO get sample position or sample state or seek sample?
-	// 17 - unused
-
-	/**
-	 * Services the driver. This should be called once per tick.
-	 */
-	virtual void service() = 0;
-
-	/**
-	 * Programmatically starts playback of a note. For MIDI devices, this is
-	 * equivalent to a MIDI Note On message.
-	 */
-	virtual void noteOn(const int8 channelIndex, const int8 note, const int8 velocity) = 0;
-
-	/**
-	 * Programmatically stops playback of a note. For MIDI devices, this is
-	 * equivalent to a MIDI Note Off message.
-	 */
-	virtual void noteOff(const int8 channelIndex, const int8 note, const int8 velocity) = 0;
-
-	/**
-	 * Sets the value of a MIDI controller to the given value. For MIDI devices,
-	 * this is equivalent to a MIDI Control Change message.
-	 */
-	virtual void controllerChange(const int8 channelIndex, const int8 controllerNo, const int8 value) = 0;
-
-	/**
-	 * Programmatically sets the program (patch/instrument) for the given
-	 * channel to the given program number. For MIDI devices, this is equivalent
-	 * to a MIDI Program Change message.
-	 */
-	virtual void programChange(const int8 channelIndex, const int8 programNo) = 0;
-
-	/**
-	 * Programmatically sets the pitch bend for all notes in a channel. For MIDI
-	 * devices, this is equivalent to a MIDI Pitch Bend Change message.
-	 */
-	virtual void pitchBend(const int8 channelIndex, const int16 pitch) = 0;
-
-	/**
-	 * Sets the aftertouch key pressure for a single note. For MIDI devices,
-	 * this is equivalent to a MIDI Polyphonic Key Pressure message.
-	 * TODO: was polyAfterTch
-	 */
-	virtual void keyPressure(const int8 channelIndex, const int8 note, const int8 pressure) = 0;
-
-	/**
-	 * Programmatically sets the aftertouch pressure for all notes in a channel.
-	 * For MIDI devices, this is equivalent to a MIDI Channel Pressure message.
-	 * TODO: was chnlAfterTch
-	 */
-	virtual void channelPressure(const int8 channelIndex, const int8 pressure) = 0;
-
-	// In SSCI, these two functions were one SetReverb function, where sending
-	// mode 0xFF would return the current reverb mode without changing anything.
-
-	/**
-	 * Gets the currently active reverb mode for the driver.
-	 */
-	virtual uint8 getReverbMode() = 0;
-
-	/**
-	 * Sets a new reverb mode for the driver and returns the previous mode.
-	 */
-	virtual uint8 setReverbMode(const uint8 mode) = 0;
-
-	// In SSCI, these two functions were one MasterVol function, where sending
-	// volume 0xFF would return the current volume without changing anything.
-
-	/**
-	 * Gets the master volume (0-15).
-	 */
-	virtual int8 getMasterVolume() = 0;
-
-	/**
-	 * Sets the master volume and returns the previous volume.
-	 */
-	virtual int8 setMasterVolume(const int8 volume) = 0;
-
-	// In SSCI, these two functions were one SoundOn function, where sending
-	// 0xFF would return the current state without changing anything.
-
-	/**
-	 * Gets whether or not sound playback is enabled.
-	 */
-	virtual bool isEnabled() = 0;
-
-	/**
-	 * Enables or disables sound playback. The previous state is returned.
-	 */
-	virtual bool enable(const bool enable) = 0;
-
-	// TODO: There are three additional APIs for digital sample playback which
-	// are used by at least Amiga/Mac.
+	void advance(const int8 trackNo) {
+		++tracks[trackNo].position;
+	}
 };
 
 class SoundManager : public Common::Serializable {
 public:
 	SoundManager(ResourceManager &resMan, GameFeatures &features);
+	~SoundManager();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
 private:
 	Audio::Mixer &_mixer;
 	ResourceManager &_resMan;
-	Common::Array<SciSound> _sounds;
-	Common::ScopedPtr<SoundDriver> _driver;
+	Common::Mutex _mutex;
+
+	/**
+	 * The list of currently playing & queued sounds.
+	 */
+	Common::Array<Sci1Sound> _sounds;
+
+	/**
+	 * The version of the sound code.
+	 */
 	SciVersion _soundVersion;
 
-	int8 _defaultReverb;
+	/**
+	 * The sound driver.
+	 */
+	Common::ScopedPtr<SoundDriver> _driver;
+
+#pragma mark -
+#pragma mark MIDI server
+// TODO: Split to SCI0 server and SCI1 server?
+public:
+	/**
+	 * Enables and disables the sound server. This method uses a counter so
+	 * requires a symmetric number of enable and disable calls.
+	 */
+	void enableSoundServer(const bool enable);
+
+private:
+	static inline void soundServerCallback(void *soundManager) {
+		static_cast<SoundManager *>(soundManager)->soundServer();
+	}
+
+	void soundServer();
+	void updateChannelList();
+	void fadeSound(Sci1Sound &sound);
+	// TODO: was parseNode
+	void parseNextNode(Sci1Sound &sound, const int8 playlistIndex);
+	void updateChannelVolumes();
+
+	enum {
+		kPlaylistSize = 16
+	};
+
+	// TODO: Can this be merged with _sounds?
+	Common::ScopedPtr<Sci1Sound> _playlist[kPlaylistSize];
+
+	// TODO: was playPos
+	// TODO: Don't use state to retain temporaries like this,
+	// pass as a parameter.
+	// playlist index in upper 4 bits, lower 4 bits unused.
+	uint8 _playlistIndex;
+	// TODO: was ghostChnl
+	bool _outOfRangeChannel;
+
+	enum {
+		kEndOfTracks = -1,
+		kSampleTrack = -2
+	};
+
+	enum {
+		kUnknownChannel = -1,
+		kControlChannel = 15,
+		kTimingOverflowFlag = 0x8000
+	};
+
+	enum Message {
+		kCommandFlag = 0x80,
+		kTimingOverflow = 0xf8,
+		kEndOfTrack = 0xfc
+	};
+
+	enum Command {
+		kNoteOff = 0x80,
+		kNoteOn = 0x90,
+		kKeyPressure = 0xa0,
+		kControllerChange = 0xb0,
+		kProgramChange = 0xc0,
+		kChannelPressure = 0xd0,
+		kPitchBend = 0xe0,
+		kSysEx = 0xf0
+	};
+
+	enum ControllerId {
+		kVolumeController = 7
+	};
+
+	// TODO: was sampleList, appears totally broken in SCI1.1+ so unclear what
+	// to do about it. In SSCI this is a 16-dword array, but the code uses it
+	// to hold a pointer in _samples[0], or an offset in the first word of
+	// _samples[0] and segment segment the first word of _samples[2]. The
+	// pointer is to a Sci1Sound object.
+	Sci1Sound *_sample;
+
+	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
+	typedef Common::Array<uint8> ChannelList;
+
+	// TODO: was chList
+	// Channel position in _playlist in upper 4 bits, channel number in lower 4 bits.
+	ChannelList _channelList;
+
+	enum {
+		kNumMappedChannels = 16
+	};
+
+	// TODO: Not sure if this is the right name for this thing. Maybe
+	// PhysicalChannel or OutputChannel instead?
+	struct MappedChannel {
+		enum {
+			kUnmapped = 0xFF
+		};
+
+		/**
+		 * The key (playlist index << 4 | channel number) for this channel
+		 * remapping.
+		 * TODO: was ChNew
+		 */
+		uint8 key;
+
+		/**
+		 * The global priority (sound priority * channel priority) of the mapped
+		 * channel (0-240).
+		 * TODO: was ChPri
+		 */
+		uint8 priority;
+
+		/**
+		 * Number of voices used by the channel.
+		 * TODO: was ChVoice
+		 */
+		int8 numVoices;
+
+		/**
+		 * TODO: was ChBed
+		 */
+		bool locked;
+
+		MappedChannel() :
+			key(kUnmapped),
+			priority(0),
+			numVoices(0),
+			locked(false) {}
+
+		inline int8 playlistIndex() const { return key >> 4; }
+		inline void playlistIndex(const int8 index) { key = (index << 4) | (key & 0xf); }
+		inline int8 channelNo() const { return key & 0xf; }
+		inline void channelNo(const int8 number) { key = (key & 0xf0) | number; }
+	};
+
+	// TODO: Combine these next two things with Playlist?
+	typedef Common::Array<MappedChannel> MappedChannels;
+	MappedChannels _mappedChannels;
+
+	typedef Common::Array<Sci1Sound *> MappedNodes;
+	MappedNodes _mappedNodes;
+
+	/**
+	 * A list of new volume changes per channel.
+	 */
+	Common::Array<int8> _newChannelVolumes;
+
+	// TODO: was requestChnl
+	int8 _newChannelVolumesIndex;
+
+	/**
+	 * The number of times the sound server has been suspended.
+	 */
+	int _numServerSuspensions;
+
+	enum {
+		kDefaultReverbMode = 127
+	};
+
+	uint8 _defaultReverbMode;
+
+	bool _needsUpdate;
+
+#pragma mark -
+#pragma mark Kernel
+public:
 };
 
 } // End of namespace Sci
