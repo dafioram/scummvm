@@ -109,61 +109,57 @@ struct Sci1Sound {
 		kNumChannels = 15
 	};
 
-	enum ChannelFlags {
-		/**
-		 * Normal channel.
-		 */
-		kNoFlags = 0,
-
-		/**
-		 * Channel cannot be preempted or mapped to a different output channel.
-		 */
-		kLocked = 1,
-
-		/**
-		 * The channel is outside the range representable on a single MIDI port
-		 * (>15).
-		 */
-		kOutOfRange = 2
-	};
-
+	/**
+	 * Sound signals for engine events.
+	 */
 	enum Signal {
 		/** No event. */
 		kNoSignal = 0,
 
-		/** A fade has finished. */
+		/** The fade has finished. */
 		kFadeFinished = 0xfe,
 
-		/** The sound has finished playback. */
+		/** The sound has finished. */
 		kFinished = 0xff
 	};
 
+	/**
+	 * The sound playback state.
+	 */
 	enum State {
-		/** No sound is playing. */
-		kNoSound = 0,
-
-		/** A normal sound created by `play` is playing. */
-		kNormalSound = 1,
+		/**
+		 * The sound is not playing.
+		 */
+		kStopped = 0,
 
 		/**
-		 * A sound created by `playBed` is playing. These differ from normal
-		 * sounds by (1) allowing all channels, (2) having channels which
-		 * are directly mapped onto the MIDI device instead of being dynamically
-		 * allocated by the MIDI system, and (3) may not be preempted by another
-		 * sound. TODO: No longer used by around SCI1mid?
+		 * The sound is playing.
 		 */
-		kBedSound = 2
+		kPlaying = 1,
+
+		/**
+		 * A sound created by `playBed` is playing.
+		 *
+		 * Sounds played back normally have 15 instrument channels plus a
+		 * control channel, and the instrument channels are dynamically remapped
+		 * to hardware channels algorithmically.
+		 *
+		 * Sounds played back exclusively with `playBed` instead use a 1:1
+		 * mapping from sound channel to hardware channel, so offer 15
+		 * instrument channels plus a percussion channel instead. They also may
+		 * not be preempted by other sounds with higher priorities.
+		 */
+		kExclusive = 2
 	};
 
 	/**
-	 * The raw Sound resource being played.
+	 * The Sound's resource.
 	 */
 	Resource *resource;
 
-	enum {
-		kNoCurrentNote = 0xff
-	};
-
+	/**
+	 * A MIDI data stream.
+	 */
 	struct Track {
 		enum SpecialChannel {
 			/** Track is at the end of sound data. */
@@ -173,38 +169,44 @@ struct Sci1Sound {
 			kSampleTrack = 0xfe
 		};
 
-		/** The current playback position of the track, in bytes. */
+		/**
+		 * The current playback position of the track, in bytes.
+		 */
 		uint16 position;
 
 		/**
-		 * TODO: Something to do with delaying for N ticks to avoid polyphony
-		 * overflow?
+		 * The number of ticks to wait until processing the next message in the
+		 * track. The high bit, when set, indicates that a fixed amount of time
+		 * (4 seconds) was held from a single delay message.
 		 * TODO: Rename to 'delay'
 		 */
 		uint16 rest;
 
-		/** TODO: The currently active operation?? for the track? */
+		/**
+		 * The last received command in the high 4 bits, the channel for the
+		 * command in the low 4 bits.
+		 * @see `SoundManager::Command`
+		 */
 		uint8 command;
 
 		/**
-		 * The channel for the track, with extra bits used for properties.
-		 * The bit layout is:
-		 * 0-3 channel number
-		 * 4   out of range
-		 * 5   locked
-		 * 6   muted
-		 * TODO: Are these bits actually persisted into here? Other code like
-		 * processVolumeChange does not mask off the high bits.
+		 * The sound channel for this track (0-15).
 		 */
 		uint8 channelNo;
 
-		/** The position of the start of the current sound loop, in bytes. */
+		/**
+		 * The state of `position` at the start point of the current loop.
+		 */
 		uint16 loopPosition;
 
-		/** The state of `rest` at the loop point. */
+		/**
+		 * The state of `rest` at the start point of the current loop.
+		 */
 		uint16 loopRest;
 
-		/** The state of `command` at the loop point. */
+		/**
+		 * The state of `command` at the start point of the current loop.
+		 */
 		uint8 loopCommand;
 
 		Track() :
@@ -217,44 +219,102 @@ struct Sci1Sound {
 			loopCommand(0) {}
 	} tracks[kNumTracks];
 
+	/**
+	 * A logical MIDI channel.
+	 */
 	struct Channel {
+		/**
+		 * Flags representing different channel output configurations.
+		 */
+		enum ChannelFlags {
+			/**
+			 * The channel will follow the normal rules for mapping and
+			 * preemption.
+			 */
+			kNoFlags = 0,
+
+			/**
+			 * The channel cannot be preempted or mapped to a different output
+			 * channel.
+			 */
+			kLocked = 1,
+
+			/**
+			 * The channel is played directly to the same-numbered output
+			 * channel, but only when no other logical channel has been remapped
+			 * onto the same output channel.
+			 * TODO: Rename
+			 */
+			kExtra = 2
+		};
+
+		enum {
+			kNoCurrentNote = 0xff,
+			kUninitialized = 0xff
+		};
+
 		// NOTE: In SSCI, damper pedal state & pitch bend are packed into a
 		// single word where the pitch bend is mask 0x7f7f and the damper pedal
 		// flag is mask 0x8000.
 
-		/** Whether or not the damper pedal is on. */
+		/**
+		 * Whether or not the damper pedal is on.
+		 */
 		bool damperPedalOn;
 
-		/** MIDI pitch bend value. */
+		/**
+		 * The current pitch bend for the channel, where 0x2000 is no bend.
+		 * This value is held here as a single 14-bit number, not two 7-bit
+		 * bytes.
+		 */
 		uint16 pitchBend;
 
 		// NOTE: In SSCI, polyphony & priority are packed into a single byte,
 		// with priority in the high 4 bits and polyphony in the low 4 bits.
 
-		/** Number of voices, 0-15. */
-		uint8 polyphony;
+		/**
+		 * The maximum number of voices used by this channel, 0-15.
+		 */
+		uint8 numVoices;
 
-		/** Priority of the channel, 0-15. */
+		/**
+		 * The priority of the channel, 0-15, where larger numbers represent
+		 * lower priority. Channels with a priority of 0 cannot be preempted.
+		 * This is combined with the Sound's priority to generate a global
+		 * channel priority list for the entire playlist.
+		 */
 		uint8 priority;
 
-		/** MIDI amount of modulation. */
+		/**
+		 * The level of vibrato applied to the channel.
+		 */
 		uint8 modulation;
 
-		/** MIDI pan, L 0 C 64 R 127. */
+		/**
+		 * The stereo pan of the channel, L 0 C 64 R 127.
+		 */
 		uint8 pan;
 
-		/** MIDI volume, 0-127. */
+		/**
+		 * The volume of the channel, 0-127. This is combined with the Sound
+		 * volume to generate a final output volume.
+		 */
 		uint8 volume;
 
-		/** MIDI program, 0-127. */
+		/**
+		 * The currently selected program (instrument) for the channel, 0-127.
+		 */
 		uint8 program;
 
 		/**
 		 * The currently playing note for this channel, 0-127. If no note is
-		 * played, the value is 0xff.
+		 * playing, the value is `kNoCurrentNote`.
 		 */
 		uint8 currentNote;
 
+		/**
+		 * Output configuration flags for the channel.
+		 */
 		ChannelFlags flags;
 
 		// NOTE: In SSCI, game mute & sound mute are packed into a single
@@ -262,23 +322,25 @@ struct Sci1Sound {
 		// 4 bits.
 
 		/**
-		 * Number of times the channel was programmatically muted.
+		 * The number of times the channel was programmatically muted.
 		 * TODO: Removed around mid-SCI1.1?
 		 */
 		uint8 gameMuteCount;
 
-		/** Whether or not the channel was muted by the Sound resource itself. */
+		/**
+		 * Whether or not the channel was muted by the Sound resource itself.
+		 */
 		bool muted;
 
 		Channel() :
 			damperPedalOn(false),
 			pitchBend(0x2000),
-			polyphony(0xf),
-			priority(0xf),
+			numVoices(kUninitialized),
+			priority(kUninitialized),
 			modulation(0),
-			pan(0xff),
-			volume(0xff),
-			program(0xff),
+			pan(kUninitialized),
+			volume(kUninitialized),
+			program(kUninitialized),
 			currentNote(kNoCurrentNote),
 			flags(kNoFlags),
 			gameMuteCount(0),
@@ -286,41 +348,43 @@ struct Sci1Sound {
 	} channels[kNumChannels];
 
 	/**
-	 * Data increment cue value.
+	 * A cue value which increments by one whenever a cue controller message is
+	 * encountered in the control channel.
 	 * TODO: was dataInc
 	 */
 	uint16 cue;
 
 	/**
-	 * Current playback position in ticks.
+	 * The current playback position, in ticks.
 	 * TODO: was timer/ticker
 	 */
 	uint16 ticksElapsed;
 
 	/**
-	 * The state of `ticksElapsed` at the loop point.
+	 * The state of `ticksElapsed` at the last loop point.
 	 * TODO: was loopTime
 	 */
 	uint16 loopTicksElapsed;
 
 	/**
-	 * A signal representing playback state.
+	 * The last playback event that occurred. These values may be generated by
+	 * the engine itself or received in the sound's control channel.
 	 */
 	Signal signal;
 
 	/**
-	 * A value representing the type of sound playing back.
+	 * The current playback state of the sound.
 	 */
 	State state;
 
 	/**
-	 * TODO: Hold point for the end of a loop.
+	 * If non-zero, sound playback will be stopped once the hold point matching
+	 * the given value is reached in the control channel.
 	 */
 	uint8 holdPoint;
 
 	/**
-	 * If true, the value in `priority` overrides the priority given in the
-	 * Sound resource.
+	 * If true, any priority value given in the sound data will be ignored.
 	 * @see `ScreenItem::_fixedPriority`
 	 */
 	bool fixedPriority;
@@ -328,22 +392,25 @@ struct Sci1Sound {
 	/**
 	 * The priority of this sound (0-15). Sounds with higher values are placed
 	 * in the playback queue ahead of other sounds and will preempt playback of
-	 * sounds with lower priorities.
+	 * sounds with lower priorities. This is combined with Channel priorities to
+	 * generate a global channel priority list for the entire playlist.
 	 */
 	uint8 priority;
 
 	/**
-	 * If true, the sound will loop at the (TODO: nearest?) loop point.
+	 * If true, the sound will loop at the last point given by a `kSetLoop`
+	 * message in the sound's control channel.
 	 */
 	bool loop;
 
 	/**
-	 * The MIDI volume of the sound (0-127).
+	 * The overall volume of the sound (0-127). This is combined with Channel
+	 * volumes to generate a final output volume for each channel.
 	 */
 	uint8 volume;
 
 	/**
-	 * The reverb mode.
+	 * The reverb mode (0-10).
 	 */
 	uint8 reverbMode;
 
@@ -388,23 +455,32 @@ struct Sci1Sound {
 	uint8 paused;
 
 	/**
-	 * If true, this sound is actually a digital sample which should be played
+	 * If true, the sound is actually a digital sample which should be played
 	 * through Audio/Audio32. TODO: Added around SCI1.1?
 	 */
 	bool isSample;
 
-	byte peek(const uint8 trackNo, const uint8 extra = 0) {
+	/**
+	 * Peeks at a byte of the data stream for the given track.
+	 */
+	inline byte peek(const uint8 trackNo, const uint8 extra = 0) {
 		const uint16 trackOffset = resource->getUint16LEAt(trackNo * sizeof(uint16));
 		return resource->getUint8At(trackOffset + tracks[trackNo].position + extra);
 	}
 
-	byte consume(const uint8 trackNo) {
+	/**
+	 * Consumes the next byte of the data stream for the given track.
+	 */
+	inline byte consume(const uint8 trackNo) {
 		const byte message = peek(trackNo);
 		++tracks[trackNo].position;
 		return message;
 	}
 
-	void advance(const uint8 trackNo) {
+	/**
+	 * Advances the data stream for the given track by one byte.
+	 */
+	inline void advance(const uint8 trackNo) {
 		++tracks[trackNo].position;
 	}
 };
@@ -416,10 +492,26 @@ public:
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
+	/**
+	 * Returns the preferred resource type for the given sound resource.
+	 */
+	ResourceType getSoundResourceType(const uint16 resourceNo) const {
+		if (_preferSampledSounds && _resMan.testResource(ResourceId(kResourceTypeAudio, resourceNo))) {
+			return kResourceTypeAudio;
+		} else {
+			return kResourceTypeSound;
+		}
+	}
+
 private:
-	Audio::Mixer &_mixer;
 	ResourceManager &_resMan;
 	Common::Mutex _mutex;
+
+	/**
+	 * If true, prefer sampled sound effects over synthesised sound effects when
+	 * possible.
+	 */
+	bool _preferSampledSounds;
 
 	/**
 	 * The list of currently playing & queued sounds.
@@ -427,7 +519,7 @@ private:
 	Common::Array<Sci1Sound> _sounds;
 
 	/**
-	 * The version of the sound code.
+	 * The currently active version of the sound code.
 	 */
 	SciVersion _soundVersion;
 
@@ -467,6 +559,14 @@ public:
 	// SendPChange ~> setProgram
 	// SendPBend ~> setPitchBend
 	// AskDriver (unused)
+
+	enum {
+		/** Maximum master volume. */
+		kMaxMasterVolume = 15,
+
+		/** Maximum channel volume. */
+		kMaxVolume = 127
+	};
 
 	/**
 	 * Enables and disables the sound server. This method uses a counter so
@@ -552,6 +652,7 @@ private:
 	}
 
 	void soundServer();
+
 	void processFade(Sci1Sound &sound);
 	// TODO: was parseNode
 	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
@@ -561,17 +662,12 @@ private:
 	// TODO: was doChannelList
 	void updateChannelList();
 
-	// TODO: was playPos
-	// TODO: Don't use state to retain temporaries like this,
-	// pass as a parameter.
-	// playlist index in upper 4 bits, lower 4 bits unused.
-	uint8 _playlistIndex;
-	// TODO: was ghostChnl
-	// TODO: Checked only in PitchBend, Controller, ProgramChange
-	bool _outOfRangeChannel;
-
+	/**
+	 * Finds the index of the given sound in the current playlist. Returns
+	 * `kPlaylistSize` if the sound could not be found in the playlist.
+	 */
 	inline uint8 findPlaylistIndex(const Sci1Sound &sound) const {
-		int i;
+		uint i;
 		for (i = 0; i < kPlaylistSize; ++i) {
 			if (_playlist[i] == &sound) {
 				break;
@@ -584,6 +680,9 @@ private:
 		kUnknownSound = 0xff
 	};
 
+	/**
+	 * Creates a channel key in the format used for `_channelList`.
+	 */
 	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
 		const uint8 playlistIndex = findPlaylistIndex(sound);
 		if (playlistIndex == kPlaylistSize) {
@@ -592,6 +691,11 @@ private:
 		return (playlistIndex << 4) | channelNo;
 	}
 
+	/**
+	 * Finds the hardware channel that is wired to the Sound channel represented
+	 * by the given key. Returns `kNumMappedChannels` if the input channel is
+	 * not currently wired to a hardware channel.
+	 */
 	inline uint8 findHwChannelNo(const uint8 key) const {
 		uint i;
 		for (i = 0; i < kNumMappedChannels; ++i) {
@@ -657,6 +761,9 @@ private:
 	// pointer is to a Sci1Sound object.
 	Sci1Sound *_sample;
 
+	/**
+	 * The list of currently active sounds, sorted by decreasing sound priority.
+	 */
 	Sci1Sound *_playlist[kPlaylistSize];
 
 	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
@@ -711,7 +818,7 @@ private:
 		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
 	};
 
-	// TODO: Combine these next two things with Playlist?
+	// TODO: Combine these next two things?
 	typedef Common::Array<MappedChannel> MappedChannels;
 	MappedChannels _mappedChannels;
 
@@ -763,6 +870,7 @@ private:
 	void removeSoundFromPlaylist(Sci1Sound &sound);
 	// TODO: was DoChangeVol
 	void processVolumeChange(Sci1Sound &sound, const uint8 volume, const bool enqueue);
+
 	void changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue);
 
 	void fixupHeader(Sci1Sound &sound);
@@ -777,8 +885,7 @@ private:
 		 * TODO: Better name, this is a hard-coded value from scripts which gets
 		 * converted into the actual default reverb mode value.
 		 */
-		kDefaultReverbMode = 127,
-		kMaxVolume = 127
+		kDefaultReverbMode = 127
 	};
 
 	uint8 _defaultReverbMode;
@@ -789,6 +896,30 @@ private:
 #pragma mark -
 #pragma mark Kernel
 public:
+/* TODO:
+ 	{ SIG_SOUNDSCI1,       0, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
+	{ SIG_SOUNDSCI1,       1, MAP_CALL(DoSoundMute),               "(i)",                  NULL },
+	{ SIG_SOUNDSCI1,       2, MAP_EMPTY(DoSoundRestore),           NULL,                   NULL },
+	{ SIG_SOUNDSCI1,       3, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
+	{ SIG_SOUNDSCI1,       4, MAP_CALL(DoSoundGetAudioCapability), "",                     NULL },
+	{ SIG_SOUNDSCI1,       5, MAP_CALL(DoSoundSuspend),            "i",                    NULL },
+	{ SIG_SOUNDSCI1,       6, MAP_CALL(DoSoundInit),               "o",                    NULL },
+	{ SIG_SOUNDSCI1,       7, MAP_CALL(DoSoundDispose),            "o",                    NULL },
+	{ SIG_SOUNDSCI1LATE,   8, MAP_CALL(DoSoundPlay),               "oi",                   NULL },
+	{ SIG_SCI32,           8, MAP_CALL(DoSoundPlay),               "o",                    kDoSoundPlay_workarounds },
+	{ SIG_SOUNDSCI1,       9, MAP_CALL(DoSoundStop),               "o",                    NULL },
+	{ SIG_SOUNDSCI1,      10, MAP_CALL(DoSoundPause),              "[o0]i",                NULL },
+	{ SIG_SOUNDSCI1,      11, MAP_CALL(DoSoundFade),               "oiiii",                kDoSoundFade_workarounds },
+	{ SIG_SOUNDSCI1,      12, MAP_CALL(DoSoundSetHold),            "oi",                   NULL },
+	{ SIG_SOUNDSCI1,      13, MAP_EMPTY(DoSoundDummy),             NULL,                   NULL },
+	{ SIG_SOUNDSCI1,      14, MAP_CALL(DoSoundSetVolume),          "oi",                   NULL },
+	{ SIG_SOUNDSCI1,      15, MAP_CALL(DoSoundSetPriority),        "oi",                   NULL },
+	{ SIG_SOUNDSCI1,      16, MAP_CALL(DoSoundSetLoop),            "oi",                   NULL },
+	{ SIG_SOUNDSCI1,      17, MAP_CALL(DoSoundUpdateCues),         "o",                    NULL },
+	{ SIG_SOUNDSCI1,      18, MAP_CALL(DoSoundSendMidi),           "oiiii",                NULL },
+	{ SIG_SOUNDSCI1,      19, MAP_CALL(DoSoundGlobalReverb),       "(i)",                  NULL },
+	{ SIG_SOUNDSCI1,      20, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
+*/
 };
 
 } // End of namespace Sci
