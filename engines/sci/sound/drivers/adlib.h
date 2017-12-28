@@ -98,7 +98,7 @@ public:
 	}
 
 	virtual void setMasterVolume(Sci0Sound &sound) override {
-		debug("TODO: Set master volume to %d", sound.volume);
+		debug("TODO: Set master volume to %u", sound.volume);
 	}
 };
 
@@ -112,38 +112,38 @@ public:
 
 	virtual DeviceId getDeviceId() const override { return 0; }
 
-	virtual void getValidChannelRange(int8 &low, int8 &high) const override { low = 0; high = 8; }
+	virtual void getValidChannelRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
 
 	virtual void service() override {
 		debug("TODO: Service");
 	}
 
-	virtual void noteOn(const int8 channelIndex, const int8 note, const int8 velocity) override {
-		debug("TODO: On  channel %d note %03d velocity %03d", channelIndex, note, velocity);
+	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) override {
+		debug("TODO: On  channel %u note %03u velocity %03u", channelIndex, note, velocity);
 	}
 
-	virtual void noteOff(const int8 channelIndex, const int8 note, const int8 velocity) override {
-		debug("TODO: Off channel %d note %03d velocity %03d", channelIndex, note, velocity);
+	virtual void noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) override {
+		debug("TODO: Off channel %u note %03u velocity %03u", channelIndex, note, velocity);
 	}
 
-	virtual void controllerChange(const int8 channelIndex, const int8 controllerNo, const int8 value) override {
-		debug("TODO: Channel %d controller %d value %d", channelIndex, controllerNo, value);
+	virtual void controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) override {
+		debug("TODO: Channel %u controller %u value %u", channelIndex, controllerNo, value);
 	}
 
-	virtual void programChange(const int8 channelIndex, const int8 programNo) override {
-		debug("TODO: Channel %d program %d", channelIndex, programNo);
+	virtual void programChange(const uint8 channelIndex, const uint8 programNo) override {
+		debug("TODO: Channel %u program %u", channelIndex, programNo);
 	}
 
-	virtual void pitchBend(const int8 channelIndex, const int8 lsb, const int8 msb) override {
-		debug("TODO: Channel %d pitch %d %d", channelIndex, lsb, msb);
+	virtual void pitchBend(const uint8 channelIndex, const uint8 lsb, const uint8 msb) override {
+		debug("TODO: Channel %u pitch %u %u", channelIndex, lsb, msb);
 	}
 
-	virtual void keyPressure(const int8 channelIndex, const int8 note, const int8 pressure) override {
-		debug("TODO: Channel %d note %d pressure %d", channelIndex, note, pressure);
+	virtual void keyPressure(const uint8 channelIndex, const uint8 note, const uint8 pressure) override {
+		debug("TODO: Channel %u note %u pressure %u", channelIndex, note, pressure);
 	}
 
-	virtual void channelPressure(const int8 channelIndex, const int8 pressure) override {
-		debug("TODO: Channel %d pressure %d", channelIndex, pressure);
+	virtual void channelPressure(const uint8 channelIndex, const uint8 pressure) override {
+		debug("TODO: Channel %u pressure %u", channelIndex, pressure);
 	}
 
 	virtual uint8 getReverbMode() const override {
@@ -152,17 +152,17 @@ public:
 	}
 
 	virtual uint8 setReverbMode(const uint8 mode) override {
-		debug("TODO: Set reverb mode to %d", mode);
+		debug("TODO: Set reverb mode to %u", mode);
 		return 0;
 	}
 
-	virtual int8 getMasterVolume() const override {
+	virtual uint8 getMasterVolume() const override {
 		debug("TODO: Get master volume");
 		return 15;
 	}
 
-	virtual int8 setMasterVolume(const int8 volume) override {
-		debug("TODO: Set master volume to %d", volume);
+	virtual uint8 setMasterVolume(const uint8 volume) override {
+		debug("TODO: Set master volume to %u", volume);
 		return 15;
 	}
 };

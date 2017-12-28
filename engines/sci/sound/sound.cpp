@@ -42,12 +42,12 @@ SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
 	_sample(nullptr),
 	_newChannelVolumes(kNumMappedChannels, -1),
 	_newChannelVolumesIndex(0),
-	_channelList(kNumMappedChannels, 0xff),
+	_channelList(kNumMappedChannels, kUnknownChannel),
 	_outOfRangeChannel(false),
 	_defaultReverbMode(0),
 	_mappedChannels(kNumMappedChannels),
 	_mappedNodes(kNumMappedChannels),
-	_restoringSaveGame(false) {
+	_restoringSound(false) {
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32
@@ -142,11 +142,21 @@ SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
 		error("Failed to initialize sound driver");
 	}
 
+	// In SSCI, this is in SInit; since we do not implement that operation, we
+	// perform its additional initialisation operations here
+	_driver->setReverbMode(0);
+
 	g_system->getTimerManager()->installTimerProc(soundServerCallback, 1000000 / 60, this, "SCI MIDI");
 }
 
 SoundManager::~SoundManager() {
 	g_system->getTimerManager()->removeTimerProc(soundServerCallback);
+
+	// In SSCI, this is in STerminate; since we do not implement that operation,
+	// we perform its additional termination operations here
+	if (_driver) {
+		_driver->setMasterVolume(15);
+	}
 }
 
 void SoundManager::enableSoundServer(const bool enable) {
@@ -155,6 +165,432 @@ void SoundManager::enableSoundServer(const bool enable) {
 		++_numServerSuspensions;
 	} else if (_numServerSuspensions) {
 		--_numServerSuspensions;
+	}
+}
+
+void SoundManager::setSoundOn(const bool enable) {
+	Common::StackLock lock(_mutex);
+	_driver->enable(enable);
+}
+
+uint8 SoundManager::getMasterVolume() const {
+	Common::StackLock lock(_mutex);
+	return _driver->getMasterVolume();
+}
+
+uint8 SoundManager::setMasterVolume(uint8 volume) {
+	Common::StackLock lock(_mutex);
+	if (volume > 15) {
+		volume = 15;
+	}
+	return _driver->setMasterVolume(volume);
+}
+
+uint8 SoundManager::getReverbMode() const {
+	Common::StackLock lock(_mutex);
+	return _driver->getReverbMode();
+}
+
+uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
+	Common::StackLock lock(_mutex);
+	if (reverbMode == 0xff) {
+		return getReverbMode();
+	}
+
+	if (reverbMode > 10) {
+		return getDefaultReverbMode();
+	}
+
+	uint8 oldReverbMode = _defaultReverbMode;
+	_defaultReverbMode = reverbMode;
+	if (_playlist[0]) {
+		oldReverbMode = _driver->setReverbMode(reverbMode);
+	}
+	return oldReverbMode;
+}
+
+void SoundManager::stop(Sci1Sound &sound) {
+	Common::StackLock lock(_mutex);
+	removeSoundFromPlaylist(sound);
+	updateChannelList();
+}
+
+void SoundManager::pause(Sci1Sound &sound, const bool pause) {
+	Common::StackLock lock(_mutex);
+	if (pause) {
+		++sound.paused;
+	} else if (sound.paused) {
+		--sound.paused;
+	}
+
+	updateChannelList();
+}
+
+void SoundManager::pauseAll(const bool pause) {
+	Common::StackLock lock(_mutex);
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		Sci1Sound *sound = _playlist[i];
+		if (!sound) {
+			// TODO: This is weird
+			if (i == 0) {
+				continue;
+			} else {
+				break;
+			}
+		}
+
+		if (pause) {
+			++sound->paused;
+		} else if (sound->paused) {
+			--sound->paused;
+		}
+	}
+
+	updateChannelList();
+}
+
+void SoundManager::setPriority(Sci1Sound &sound, const uint8 priority) {
+	Common::StackLock lock(_mutex);
+	if (sound.priority == priority) {
+		return;
+	}
+
+	sound.priority = priority;
+
+	const uint8 playlistIndex = findPlaylistIndex(sound);
+	if (playlistIndex == kPlaylistSize) {
+		return;
+	}
+
+	for (int i = playlistIndex; i < kPlaylistSize - 1; ++i) {
+		_playlist[i] = _playlist[i + 1];
+	}
+	_playlist[kPlaylistSize - 1] = nullptr;
+	insertSoundToPlaylist(sound);
+	updateChannelList();
+}
+
+uint8 SoundManager::insertSoundToPlaylist(Sci1Sound &sound) {
+	int insertAt;
+	for (insertAt = 0; insertAt < kPlaylistSize; ++insertAt) {
+		if (!_playlist[insertAt] ||
+			sound.priority <= _playlist[insertAt]->priority) {
+
+			break;
+		}
+	}
+
+	if (insertAt == kPlaylistSize) {
+		return insertAt;
+	}
+
+	for (int i = kPlaylistSize - 2; i >= insertAt; --i) {
+		_playlist[i + 1] = _playlist[i];
+	}
+	_playlist[insertAt] = &sound;
+	return insertAt;
+}
+
+void SoundManager::fixupHeader(Sci1Sound &sound) {
+	// SSCI checked to see if the pointer value was 0xffffffff, this is
+	// impossible so the check is omitted.
+
+	SciSpan<const byte> data = *sound.resource;
+
+	if (data[33] == 0xfc && data[34] == 0xfd && data[35] == 0xfe) {
+		return;
+	}
+
+	uint8 priority = 0xff;
+
+	if (data[0] == 0xf0) {
+		priority = data[1];
+		data += 8;
+	}
+
+	uint16 trackOffsets[16] = {};
+
+	for (uint8 deviceId = *data++; deviceId != 0xff; deviceId = *data++) {
+		if (deviceId == _driver->getDeviceId()) {
+			int trackNo = 0;
+			for (uint8 endMarker = *data; endMarker != 0xff; endMarker = *data) {
+				assert(trackNo < 16);
+				// TODO: Could be SCI-endian
+				trackOffsets[trackNo++] = data.getUint16LEAt(2);
+				data += 6;
+			}
+		} else {
+			if (*data != 0xff) {
+				data += 6;
+			}
+		}
+	}
+
+	// writeHeader
+
+	// :(
+	byte *header = const_cast<byte *>(sound.resource->getUnsafeDataAt(0, sizeof(trackOffsets) + 4));
+	memcpy(header, trackOffsets, sizeof(trackOffsets));
+	header += sizeof(trackOffsets);
+	*header++ = priority;
+	*header++ = 0xfc;
+	*header++ = 0xfd;
+	*header++ = 0xfe;
+}
+
+uint8 SoundManager::play(Sci1Sound &sound, const bool isBedSound) {
+	if (findPlaylistIndex(sound) != kPlaylistSize) {
+		removeSoundFromPlaylist(sound);
+	}
+
+	sound.state = isBedSound ? Sci1Sound::kBedSound : Sci1Sound::kNormalSound;
+
+	fixupHeader(sound);
+
+	// TODO: Use proper initialisers in Sci1Sound?
+	Common::fill(sound.channels, sound.channels + Sci1Sound::kNumChannels, Sci1Sound::Channel());
+	Common::fill(sound.tracks, sound.tracks + Sci1Sound::kNumTracks, Sci1Sound::Track());
+	sound.isSample = false;
+	sound.holdPoint = 0;
+	sound.reverbMode = kDefaultReverbMode;
+	sound.loopTicksElapsed = 0;
+	sound.volume = kMaxVolume;
+
+	const uint8 priority = sound.resource->getUint8At(32);
+	if (priority != 0xff && !sound.fixedPriority) {
+		sound.priority = priority;
+	}
+
+	// ecx = resource base pointer
+	SciSpan<const byte> base = *sound.resource;
+
+	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+		const uint16 trackOffset = sound.resource->getUint16LEAt(trackNo * sizeof(uint16));
+		if (trackOffset == 0) {
+			break;
+		}
+		SciSpan<const byte> trackData = sound.resource->subspan(trackOffset);
+		Sci1Sound::Track &track = sound.tracks[trackNo];
+		
+		const uint8 channelNo = trackData[0];
+		track.channelNo = channelNo & 0xf;
+		track.command = kControllerChange | track.channelNo;
+		const uint8 message = trackData[12];
+		if (message == kTimingOverflow) {
+			track.rest = kTimingOverflowValue;
+		} else {
+			track.rest = message;
+		}
+
+		// SSCI did not do a check for the control channel so early, instead
+		// relied on the MIDI data not containing a bad channel number value
+		// to not do out-of-bounds writes. We do the check so we can reference
+		// the Channel object.
+		if (track.channelNo != kControlChannel) {
+			Sci1Sound::Channel &channel = sound.channels[track.channelNo];
+
+			enum {
+				kOutOfRangeChannelFlag = 0x10,
+				kLockedChannelFlag = 0x20,
+				kMutedChannelFlag = 0x40
+			};
+
+			if (channelNo & kOutOfRangeChannelFlag) {
+				track.position = 3;
+				track.rest = 0;
+				channel.flags = Sci1Sound::kOutOfRange;
+				continue;
+			}
+
+			if (channelNo & kLockedChannelFlag) {
+				channel.flags = Sci1Sound::kLocked;
+			}
+
+			if (channelNo & kMutedChannelFlag) {
+				channel.muted = true;
+			}
+
+			if (channel.priority == 0xff) {
+				channel.priority = trackData[1] >> 4;
+				channel.polyphony = trackData[1] & 4;
+			}
+
+			if (channel.program == 0xff) {
+				channel.program = trackData[4];
+			}
+
+			if (channel.volume == 0xff) {
+				channel.volume = trackData[8];
+			}
+
+			if (channel.pan == 0xff) {
+				channel.pan = trackData[11];
+			}
+		} else {
+			// SSCI checked whether reverbMode != kDefaultReverbMode and then
+			// jumped to checking the channel pan, this was an impossible
+			// condition and would have led to an out-of-bounds access so is
+			// removed
+			sound.reverbMode = trackData[8];
+		}
+	}
+
+	if (sound.state & Sci1Sound::kBedSound) {
+		for (int channelNo = 0; channelNo < Sci1Sound::kNumChannels; ++channelNo) {
+			Sci1Sound::Channel &channel = sound.channels[channelNo];
+			channel.flags = Sci1Sound::ChannelFlags(channel.flags | Sci1Sound::kLocked);
+		}
+	}
+
+	const uint8 playlistIndex = insertSoundToPlaylist(sound);
+	if (playlistIndex != kPlaylistSize && !_restoringSound) {
+		sound.cue = 0;
+		sound.ticksElapsed = 0;
+		sound.signal = Sci1Sound::kNoSignal;
+		sound.fadeTargetVolume = 0;
+		sound.fadeDelay = 0;
+		sound.fadeDelayRemaining = 0;
+		sound.fadeAmountPerTick = 0;
+		sound.stopSoundOnFade = false;
+		sound.paused = 0;
+
+		updateChannelList();
+	}
+
+	return playlistIndex;
+}
+
+void SoundManager::restore(Sci1Sound &sound) {
+	Common::StackLock lock(_mutex);
+
+	uint8 muteCounts[Sci1Sound::kNumChannels];
+	const uint8 holdPoint = sound.holdPoint;
+
+	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		muteCounts[i] = sound.channels[i].gameMuteCount;
+	}
+
+	_restoringSound = true;
+
+	const uint8 playlistIndex = play(sound, false);
+
+	uint16 ticksToRestore = sound.ticksElapsed;
+	sound.ticksElapsed = 0;
+	const bool loopToRestore = sound.loop;
+	sound.loop = true;
+
+	while (sound.ticksElapsed != ticksToRestore) {
+		uint16 lastTicks = sound.ticksElapsed;
+		parseNextNode(sound, playlistIndex);
+		if (lastTicks == sound.ticksElapsed) {
+			break;
+		} else if (lastTicks > sound.ticksElapsed) {
+			ticksToRestore -= lastTicks - sound.ticksElapsed;
+		}
+	}
+
+	sound.loop = loopToRestore;
+	_restoringSound = false;
+	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		sound.channels[i].gameMuteCount = muteCounts[i];
+	}
+	sound.holdPoint = holdPoint;
+	updateChannelList();
+}
+
+void SoundManager::fade(Sci1Sound &sound, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) {
+	Common::StackLock lock(_mutex);
+	if (sound.volume == targetVolume) {
+		return;
+	}
+
+	// TODO: In SSCI stop flag was baked into the high bit of target volume
+	sound.fadeTargetVolume = targetVolume;
+	sound.stopSoundOnFade = stopAfterFade;
+	sound.fadeAmountPerTick = steps;
+	sound.fadeDelay = speed;
+	sound.fadeDelayRemaining = 0;
+}
+
+void SoundManager::hold(Sci1Sound &sound, const uint8 holdPoint) {
+	Common::StackLock lock(_mutex);
+	sound.holdPoint = holdPoint;
+}
+
+void SoundManager::processFade(Sci1Sound &sound) {
+	if (sound.fadeDelayRemaining) {
+		// TODO: Use wall time for this instead of relying on realtime callbacks
+		--sound.fadeDelayRemaining;
+		return;
+	} else {
+		sound.fadeDelayRemaining = sound.fadeDelay;
+	}
+
+	if (sound.fadeTargetVolume == sound.volume) {
+		sound.signal = Sci1Sound::kFadeFinished;
+		sound.fadeAmountPerTick = 0;
+		if (sound.stopSoundOnFade) {
+			removeSoundFromPlaylist(sound);
+			_needsUpdate = true;
+		}
+		return;
+	}
+
+	const int delta = ABS(int(sound.fadeTargetVolume) - int(sound.volume));
+	uint8 newVolume = sound.volume;
+	if (delta < sound.fadeAmountPerTick) {
+		newVolume = sound.fadeTargetVolume;
+	} else if (sound.fadeTargetVolume < sound.volume) {
+		newVolume -= sound.fadeAmountPerTick;
+	} else {
+		newVolume += sound.fadeAmountPerTick;
+	}
+
+	processVolumeChange(sound, newVolume, true);
+}
+
+void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, const bool enqueue) {
+	if (volume == sound.volume) {
+		return;
+	}
+
+	sound.volume = volume;
+
+	uint8 playlistIndex = findPlaylistIndex(sound);
+	if (playlistIndex == kPlaylistSize) {
+		return;
+	}
+	playlistIndex <<= 4;
+
+	for (int hwChannelNo = 0; hwChannelNo < kNumMappedChannels; ++hwChannelNo) {
+		// TODO: kUnknownChannel probably wrong constant to use here
+		if (_channelList[hwChannelNo] != kUnknownChannel && (_channelList[hwChannelNo] & 0xf0) == playlistIndex) {
+			const uint8 channelNo = _channelList[hwChannelNo] & 0xf;
+			changeChannelVolume(sound, channelNo, hwChannelNo, enqueue);
+		}
+	}
+
+	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+		const uint8 channelNo = sound.tracks[trackNo].channelNo;
+		if (channelNo == Sci1Sound::Track::kEndOfData) {
+			break;
+		}
+
+		const Sci1Sound::Channel &channel = sound.channels[channelNo];
+		if ((channel.flags & Sci1Sound::kOutOfRange) &&
+			_channelList[channelNo] == MappedChannel::kUnmapped) {
+			changeChannelVolume(sound, channelNo, channelNo, enqueue);
+		}
+	}
+}
+
+void SoundManager::changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue) {
+	const uint8 channelVolume = sound.channels[channelNo].volume * sound.volume / kMaxVolume;
+	if (enqueue) {
+		_newChannelVolumes[hwChannelNo] = channelVolume;
+	} else {
+		_newChannelVolumes[hwChannelNo] = kNoVolumeChange;
+		_driver->controllerChange(hwChannelNo, kVolumeController, channelVolume);
 	}
 }
 
@@ -187,8 +623,8 @@ void SoundManager::soundServer() {
 			continue;
 		}
 
-		if (sound.fadeSteps) {
-			fadeSound(sound);
+		if (sound.fadeAmountPerTick) {
+			processFade(sound);
 
 			if (sound.signal == Sci1Sound::kFinished) {
 				// TODO: There was some extra work done here to
@@ -226,7 +662,7 @@ void SoundManager::updateChannelList() {
 	const ChannelList oldChannelList(_channelList);
 
 	if (_playlist[0]) {
-		int8 minChannelNo, maxChannelNo;
+		uint8 minChannelNo, maxChannelNo;
 		_driver->getValidChannelRange(minChannelNo, maxChannelNo);
 
 		uint8 reverbMode = _playlist[0]->reverbMode;
@@ -262,7 +698,7 @@ void SoundManager::updateChannelList() {
 			int basePriority = 0;
 			for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo, basePriority += 16) {
 				Sci1Sound::Track &track = sound.tracks[trackNo];
-				if (track.channelNo == Sci1Sound::Track::kEndOfTracks ||
+				if (track.channelNo == Sci1Sound::Track::kEndOfData ||
 					track.channelNo == Sci1Sound::Track::kSampleTrack ||
 					track.channelNo == kControlChannel) {
 
@@ -282,7 +718,7 @@ void SoundManager::updateChannelList() {
 					priority = kNumMappedChannels - priority + basePriority;
 				}
 
-				int8 bestRemapIndex;
+				uint8 bestRemapIndex;
 				if ((channel.flags & Sci1Sound::kLocked) &&
 					_mappedChannels[track.channelNo].key == MappedChannel::kUnmapped) {
 					bestRemapIndex = track.channelNo;
@@ -330,7 +766,7 @@ void SoundManager::updateChannelList() {
 					}
 
 					// putChOnList
-					assert(bestRemapIndex >= 0 && bestRemapIndex < kNumMappedChannels);
+					assert(bestRemapIndex < kNumMappedChannels);
 					MappedChannel &mc = _mappedChannels[bestRemapIndex];
 					mc.key = key;
 					mc.numVoices = channel.polyphony;
@@ -430,14 +866,14 @@ void SoundManager::updateChannelList() {
 				continue;
 			}
 
-			int8 lastOpenChannelNo = -1;
+			uint8 lastOpenChannelNo = kUnknownChannel;
 			for (int j = maxChannelNo; j >= minChannelNo; --j) {
 				if (_channelList[j] != MappedChannel::kUnmapped) {
 					lastOpenChannelNo = j;
 					break;
 				}
 			}
-			assert(lastOpenChannelNo > -1);
+			assert(lastOpenChannelNo != kUnknownChannel);
 
 			_channelList[lastOpenChannelNo] = mc.key;
 
@@ -468,16 +904,16 @@ void SoundManager::updateChannelList() {
 		if (_channelList[i] == MappedChannel::kUnmapped) {
 			_mappedNodes[i] = nullptr;
 		} else {
-			const int8 playlistIndex = _channelList[i] >> 4;
+			const uint8 playlistIndex = _channelList[i] >> 4;
 			_mappedNodes[i] = _playlist[playlistIndex];
 		}
 	}
 }
 
-int8 SoundManager::preemptChannel(const int &numFreeVoices) {
+uint8 SoundManager::preemptChannel(const int &numFreeVoices) {
 	// 'lowest' is weird here since these priority values are inverted, so the
 	// biggest number is the lowest priority
-	int8 lowestPriority = 0, lowestPriorityChannelNo = kUnknownChannel;
+	uint8 lowestPriority = 0, lowestPriorityChannelNo = kUnknownChannel;
 	for (int i = 0; i < kNumMappedChannels; ++i) {
 		MappedChannel &mc = _mappedChannels[i];
 		if (mc.priority >= lowestPriority) {
@@ -497,9 +933,9 @@ int8 SoundManager::preemptChannel(const int &numFreeVoices) {
  * Converts a 16-bit number into two MIDI bytes.
  */
 static inline void convert16To7(const uint16 word, byte &lsb, byte &msb) {
-	msb = (word >> 7) & ~1;
-	lsb = word & 0xFF;
-	if (lsb & 0x80) {
+	msb = (word >> 7) & 0x7e;
+	lsb = word & 0x7f;
+	if (word & 0x80) {
 		msb |= 1;
 	}
 }
@@ -508,7 +944,7 @@ static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
 }
 
-void SoundManager::updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const int8 hwChannelNo) {
+void SoundManager::updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo) {
 	Sci1SoundDriver &driver = static_cast<Sci1SoundDriver &>(*_driver);
 	driver.controllerChange(hwChannelNo, kAllNotesOffController, 0);
 	driver.controllerChange(hwChannelNo, kMaxVoicesController, channel.polyphony);
@@ -526,8 +962,9 @@ void SoundManager::updateChannel(const Sci1Sound &sound, const Sci1Sound::Channe
 	driver.controllerChange(hwChannelNo, kSingleVoiceNoteController, channel.currentNote);
 }
 
-void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
+void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 	_playlistIndex = playlistIndex << 4;
+	// TODO: Use wall time
 	++sound.ticksElapsed;
 
 	assert(sound.resource);
@@ -536,7 +973,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 	bool allTracksEnded = false;
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
 		Sci1Sound::Track &track = sound.tracks[trackNo];
-		if (track.channelNo == Sci1Sound::Track::kEndOfTracks) {
+		if (track.channelNo == Sci1Sound::Track::kEndOfData) {
 			allTracksEnded = true;
 			break;
 		}
@@ -547,7 +984,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 
 		Sci1Sound::Channel &channel = sound.channels[track.channelNo];
 
-		int8 hwChannelNo = kUnknownChannel;
+		uint8 hwChannelNo = kUnknownChannel;
 		bool outOfRangeChannel;
 		if (channel.flags & Sci1Sound::kOutOfRange) {
 			outOfRangeChannel = true;
@@ -573,11 +1010,12 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 
 		// TODO: In SSCI rest check was after position calculation so it could use track data, since we abstract that maybe it is not needed to have this so low? Move up to avoid unnecessary calculations
 		if (track.rest) {
+			// TODO: Use wall time
 			--track.rest;
 			if (track.rest == kTimingOverflowFlag) {
 				const byte message = sound.consume(trackNo);
 				if (message == kTimingOverflow) {
-					track.rest = kTimingOverflowFlag | 240;
+					track.rest = kTimingOverflowValue;
 				} else {
 					track.rest = message;
 				}
@@ -598,7 +1036,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 			}
 
 			const Command command = Command(message & 0xF0);
-			const int8 channelNo = message & 0x0F;
+			const uint8 channelNo = message & 0x0F;
 
 			if (message == kEndOfTrack) {
 				track.position = 0;
@@ -606,38 +1044,38 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 			}
 
 			if (channelNo == kControlChannel) {
-				parseControlChannel(sound);
+				parseControlChannel(sound, trackNo, command);
 				if (track.position == 0) {
 					continue;
 				}
 			} else {
 				switch (command) {
 				case kNoteOff:
-					sendNoteOff(sound, trackNo, hwChannelNo);
+					processNoteOff(sound, trackNo, hwChannelNo);
 					break;
 				case kNoteOn:
-					sendNoteOn(sound, trackNo, hwChannelNo);
+					processNoteOn(sound, trackNo, hwChannelNo);
 					break;
 				case kKeyPressure:
-					sendKeyPressure(sound, trackNo, hwChannelNo);
+					processKeyPressure(sound, trackNo, hwChannelNo);
 					break;
 				case kControllerChange:
-					sendControllerChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
+					processControllerChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kProgramChange:
-					sendProgramChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
+					processProgramChange(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kChannelPressure:
-					sendChannelPressure(sound, trackNo, hwChannelNo);
+					processChannelPressure(sound, trackNo, hwChannelNo);
 					break;
 				case kPitchBend:
-					sendPitchBend(sound, trackNo, hwChannelNo, outOfRangeChannel);
+					processPitchBend(sound, trackNo, hwChannelNo, outOfRangeChannel);
 					break;
 				case kSysEx:
-					sendSysEx(sound, trackNo, hwChannelNo);
+					processSysEx(sound, trackNo, hwChannelNo);
 					break;
 				default:
-					warning("Unknown command %u in track %d", command, trackNo);
+					warning("Unknown command %u in track %u", command, trackNo);
 					track.position = 0;
 					goto nextTrack;
 				}
@@ -645,7 +1083,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 		} while ((message = sound.consume(trackNo)) == 0);
 
 		if (message == kTimingOverflow) {
-			track.rest = kTimingOverflowFlag | 240;
+			track.rest = kTimingOverflowValue;
 		} else {
 			track.rest = message;
 		}
@@ -665,7 +1103,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 		}
 	}
 
-	if (sound.hold || sound.loop) {
+	if (sound.holdPoint || sound.loop) {
 		sound.ticksElapsed = sound.loopTicksElapsed;
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
@@ -674,54 +1112,59 @@ void SoundManager::parseNextNode(Sci1Sound &sound, int8 playlistIndex) {
 			track.command = track.loopCommand;
 		}
 	} else {
-		finishSound(sound);
+		removeSoundFromPlaylist(sound);
 		_needsUpdate = true;
 	}
 }
 
-void SoundManager::sendNoteOff(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
-	const int8 note = sound.consume(trackNo);
-	const int8 velocity = sound.consume(trackNo);
+void SoundManager::processNoteOff(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
+	const uint8 note = sound.consume(trackNo);
+	const uint8 velocity = sound.consume(trackNo);
 
 	Sci1Sound::Channel &channel = sound.channels[sound.tracks[trackNo].channelNo];
 	if (channel.currentNote == note) {
-		channel.currentNote = kNoCurrentNode;
+		channel.currentNote = Sci1Sound::kNoCurrentNote;
 	}
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
 		_driver->noteOff(hwChannelNo & 0xf, note, velocity);
 	}
 }
 
-void SoundManager::sendNoteOn(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+void SoundManager::processNoteOn(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
 	if (sound.peek(trackNo, 1) == 0) {
-		return sendNoteOff(sound, trackNo, hwChannelNo);
+		return processNoteOff(sound, trackNo, hwChannelNo);
 	}
 
-	const int8 note = sound.consume(trackNo);
-	const int8 velocity = sound.consume(trackNo);
+	const uint8 note = sound.consume(trackNo);
+	const uint8 velocity = sound.consume(trackNo);
 
 	sound.channels[sound.tracks[trackNo].channelNo].currentNote = note;
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
 		_driver->noteOn(hwChannelNo & 0xf, note, velocity);
 	}
 }
 
-void SoundManager::sendKeyPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
-	const int8 note = sound.consume(trackNo);
-	const int8 pressure = sound.consume(trackNo);
+void SoundManager::processKeyPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
+	const uint8 note = sound.consume(trackNo);
+	const uint8 pressure = sound.consume(trackNo);
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
+		// SSCI did not clamp the channel range here, see if this is a problem
+		if (hwChannelNo >= kNumMappedChannels) {
+			warning("Key pressure note %u pressure %u channel %u out of range", note, pressure, hwChannelNo);
+		}
+
 		_driver->keyPressure(hwChannelNo, note, pressure);
 	}
 }
 
-void SoundManager::sendControllerChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
-	const int8 controllerNo = sound.consume(trackNo);
-	int8 value = sound.consume(trackNo);
+void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel) {
+	const uint8 controllerNo = sound.consume(trackNo);
+	uint8 value = sound.consume(trackNo);
 
-	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
 	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
 		return;
@@ -731,8 +1174,7 @@ void SoundManager::sendControllerChange(Sci1Sound &sound, const int8 trackNo, co
 
 	switch (controllerNo) {
 	case kVolumeController:
-		// SSCI treated hwChannelNo as unsigned here so had only a single check
-		if (hwChannelNo < 0 || hwChannelNo >= kNumMappedChannels * 2) {
+		if (hwChannelNo >= kNumMappedChannels * 2) {
 			return;
 		}
 
@@ -742,7 +1184,7 @@ void SoundManager::sendControllerChange(Sci1Sound &sound, const int8 trackNo, co
 		// issues since any pending volumes would have been applied again in
 		// SSCI and won't here.
 		if (hwChannelNo >= kNumMappedChannels) {
-			warning("Out of range volume change applied to channel %d", hwChannelNo);
+			warning("Out of range volume change applied to channel %u", hwChannelNo);
 		}
 
 		_newChannelVolumes[inRangeChannelNo] = kNoVolumeChange;
@@ -772,14 +1214,14 @@ void SoundManager::sendControllerChange(Sci1Sound &sound, const int8 trackNo, co
 		break;
 	}
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
 		_driver->controllerChange(inRangeChannelNo, controllerNo, value);
 	}
 }
 
-void SoundManager::sendProgramChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
-	const int8 programNo = sound.consume(trackNo);
-	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+void SoundManager::processProgramChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel) {
+	const uint8 programNo = sound.consume(trackNo);
+	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
 	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
 		return;
@@ -787,25 +1229,29 @@ void SoundManager::sendProgramChange(Sci1Sound &sound, const int8 trackNo, const
 
 	sound.channels[sound.tracks[trackNo].channelNo].program = programNo;
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
 		_driver->programChange(inRangeChannelNo, programNo);
 	}
 }
 
-void SoundManager::sendChannelPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
-	const int8 pressure = sound.consume(trackNo);
+void SoundManager::processChannelPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
+	const uint8 pressure = sound.consume(trackNo);
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
-		// In SSCI the channel was not masked here, unlike in other functions
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
+		// SSCI did not clamp the channel range here, see if this is a problem
+		if (hwChannelNo >= kNumMappedChannels) {
+			warning("Channel pressure pressure %u channel %u out of range", pressure, hwChannelNo);
+		}
+
 		_driver->channelPressure(hwChannelNo, pressure);
 	}
 }
 
-void SoundManager::sendPitchBend(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel) {
-	const int8 lsb = sound.consume(trackNo);
-	const int8 msb = sound.consume(trackNo);
+void SoundManager::processPitchBend(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel) {
+	const uint8 lsb = sound.consume(trackNo);
+	const uint8 msb = sound.consume(trackNo);
 
-	const int8 inRangeChannelNo = hwChannelNo & 0xf;
+	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
 	if (outOfRangeChannel && _channelList[inRangeChannelNo] != MappedChannel::kUnmapped) {
 		return;
@@ -813,17 +1259,16 @@ void SoundManager::sendPitchBend(Sci1Sound &sound, const int8 trackNo, const int
 
 	sound.channels[sound.tracks[trackNo].channelNo].pitchBend = convert7To16(lsb, msb);
 
-	if (hwChannelNo != kUnknownChannel && !_restoringSaveGame) {
-		// In SSCI the channel was not masked here, unlike in other functions
+	if (hwChannelNo != kUnknownChannel && !_restoringSound) {
 		_driver->pitchBend(inRangeChannelNo, lsb, msb);
 	}
 }
 
-void SoundManager::sendSysEx(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo) {
+void SoundManager::processSysEx(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
 	skipCommand(sound, trackNo, kSysEx);
 }
 
-void SoundManager::skipCommand(Sci1Sound &sound, const int8 trackNo, const Command command) {
+void SoundManager::skipCommand(Sci1Sound &sound, const uint8 trackNo, const Command command) {
 	switch (command) {
 	case kSysEx:
 		while (sound.consume(trackNo) != kEndOfSysEx);
@@ -838,12 +1283,254 @@ void SoundManager::skipCommand(Sci1Sound &sound, const int8 trackNo, const Comma
 	}
 }
 
+void SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		if (_playlist[i] == &sound) {
+			sound.signal = Sci1Sound::kFinished;
+			sound.state = Sci1Sound::kNoSound;
+			for (; i < kPlaylistSize - 1; ++i) {
+				_playlist[i] = _playlist[i + 1];
+			}
+			_playlist[i] = nullptr;
+			break;
+		}
+	}
+}
+
+void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const uint16 value) {
+	Common::StackLock lock(_mutex);
+
+	const uint8 key = makeChannelKey(sound, channelNo);
+	if (key == kUnknownSound) {
+		return;
+	}
+
+	sound.channels[channelNo].pitchBend = value;
+
+	const uint8 hwChannelNo = findHwChannelNo(key);
+	if (hwChannelNo != kNumMappedChannels) {
+		uint8 lsb, msb;
+		convert16To7(value, lsb, msb);
+		_driver->pitchBend(hwChannelNo, lsb, msb);
+	}
+}
+
+void SoundManager::setProgram(Sci1Sound &sound, const uint8 channelNo, const uint8 programNo) {
+	Common::StackLock lock(_mutex);
+
+	const uint8 key = makeChannelKey(sound, channelNo);
+	if (key == kUnknownSound) {
+		return;
+	}
+
+	sound.channels[channelNo].program = programNo;
+
+	const uint8 hwChannelNo = findHwChannelNo(key);
+	if (hwChannelNo != kNumMappedChannels) {
+		_driver->programChange(hwChannelNo, programNo);
+	}
+}
+
+void SoundManager::setNoteOff(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity) {
+	Common::StackLock lock(_mutex);
+
+	const uint8 key = makeChannelKey(sound, channelNo);
+	if (key == kUnknownSound) {
+		return;
+	}
+
+	sound.channels[channelNo].currentNote = Sci1Sound::kNoCurrentNote;
+
+	const uint8 hwChannelNo = findHwChannelNo(key);
+	if (hwChannelNo != kNumMappedChannels) {
+		_driver->noteOff(hwChannelNo, note, velocity);
+	}
+}
+
+void SoundManager::setNoteOn(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity) {
+	Common::StackLock lock(_mutex);
+
+	const uint8 key = makeChannelKey(sound, channelNo);
+	if (key == kUnknownSound) {
+		return;
+	}
+
+	sound.channels[channelNo].currentNote = note;
+
+	const uint8 hwChannelNo = findHwChannelNo(key);
+	if (hwChannelNo != kNumMappedChannels) {
+		_driver->noteOn(hwChannelNo, note, velocity);
+	}
+}
+
+void SoundManager::setController(Sci1Sound &sound, const uint8 channelNo, const uint8 controllerNo, uint8 value) {
+	Common::StackLock lock(_mutex);
+
+	const uint8 key = makeChannelKey(sound, channelNo);
+	if (key == kUnknownSound) {
+		return;
+	}
+
+	Sci1Sound::Channel &channel = sound.channels[channelNo];
+
+	switch (controllerNo) {
+	case kVolumeController:
+		channel.volume = value;
+		value = channel.volume * sound.volume / kMaxVolume;
+		break;
+	case kPanController:
+		channel.pan = value;
+		break;
+	case kModulationController:
+		channel.modulation = value;
+		break;
+	case kDamperPedalController:
+		channel.damperPedalOn = (value != 0);
+		break;
+	case kSingleVoiceNoteController:
+		enum { kUnmute = 0 };
+		if (value == kUnmute) {
+			if (channel.gameMuteCount) {
+				--channel.gameMuteCount;
+				updateChannelList();
+			}
+		} else if (channel.gameMuteCount < 15) {
+			++channel.gameMuteCount;
+			updateChannelList();
+		}
+		break;
+	case kProgramChangeController:
+		channel.program = value;
+		break;
+	}
+
+	const uint8 hwChannelNo = findHwChannelNo(key);
+	if (hwChannelNo != kNumMappedChannels) {
+		if (controllerNo == kProgramChangeController) {
+			_driver->programChange(hwChannelNo, value);
+		} else {
+			_driver->controllerChange(hwChannelNo, controllerNo, value);
+		}
+	}
+}
+
+void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const Command command) {
+	Sci1Sound::Track &track = sound.tracks[trackNo];
+
+	switch (command) {
+	case kProgramChange: {
+		const byte message = sound.consume(trackNo);
+		if (message == kSetLoop) {
+			const byte value = sound.peek(trackNo);
+			if (value == kTimingOverflow) {
+				track.rest = kTimingOverflowValue;
+			} else {
+				track.rest = value;
+			}
+			// TODO: Not sure if this is a combination of program change + 15 or
+			// just happens to have the same first byte
+			track.command = kProgramChange | 0x0f;
+
+			for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+				sound.tracks[i].loopPosition = sound.tracks[i].position;
+				sound.tracks[i].loopRest = sound.tracks[i].rest;
+				sound.tracks[i].loopCommand = sound.tracks[i].command;
+			}
+
+			sound.loopTicksElapsed = sound.ticksElapsed;
+			track.rest = 0;
+		} else if (!_restoringSound) {
+			sound.signal = Sci1Sound::Signal(message);
+		}
+		break;
+	}
+	case kControllerChange: {
+		const uint8 controllerNo = sound.consume(trackNo);
+		uint8 value = sound.consume(trackNo);
+		switch (controllerNo) {
+		case kReverbModeController:
+			if (value == kDefaultReverbMode) {
+				value = _defaultReverbMode;
+			}
+			sound.reverbMode = value;
+			_driver->setReverbMode(value);
+			break;
+		case kCueController:
+			if (!_restoringSound) {
+				++sound.cue;
+			}
+			break;
+		case kLoopEndController:
+			if (sound.holdPoint == value) {
+				for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+					sound.tracks[i].position = 0;
+				}
+			}
+			break;
+		}
+	}
+	default:
+		return skipCommand(sound, trackNo, command);
+	}
+}
+
+Sci1Sound::Signal SoundManager::peekSignal(const Sci1Sound &sound) {
+	Common::StackLock lock(_mutex);
+	return sound.signal;
+}
+
+Sci1Sound::Signal SoundManager::consumeSignal(Sci1Sound &sound) {
+	Common::StackLock lock(_mutex);
+	Sci1Sound::Signal signal = sound.signal;
+	sound.signal = Sci1Sound::kNoSignal;
+	return signal;
+}
+
+uint16 SoundManager::getCue(const Sci1Sound &sound) {
+	Common::StackLock lock(_mutex);
+	return sound.cue;
+}
+
+void SoundManager::setVolume(Sci1Sound &sound, const uint8 volume) {
+	Common::StackLock lock(_mutex);
+	processVolumeChange(sound, volume, false);
+}
+
+void SoundManager::mute(Sci1Sound &sound, const bool mute) {
+	Common::StackLock lock(_mutex);
+	for (int channelNo = Sci1Sound::kNumChannels - 1; channelNo >= 0; --channelNo) {
+		Sci1Sound::Channel &channel = sound.channels[channelNo];
+		if (mute) {
+			if (channel.gameMuteCount < 15) {
+				++channel.gameMuteCount;
+			}
+		} else if (channel.gameMuteCount) {
+			--channel.gameMuteCount;
+		}
+	}
+	updateChannelList();
+}
+
+SoundManager::Position SoundManager::getPosition(const Sci1Sound &sound) {
+	uint16 ticksElapsed;
+	{
+		Common::StackLock lock(_mutex);
+		ticksElapsed = sound.ticksElapsed;
+	}
+
+	Position position;
+	position.minutes = ticksElapsed / 3600;
+	position.seconds = (ticksElapsed / 60) % 60;
+	position.frames = (ticksElapsed % 60) / 2;
+	return position;
+}
+
 void SoundManager::updateChannelVolumes() {
-	int8 &channelNo = _newChannelVolumesIndex;
-	const int8 originalChannel = channelNo;
+	uint8 &channelNo = _newChannelVolumesIndex;
+	const uint8 originalChannel = channelNo;
 	int numUpdates = 0;
 	do {
-		int8 &volume = _newChannelVolumes[channelNo];
+		uint8 &volume = _newChannelVolumes[channelNo];
 		if (volume != kNoVolumeChange) {
 			_driver->controllerChange(channelNo, kVolumeController, volume);
 			++numUpdates;

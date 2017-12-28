@@ -132,10 +132,10 @@ struct Sci1Sound {
 		kNoSignal = 0,
 
 		/** A fade has finished. */
-		kFadeEnded = 0xFE,
+		kFadeFinished = 0xfe,
 
 		/** The sound has finished playback. */
-		kFinished = 0xFF
+		kFinished = 0xff
 	};
 
 	enum State {
@@ -160,13 +160,17 @@ struct Sci1Sound {
 	 */
 	Resource *resource;
 
+	enum {
+		kNoCurrentNote = 0xff
+	};
+
 	struct Track {
 		enum SpecialChannel {
-			/** Track is the end-of-file marker. */
-			kEndOfTracks = -1,
+			/** Track is at the end of sound data. */
+			kEndOfData = 0xff,
 
 			/** Track contains a digital sample. */
-			kSampleTrack = -2
+			kSampleTrack = 0xfe
 		};
 
 		/** The current playback position of the track, in bytes. */
@@ -180,7 +184,7 @@ struct Sci1Sound {
 		uint16 rest;
 
 		/** TODO: The currently active operation?? for the track? */
-		int8 command;
+		uint8 command;
 
 		/**
 		 * The channel for the track, with extra bits used for properties.
@@ -189,8 +193,10 @@ struct Sci1Sound {
 		 * 4   out of range
 		 * 5   locked
 		 * 6   muted
+		 * TODO: Are these bits actually persisted into here? Other code like
+		 * processVolumeChange does not mask off the high bits.
 		 */
-		int8 channelNo;
+		uint8 channelNo;
 
 		/** The position of the start of the current sound loop, in bytes. */
 		uint16 loopPosition;
@@ -199,7 +205,16 @@ struct Sci1Sound {
 		uint16 loopRest;
 
 		/** The state of `command` at the loop point. */
-		int8 loopCommand;
+		uint8 loopCommand;
+
+		Track() :
+			position(13),
+			rest(0),
+			command(0),
+			channelNo(kEndOfData),
+			loopPosition(3),
+			loopRest(0),
+			loopCommand(0) {}
 	} tracks[kNumTracks];
 
 	struct Channel {
@@ -211,34 +226,34 @@ struct Sci1Sound {
 		bool damperPedalOn;
 
 		/** MIDI pitch bend value. */
-		int16 pitchBend;
+		uint16 pitchBend;
 
 		// NOTE: In SSCI, polyphony & priority are packed into a single byte,
 		// with priority in the high 4 bits and polyphony in the low 4 bits.
 
 		/** Number of voices, 0-15. */
-		int8 polyphony;
+		uint8 polyphony;
 
 		/** Priority of the channel, 0-15. */
-		int8 priority;
+		uint8 priority;
 
 		/** MIDI amount of modulation. */
-		int8 modulation;
+		uint8 modulation;
 
 		/** MIDI pan, L 0 C 64 R 127. */
-		int8 pan;
+		uint8 pan;
 
 		/** MIDI volume, 0-127. */
-		int8 volume;
+		uint8 volume;
 
 		/** MIDI program, 0-127. */
-		int8 program;
+		uint8 program;
 
 		/**
 		 * The currently playing note for this channel, 0-127. If no note is
-		 * played, the value is -1.
+		 * played, the value is 0xff.
 		 */
-		int8 currentNote;
+		uint8 currentNote;
 
 		ChannelFlags flags;
 
@@ -254,22 +269,39 @@ struct Sci1Sound {
 
 		/** Whether or not the channel was muted by the Sound resource itself. */
 		bool muted;
+
+		Channel() :
+			damperPedalOn(false),
+			pitchBend(0x2000),
+			polyphony(0xf),
+			priority(0xf),
+			modulation(0),
+			pan(0xff),
+			volume(0xff),
+			program(0xff),
+			currentNote(kNoCurrentNote),
+			flags(kNoFlags),
+			gameMuteCount(0),
+			muted(false) {}
 	} channels[kNumChannels];
 
-	/** Data increment cue value. */
-	uint32 dataInc;
+	/**
+	 * Data increment cue value.
+	 * TODO: was dataInc
+	 */
+	uint16 cue;
 
 	/**
 	 * Current playback position in ticks.
 	 * TODO: was timer/ticker
 	 */
-	uint32 ticksElapsed;
+	uint16 ticksElapsed;
 
 	/**
 	 * The state of `ticksElapsed` at the loop point.
 	 * TODO: was loopTime
 	 */
-	uint32 loopTicksElapsed;
+	uint16 loopTicksElapsed;
 
 	/**
 	 * A signal representing playback state.
@@ -282,9 +314,9 @@ struct Sci1Sound {
 	State state;
 
 	/**
-	 * TODO: If true, hold at the loop?
+	 * TODO: Hold point for the end of a loop.
 	 */
-	bool hold;
+	uint8 holdPoint;
 
 	/**
 	 * If true, the value in `priority` overrides the priority given in the
@@ -298,7 +330,7 @@ struct Sci1Sound {
 	 * in the playback queue ahead of other sounds and will preempt playback of
 	 * sounds with lower priorities.
 	 */
-	int8 priority;
+	uint8 priority;
 
 	/**
 	 * If true, the sound will loop at the (TODO: nearest?) loop point.
@@ -345,33 +377,34 @@ struct Sci1Sound {
 
 	/**
 	 * The amount of volume adjustment to perform on each step of the fade.
+	 * TODO: was fadeSteps
 	 */
-	uint8 fadeSteps;
+	uint8 fadeAmountPerTick;
 
 	/**
-	 * If true, playback of the sound is paused.
+	 * If non-zero, playback of the sound is paused.
 	 * TODO: Unclear if this was ever a counter prior to SCI1.1.
 	 */
-	bool paused;
+	uint8 paused;
 
 	/**
 	 * If true, this sound is actually a digital sample which should be played
-	 * through Audio/Audio32. Added around SCI1.1?
+	 * through Audio/Audio32. TODO: Added around SCI1.1?
 	 */
 	bool isSample;
 
-	byte peek(const int8 trackNo, const int8 extra = 0) {
+	byte peek(const uint8 trackNo, const uint8 extra = 0) {
 		const uint16 trackOffset = resource->getUint16LEAt(trackNo * sizeof(uint16));
 		return resource->getUint8At(trackOffset + tracks[trackNo].position + extra);
 	}
 
-	byte consume(const int8 trackNo) {
+	byte consume(const uint8 trackNo) {
 		const byte message = peek(trackNo);
 		++tracks[trackNo].position;
 		return message;
 	}
 
-	void advance(const int8 trackNo) {
+	void advance(const uint8 trackNo) {
 		++tracks[trackNo].position;
 	}
 };
@@ -407,11 +440,111 @@ private:
 #pragma mark MIDI server
 // TODO: Split to SCI0 server and SCI1 server?
 public:
+	// TODO: Public APIs are:
+	// PatchReq (unused)
+	// Init (unused)
+	// Terminate (unused)
+	// ProcessSounds (semi-private) ~> soundServer
+	// SoundOn ~> setSoundOn
+	// RestoreSound (semi-private) ~> restore
+	// MasterVol ~> get/setMasterVolume
+	// SetReverb ~> get/getDefault/setReverb
+	// PlaySound ~> play
+	// EndSound ~> stop
+	// PauseSound ~> pause/pauseAll
+	// FadeSound ~> fade
+	// HoldSound ~> hold
+	// MuteSound ~> mute
+	// ChangeVol ~> setVolume
+	// ChangePri ~> setPriority
+	// GetDataInc ~> getCue
+	// GetSignal ~> peekSignal
+	// GetSignalRset ~> consumeSignal
+	// GetSMPTE ~> getPosition
+	// SendNoteOff ~> setNoteOff
+	// SendNoteOn ~> setNoteOn
+	// SendContrlr ~> setController
+	// SendPChange ~> setProgram
+	// SendPBend ~> setPitchBend
+	// AskDriver (unused)
+
 	/**
 	 * Enables and disables the sound server. This method uses a counter so
 	 * requires a symmetric number of enable and disable calls.
 	 */
 	void enableSoundServer(const bool enable);
+
+	/**
+	 * Enables and disables sound reproduction in the driver. This method does
+	 * not use a counter so one call to enable sound will cancel all previous
+	 * calls to disable sound.
+	 */
+	void setSoundOn(const bool enable);
+
+	// TODO: was PlaySound. returns playlist index
+	uint8 play(Sci1Sound &sound, const bool isBedSound);
+
+	// TODO: was MasterVol, one function
+	uint8 getMasterVolume() const;
+	uint8 setMasterVolume(const uint8 volume);
+
+	// TODO: was SetReverb, one function
+	uint8 getReverbMode() const;
+	uint8 getDefaultReverbMode() const { return _defaultReverbMode; }
+	uint8 setReverbMode(const uint8 reverbMode);
+
+	// TODO: was GetSignal
+	Sci1Sound::Signal peekSignal(const Sci1Sound &sound);
+
+	// TODO: was GetSignalRset
+	Sci1Sound::Signal consumeSignal(Sci1Sound &sound);
+
+	// TODO: was GetDataInc
+	uint16 getCue(const Sci1Sound &sound);
+
+	// TODO: was GetSMPTE
+	struct Position { uint16 minutes; uint8 seconds; uint8 frames; };
+	Position getPosition(const Sci1Sound &sound);
+
+	// TODO: was RestoreSound
+	void restore(Sci1Sound &sound);
+
+	// TODO: was ChangePri
+	void setPriority(Sci1Sound &sound, const uint8 priority);
+
+	// TODO: was EndSound
+	void stop(Sci1Sound &sound);
+
+	// TODO: was FadeSound
+	void fade(Sci1Sound &sound, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade);
+
+	// TODO: was ChangeVolume
+	void setVolume(Sci1Sound &sound, const uint8 volume);
+
+	// TODO: was PauseSound, one function
+	void pause(Sci1Sound &sound, const bool pause);
+	void pauseAll(const bool pause);
+
+	// TODO: was HoldSound
+	void hold(Sci1Sound &sound, const uint8 holdPoint);
+
+	// TODO: was SendNoteOff
+	void setNoteOff(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
+
+	// TODO: was SendNoteOn
+	void setNoteOn(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
+
+	// TODO: was SendContrlr
+	void setController(Sci1Sound &sound, const uint8 channelNo, const uint8 controllerNo, const uint8 value);
+
+	// TODO: was SendPChange
+	void setProgram(Sci1Sound &sound, const uint8 channelNo, const uint8 programNo);
+
+	// TODO: was SendPitchBend
+	void setPitchBend(Sci1Sound &sound, const uint8 channelNo, const uint16 value);
+
+	// TODO: was MuteSound
+	void mute(Sci1Sound &sound, const bool mute);
 
 private:
 	static inline void soundServerCallback(void *soundManager) {
@@ -419,9 +552,9 @@ private:
 	}
 
 	void soundServer();
-	void fadeSound(Sci1Sound &sound);
+	void processFade(Sci1Sound &sound);
 	// TODO: was parseNode
-	void parseNextNode(Sci1Sound &sound, const int8 playlistIndex);
+	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
 
 	void updateChannelVolumes();
 
@@ -437,20 +570,52 @@ private:
 	// TODO: Checked only in PitchBend, Controller, ProgramChange
 	bool _outOfRangeChannel;
 
+	inline uint8 findPlaylistIndex(const Sci1Sound &sound) const {
+		int i;
+		for (i = 0; i < kPlaylistSize; ++i) {
+			if (_playlist[i] == &sound) {
+				break;
+			}
+		}
+		return i;
+	}
+
 	enum {
-		kUnknownChannel = -1,
+		kUnknownSound = 0xff
+	};
+
+	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
+		const uint8 playlistIndex = findPlaylistIndex(sound);
+		if (playlistIndex == kPlaylistSize) {
+			return kUnknownSound;
+		}
+		return (playlistIndex << 4) | channelNo;
+	}
+
+	inline uint8 findHwChannelNo(const uint8 key) const {
+		uint i;
+		for (i = 0; i < kNumMappedChannels; ++i) {
+			if (_channelList[i] == key) {
+				break;
+			}
+		}
+		return i;
+	}
+
+	enum {
+		kUnknownChannel = 0xff,
 		kControlChannel = 15,
 
 		// TODO: used for rest/delay
-		kTimingOverflowFlag = 0x8000
-	};
-
-	enum {
-		kNoCurrentNode = -1
+		kTimingOverflowFlag = 0x8000,
+		kTimingOverflowDelay = 240,
+		kTimingOverflowValue = kTimingOverflowFlag | kTimingOverflowDelay
 	};
 
 	enum Message {
+		kSetLoop = 0x7f,
 		kCommandFlag = 0x80,
+		kEndOfSysEx = 0xf7,
 		kTimingOverflow = 0xf8,
 		kEndOfTrack = 0xfc
 	};
@@ -463,9 +628,7 @@ private:
 		kProgramChange = 0xc0,
 		kChannelPressure = 0xd0,
 		kPitchBend = 0xe0,
-		kSysEx = 0xf0,
-
-		kEndOfSysEx = 0xf7
+		kSysEx = 0xf0
 	};
 
 	enum Controller {
@@ -475,7 +638,11 @@ private:
 		kDamperPedalController = 64,
 		kMaxVoicesController = 75,
 		kSingleVoiceNoteController = 78,
-		kAllNotesOffController = 123
+		kReverbModeController = 80,
+		kLoopEndController = 82,
+		kCueController = 96,
+		kAllNotesOffController = 123,
+		kProgramChangeController = 127
 	};
 
 	enum {
@@ -504,7 +671,7 @@ private:
 	// PhysicalChannel or OutputChannel or HardwareChannel instead?
 	struct MappedChannel {
 		enum {
-			kUnmapped = 0xFF
+			kUnmapped = 0xff
 		};
 
 		/**
@@ -525,10 +692,10 @@ private:
 		 * Number of voices used by the channel.
 		 * TODO: was ChVoice
 		 */
-		int8 numVoices;
+		uint8 numVoices;
 
 		/**
-		 * TODO: was ChBed
+		 * TODO: was ChBed.
 		 */
 		bool locked;
 
@@ -538,10 +705,10 @@ private:
 			numVoices(0),
 			locked(false) {}
 
-		inline int8 playlistIndex() const { return key >> 4; }
-		inline void playlistIndex(const int8 index) { key = (index << 4) | (key & 0xf); }
-		inline int8 channelNo() const { return key & 0xf; }
-		inline void channelNo(const int8 number) { key = (key & 0xf0) | number; }
+		inline uint8 playlistIndex() const { return key >> 4; }
+		inline void playlistIndex(const uint8 index) { key = (index << 4) | (key & 0xf); }
+		inline uint8 channelNo() const { return key & 0xf; }
+		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
 	};
 
 	// TODO: Combine these next two things with Playlist?
@@ -552,38 +719,53 @@ private:
 	MappedNodes _mappedNodes;
 
 	enum {
-		kNoVolumeChange = -1
+		kNoVolumeChange = 0xff
 	};
 
 	/**
 	 * A list of new volume changes per channel.
 	 */
-	Common::Array<int8> _newChannelVolumes;
+	Common::Array<uint8> _newChannelVolumes;
 
 	// TODO: was requestChnl
-	int8 _newChannelVolumesIndex;
+	uint8 _newChannelVolumesIndex;
 
 	// TODO: was updateChannel1 & 2 (identical)
-	void updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const int8 hwChannelNo);
+	void updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
 
 	// TODO: was preemptChn1 & 2 (identical)
-	int8 preemptChannel(const int &numFreeVoices);
+	uint8 preemptChannel(const int &numFreeVoices);
 
 	// TODO: was controlChnl
-	void parseControlChannel(Sci1Sound &sound);
+	void parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const Command command);
 
-	void sendNoteOff(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
-	void sendNoteOn(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
-	void sendKeyPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
-	void sendControllerChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
-	void sendProgramChange(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
-	void sendChannelPressure(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
-	void sendPitchBend(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo, const bool outOfRangeChannel);
-	void sendSysEx(Sci1Sound &sound, const int8 trackNo, const int8 hwChannelNo);
-	void skipCommand(Sci1Sound &sound, const int8 trackNo, const Command command);
+	// TODO: was NoteOff
+	void processNoteOff(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+	// TODO: was NoteOn
+	void processNoteOn(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+	// TODO: was PolyAfterTch
+	void processKeyPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+	// TODO: was Controller
+	void processControllerChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
+	// TODO: was ProgramChange
+	void processProgramChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
+	// TODO: was ChnlAfterTch
+	void processChannelPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+	// TODO: was PitchBend
+	void processPitchBend(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
+	// TODO: was SysEx
+	void processSysEx(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+	// TODO: was SkipMidi
+	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const Command command);
 
+	uint8 insertSoundToPlaylist(Sci1Sound &sound);
 	// TODO: was DoEnd
-	void finishSound(Sci1Sound &sound);
+	void removeSoundFromPlaylist(Sci1Sound &sound);
+	// TODO: was DoChangeVol
+	void processVolumeChange(Sci1Sound &sound, const uint8 volume, const bool enqueue);
+	void changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue);
+
+	void fixupHeader(Sci1Sound &sound);
 
 	/**
 	 * The number of times the sound server has been suspended.
@@ -591,6 +773,10 @@ private:
 	int _numServerSuspensions;
 
 	enum {
+		/**
+		 * TODO: Better name, this is a hard-coded value from scripts which gets
+		 * converted into the actual default reverb mode value.
+		 */
 		kDefaultReverbMode = 127,
 		kMaxVolume = 127
 	};
@@ -598,7 +784,7 @@ private:
 	uint8 _defaultReverbMode;
 
 	bool _needsUpdate;
-	bool _restoringSaveGame;
+	bool _restoringSound;
 
 #pragma mark -
 #pragma mark Kernel
