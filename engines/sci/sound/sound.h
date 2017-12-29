@@ -106,7 +106,8 @@ struct Sci0Sound {
 struct Sci1Sound {
 	enum {
 		kNumTracks = 16,
-		kNumChannels = 15
+		kNumChannels = 15,
+		kMaxVolume = 127
 	};
 
 	/**
@@ -127,14 +128,10 @@ struct Sci1Sound {
 	 * The sound playback state.
 	 */
 	enum State {
-		/**
-		 * The sound is not playing.
-		 */
+		/** The sound is not playing. */
 		kStopped = 0,
 
-		/**
-		 * The sound is playing.
-		 */
+		/** The sound is playing. */
 		kPlaying = 1,
 
 		/**
@@ -170,6 +167,13 @@ struct Sci1Sound {
 		};
 
 		/**
+		 * The offset to the start of track data within the Sound resource.
+		 * (This field did not exist in SSCI, which instead wrote a header
+		 * directly into the sound data).
+		 */
+		uint16 offset;
+
+		/**
 		 * The current playback position of the track, in bytes.
 		 */
 		uint16 position;
@@ -183,9 +187,10 @@ struct Sci1Sound {
 		uint16 rest;
 
 		/**
-		 * The last received command in the high 4 bits, the channel for the
-		 * command in the low 4 bits.
-		 * @see `SoundManager::Command`
+		 * The last received MIDI command (message). The upper nibble
+		 * corresponds to a `MessageType`, and (for non-SysEx messages) the
+		 * lower nibble corresponds to the channel number to which the command
+		 * applies.
 		 */
 		uint8 command;
 
@@ -223,6 +228,11 @@ struct Sci1Sound {
 	 * A logical MIDI channel.
 	 */
 	struct Channel {
+		enum {
+			kNoCurrentNote = 0xff,
+			kUninitialized = 0xff
+		};
+
 		/**
 		 * Flags representing different channel output configurations.
 		 */
@@ -246,11 +256,6 @@ struct Sci1Sound {
 			 * TODO: Rename
 			 */
 			kExtra = 2
-		};
-
-		enum {
-			kNoCurrentNote = 0xff,
-			kUninitialized = 0xff
 		};
 
 		// NOTE: In SSCI, damper pedal state & pitch bend are packed into a
@@ -464,8 +469,7 @@ struct Sci1Sound {
 	 * Peeks at a byte of the data stream for the given track.
 	 */
 	inline byte peek(const uint8 trackNo, const uint8 extra = 0) {
-		const uint16 trackOffset = resource->getUint16LEAt(trackNo * sizeof(uint16));
-		return resource->getUint8At(trackOffset + tracks[trackNo].position + extra);
+		return resource->getUint8At(tracks[trackNo].offset + tracks[trackNo].position + extra);
 	}
 
 	/**
@@ -485,12 +489,12 @@ struct Sci1Sound {
 	}
 };
 
+#pragma mark -
+
 class SoundManager : public Common::Serializable {
 public:
 	SoundManager(ResourceManager &resMan, GameFeatures &features);
 	~SoundManager();
-
-	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	/**
 	 * Returns the preferred resource type for the given sound resource.
@@ -529,60 +533,67 @@ private:
 	Common::ScopedPtr<Sci1SoundDriver> _driver;
 
 #pragma mark -
-#pragma mark MIDI server
-// TODO: Split to SCI0 server and SCI1 server?
+#pragma mark Save management
 public:
-	// TODO: Public APIs are:
-	// PatchReq (unused)
-	// Init (unused)
-	// Terminate (unused)
-	// ProcessSounds (semi-private) ~> soundServer
-	// SoundOn ~> setSoundOn
-	// RestoreSound (semi-private) ~> restore
-	// MasterVol ~> get/setMasterVolume
-	// SetReverb ~> get/getDefault/setReverb
-	// PlaySound ~> play
-	// EndSound ~> stop
-	// PauseSound ~> pause/pauseAll
-	// FadeSound ~> fade
-	// HoldSound ~> hold
-	// MuteSound ~> mute
-	// ChangeVol ~> setVolume
-	// ChangePri ~> setPriority
-	// GetDataInc ~> getCue
-	// GetSignal ~> peekSignal
-	// GetSignalRset ~> consumeSignal
-	// GetSMPTE ~> getPosition
-	// SendNoteOff ~> setNoteOff
-	// SendNoteOn ~> setNoteOn
-	// SendContrlr ~> setController
-	// SendPChange ~> setProgram
-	// SendPBend ~> setPitchBend
-	// AskDriver (unused)
+	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
-	enum {
-		/** Maximum master volume. */
-		kMaxMasterVolume = 15,
-
-		/** Maximum channel volume. */
-		kMaxVolume = 127
-	};
+private:
+	/**
+	 * Restores the given sound to its previous playback state by
+	 * fast-forwarding up to the point given in `ticksElapsed`.
+	 * TODO: was RestoreSound
+	 */
+	void restore(Sci1Sound &sound);
 
 	/**
-	 * Enables and disables the sound server. This method uses a counter so
-	 * requires a symmetric number of enable and disable calls.
+	 * If true, a sound is in the process of being restored so should not
+	 * actually generate audio output by sending notes, etc. to the hardware.
+	 */
+	bool _restoringSound;
+
+#pragma mark -
+#pragma mark MIDI server
+// TODO: Figure out how to integrate with SCI0, or split to its own file so the
+// SCI0 and SCI1 engines can coexist.
+public:
+	/**
+	 * Enables and disables the sound server. This method uses a counter.
 	 */
 	void enableSoundServer(const bool enable);
 
-	/**
-	 * Enables and disables sound reproduction in the driver. This method does
-	 * not use a counter so one call to enable sound will cancel all previous
-	 * calls to disable sound.
-	 */
-	void setSoundOn(const bool enable);
+private:
+	static inline void soundServerCallback(void *soundManager) {
+		static_cast<SoundManager *>(soundManager)->soundServer();
+	}
 
-	// TODO: was PlaySound. returns playlist index
-	uint8 play(Sci1Sound &sound, const bool isBedSound);
+	/**
+	 * Advances the state of the sound server. Must be called once per tick in
+	 * SCI1 for correct sound processing.
+	 */
+	void soundServer();
+
+	/**
+	 * Processes one fade step for the given sound.
+	 */
+	void processFade(Sci1Sound &sound);
+
+	/**
+	 * The number of times the sound server has been suspended.
+	 */
+	int _numServerSuspensions;
+
+	/**
+	 * If true, the channel mapping needs to be updated the next time the sound
+	 * server is called.
+	 */
+	bool _needsUpdate;
+
+#pragma mark -
+#pragma mark Effects
+public:
+	enum {
+		kMaxMasterVolume = 15
+	};
 
 	// TODO: was MasterVol, one function
 	uint8 getMasterVolume() const;
@@ -593,121 +604,202 @@ public:
 	uint8 getDefaultReverbMode() const { return _defaultReverbMode; }
 	uint8 setReverbMode(const uint8 reverbMode);
 
-	// TODO: was GetSignal
-	Sci1Sound::Signal peekSignal(const Sci1Sound &sound);
+	/**
+	 * Enables and disables sound reproduction in the driver. This method is
+	 * idempotent.
+	 */
+	void setSoundOn(const bool enable);
 
-	// TODO: was GetSignalRset
-	Sci1Sound::Signal consumeSignal(Sci1Sound &sound);
-
-	// TODO: was GetDataInc
-	uint16 getCue(const Sci1Sound &sound);
-
-	// TODO: was GetSMPTE
-	struct Position { uint16 minutes; uint8 seconds; uint8 frames; };
-	Position getPosition(const Sci1Sound &sound);
-
-	// TODO: was RestoreSound
-	void restore(Sci1Sound &sound);
-
-	// TODO: was ChangePri
-	void setPriority(Sci1Sound &sound, const uint8 priority);
-
-	// TODO: was EndSound
-	void stop(Sci1Sound &sound);
-
-	// TODO: was FadeSound
-	void fade(Sci1Sound &sound, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade);
-
-	// TODO: was ChangeVolume
+	/**
+	 * Immediately sets the volume of the given sound.
+	 * TODO: was ChangeVolume
+	 */
 	void setVolume(Sci1Sound &sound, const uint8 volume);
 
-	// TODO: was PauseSound, one function
-	void pause(Sci1Sound &sound, const bool pause);
-	void pauseAll(const bool pause);
+	/**
+	 * Fades the volume of the given sound to the given target volume. If a fade
+	 * is in progress, it will be replaced with the new fade.
+	 *
+	 * @param speed The amount of volume change per step.
+	 * @param steps The number of steps to perform.
+	 * TODO: was FadeSound
+	 */
+	void fade(Sci1Sound &sound, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade);
 
-	// TODO: was HoldSound
-	void hold(Sci1Sound &sound, const uint8 holdPoint);
-
-	// TODO: was SendNoteOff
-	void setNoteOff(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
-
-	// TODO: was SendNoteOn
-	void setNoteOn(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
-
-	// TODO: was SendContrlr
-	void setController(Sci1Sound &sound, const uint8 channelNo, const uint8 controllerNo, const uint8 value);
-
-	// TODO: was SendPChange
-	void setProgram(Sci1Sound &sound, const uint8 channelNo, const uint8 programNo);
-
-	// TODO: was SendPitchBend
-	void setPitchBend(Sci1Sound &sound, const uint8 channelNo, const uint16 value);
-
-	// TODO: was MuteSound
+	/**
+	 * Mutes or unmutes the given sound. This method uses a counter.
+	 * TODO: was MuteSound
+	 */
 	void mute(Sci1Sound &sound, const bool mute);
 
 private:
-	static inline void soundServerCallback(void *soundManager) {
-		static_cast<SoundManager *>(soundManager)->soundServer();
-	}
-
-	void soundServer();
-
-	void processFade(Sci1Sound &sound);
-	// TODO: was parseNode
-	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
-
-	void updateChannelVolumes();
-
-	// TODO: was doChannelList
-	void updateChannelList();
-
-	/**
-	 * Finds the index of the given sound in the current playlist. Returns
-	 * `kPlaylistSize` if the sound could not be found in the playlist.
-	 */
-	inline uint8 findPlaylistIndex(const Sci1Sound &sound) const {
-		uint i;
-		for (i = 0; i < kPlaylistSize; ++i) {
-			if (_playlist[i] == &sound) {
-				break;
-			}
-		}
-		return i;
-	}
-
 	enum {
-		kUnknownSound = 0xff
+		/** Use whatever reverb mode is given in `_defaultReverbMode`. */
+		kUseDefaultReverb = 127,
+
+		/** No pending volume change. */
+		kNoVolumeChange = 0xff
 	};
 
 	/**
-	 * Creates a channel key in the format used for `_channelList`.
+	 * Updates the volume for the given sound. If `enqueue` is true, volume
+	 * changes to the sound's corresponding hardware channels will be queued and
+	 * processed over time by the sound server instead of being applied
+	 * immediately.
+	 * TODO: was DoChangeVol
 	 */
-	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
-		const uint8 playlistIndex = findPlaylistIndex(sound);
-		if (playlistIndex == kPlaylistSize) {
-			return kUnknownSound;
-		}
-		return (playlistIndex << 4) | channelNo;
-	}
+	void processVolumeChange(Sci1Sound &sound, const uint8 volume, const bool enqueue);
+	void changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue);
 
 	/**
-	 * Finds the hardware channel that is wired to the Sound channel represented
-	 * by the given key. Returns `kNumMappedChannels` if the input channel is
-	 * not currently wired to a hardware channel.
+	 * Sends pending volume changes to the sound driver. This will send at
+	 * most two volume changes per call.
 	 */
-	inline uint8 findHwChannelNo(const uint8 key) const {
-		uint i;
-		for (i = 0; i < kNumMappedChannels; ++i) {
-			if (_channelList[i] == key) {
-				break;
-			}
-		}
-		return i;
-	}
+	void applyPendingVolumeChanges();
 
+	/**
+	 * A list of pending volume changes, where the array indexes are indexes
+	 * into `_hardwareChannels` and values are the new volumes for those
+	 * channels.
+	 */
+	Common::Array<uint8> _newChannelVolumes;
+
+	/**
+	 * The next hardware channel which should be checked for a pending volume
+	 * update.
+	 * TODO: was requestChnl
+	 */
+	uint8 _nextVolumeChangeChannel;
+
+	/**
+	 * The actual reverb mode to send to hardware when a song is played with
+	 * `kDefaultReverbMode` as its reverb mode.
+	 */
+	uint8 _defaultReverbMode;
+
+#pragma mark -
+#pragma mark Playback management
+public:
+	/**
+	 * The SMPTE timecode of a sound playing back at 30fps.
+	 */
+	struct Position {
+		uint16 minutes;
+		uint8 seconds;
+		uint8 frames;
+	};
+
+	/**
+	 * Starts playback of the given sound. If the sound already exists in the
+	 * playlist, it will be restarted.
+	 *
+	 * @param exclusive If true, the sound will be played back in exclusive mode
+	 * (calls to `playBed` in game scripts are supposed to do this).
+	 *
+	 * @returns the new index of the sound in the playlist, or `kPlaylistSize`
+	 * if the sound was not added to the playlist.
+	 *
+	 * TODO: was PlaySound. returns playlist index
+	 */
+	uint8 play(Sci1Sound &sound, const bool exclusive);
+
+	/**
+	 * Pauses or unpauses a single sound. This method uses a counter.
+	 * TODO: was PauseSound, one function
+	 */
+	void pause(Sci1Sound &sound, const bool pause);
+
+	/**
+	 * Pauses or unpauses all sounds. This function uses the same counter as
+	 * single-sound pauses so will also unpause individually paused sounds.
+	 */
+	void pauseAll(const bool pause);
+
+	/**
+	 * Stops playback of the given sound.
+	 * TODO: was EndSound
+	 */
+	void stop(Sci1Sound &sound);
+
+	/**
+	 * Sets the hold point for the given sound.
+	 * TODO: was HoldSound
+	 */
+	void hold(Sci1Sound &sound, const uint8 holdPoint);
+
+	/**
+	 * Gets the signal for the given sound without resetting the signal.
+	 * TODO: was GetSignal
+	 */
+	Sci1Sound::Signal peekSignal(const Sci1Sound &sound);
+
+	/**
+	 * Gets and resets the signal for the given sound.
+	 * TODO: was GetSignalRset
+	 */
+	Sci1Sound::Signal consumeSignal(Sci1Sound &sound);
+
+	/**
+	 * Gets the last data increment cue value for the given sound.
+	 * TODO: was GetDataInc
+	 */
+	uint16 getCue(const Sci1Sound &sound);
+
+	/**
+	 * Returns the current position of sound playback in SMPTE timecode format.
+	 * TODO: was GetSMPTE
+	 */
+	Position getPosition(const Sci1Sound &sound);
+
+	/**
+	 * Sets the priority of the given sound and updates the playlist order to
+	 * match.
+	 * TODO: was ChangePri
+	 */
+	void setPriority(Sci1Sound &sound, const uint8 priority);
+
+#pragma mark -
+#pragma mark Sound generation
+public:
+	/**
+	 * Programmatically stops playback of a note on the given sound channel.
+	 * TODO: was SendNoteOff
+	 */
+	void setNoteOff(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
+
+	/**
+	 * Programmatically starts playback of a note on the given sound channel.
+	 * TODO: was SendNoteOn
+	 */
+	void setNoteOn(Sci1Sound &sound, const uint8 channelNo, const uint8 note, const uint8 velocity);
+
+	/**
+	 * Programmatically sends a new controller value to the given sound channel.
+	 * TODO: was SendContrlr
+	 */
+	void setController(Sci1Sound &sound, const uint8 channelNo, const uint8 controllerNo, const uint8 value);
+
+	/**
+	 * Programmatically changes the program used for the given sound channel.
+	 * TODO: was SendPChange
+	 */
+	void setProgram(Sci1Sound &sound, const uint8 channelNo, const uint8 programNo);
+
+	/**
+	 * Programmatically changes the pitch bend for the given sound channel.
+	 * TODO: was SendPitchBend
+	 */
+	void setPitchBend(Sci1Sound &sound, const uint8 channelNo, const uint16 value);
+
+#pragma mark -
+#pragma mark Data processing
+private:
+	// TODO: Split this enum up more
 	enum {
-		kUnknownChannel = 0xff,
+		/**
+		 * The number of the channel in the Sound which contains control data
+		 * instead of instrument data.
+		 */
 		kControlChannel = 15,
 
 		// TODO: used for rest/delay
@@ -717,14 +809,37 @@ private:
 	};
 
 	enum Message {
+		/**
+		 * A control channel message which marks the current position as a loop
+		 * point.
+		 */
 		kSetLoop = 0x7f,
-		kCommandFlag = 0x80,
+
+		/**
+		 * A flag indicating that the current byte starts a new command
+		 * sequence.
+		 */
+		kStartOfMessageFlag = 0x80,
+
+		/**
+		 * A standard MIDI message indicating the termination of a System
+		 * Exclusive sequence.
+		 */
 		kEndOfSysEx = 0xf7,
+
+		/**
+		 * A message indicating that playback of the track needs to be delayed
+		 * for a fixed duration.
+		 */
 		kTimingOverflow = 0xf8,
+
+		/**
+		 * A message indicating that the end of the track has been reached.
+		 */
 		kEndOfTrack = 0xfc
 	};
 
-	enum Command {
+	enum MessageType {
 		kNoteOff = 0x80,
 		kNoteOn = 0x90,
 		kKeyPressure = 0xa0,
@@ -741,7 +856,9 @@ private:
 		kPanController = 10,
 		kDamperPedalController = 64,
 		kMaxVoicesController = 75,
-		kSingleVoiceNoteController = 78,
+		// TODO: This controller also receives the current note when channels
+		// are remapped.
+		kMuteController = 78,
 		kReverbModeController = 80,
 		kLoopEndController = 82,
 		kCueController = 96,
@@ -749,16 +866,94 @@ private:
 		kProgramChangeController = 127
 	};
 
+	/**
+	 * Finds and populates the offsets to the start of track data for each track
+	 * in the sound designed for the current output device. This is a highly
+	 * modified version of the header fixup method from SSCI, changed so as to
+	 * not overwrite parts of the original resource data in memory.
+	 */
+	void findTrackOffsets(Sci1Sound &sound);
+
+	/**
+	 * Processes the next message in all active tracks of the given sound.
+	 * TODO: was parseNode
+	 */
+	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
+
+	/**
+	 * Processes the next control channel message.
+	 * TODO: was controlChnl
+	 */
+	void parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MessageType command);
+
+	/**
+	 * Processes a Note Off message from a data track.
+	 * TODO: was NoteOff
+	 */
+	void processNoteOff(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+
+	/**
+	 * Processes a Note On message from a data track.
+	 * TODO: was NoteOn
+	 */
+	void processNoteOn(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+
+	/**
+	 * Processes a Key Pressure (aftertouch) message from a data track.
+	 * TODO: was PolyAfterTch
+	 */
+	void processKeyPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+
+	/**
+	 * Processes a Controller Change message from a data track.
+	 * TODO: was Controller
+	 */
+	void processControllerChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool isExtraChannel);
+
+	/**
+	 * Processes a Program Change message from a data track.
+	 * TODO: was ProgramChange
+	 */
+	void processProgramChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool isExtraChannel);
+
+	/**
+	 * Processes a Channel Pressure (aftertouch) message from a data track.
+	 * TODO: was ChnlAfterTch
+	 */
+	void processChannelPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+
+	/**
+	 * Processes a Pitch Bend message from a data track.
+	 * TODO: was PitchBend
+	 */
+	void processPitchBend(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool isExtraChannel);
+
+	/**
+	 * Processes a System Exclusive message from a data track.
+	 * TODO: was SysEx
+	 */
+	void processSysEx(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
+
+	/**
+	 * Skips past data for the given command in a data track.
+	 * TODO: was SkipMidi
+	 */
+	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const MessageType command);
+
+#pragma mark -
+#pragma mark Playlist management
+private:
 	enum {
-		kPlaylistSize = 16,
-		kNumMappedChannels = 16
+		kPlaylistSize = 16
 	};
 
 	// TODO: was sampleList, appears totally broken in SCI1.1+ so unclear what
 	// to do about it. In SSCI this is a 16-dword array, but the code uses it
 	// to hold a pointer in _samples[0], or an offset in the first word of
 	// _samples[0] and segment segment the first word of _samples[2]. The
-	// pointer is to a Sci1Sound object.
+	// pointer is to a Sci1Sound object. In earlier versions this was probably a
+	// list corresponding to _playlist which stored pointers to the sample
+	// tracks for sounds which had digital sample tracks; need to verify that.
 	Sci1Sound *_sample;
 
 	/**
@@ -766,47 +961,80 @@ private:
 	 */
 	Sci1Sound *_playlist[kPlaylistSize];
 
-	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
-	typedef Common::Array<uint8> ChannelList;
+	/**
+	 * Finds the index of the given sound in the current playlist. Returns
+	 * `kPlaylistSize` if the sound could not be found in the playlist.
+	 */
+	inline uint8 findPlaylistIndex(const Sci1Sound &sound) const {
+		uint i;
+		for (i = 0; i < kPlaylistSize; ++i) {
+			if (_playlist[i] == &sound) {
+				break;
+			}
+		}
+		return i;
+	}
 
-	// TODO: was chList
-	// Index maps to mappedChannels. Original channel's position in _playlist in
-	// upper 4 bits, original channel number in lower 4 bits.
-	ChannelList _channelList;
+	/**
+	 * Inserts the given sound into _playlist. The sound must not already exist
+	 * in the playlist.
+	 */
+	uint8 insertSoundToPlaylist(Sci1Sound &sound);
 
-	// TODO: Not sure if this is the right name for this thing. Maybe
-	// PhysicalChannel or OutputChannel or HardwareChannel instead?
-	struct MappedChannel {
+	/**
+	 * Removes the given sound from _playlist.
+	 * TODO: was DoEnd
+	 */
+	void removeSoundFromPlaylist(Sci1Sound &sound);
+
+#pragma mark -
+#pragma mark Channel remapping
+private:
+	enum {
+		kNumHardwareChannels = 16
+	};
+
+	/**
+	 * A physical output channel.
+	 */
+	struct HardwareChannel {
 		enum {
+			/**
+			 * Special `key` value for an unmapped hardware channel.
+			 */
 			kUnmapped = 0xff
 		};
 
 		/**
-		 * The key (playlist index << 4 | channel number) for this channel
-		 * remapping.
+		 * The key (playlist index << 4 | channel number) for the logical
+		 * channel currently mapped to this output channel.
 		 * TODO: was ChNew
+		 * TODO: Change this to separate the two fields for implementation
+		 * clarity.
 		 */
 		uint8 key;
 
 		/**
-		 * The global priority (sound priority * channel priority) of the mapped
-		 * channel (0-240).
+		 * The global priority (sound priority * channel priority) of the
+		 * logical channel currently mapped to this channel.
 		 * TODO: was ChPri
 		 */
 		uint8 priority;
 
 		/**
-		 * Number of voices used by the channel.
+		 * The number of voices used by this channel.
 		 * TODO: was ChVoice
 		 */
 		uint8 numVoices;
 
 		/**
+		 * If true, this channel may not be preempted to play another channel
+		 * with higher priority.
 		 * TODO: was ChBed.
 		 */
 		bool locked;
 
-		MappedChannel() :
+		HardwareChannel() :
 			key(kUnmapped),
 			priority(0),
 			numVoices(0),
@@ -818,80 +1046,83 @@ private:
 		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
 	};
 
-	// TODO: Combine these next two things?
-	typedef Common::Array<MappedChannel> MappedChannels;
-	MappedChannels _mappedChannels;
-
-	typedef Common::Array<Sci1Sound *> MappedNodes;
-	MappedNodes _mappedNodes;
-
 	enum {
-		kNoVolumeChange = 0xff
+		kUnknownSound = 0xff
 	};
 
 	/**
-	 * A list of new volume changes per channel.
+	 * Creates a channel key for the given sound and channel in the format used
+	 * by `_channelList`. If the given sound is not in the playlist,
+	 * `kUnknownSound` is returned.
 	 */
-	Common::Array<uint8> _newChannelVolumes;
+	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
+		const uint8 playlistIndex = findPlaylistIndex(sound);
+		if (playlistIndex == kPlaylistSize) {
+			return kUnknownSound;
+		}
+		return (playlistIndex << 4) | channelNo;
+	}
 
-	// TODO: was requestChnl
-	uint8 _newChannelVolumesIndex;
+	/**
+	 * Finds the hardware channel that is wired to the sound channel represented
+	 * by the given key. Returns `kNumHardwareChannels` if the input channel is
+	 * not currently wired to a hardware channel.
+	 */
+	inline uint8 findHwChannelNo(const uint8 key) const {
+		uint i;
+		for (i = 0; i < kNumHardwareChannels; ++i) {
+			if (_channelList[i] == key) {
+				break;
+			}
+		}
+		return i;
+	}
 
-	// TODO: was updateChannel1 & 2 (identical)
-	void updateChannel(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
+	/**
+	 * Updates the output channel mapping.
+	 * TODO: was doChannelList
+	 */
+	void updateChannelList();
 
-	// TODO: was preemptChn1 & 2 (identical)
+	/**
+	 * Preempts the lowest priority preemptable hardware channel. Adds the newly
+	 * freed number of voices to `numFreeVoices` and returns the hardware
+	 * channel number which was preempted, or `kNumHardwareChannels` if no
+	 * channel could be preempted.
+	 * TODO: was preemptChn1/2
+	 */
 	uint8 preemptChannel(const int &numFreeVoices);
 
-	// TODO: was controlChnl
-	void parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const Command command);
+	/**
+	 * Sends the state of the channel given in `channel` to the hardware driver.
+	 *
+	 * TODO: was updateChannel1/2
+	 */
+	void sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
 
-	// TODO: was NoteOff
-	void processNoteOff(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
-	// TODO: was NoteOn
-	void processNoteOn(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
-	// TODO: was PolyAfterTch
-	void processKeyPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
-	// TODO: was Controller
-	void processControllerChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
-	// TODO: was ProgramChange
-	void processProgramChange(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
-	// TODO: was ChnlAfterTch
-	void processChannelPressure(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
-	// TODO: was PitchBend
-	void processPitchBend(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo, const bool outOfRangeChannel);
-	// TODO: was SysEx
-	void processSysEx(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo);
-	// TODO: was SkipMidi
-	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const Command command);
+	// TODO: Combine these next two things? Combine also with _channelList?
+	// The reason why they are not combined already is because only the fields
+	// that updateChannelList groups together were turned into the
+	// HardwareChannel struct.
+	typedef Common::Array<HardwareChannel> HardwareChannels;
+	HardwareChannels _hardwareChannels;
 
-	uint8 insertSoundToPlaylist(Sci1Sound &sound);
-	// TODO: was DoEnd
-	void removeSoundFromPlaylist(Sci1Sound &sound);
-	// TODO: was DoChangeVol
-	void processVolumeChange(Sci1Sound &sound, const uint8 volume, const bool enqueue);
+	typedef Common::Array<Sci1Sound *> MappedNodes;
+	/**
+	 * A map from hardware channel number to pointer to the sound playing in the
+	 * given channel.
+	 */
+	MappedNodes _mappedNodes;
 
-	void changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue);
-
-	void fixupHeader(Sci1Sound &sound);
+	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
+	typedef Common::Array<uint8> ChannelList;
 
 	/**
-	 * The number of times the sound server has been suspended.
+	 * A map from hardware channel number to sound key as used in
+	 * `HardwareChannel::key`.
+	 * TODO: was chList
 	 */
-	int _numServerSuspensions;
-
-	enum {
-		/**
-		 * TODO: Better name, this is a hard-coded value from scripts which gets
-		 * converted into the actual default reverb mode value.
-		 */
-		kDefaultReverbMode = 127
-	};
-
-	uint8 _defaultReverbMode;
-
-	bool _needsUpdate;
-	bool _restoringSound;
+	ChannelList _channelList;
 
 #pragma mark -
 #pragma mark Kernel
