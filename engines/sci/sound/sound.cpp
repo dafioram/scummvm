@@ -595,12 +595,11 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 	findTrackOffsets(sound);
 
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
-		const uint16 trackOffset = sound.resource->getUint16LEAt(trackNo * sizeof(uint16));
-		if (trackOffset == 0) {
+		Sci1Sound::Track &track = sound.tracks[trackNo];
+		if (track.offset == 0) {
 			break;
 		}
-		SciSpan<const byte> trackData = sound.resource->subspan(trackOffset);
-		Sci1Sound::Track &track = sound.tracks[trackNo];
+		SciSpan<const byte> trackData = sound.resource->subspan(track.offset);
 
 		const uint8 channelNo = trackData[0];
 		track.channelNo = channelNo & 0xf;
