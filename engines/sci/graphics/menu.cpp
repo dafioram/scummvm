@@ -37,6 +37,7 @@
 #include "sci/graphics/text16.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/menu.h"
+#include "sci/sound/sound.h"
 
 namespace Sci {
 
@@ -674,12 +675,12 @@ void GfxMenu::interactiveStart(bool pauseSound) {
 	_mouseOldState = _cursor->isVisible();
 	_cursor->kernelShow();
 	if (pauseSound)
-		g_sci->_soundCmd->pauseAll(true);
+		g_sci->_sound->pauseAll(true);
 }
 
 void GfxMenu::interactiveEnd(bool pauseSound) {
 	if (pauseSound)
-		g_sci->_soundCmd->pauseAll(false);
+		g_sci->_sound->pauseAll(false);
 	if (!_mouseOldState)
 		_cursor->kernelHide();
 }

@@ -39,6 +39,7 @@
 #include "sci/engine/kernel.h"
 #include "sci/engine/savegame.h"
 #include "sci/sound/audio.h"
+#include "sci/sound/sound.h"
 #include "sci/console.h"
 #ifdef ENABLE_SCI32
 #include "graphics/thumbnail.h"
@@ -1050,7 +1051,7 @@ reg_t kSaveGame(EngineState *s, int argc, reg_t *argv) {
 			error("kSaveGame: assumed patched call isn't accurate");
 
 		// we are supposed to show a dialog for the user and let him choose where to save
-		g_sci->_soundCmd->pauseAll(true); // pause music
+		g_sci->_sound->pauseAll(true);
 		GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
 		savegameId = dialog->runModalWithCurrentTarget();
 		game_description = dialog->getResultString();
@@ -1059,7 +1060,7 @@ reg_t kSaveGame(EngineState *s, int argc, reg_t *argv) {
 			game_description = dialog->createDefaultSaveDescription(savegameId);
 		}
 		delete dialog;
-		g_sci->_soundCmd->pauseAll(false); // unpause music (we can't have it paused during save)
+		g_sci->_sound->pauseAll(false); // music will not save correctly if it is paused during save
 		if (savegameId < 0)
 			return NULL_REG;
 	} else {
@@ -1169,12 +1170,12 @@ reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv) {
 		// Direct call, either from launcher or from a patched Game::restore
 		if (savegameId == -1) {
 			// we are supposed to show a dialog for the user and let him choose a saved game
-			g_sci->_soundCmd->pauseAll(true); // pause music
+			g_sci->_sound->pauseAll(true);
 			GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Restore game:"), _("Restore"), false);
 			savegameId = dialog->runModalWithCurrentTarget();
 			delete dialog;
 			if (savegameId < 0) {
-				g_sci->_soundCmd->pauseAll(false); // unpause music
+				g_sci->_sound->pauseAll(false);
 				return s->r_acc;
 			}
 			pausedMusic = true;
@@ -1223,7 +1224,7 @@ reg_t kRestoreGame(EngineState *s, int argc, reg_t *argv) {
 	if (!s->r_acc.isNull()) {
 		// no success?
 		if (pausedMusic)
-			g_sci->_soundCmd->pauseAll(false); // unpause music
+			g_sci->_sound->pauseAll(false);
 	}
 
 	return s->r_acc;

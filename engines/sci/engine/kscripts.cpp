@@ -27,6 +27,7 @@
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
 #include "sci/engine/kernel.h"
+#include "sci/sound/sound.h"
 #ifdef ENABLE_SCI32
 #include "sci/engine/features.h"
 #include "sci/sound/audio32.h"
@@ -85,7 +86,7 @@ reg_t kLock(EngineState *s, int argc, reg_t *argv) {
 
 	ResourceType type = g_sci->getResMan()->convertResType(argv[0].toUint16());
 	if (type == kResourceTypeSound && getSciVersion() >= SCI_VERSION_1_1) {
-		type = g_sci->_soundCmd->getSoundResourceType(argv[1].toUint16());
+		type = g_sci->_sound->getSoundResourceType(argv[1].toUint16());
 	}
 
 	const ResourceId id(type, argv[1].toUint16());

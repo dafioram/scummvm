@@ -35,7 +35,9 @@
 namespace Audio { class Mixer; }
 
 namespace Sci {
+class Console;
 class Sci1SoundDriver;
+class SegManager;
 
 enum Sci0PlayStrategy {
 	/**
@@ -148,11 +150,6 @@ struct Sci1Sound {
 		 */
 		kExclusive = 2
 	};
-
-	/**
-	 * The Sound's resource.
-	 */
-	Resource *resource;
 
 	/**
 	 * A MIDI data stream.
@@ -353,6 +350,16 @@ struct Sci1Sound {
 	} channels[kNumChannels];
 
 	/**
+	 * The nodePtr value returned to the VM to represent this sound object.
+	 */
+	reg_t nodePtr;
+
+	/**
+	 * The Sound's resource.
+	 */
+	Resource *resource;
+
+	/**
 	 * A cue value which increments by one whenever a cue controller message is
 	 * encountered in the control channel.
 	 * TODO: was dataInc
@@ -465,6 +472,31 @@ struct Sci1Sound {
 	 */
 	bool isSample;
 
+	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
+	Sci1Sound(const reg_t nodePtr_) :
+		tracks(),
+		channels(),
+		nodePtr(nodePtr_),
+		resource(nullptr),
+		cue(0),
+		ticksElapsed(0),
+		loopTicksElapsed(0),
+		signal(kNoSignal),
+		state(kStopped),
+		holdPoint(0),
+		fixedPriority(false),
+		priority(0),
+		loop(false),
+		volume(0),
+		reverbMode(0),
+		fadeTargetVolume(0),
+		stopSoundOnFade(false),
+		fadeDelay(0),
+		fadeDelayRemaining(0),
+		fadeAmountPerTick(0),
+		paused(0),
+		isSample(false) {}
+
 	/**
 	 * Peeks at a byte of the data stream for the given track.
 	 */
@@ -490,10 +522,11 @@ struct Sci1Sound {
 };
 
 #pragma mark -
+#pragma mark SoundManager
 
 class SoundManager : public Common::Serializable {
 public:
-	SoundManager(ResourceManager &resMan, GameFeatures &features);
+	SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features);
 	~SoundManager();
 
 	/**
@@ -507,8 +540,17 @@ public:
 		}
 	}
 
+	/**
+	 * Gets the maximum number of simultaneous voices supported by the current
+	 * sound driver.
+	 */
+	int getNumVoices() const;
+
 private:
+	typedef Common::Array<Sci1Sound> SoundsList;
+
 	ResourceManager &_resMan;
+	SegManager *_segMan;
 	Common::Mutex _mutex;
 
 	/**
@@ -520,7 +562,7 @@ private:
 	/**
 	 * The list of currently playing & queued sounds.
 	 */
-	Common::Array<Sci1Sound> _sounds;
+	SoundsList _sounds;
 
 	/**
 	 * The currently active version of the sound code.
@@ -531,6 +573,14 @@ private:
 	 * The sound driver.
 	 */
 	Common::ScopedPtr<Sci1SoundDriver> _driver;
+
+#pragma mark -
+#pragma mark Debugging
+public:
+	void debugPrintPlaylist(Console &con) const;
+	void debugPrintSound(Console &con, const reg_t nodePtr) const;
+	void debugPlay(const GuiResourceId soundId);
+	void debugStopAll();
 
 #pragma mark -
 #pragma mark Save management
@@ -857,7 +907,7 @@ private:
 		kDamperPedalController = 64,
 		kMaxVoicesController = 75,
 		// TODO: This controller also receives the current note when channels
-		// are remapped.
+		// are remapped, figure out what this means.
 		kMuteController = 78,
 		kReverbModeController = 80,
 		kLoopEndController = 82,
@@ -1127,30 +1177,52 @@ private:
 #pragma mark -
 #pragma mark Kernel
 public:
-/* TODO:
- 	{ SIG_SOUNDSCI1,       0, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
-	{ SIG_SOUNDSCI1,       1, MAP_CALL(DoSoundMute),               "(i)",                  NULL },
-	{ SIG_SOUNDSCI1,       2, MAP_EMPTY(DoSoundRestore),           NULL,                   NULL },
-	{ SIG_SOUNDSCI1,       3, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
-	{ SIG_SOUNDSCI1,       4, MAP_CALL(DoSoundGetAudioCapability), "",                     NULL },
-	{ SIG_SOUNDSCI1,       5, MAP_CALL(DoSoundSuspend),            "i",                    NULL },
-	{ SIG_SOUNDSCI1,       6, MAP_CALL(DoSoundInit),               "o",                    NULL },
-	{ SIG_SOUNDSCI1,       7, MAP_CALL(DoSoundDispose),            "o",                    NULL },
-	{ SIG_SOUNDSCI1LATE,   8, MAP_CALL(DoSoundPlay),               "oi",                   NULL },
-	{ SIG_SCI32,           8, MAP_CALL(DoSoundPlay),               "o",                    kDoSoundPlay_workarounds },
-	{ SIG_SOUNDSCI1,       9, MAP_CALL(DoSoundStop),               "o",                    NULL },
-	{ SIG_SOUNDSCI1,      10, MAP_CALL(DoSoundPause),              "[o0]i",                NULL },
-	{ SIG_SOUNDSCI1,      11, MAP_CALL(DoSoundFade),               "oiiii",                kDoSoundFade_workarounds },
-	{ SIG_SOUNDSCI1,      12, MAP_CALL(DoSoundSetHold),            "oi",                   NULL },
-	{ SIG_SOUNDSCI1,      13, MAP_EMPTY(DoSoundDummy),             NULL,                   NULL },
-	{ SIG_SOUNDSCI1,      14, MAP_CALL(DoSoundSetVolume),          "oi",                   NULL },
-	{ SIG_SOUNDSCI1,      15, MAP_CALL(DoSoundSetPriority),        "oi",                   NULL },
-	{ SIG_SOUNDSCI1,      16, MAP_CALL(DoSoundSetLoop),            "oi",                   NULL },
-	{ SIG_SOUNDSCI1,      17, MAP_CALL(DoSoundUpdateCues),         "o",                    NULL },
-	{ SIG_SOUNDSCI1,      18, MAP_CALL(DoSoundSendMidi),           "oiiii",                NULL },
-	{ SIG_SOUNDSCI1,      19, MAP_CALL(DoSoundGlobalReverb),       "(i)",                  NULL },
-	{ SIG_SOUNDSCI1,      20, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
-*/
+	void kernelInit(const reg_t soundObj);
+	void kernelDispose(const reg_t soundObj);
+	void kernelPlay(const reg_t soundObj, const bool exclusive);
+	void kernelStop(const reg_t soundObj);
+	void kernelPause(const reg_t soundObj, const bool shouldPause, const bool pauseDac);
+	void kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade);
+	void kernelHold(const reg_t soundObj, const int16 holdPoint);
+	void kernelSetVolume(const reg_t soundObj, const int16 volume);
+	void kernelSetPriority(const reg_t soundObj, const int16 priority);
+	void kernelSetLoop(const reg_t soundObj, const bool enable);
+	void kernelUpdateCues(const reg_t soundObj);
+	void kernelSendMidi(const reg_t soundObj, const int16 channel, const int16 command, const int16 a, const int16 b);
+	void kernelUpdate(const reg_t soundObj);
+
+private:
+	struct Kernel {
+		enum Signal {
+			kNoSignal = 0,
+			kFinished = -1
+		};
+	};
+
+	class SoundByRegT {
+		reg_t _key;
+	public:
+		inline SoundByRegT(const reg_t key) : _key(key) {}
+		inline bool operator()(const Sci1Sound &sound) const {
+			return sound.nodePtr == _key;
+		}
+	};
+
+	inline const Sci1Sound *findSoundByRegT(const reg_t key) const {
+		SoundsList::const_iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+		if (it == _sounds.end()) {
+			return nullptr;
+		}
+		return &*it;
+	}
+
+	inline Sci1Sound *findSoundByRegT(const reg_t key) {
+		SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+		if (it == _sounds.end()) {
+			return nullptr;
+		}
+		return &*it;
+	}
 };
 
 } // End of namespace Sci

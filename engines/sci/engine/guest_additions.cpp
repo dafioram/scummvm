@@ -34,8 +34,9 @@
 #include "common/translation.h"
 #include "gui/saveload.h"
 #include "sci/graphics/frameout.h"
+#include "sci/sound/audio32.h"
 #endif
-#include "sci/sound/music.h"
+#include "sci/sound/sound.h"
 #include "sci/sci.h"
 
 namespace Sci {
@@ -947,7 +948,7 @@ void GuestAdditions::syncMessageTypeToScummVMUsingLSL6HiresStrategy(const reg_t 
 
 void GuestAdditions::syncMasterVolumeFromScummVM() const {
 #ifdef ENABLE_SCI32
-	const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * MUSIC_MASTERVOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
+	const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * SoundManager::kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
 	const int16 sfxVolume = (ConfMan.getInt("sfx_volume") + 1) * Audio32::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 
 	// Volume was changed from ScummVM during the game, so resync the
@@ -957,7 +958,7 @@ void GuestAdditions::syncMasterVolumeFromScummVM() const {
 }
 
 void GuestAdditions::syncMasterVolumeToScummVM(const int16 masterVolume) const {
-	const int scummVMVolume = masterVolume * Audio::Mixer::kMaxMixerVolume / MUSIC_MASTERVOLUME_MAX;
+	const int scummVMVolume = masterVolume * Audio::Mixer::kMaxMixerVolume / SoundManager::kMaxMasterVolume;
 	ConfMan.setInt("music_volume", scummVMVolume);
 
 	if (Common::checkGameGUIOption(GUIO_LINKMUSICTOSFX, ConfMan.get("guioptions"))) {
@@ -990,7 +991,7 @@ void GuestAdditions::syncAudioVolumeGlobalsFromScummVM() const {
 	// straight through the audio mixer, which gets muted directly
 	switch (g_sci->getGameId()) {
 	case GID_GK1: {
-		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * MUSIC_VOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
+		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * Sci1Sound::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 		const int16 dacVolume = (ConfMan.getInt("sfx_volume") + 1) * Audio32::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 		syncGK1VolumeFromScummVM(musicVolume, dacVolume);
 		syncGK1UI();
@@ -1018,10 +1019,10 @@ void GuestAdditions::syncAudioVolumeGlobalsFromScummVM() const {
 		const int16 oldMusicVolume = musicGlobal.toSint16();
 		const int16 oldDacVolume   = dacGlobal.toSint16();
 
-		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * MUSIC_MASTERVOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
+		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * SoundManager::kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
 		const int16 dacVolume   = (ConfMan.getInt("sfx_volume") + 1)   * Audio32::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 
-		g_sci->_soundCmd->setMasterVolume(ConfMan.getBool("mute") ? 0 : musicVolume);
+		g_sci->_sound->setMasterVolume(ConfMan.getBool("mute") ? 0 : musicVolume);
 
 		// Phant1 has a fragile volume UI. Global volumes need to be set during
 		// UI updates to move the volume bars to the correct position
@@ -1068,13 +1069,13 @@ void GuestAdditions::syncGK1StartupVolumeFromScummVM(const int index, const reg_
 
 		switch (readSelectorValue(_segMan, value, SELECTOR(type))) {
 		case kSoundsMusicType: {
-			volume = (ConfMan.getInt("music_volume") + 1) * MUSIC_VOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
+			volume = (ConfMan.getInt("music_volume") + 1) * Sci1Sound::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 			selector = SELECTOR(musicVolume);
 			break;
 		}
 
 		case kSoundsSoundType: {
-			volume = (ConfMan.getInt("sfx_volume") + 1) * MUSIC_VOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
+			volume = (ConfMan.getInt("sfx_volume") + 1) * Sci1Sound::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
 			selector = SELECTOR(soundVolume);
 			break;
 		}
@@ -1111,7 +1112,7 @@ void GuestAdditions::syncGK1VolumeFromScummVM(const int16 musicVolume, const int
 			// if it did not do this, an invocation of the `setVol` selector
 			// would need to be here (though doing so would result in
 			// recursion, so don't)
-			g_sci->_soundCmd->setVolume(sound->value, volume);
+			g_sci->_sound->kernelSetVolume(sound->value, volume);
 			soundId = sound->succ;
 		}
 	}
@@ -1138,7 +1139,7 @@ void GuestAdditions::syncGK2VolumeFromScummVM(const int16 musicVolume) const {
 
 void GuestAdditions::syncLSL6HiresVolumeFromScummVM(const int16 musicVolume) const {
 	_state->variables[VAR_GLOBAL][kGlobalVarLSL6HiresMusicVolume] = make_reg(0, musicVolume);
-	g_sci->_soundCmd->setMasterVolume(ConfMan.getBool("mute") ? 0 : (musicVolume * MUSIC_MASTERVOLUME_MAX / kLSL6HiresUIVolumeMax));
+	g_sci->_sound->setMasterVolume(ConfMan.getBool("mute") ? 0 : (musicVolume * SoundManager::kMaxMasterVolume / kLSL6HiresUIVolumeMax));
 }
 
 void GuestAdditions::syncPhant2VolumeFromScummVM(const int16 masterVolume) const {
@@ -1204,7 +1205,7 @@ void GuestAdditions::syncAudioVolumeGlobalsToScummVM(const int index, const reg_
 
 	case GID_PHANTASMAGORIA:
 		if (index == kGlobalVarPhant1MusicVolume) {
-			const int16 musicVolume = value.toSint16() * Audio::Mixer::kMaxMixerVolume / MUSIC_MASTERVOLUME_MAX;
+			const int16 musicVolume = value.toSint16() * Audio::Mixer::kMaxMixerVolume / SoundManager::kMaxMasterVolume;
 			ConfMan.setInt("music_volume", musicVolume);
 		} else if (index == kGlobalVarPhant1DACVolume) {
 			const int16 dacVolume = value.toSint16() * Audio::Mixer::kMaxMixerVolume / Audio32::kMaxVolume;
@@ -1258,7 +1259,7 @@ void GuestAdditions::syncAudioVolumeGlobalsToScummVM(const int index, const reg_
 
 void GuestAdditions::syncGK1AudioVolumeToScummVM(const reg_t soundObj, int16 volume) const {
 	const Common::String objName = _segMan->getObjectName(soundObj);
-	volume = volume * Audio::Mixer::kMaxMixerVolume / MUSIC_VOLUME_MAX;
+	volume = volume * Audio::Mixer::kMaxMixerVolume / Sci1Sound::kMaxVolume;
 
 	// Using highest-numbered sound objects to sync only after all slots
 	// have been set by the volume slider
@@ -1411,7 +1412,7 @@ void GuestAdditions::syncPhant2UI(const int16 masterVolume) const {
 void GuestAdditions::syncMGDXUI(const int16 musicVolume) const {
 	const reg_t sliderId = _segMan->findObjectByName("icon1");
 	if (!sliderId.isNull()) {
-		const int16 celNo = 7 - (musicVolume * 8 / (MUSIC_MASTERVOLUME_MAX + 1));
+		const int16 celNo = 7 - (musicVolume * 8 / (SoundManager::kMaxMasterVolume + 1));
 		writeSelectorValue(_segMan, sliderId, SELECTOR(mainCel), celNo);
 		writeSelectorValue(_segMan, sliderId, SELECTOR(cel), celNo);
 

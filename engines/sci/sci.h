@@ -67,7 +67,7 @@ class GameFeatures;
 class GuestAdditions;
 class Console;
 class AudioPlayer;
-class SoundCommandParser;
+class SoundManager;
 class EventManager;
 class SegManager;
 class ScriptPatcher;
@@ -377,7 +377,7 @@ public:
 
 	AudioPlayer *_audio;
 	Sync *_sync;
-	SoundCommandParser *_soundCmd;
+	Common::ScopedPtr<SoundManager> _sound;
 	GameFeatures *_features;
 	GuestAdditions *_guestAdditions;
 

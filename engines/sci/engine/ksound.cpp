@@ -29,7 +29,7 @@
 #ifdef ENABLE_SCI32
 #include "sci/sound/audio32.h"
 #endif
-#include "sci/sound/soundcmd.h"
+#include "sci/sound/sound.h"
 #include "sci/sound/sync.h"
 
 #include "audio/mixer.h"
@@ -46,29 +46,107 @@ reg_t kDoSound(EngineState *s, int argc, reg_t *argv) {
 	error("not supposed to call this");
 }
 
-#define CREATE_DOSOUND_FORWARD(_name_) reg_t k##_name_(EngineState *s, int argc, reg_t *argv) { return g_sci->_soundCmd->k##_name_(s, argc, argv); }
+reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
+	if (argc == 1 || argv[0].toSint16() == 0xff) {
+		return make_reg(0, g_sci->_sound->getMasterVolume());
+	} else {
+		return make_reg(0, g_sci->_sound->setMasterVolume(argv[0].toSint16()));
+	}
+}
 
-CREATE_DOSOUND_FORWARD(DoSoundInit)
-CREATE_DOSOUND_FORWARD(DoSoundPlay)
-CREATE_DOSOUND_FORWARD(DoSoundDispose)
-CREATE_DOSOUND_FORWARD(DoSoundMute)
-CREATE_DOSOUND_FORWARD(DoSoundStop)
-CREATE_DOSOUND_FORWARD(DoSoundStopAll)
-CREATE_DOSOUND_FORWARD(DoSoundPause)
-CREATE_DOSOUND_FORWARD(DoSoundResumeAfterRestore)
-CREATE_DOSOUND_FORWARD(DoSoundMasterVolume)
-CREATE_DOSOUND_FORWARD(DoSoundUpdate)
-CREATE_DOSOUND_FORWARD(DoSoundFade)
-CREATE_DOSOUND_FORWARD(DoSoundGetPolyphony)
-CREATE_DOSOUND_FORWARD(DoSoundUpdateCues)
-CREATE_DOSOUND_FORWARD(DoSoundSendMidi)
-CREATE_DOSOUND_FORWARD(DoSoundGlobalReverb)
-CREATE_DOSOUND_FORWARD(DoSoundSetHold)
-CREATE_DOSOUND_FORWARD(DoSoundGetAudioCapability)
-CREATE_DOSOUND_FORWARD(DoSoundSuspend)
-CREATE_DOSOUND_FORWARD(DoSoundSetVolume)
-CREATE_DOSOUND_FORWARD(DoSoundSetPriority)
-CREATE_DOSOUND_FORWARD(DoSoundSetLoop)
+reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv) {
+	error("kDoSoundMute: Not reimplemented yet");
+}
+
+reg_t kDoSoundGetPolyphony(EngineState *s, int argc, reg_t *argv) {
+	return make_reg(0, g_sci->_sound->getNumVoices());
+}
+
+reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv) {
+	// TODO: Decide if non-PC platforms can benefit from being told of more
+	// than one DAC.
+	return make_reg(0, 1);
+}
+
+reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->setSoundOn(!argv[0].toUint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundInit(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelInit(argv[0]);
+	return s->r_acc;
+}
+
+reg_t kDoSoundDispose(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelDispose(argv[0]);
+	return s->r_acc;
+}
+
+reg_t kDoSoundPlay(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelPlay(argv[0], argc > 1 ? argv[1].toUint16() : false);
+	return s->r_acc;
+}
+
+reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelStop(argv[0]);
+	return s->r_acc;
+}
+
+reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelPause(argv[0], argv[1].toUint16(), getSciVersion() >= SCI_VERSION_2);
+	return s->r_acc;
+}
+
+reg_t kDoSoundFade(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelFade(argv[0], argv[1].toSint16(), argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundSetHold(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelHold(argv[0], argv[1].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundSetVolume(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelSetVolume(argv[0], argv[1].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundSetPriority(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelSetPriority(argv[0], argv[1].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundSetLoop(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelSetLoop(argv[0], argv[1].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundUpdateCues(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelUpdateCues(argv[0]);
+	return s->r_acc;
+}
+
+reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelSendMidi(argv[0], argv[1].toSint16(), argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	return s->r_acc;
+}
+
+reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv) {
+	if (argc == 1 || argv[0].toSint16() == 0xff) {
+		return make_reg(0, g_sci->_sound->getReverbMode());
+	} else if (argv[0].toUint16() > 10) {
+		return make_reg(0, g_sci->_sound->getDefaultReverbMode());
+	} else {
+		return make_reg(0, g_sci->_sound->setReverbMode(argv[0].toSint16()));
+	}
+}
+
+reg_t kDoSoundUpdate(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelUpdate(argv[0]);
+	return s->r_acc;
+}
 
 #ifdef ENABLE_SCI32_MAC
 reg_t kDoSoundPhantasmagoriaMac(EngineState *s, int argc, reg_t *argv) {

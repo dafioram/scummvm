@@ -46,7 +46,7 @@
 #include "sci/graphics/screen.h"
 #include "sci/parser/vocabulary.h"
 #include "sci/sound/audio.h"
-#include "sci/sound/music.h"
+#include "sci/sound/sound.h"
 
 #ifdef ENABLE_SCI32
 #include "common/config-manager.h"
@@ -425,7 +425,7 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 
 	_segMan->saveLoadWithSerializer(s);
 
-	g_sci->_soundCmd->syncPlayList(s);
+	g_sci->_sound->saveLoadWithSerializer(s);
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
@@ -601,6 +601,8 @@ void DataStack::saveLoadWithSerializer(Common::Serializer &s) {
 
 #pragma mark -
 
+// TODO: Fix this
+#if 0
 void SciMusic::saveLoadWithSerializer(Common::Serializer &s) {
 	// Sync song lib data. When loading, the actual song lib will be initialized
 	// afterwards in gamestate_restore()
@@ -734,6 +736,7 @@ void SoundCommandParser::reconstructPlayList() {
 		}
 	}
 }
+#endif
 
 #ifdef ENABLE_SCI32
 void ArrayTable::saveLoadWithSerializer(Common::Serializer &ser) {
@@ -1350,7 +1353,10 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	if (ser.getVersion() >= 30 && voc)
 		voc->saveLoadWithSerializer(ser);
 
+// TODO: Fix
+#if 0
 	g_sci->_soundCmd->reconstructPlayList();
+#endif
 
 	// Message state:
 	delete s->_msgState;

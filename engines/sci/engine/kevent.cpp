@@ -248,15 +248,6 @@ reg_t kGetEvent(EngineState *s, int argc, reg_t *argv) {
 		con->onFrame();
 	}
 
-	if (g_sci->_features->detectDoSoundType() <= SCI_VERSION_0_LATE) {
-		// If we're running a sound-SCI0 game, update the sound cues, to
-		// compensate for the fact that sound-SCI0 does not poll to update
-		// the sound cues itself, like sound-SCI1 and later do with
-		// cmdUpdateSoundCues. kGetEvent is called quite often, so emulate
-		// the sound-SCI1 behavior of cmdUpdateSoundCues with this call
-		g_sci->_soundCmd->updateSci0Cues();
-	}
-
 	// Wait a bit here, so that the CPU isn't maxed out when the game
 	// is waiting for user input (e.g. when showing text boxes) - bug
 	// #3037874. Make sure that we're not delaying while the game is

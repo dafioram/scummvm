@@ -39,8 +39,6 @@ class WriteStream;
 
 #include "sci/parser/vocabulary.h"
 
-#include "sci/sound/soundcmd.h"
-
 namespace Sci {
 
 class FileHandle;

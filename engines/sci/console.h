@@ -119,8 +119,6 @@ private:
 	bool cmdStopAllSounds(int argc, const char **argv);
 	bool cmdSfx01Header(int argc, const char **argv);
 	bool cmdSfx01Track(int argc, const char **argv);
-	bool cmdShowInstruments(int argc, const char **argv);
-	bool cmdMapInstrument(int argc, const char **argv);
 	bool cmdAudioList(int argc, const char **argv);
 	bool cmdAudioDump(int argc, const char **argv);
 	// Script

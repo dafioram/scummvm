@@ -67,9 +67,7 @@ MODULE_OBJS := \
 	parser/said.o \
 	parser/vocabulary.o \
 	sound/audio.o \
-	sound/midiparser_sci.o \
-	sound/music.o \
-	sound/soundcmd.o \
+	sound/sound.o \
 	sound/sync.o \
 	sound/drivers/adlib.o \
 	sound/drivers/amigamac.o \

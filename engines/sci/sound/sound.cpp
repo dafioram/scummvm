@@ -27,7 +27,15 @@
 #include "common/platform.h"
 #include "common/system.h"
 #include "common/timer.h"
+#include "sci/console.h"
 #include "sci/engine/features.h"
+#include "sci/engine/kernel.h"
+#include "sci/engine/seg_manager.h"
+#include "sci/engine/selector.h"
+#include "sci/sound/audio.h"
+#ifdef ENABLE_SCI32
+#include "sci/sound/audio32.h"
+#endif
 #include "sci/sound/sound.h"
 #include "sci/sound/drivers/adlib.h"
 
@@ -48,22 +56,25 @@ static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
 }
 
-SoundManager::SoundManager(ResourceManager &resMan, GameFeatures &features) :
+SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features) :
 	_resMan(resMan),
+	_segMan(&segMan),
 	_soundVersion(features.detectDoSoundType()),
+	_restoringSound(false),
 	_numServerSuspensions(0),
 	_needsUpdate(false),
-	_sample(nullptr),
 	_newChannelVolumes(kNumHardwareChannels, kNoVolumeChange),
 	_nextVolumeChangeChannel(0),
-	_channelList(kNumHardwareChannels, HardwareChannel::kUnmapped),
 	_defaultReverbMode(0),
+	_sample(nullptr),
+	_playlist(),
 	_hardwareChannels(kNumHardwareChannels),
 	_mappedNodes(kNumHardwareChannels),
-	_restoringSound(false) {
+	_channelList(kNumHardwareChannels, HardwareChannel::kUnmapped) {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
+	_sounds.reserve(16);
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32
@@ -172,6 +183,62 @@ SoundManager::~SoundManager() {
 	// we perform its additional termination operations here
 	if (_driver) {
 		_driver->setMasterVolume(kMaxMasterVolume);
+	}
+}
+
+int SoundManager::getNumVoices() const {
+	return _driver->getNumVoices();
+}
+
+#pragma mark -
+#pragma mark Debugging
+
+void SoundManager::debugPrintPlaylist(Console &con) const {
+	Common::StackLock lock(_mutex);
+
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		if (!_playlist[i]) {
+			return;
+		}
+
+		const Sci1Sound &sound = *_playlist[i];
+		con.debugPrintf("%d: %04x:%04x (%s), resource id: %s, status: %s\n",
+						i,
+						PRINT_REG(sound.nodePtr),
+						_segMan->getObjectName(sound.nodePtr),
+						sound.resource ? sound.resource->getId().toString().c_str() : "<none>",
+						sound.state == Sci1Sound::kStopped ? "stopped" : "playing");
+	}
+}
+
+void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
+	Common::StackLock lock(_mutex);
+
+	const Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		con.debugPrintf("Sound not found in playlist");
+		return;
+	}
+
+	con.debugPrintf("Resource: %s, status: %s\n",
+					sound->resource->getId().toString().c_str(),
+					sound->state == Sci1Sound::kStopped ? "stopped" : "playing");
+	con.debugPrintf("dataInc: %d, hold: %d, loop: %d\n", sound->cue, sound->holdPoint, sound->loop);
+	con.debugPrintf("signal: %u, priority: %d\n", sound->signal, sound->priority);
+	con.debugPrintf("ticks elapsed: %d, volume: %d\n", sound->ticksElapsed, sound->volume);
+}
+
+void SoundManager::debugPlay(const GuiResourceId soundId) {
+	warning("TODO: Not implemented yet");
+}
+
+void SoundManager::debugStopAll() {
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		if (!_playlist[i]) {
+			return;
+		}
+
+		stop(*_playlist[i]);
 	}
 }
 
@@ -332,13 +399,9 @@ uint8 SoundManager::getReverbMode() const {
 
 uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
 	Common::StackLock lock(_mutex);
-	if (reverbMode == 0xff) {
-		return getReverbMode();
-	}
 
-	if (reverbMode > 10) {
-		return getDefaultReverbMode();
-	}
+	// Conditions for reverbMode == 0xff and reverbMode > 10 are moved into
+	// kDoSoundGlobalReverb
 
 	uint8 oldReverbMode = _defaultReverbMode;
 	_defaultReverbMode = reverbMode;
@@ -1549,6 +1612,417 @@ void SoundManager::sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::
 
 	// TODO: Unclear what this is for, check drivers for information
 	driver.controllerChange(hwChannelNo, kMuteController, channel.currentNote);
+}
+
+#pragma mark -
+#pragma mark Kernel
+
+void SoundManager::kernelInit(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const GuiResourceId resourceNo = readSelectorValue(_segMan, soundObj, SELECTOR(number));
+
+	// TODO: This is how the old ScummVM SCI MIDI code handled generating a
+	// nodePtr, and, this is a pretty bad way to do it, since it means that if
+	// a cloned object is passed into init, its nodePtr value gets copied to a
+	// new object, the old cloned object gets destroyed and then its reg_t is
+	// reused to init a new sound, we might end up with two Sci1Sound objects
+	// with the same key even though they should be distinct. This may never
+	// happen, in which case this ID reuse makes things a bit simpler for us,
+	// but if it does, this warning will let us know so we work harder at not
+	// blowing up.
+	if (soundObj.getSegment() == _segMan->findSegmentByType(SEG_TYPE_CLONES)) {
+		warning("Sound is initialised from a clone");
+	}
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	Sci1Sound *sound;
+	if (nodePtr.isNull()) {
+		_sounds.push_back(Sci1Sound(soundObj));
+		sound = &_sounds.back();
+		writeSelector(_segMan, soundObj, SELECTOR(nodePtr), soundObj);
+	} else {
+		kernelStop(nodePtr);
+		sound = findSoundByRegT(nodePtr);
+		assert(sound != nullptr);
+	}
+
+	sound->isSample = (getSoundResourceType(resourceNo) == kResourceTypeAudio);
+	if (!sound->isSample) {
+		sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
+		sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
+		sound->signal = Sci1Sound::kNoSignal;
+		sound->cue = 0;
+		sound->volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
+	}
+}
+
+void SoundManager::kernelDispose(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	kernelStop(nodePtr);
+	if (!nodePtr.isNull()) {
+		Sci1Sound *it = findSoundByRegT(nodePtr);
+		if (it) {
+			_sounds.erase(it);
+		}
+	}
+	writeSelector(_segMan, soundObj, SELECTOR(nodePtr), NULL_REG);
+}
+
+void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
+	Common::StackLock lock(_mutex);
+
+	reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	if (nodePtr.isNull()) {
+		kernelInit(soundObj);
+		nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	}
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+
+	if (!sound) {
+		writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
+		return;
+	}
+
+#ifdef ENABLE_SCI32
+	// TODO: Figure out the exact SCI versions which did this
+	if (_soundVersion >= SCI_VERSION_2 &&
+		sound->resource &&
+		sound->resource->getType() == kResourceTypeAudio) {
+
+		g_sci->_audio32->stop(sound->resource->getId());
+	}
+#endif
+
+	const GuiResourceId soundNo = readSelectorValue(_segMan, soundObj, SELECTOR(number));
+	const ResourceId soundId(getSoundResourceType(soundNo), soundNo);
+
+	// SSCI assigned the resource number to the Sound object here, since we
+	// add a pointer to the Resource to the Sound object we just get the
+	// resource number from there instead, so that property set is omitted here
+
+	if (!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull() &&
+		(_soundVersion < SCI_VERSION_2 || !sound->isSample)) {
+
+		kernelStop(soundObj);
+	}
+
+	sound->isSample = (soundId.getType() == kResourceTypeAudio);
+
+	if (sound->isSample) {
+		// SSCI32 would optionally preload audio if there was a preload flag in
+		// the soundObj's `flags` selector; we do not need to worry about load
+		// times, so we just don't do that
+		sound->resource = _resMan.testResource(soundId);
+	} else {
+		sound->resource = _resMan.findResource(soundId, true);
+	}
+
+	assert(sound->resource);
+
+	// In SSCI the handle was assigned to the MemID returned by a call to
+	// ResourceManager::Get, we do not allocate memory through SegManager for
+	// resources so instead we just give the handle property a valid pointer
+	writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
+
+	writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kNoSignal);
+	writeSelectorValue(_segMan, soundObj, SELECTOR(min), 0);
+	writeSelectorValue(_segMan, soundObj, SELECTOR(sec), 0);
+	writeSelectorValue(_segMan, soundObj, SELECTOR(frame), 0);
+
+	const bool loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
+	const int16 volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
+
+	if (_soundVersion < SCI_VERSION_2 || !sound->isSample) {
+		sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
+		sound->volume = volume;
+		sound->loop = loop;
+	}
+
+	if (sound->isSample) {
+		// SSCI set up fake VM arguments and made direct kernel calls here,
+		// which is not very pleasant; we do normal calls into the audio
+		// components instead
+#ifdef ENABLE_SCI32
+		if (_soundVersion >= SCI_VERSION_2) {
+			g_sci->_audio32->play(g_sci->_audio32->findChannelById(soundId, soundObj), soundId, true, loop, volume, nodePtr, false);
+		} else
+#endif
+			// TODO: This doesn't loop, it should loop, Sci::Audio does not have
+			// the capability to do this, it should probably just be using
+			// Audio32 which was actually RE'd properly
+			g_sci->_audio->startAudio(soundId.getNumber(), soundId.getTuple());
+	} else {
+		kernelUpdate(soundObj);
+		play(*sound, exclusive);
+		writeSelectorValue(_segMan, soundObj, SELECTOR(priority), sound->priority);
+	}
+}
+
+void SoundManager::kernelStop(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (sound) {
+		if (sound->isSample) {
+			// SSCI set up fake VM arguments and made direct kernel calls here,
+			// which is not very pleasant; we do normal calls into the audio
+			// components instead
+#ifdef ENABLE_SCI32
+			if (_soundVersion >= SCI_VERSION_2) {
+				g_sci->_audio32->stop(sound->resource->getId(), soundObj);
+			} else
+				// TODO: This should be accepting a sound number.
+				g_sci->_audio->stopAudio();
+#endif
+		} else {
+			stop(*sound);
+			_resMan.unlockResource(sound->resource);
+		}
+	}
+
+	writeSelector(_segMan, soundObj, SELECTOR(handle), NULL_REG);
+	writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
+}
+
+void SoundManager::kernelPause(const reg_t soundObj, const bool shouldPause, const bool pauseDac) {
+	Common::StackLock lock(_mutex);
+
+	if (soundObj.isNull()) {
+		pauseAll(shouldPause);
+#ifdef ENABLE_SCI32
+		// SSCI set up fake VM arguments and made direct kernel calls here,
+		// which is not very pleasant; we do normal calls into the audio
+		// components instead
+		if (pauseDac && _soundVersion >= SCI_VERSION_2) {
+			if (shouldPause) {
+				g_sci->_audio32->pause(kAllChannels);
+			} else {
+				g_sci->_audio32->resume(kAllChannels);
+			}
+		}
+#endif
+	} else {
+		const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+		Sci1Sound *sound = findSoundByRegT(nodePtr);
+		if (sound) {
+#ifdef ENABLE_SCI32
+			// SSCI set up fake VM arguments and made direct kernel calls here,
+			// which is not very pleasant; we do normal calls into the audio
+			// components instead
+			if (pauseDac && _soundVersion >= SCI_VERSION_2 && sound->isSample) {
+				if (shouldPause) {
+					g_sci->_audio32->pause(sound->resource->getId(), nodePtr);
+				} else {
+					g_sci->_audio32->resume(sound->resource->getId(), nodePtr);
+				}
+			} else
+#endif
+			pause(*sound, shouldPause);
+		}
+	}
+}
+
+void SoundManager::kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+#ifdef ENABLE_SCI32
+	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
+		g_sci->_audio32->fadeChannel(sound->resource->getId(), nodePtr,
+									 targetVolume, speed, steps, stopAfterFade);
+	} else
+#endif
+		fade(*sound, targetVolume, speed, steps, stopAfterFade);
+}
+
+void SoundManager::kernelHold(const reg_t soundObj, const int16 holdPoint) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (sound) {
+		hold(*sound, holdPoint);
+	}
+}
+
+void SoundManager::kernelSetVolume(const reg_t soundObj, const int16 volume) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+#ifdef ENABLE_SCI32
+	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
+		g_sci->_audio32->setVolume(sound->resource->getId(), nodePtr, volume);
+	}
+#endif
+	if (sound->volume != volume) {
+		setVolume(*sound, volume);
+		writeSelectorValue(_segMan, soundObj, SELECTOR(vol), volume);
+	}
+}
+
+void SoundManager::kernelSetPriority(const reg_t soundObj, const int16 priority) {
+	enum {
+		kFixedPriority = 2
+	};
+
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+	uint16 flags = readSelectorValue(_segMan, soundObj, SELECTOR(flags));
+	if (priority == -1) {
+		sound->fixedPriority = false;
+		flags &= ~kFixedPriority;
+	} else {
+		sound->fixedPriority = true;
+		flags |= kFixedPriority;
+		setPriority(*sound, priority);
+	}
+	writeSelectorValue(_segMan, soundObj, SELECTOR(flags), flags);
+}
+
+void SoundManager::kernelSetLoop(const reg_t soundObj, const bool enable) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+	writeSelectorValue(_segMan, soundObj, SELECTOR(loop), enable ? 0xffff : 1);
+#ifdef ENABLE_SCI32
+	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
+		g_sci->_audio32->setLoop(sound->resource->getId(), nodePtr, enable);
+	} else
+#endif
+		sound->loop = enable;
+}
+
+void SoundManager::kernelUpdateCues(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+	if (sound->isSample) {
+		int position;
+#ifdef ENABLE_SCI32
+		if (_soundVersion >= SCI_VERSION_2) {
+			position = g_sci->_audio32->getPosition(sound->resource->getId(), nodePtr);
+		} else
+#endif
+			position = g_sci->_audio->getAudioPosition();
+
+		if (position == -1) {
+			kernelStop(soundObj);
+		}
+	} else {
+		const Sci1Sound::Signal signal = consumeSignal(*sound);
+		switch (signal) {
+		case Sci1Sound::kFinished:
+			kernelStop(soundObj);
+			break;
+		case Sci1Sound::kNoSignal:
+			if (readSelectorValue(_segMan, soundObj, SELECTOR(dataInc)) != sound->cue) {
+				writeSelectorValue(_segMan, soundObj, SELECTOR(dataInc), sound->cue);
+				writeSelectorValue(_segMan, soundObj, SELECTOR(signal), sound->cue + 0x7f);
+			}
+			break;
+		default:
+			writeSelectorValue(_segMan, soundObj, SELECTOR(signal), signal);
+		}
+
+		const Position position(getPosition(*sound));
+		writeSelectorValue(_segMan, soundObj, SELECTOR(min), position.minutes);
+		writeSelectorValue(_segMan, soundObj, SELECTOR(sec), position.seconds);
+		writeSelectorValue(_segMan, soundObj, SELECTOR(frame), position.frames);
+	}
+}
+
+void SoundManager::kernelSendMidi(const reg_t soundObj, int16 channel, const int16 command, int16 a, int16 b) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		return;
+	}
+
+	--channel;
+
+	if (command == kPitchBend) {
+		a = CLIP<int16>(a, -0x2000, 0x1fff);
+	} else {
+		a = CLIP<int16>(a, 0, 127);
+		b = CLIP<int16>(a, 0, 127);
+	}
+
+	switch (command) {
+	case kNoteOff:
+		setNoteOff(*sound, channel, a, b);
+		break;
+	case kNoteOn:
+		setNoteOn(*sound, channel, a, b);
+		break;
+	case kControllerChange:
+		setController(*sound, channel, a, b);
+		break;
+	case kProgramChange:
+		setProgram(*sound, channel, a);
+		break;
+	case kPitchBend:
+		setPitchBend(*sound, channel, a + 0x2000);
+		break;
+	}
+}
+
+void SoundManager::kernelUpdate(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound || (_soundVersion >= SCI_VERSION_2 && sound->isSample)) {
+		return;
+	}
+
+	sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
+	const int16 volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
+	if (sound->volume != volume) {
+		setVolume(*sound, volume);
+	}
+	const int16 priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
+	if (sound->priority != priority) {
+		setPriority(*sound, priority);
+	}
 }
 
 } // end of namespace Sci

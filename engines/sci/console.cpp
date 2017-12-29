@@ -35,8 +35,7 @@
 #include "sci/engine/gc.h"
 #include "sci/engine/features.h"
 #include "sci/engine/scriptdebug.h"
-#include "sci/sound/midiparser_sci.h"
-#include "sci/sound/music.h"
+#include "sci/sound/sound.h"
 #include "sci/sound/drivers/mididriver.h"
 #include "sci/sound/drivers/map-mt32-to-gm.h"
 #include "sci/graphics/animate.h"
@@ -57,6 +56,7 @@
 #include "sci/graphics/frameout.h"
 #include "sci/graphics/paint32.h"
 #include "sci/graphics/palette32.h"
+#include "sci/sound/audio32.h"
 #include "sci/sound/decoders/sol.h"
 #include "video/coktel_decoder.h"
 #endif
@@ -172,8 +172,6 @@ Console::Console(SciEngine *engine) : GUI::Debugger(),
 	registerCmd("stopallsounds",		WRAP_METHOD(Console, cmdStopAllSounds));
 	registerCmd("sfx01_header",		WRAP_METHOD(Console, cmdSfx01Header));
 	registerCmd("sfx01_track",		WRAP_METHOD(Console, cmdSfx01Track));
-	registerCmd("show_instruments",	WRAP_METHOD(Console, cmdShowInstruments));
-	registerCmd("map_instrument",		WRAP_METHOD(Console, cmdMapInstrument));
 	registerCmd("audio_list",		WRAP_METHOD(Console, cmdAudioList));
 	registerCmd("audio_dump",		WRAP_METHOD(Console, cmdAudioDump));
 	// Script
@@ -389,8 +387,6 @@ bool Console::cmdHelp(int argc, const char **argv) {
 	debugPrintf(" is_sample - Shows information on a given sound resource, if it's a PCM sample\n");
 	debugPrintf(" sfx01_header - Dumps the header of a SCI01 song\n");
 	debugPrintf(" sfx01_track - Dumps a track of a SCI01 song\n");
-	debugPrintf(" show_instruments - Shows the instruments of a specific song, or all songs\n");
-	debugPrintf(" map_instrument - Dynamically maps an MT-32 instrument to a GM instrument\n");
 	debugPrintf(" audio_list - Lists currently active digital audio samples (SCI2+)\n");
 	debugPrintf(" audio_dump - Dumps the requested audio resource as an uncompressed wave file (SCI2+)\n");
 	debugPrintf("\n");
@@ -1195,211 +1191,6 @@ bool Console::cmdVerifyScripts(int argc, const char **argv) {
 	}
 
 	debugPrintf("SCI1.1-SCI2.1 script check finished\n");
-
-	return true;
-}
-
-// Same as in sound/drivers/midi.cpp
-uint8 getGmInstrument(const Mt32ToGmMap &Mt32Ins) {
-	if (Mt32Ins.gmInstr == MIDI_MAPPED_TO_RHYTHM)
-		return Mt32Ins.gmRhythmKey + 0x80;
-	else
-		return Mt32Ins.gmInstr;
-}
-
-bool Console::cmdShowInstruments(int argc, const char **argv) {
-	int songNumber = -1;
-
-	if (argc == 2)
-		songNumber = atoi(argv[1]);
-
-	SciVersion doSoundVersion = _engine->_features->detectDoSoundType();
-	MidiPlayer *player = MidiPlayer_Midi_create(doSoundVersion);
-	MidiParser_SCI *parser = new MidiParser_SCI(doSoundVersion, 0);
-	parser->setMidiDriver(player);
-
-	Common::List<ResourceId> resources = _engine->getResMan()->listResources(kResourceTypeSound);
-	Common::sort(resources.begin(), resources.end());
-	int instruments[128];
-	bool instrumentsSongs[128][1000];
-
-	for (int i = 0; i < 128; i++)
-		instruments[i] = 0;
-
-	for (int i = 0; i < 128; i++)
-		for (int j = 0; j < 1000; j++)
-			instrumentsSongs[i][j] = false;
-
-	if (songNumber == -1) {
-		debugPrintf("%d sounds found, checking their instrument mappings...\n", resources.size());
-		debugPrintf("Instruments:\n");
-		debugPrintf("============\n");
-	}
-
-	Common::List<ResourceId>::iterator itr;
-	for (itr = resources.begin(); itr != resources.end(); ++itr) {
-		if (songNumber >= 0 && itr->getNumber() != songNumber)
-			continue;
-
-		SoundResource sound(itr->getNumber(), _engine->getResMan(), doSoundVersion);
-		int channelFilterMask = sound.getChannelFilterMask(player->getPlayId(), player->hasRhythmChannel());
-		SoundResource::Track *track = sound.getTrackByType(player->getPlayId());
-		if (!track || track->digitalChannelNr != -1) {
-			// Skip digitized sound effects
-			continue;
-		}
-
-		parser->loadMusic(track, NULL, channelFilterMask, doSoundVersion);
-		SciSpan<const byte> channelData = parser->getMixedData();
-
-		byte curEvent = 0, prevEvent = 0, command = 0;
-		bool endOfTrack = false;
-		bool firstOneShown = false;
-
-		debugPrintf("Song %d: ", itr->getNumber());
-
-		do {
-			while (*channelData == 0xF8)
-				channelData++;
-
-			channelData++;	// delta
-
-			if ((*channelData & 0xF0) >= 0x80)
-				curEvent = *(channelData++);
-			else
-				curEvent = prevEvent;
-			if (curEvent < 0x80)
-				continue;
-
-			prevEvent = curEvent;
-			command = curEvent >> 4;
-
-			byte channel;
-
-			switch (command) {
-			case 0xC:	// program change
-				channel = curEvent & 0x0F;
-				if (channel != 15) {	// SCI special
-					byte instrument = *channelData++;
-					if (!firstOneShown)
-						firstOneShown = true;
-					else
-						debugPrintf(",");
-
-					debugPrintf(" %d", instrument);
-					instruments[instrument]++;
-					instrumentsSongs[instrument][itr->getNumber()] = true;
-				} else {
-					channelData++;
-				}
-				break;
-			case 0xD:
-				channelData++;	// param1
-				break;
-			case 0xB:
-			case 0x8:
-			case 0x9:
-			case 0xA:
-			case 0xE:
-				channelData++;	// param1
-				channelData++;	// param2
-				break;
-			case 0xF:
-				if ((curEvent & 0x0F) == 0x2) {
-					channelData++;	// param1
-					channelData++;	// param2
-				} else if ((curEvent & 0x0F) == 0x3) {
-					channelData++;	// param1
-				} else if ((curEvent & 0x0F) == 0xF) {	// META
-					byte type = *channelData++;
-					if (type == 0x2F) {// end of track reached
-						endOfTrack = true;
-					} else {
-						// no further processing necessary
-					}
-				}
-				break;
-			default:
-				break;
-			}
-		} while (!endOfTrack);
-
-		debugPrintf("\n");
-	}
-
-	delete parser;
-	delete player;
-
-	debugPrintf("\n");
-
-	if (songNumber == -1) {
-		debugPrintf("Used instruments: ");
-		for (int i = 0; i < 128; i++) {
-			if (instruments[i] > 0)
-				debugPrintf("%d, ", i);
-		}
-		debugPrintf("\n\n");
-	}
-
-	debugPrintf("Instruments not mapped in the MT32->GM map: ");
-	for (int i = 0; i < 128; i++) {
-		if (instruments[i] > 0 && getGmInstrument(Mt32MemoryTimbreMaps[i]) == MIDI_UNMAPPED)
-			debugPrintf("%d, ", i);
-	}
-	debugPrintf("\n\n");
-
-	if (songNumber == -1) {
-		debugPrintf("Used instruments in songs:\n");
-		for (int i = 0; i < 128; i++) {
-			if (instruments[i] > 0) {
-				debugPrintf("Instrument %d: ", i);
-				for (int j = 0; j < 1000; j++) {
-					if (instrumentsSongs[i][j])
-						debugPrintf("%d, ", j);
-				}
-				debugPrintf("\n");
-			}
-		}
-
-		debugPrintf("\n\n");
-	}
-
-	return true;
-}
-
-bool Console::cmdMapInstrument(int argc, const char **argv) {
-	if (argc != 4) {
-		debugPrintf("Maps an MT-32 custom instrument to a GM instrument on the fly\n\n");
-		debugPrintf("Usage %s <MT-32 instrument name> <GM instrument> <GM rhythm key>\n", argv[0]);
-		debugPrintf("Each MT-32 instrument is always 10 characters and is mapped to either a GM instrument, or a GM rhythm key\n");
-		debugPrintf("A value of 255 (0xff) signifies an unmapped instrument\n");
-		debugPrintf("Please replace the spaces in the instrument name with underscores (\"_\"). They'll be converted to spaces afterwards\n\n");
-		debugPrintf("Example: %s test_0__XX 1 255\n", argv[0]);
-		debugPrintf("The above example will map the MT-32 instrument \"test 0  XX\" to GM instrument 1\n\n");
-	} else {
-		if (Mt32dynamicMappings != NULL) {
-			Mt32ToGmMap newMapping;
-			char *instrumentName = new char[11];
-			Common::strlcpy(instrumentName, argv[1], 11);
-
-			for (uint16 i = 0; i < Common::strnlen(instrumentName, 11); i++)
-				if (instrumentName[i] == '_')
-					instrumentName[i] = ' ';
-
-			newMapping.name = instrumentName;
-			newMapping.gmInstr = atoi(argv[2]);
-			newMapping.gmRhythmKey = atoi(argv[3]);
-			Mt32dynamicMappings->push_back(newMapping);
-		}
-	}
-
-	debugPrintf("Current dynamic mappings:\n");
-	if (Mt32dynamicMappings != NULL) {
-		const Mt32ToGmMapList::iterator end = Mt32dynamicMappings->end();
-		for (Mt32ToGmMapList::iterator it = Mt32dynamicMappings->begin(); it != end; ++it) {
-			debugPrintf("\"%s\" -> %d / %d\n", (*it).name, (*it).gmInstr, (*it).gmRhythmKey);
-		}
-	}
 
 	return true;
 }
@@ -2587,7 +2378,7 @@ bool Console::cmdShowMap(int argc, const char **argv) {
 
 bool Console::cmdSongLib(int argc, const char **argv) {
 	debugPrintf("Song library:\n");
-	g_sci->_soundCmd->printPlayList(this);
+	g_sci->_sound->debugPrintPlaylist(*this);
 
 	return true;
 }
@@ -2607,7 +2398,7 @@ bool Console::cmdSongInfo(int argc, const char **argv) {
 		return true;
 	}
 
-	g_sci->_soundCmd->printSongInfo(addr, this);
+	g_sci->_sound->debugPrintSound(*this, addr);
 
 	return true;
 }
@@ -2627,7 +2418,7 @@ bool Console::cmdStartSound(int argc, const char **argv) {
 	}
 
 	// TODO: Maybe also add a playBed option.
-	g_sci->_soundCmd->startNewSound(number);
+	g_sci->_sound->debugPlay(number);
 	return cmdExit(0, 0);
 }
 
@@ -2655,9 +2446,9 @@ bool Console::cmdToggleSound(int argc, const char **argv) {
 
 	if (newState == "play") {
 		// Maybe also have a 'playbed' option. (Second argument to processPlaySound.)
-		g_sci->_soundCmd->processPlaySound(id, false);
+		g_sci->_sound->kernelPlay(id, false);
 	} else if (newState == "stop")
-		g_sci->_soundCmd->processStopSound(id, false);
+		g_sci->_sound->kernelStop(id);
 	else
 		debugPrintf("New state can either be 'play' or 'stop'");
 
@@ -2665,7 +2456,7 @@ bool Console::cmdToggleSound(int argc, const char **argv) {
 }
 
 bool Console::cmdStopAllSounds(int argc, const char **argv) {
-	g_sci->_soundCmd->stopAllSounds();
+	g_sci->_sound->debugStopAll();
 
 	debugPrintf("All sounds have been stopped\n");
 	return true;

@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/ptr.h"
 #include "common/system.h"
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
@@ -45,9 +46,8 @@
 #include "sci/engine/scriptdebug.h"
 
 #include "sci/sound/audio.h"
-#include "sci/sound/music.h"
 #include "sci/sound/sync.h"
-#include "sci/sound/soundcmd.h"
+#include "sci/sound/sound.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
@@ -235,7 +235,6 @@ SciEngine::~SciEngine() {
 
 	delete _audio;
 	delete _sync;
-	delete _soundCmd;
 	delete _kernel;
 	delete _vocabulary;
 	delete _console;
@@ -270,9 +269,6 @@ Common::Error SciEngine::run() {
 		return Common::kNoGameDataFoundError;
 	}
 */
-
-	// Reset, so that error()s before SoundCommandParser is initialized wont cause a crash
-	_soundCmd = NULL;
 
 	// Add the after market GM patches for the specified game, if they exist
 	_resMan->addNewGMPatch(_gameId);
@@ -367,7 +363,7 @@ Common::Error SciEngine::run() {
 	// start of the game must pump the event loop to avoid making the OS think
 	// that ScummVM is hanged, and pumping the event loop requires GfxCursor to
 	// be initialized
-	_soundCmd = new SoundCommandParser(_resMan, segMan, _kernel, _audio, _features->detectDoSoundType());
+	_sound.reset(new SoundManager(*_resMan, *(_gamestate->_segMan), *_features));
 
 	syncSoundSettings();
 	_guestAdditions->syncAudioOptionsFromScummVM();
@@ -419,6 +415,8 @@ Common::Error SciEngine::run() {
 	// Show a warning if the user has selected a General MIDI device, no GM patch exists
 	// (i.e. patch 4) and the game is one of the known 8 SCI1 games that Sierra has provided
 	// after market patches for in their "General MIDI Utility".
+	// TODO: Restore
+#if 0
 	if (_soundCmd->getMusicType() == MT_GM && !ConfMan.getBool("native_mt32")) {
 		if (!_resMan->findResource(ResourceId(kResourceTypePatch, 4), 0)) {
 			switch (getGameId()) {
@@ -447,6 +445,7 @@ Common::Error SciEngine::run() {
 			}
 		}
 	}
+#endif
 
 	if (gameHasFanMadePatch()) {
 		showScummVMDialog(_("Your game is patched with a fan made script patch. Such patches have "
@@ -730,7 +729,6 @@ void SciEngine::exitGame() {
 			_audio->stopAllAudio();
 		}
 		_sync->stop();
-		_soundCmd->clearPlayList();
 	}
 
 	// TODO Free parser segment here
@@ -916,8 +914,8 @@ void SciEngine::setLauncherLanguage() {
 
 void SciEngine::pauseEngineIntern(bool pause) {
 	_mixer->pauseAll(pause);
-	if (_soundCmd)
-		_soundCmd->pauseAll(pause);
+	if (_sound)
+		_sound->pauseAll(pause);
 }
 
 void SciEngine::syncSoundSettings() {
@@ -932,9 +930,9 @@ void SciEngine::updateSoundMixerVolumes() {
 	// but MIDI either does not run through the ScummVM mixer (e.g. hardware
 	// synth) or it uses a kPlainSoundType channel type, so the master MIDI
 	// volume must be adjusted here for MIDI playback volume to be correct
-	if (_soundCmd) {
-		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * MUSIC_MASTERVOLUME_MAX / Audio::Mixer::kMaxMixerVolume;
-		_soundCmd->setMasterVolume(ConfMan.getBool("mute") ? 0 : musicVolume);
+	if (_sound) {
+		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * SoundManager::kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
+		_sound->setMasterVolume(ConfMan.getBool("mute") ? 0 : musicVolume);
 	}
 }
 
