@@ -512,14 +512,6 @@ public:
 		setLoop(findChannelById(resourceId, soundNode), loop);
 	}
 
-	/**
-	 * Sets the stereo panning for the given channel.
-	 */
-	void setPan(const int16 channelIndex, const int16 pan) {
-		Common::StackLock lock(_mutex);
-		getChannel(channelIndex).pan = pan;
-	}
-
 private:
 	/**
 	 * The tick when audio was globally paused.
@@ -568,6 +560,14 @@ public:
 	bool fadeChannel(const ResourceId resourceId, const reg_t soundNode, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) {
 		Common::StackLock lock(_mutex);
 		return fadeChannel(findChannelById(resourceId, soundNode), targetVolume, speed, steps, stopAfterFade);
+	}
+
+	/**
+	 * Sets the stereo panning for the given channel.
+	 */
+	void setPan(const int16 channelIndex, const int16 pan) {
+		Common::StackLock lock(_mutex);
+		getChannel(channelIndex).pan = pan;
 	}
 
 	/**
