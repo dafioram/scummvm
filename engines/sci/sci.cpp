@@ -234,6 +234,7 @@ SciEngine::~SciEngine() {
 	delete _gfxScreen;
 
 	delete _audio;
+	_sound.reset();
 	delete _sync;
 	delete _kernel;
 	delete _vocabulary;

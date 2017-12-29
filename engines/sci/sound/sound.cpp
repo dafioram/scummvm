@@ -179,6 +179,10 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 SoundManager::~SoundManager() {
 	g_system->getTimerManager()->removeTimerProc(soundServerCallback);
 
+	// Don't allow destruction to finish until after any in-progress sound
+	// server callback has finished running
+	Common::StackLock lock(_mutex);
+
 	// In SSCI, this is in STerminate; since we do not implement that operation,
 	// we perform its additional termination operations here
 	if (_driver) {
