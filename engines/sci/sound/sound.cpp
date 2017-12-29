@@ -202,12 +202,22 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 		}
 
 		const Sci1Sound &sound = *_playlist[i];
+
+		const char *status;
+		if (sound.state == Sci1Sound::kStopped) {
+			status = "stopped";
+		} else if (sound.paused) {
+			status = "paused";
+		} else {
+			status = "playing";
+		}
+
 		con.debugPrintf("%d: %04x:%04x (%s), resource id: %s, status: %s\n",
 						i,
 						PRINT_REG(sound.nodePtr),
 						_segMan->getObjectName(sound.nodePtr),
 						sound.resource ? sound.resource->getId().toString().c_str() : "<none>",
-						sound.state == Sci1Sound::kStopped ? "stopped" : "playing");
+						status);
 	}
 }
 
@@ -220,12 +230,48 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 		return;
 	}
 
-	con.debugPrintf("Resource: %s, status: %s\n",
+	con.debugPrintf("%s, %s, %u pauses\n",
 					sound->resource->getId().toString().c_str(),
-					sound->state == Sci1Sound::kStopped ? "stopped" : "playing");
-	con.debugPrintf("dataInc: %d, hold: %d, loop: %d\n", sound->cue, sound->holdPoint, sound->loop);
-	con.debugPrintf("signal: %u, priority: %d\n", sound->signal, sound->priority);
-	con.debugPrintf("ticks elapsed: %d, volume: %d\n", sound->ticksElapsed, sound->volume);
+					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
+					sound->paused);
+	con.debugPrintf("cue %u, hold point %u, loop %d\n",
+					sound->cue, sound->holdPoint, sound->loop);
+	con.debugPrintf("signal %d, state %d, priority %d%s\n",
+					sound->signal, sound->state, sound->priority,
+					sound->fixedPriority ? " (fixed)" : "");
+	con.debugPrintf("ticks elapsed %u, reverb mode %u, volume %d",
+					sound->ticksElapsed, sound->reverbMode, sound->volume);
+	if (sound->fadeAmountPerTick) {
+		con.debugPrintf(" -> %d\n", sound->fadeTargetVolume);
+		con.debugPrintf("fade delay %d, speed %d, stop %d\n",
+						sound->fadeDelay, sound->fadeAmountPerTick, sound->stopSoundOnFade);
+	} else {
+		con.debugPrintf("\n");
+	}
+
+	con.debugPrintf("\nTracks:\n");
+
+	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+		const Sci1Sound::Track &track = sound->tracks[i];
+		con.debugPrintf("%2d: offset %u, position %u, channel %d\n",
+						i, track.offset, track.position, track.channelNo);
+		con.debugPrintf("    rest %u, command %u\n",
+						track.rest, track.command);
+		con.debugPrintf("    loop position %u, loop rest %u, loop command %u\n",
+						track.loopPosition, track.loopRest, track.loopCommand);
+	}
+
+	con.debugPrintf("\nChannels:\n");
+
+	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		const Sci1Sound::Channel &channel = sound->channels[i];
+		con.debugPrintf("%2d: priority %d, voices %u, note %u, volume %u\n",
+						i, channel.priority, channel.numVoices, channel.currentNote, channel.volume);
+		con.debugPrintf("    program %u, mod %u, pan %u, p bend %u\n",
+						channel.program, channel.modulation, channel.pan, channel.pitchBend);
+		con.debugPrintf("    dp %d, flags %u, mute %d, game mutes %u\n",
+						channel.damperPedalOn, channel.flags, channel.muted, channel.gameMuteCount);
+	}
 }
 
 void SoundManager::debugPlay(const GuiResourceId soundId) {
@@ -335,7 +381,7 @@ void SoundManager::soundServer() {
 
 		parseNextNode(sound, i);
 
-		if (sound.signal != Sci1Sound::kFinished) {
+		if (sound.signal == Sci1Sound::kFinished) {
 			--i;
 		}
 	}
@@ -1781,7 +1827,14 @@ void SoundManager::kernelStop(const reg_t soundObj) {
 #endif
 		} else {
 			stop(*sound);
-			_resMan.unlockResource(sound->resource);
+			// A sound may be stopped before it is ever started, in which case
+			// a resource won't exist yet, and so we do not need to unlock
+			// anything
+			if (sound->resource) {
+				_resMan.unlockResource(sound->resource);
+				// Try not to unlock a resource more than once
+				sound->resource = nullptr;
+			}
 		}
 	}
 

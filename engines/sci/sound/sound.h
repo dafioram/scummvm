@@ -212,6 +212,7 @@ struct Sci1Sound {
 		uint8 loopCommand;
 
 		Track() :
+			offset(0),
 			position(13),
 			rest(0),
 			command(0),

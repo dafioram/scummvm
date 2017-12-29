@@ -115,7 +115,11 @@ public:
 	virtual void getValidChannelRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
 
 	virtual void service() override {
-		debug("TODO: Service");
+		static int numServices = 0;
+		if (numServices == 600) {
+			debug("TODO: Serviced 10 seconds");
+			numServices = 0;
+		}
 	}
 
 	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) override {
