@@ -1581,7 +1581,7 @@ void SoundManager::updateChannelList() {
 
 			uint8 lastOpenChannelNo = kNumHardwareChannels;
 			for (int j = maxChannelNo; j >= minChannelNo; --j) {
-				if (_channelList[j] != HardwareChannel::kUnmapped) {
+				if (_channelList[j] == HardwareChannel::kUnmapped) {
 					lastOpenChannelNo = j;
 					break;
 				}
