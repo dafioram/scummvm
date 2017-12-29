@@ -573,7 +573,6 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 
 	sound.state = exclusive ? Sci1Sound::kExclusive : Sci1Sound::kPlaying;
 
-	// TODO: Use proper initialisers in Sci1Sound?
 	Common::fill(sound.channels, sound.channels + Sci1Sound::kNumChannels, Sci1Sound::Channel());
 	Common::fill(sound.tracks, sound.tracks + Sci1Sound::kNumTracks, Sci1Sound::Track());
 	sound.isSample = false;
