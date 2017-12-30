@@ -569,8 +569,9 @@ struct Sci1Sound {
 	/**
 	 * Peeks at a byte of the data stream for the given track.
 	 */
-	inline byte peek(const uint8 trackNo, const uint8 extra = 0) {
-		return resource->getUint8At(tracks[trackNo].offset + tracks[trackNo].position + extra);
+	inline byte peek(const uint8 trackNo, const uint8 extra = 0) const {
+		const Track &track = tracks[trackNo];
+		return resource->getUint8At(track.offset + track.position + extra);
 	}
 
 	/**
