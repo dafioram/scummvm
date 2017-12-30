@@ -98,6 +98,9 @@ void Sci1GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velo
 		velocity = _velocityMaps[channel.velocityMap][velocity];
 		channel.enabled = true;
 		channel.hw->noteOn(note, velocity);
+		debug("On  %2d %3d %3d", channelNo, note, velocity);
+	} else {
+		debug("OX  %2d %3d %3d", channelNo, note, velocity);
 	}
 }
 
@@ -105,6 +108,9 @@ void Sci1GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 vel
 	Channel &channel = _channels[channelNo];
 	if (remapNote(channelNo, note)) {
 		channel.hw->noteOff(note, velocity);
+		debug("Off %2d %3d %3d", channelNo, note, velocity);
+	} else {
+		debug("OXX %2d %3d %3d", channelNo, note, velocity);
 	}
 }
 
@@ -171,6 +177,7 @@ void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 
 	}
 
 	channel.hw->controlChange(controllerNo, value);
+	debug("CC %2d %3d %3d", channelNo, controllerNo, value);
 }
 
 void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 programNo) {
@@ -204,6 +211,7 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 	}
 
 	channel.hw->programChange(programNo);
+	debug("PC %2d %3d", channelNo, programNo);
 }
 
 void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
@@ -211,6 +219,7 @@ void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) 
 	if (channel.pitchBend != bend) {
 		channel.pitchBend = bend;
 		channel.hw->pitchBend(bend);
+		debug("PB %2d %04x", channelNo, bend);
 	}
 }
 
@@ -222,6 +231,7 @@ uint8 Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 		return oldVolume;
 	}
 
+	debug("MV %2d", volume);
 	for (int i = kMinChannel; i <= kPercussionChannel; ++i) {
 		const uint8 channelVolume = _channels[i].volume;
 		if (channelVolume != kUnmapped) {
@@ -233,6 +243,7 @@ uint8 Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 }
 
 void Sci1GeneralMidiDriver::enable(const bool enabled) {
+	debug("EN %d", enabled);
 	Sci1SoundDriver::enable(enabled);
 	if (enabled) {
 		setMasterVolume(_masterVolume);

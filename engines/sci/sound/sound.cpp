@@ -722,6 +722,8 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		updateChannelList();
 	}
 
+	debugPrintSound(*g_sci->getSciDebugger(), sound.nodePtr);
+
 	return playlistIndex;
 }
 
@@ -982,11 +984,13 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
 		Sci1Sound::Track &track = sound.tracks[trackNo];
 		if (track.channelNo == Sci1Sound::Track::kEndOfData) {
+			debug("track %d end of data; end parsing", trackNo);
 			allTracksEnded = true;
 			break;
 		}
 
 		if (track.channelNo == Sci1Sound::Track::kSampleTrack) {
+			debug("skip track %d sample track; skipping", trackNo);
 			continue;
 		}
 
@@ -1006,6 +1010,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		// restorePtr
 		// TODO: Move up to avoid unnecessary calculations
 		if (track.position == 0) {
+			debug("track %d at pos 0; skipping", trackNo);
 			continue;
 		}
 
@@ -1025,6 +1030,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 				}
 			}
 
+			debug("track %d resting %04x; skipping", trackNo, track.rest);
 			continue;
 		}
 
@@ -1043,6 +1049,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			// point of use
 
 			if (message == kEndOfTrack) {
+				debug("track %d eot", trackNo);
 				track.position = 0;
 				goto nextTrack;
 			}
@@ -1051,12 +1058,13 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			const uint8 channelNo = message & 0xf;
 
 			if (channelNo == kControlChannel) {
+				debug("track %d control channel", trackNo);
 				parseControlChannel(sound, trackNo, command);
 				if (track.position == 0) {
 					goto nextTrack;
 				}
 			} else {
-				debug("track %d process command %04x", trackNo, command);
+				debug("track %d process command %02x", trackNo, command);
 				switch (command) {
 				case kNoteOff:
 					processNoteOff(sound, trackNo, hwChannelNo);
@@ -1088,8 +1096,11 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 					goto nextTrack;
 				}
 			}
+
+			debug("track %d end of message loop, read next byte", trackNo);
 		} while ((message = sound.consume(trackNo)) == 0);
 
+		debug("track %d rest time", trackNo);
 		if (message == kTimingOverflow) {
 			track.rest = kTimingOverflowValue;
 		} else {
@@ -1105,13 +1116,16 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
 			if (track.position != 0) {
+				debug("track %d not finished", i);
 				// At least one track is still running
 				return;
 			}
 		}
 	}
 
+	debug("no tracks are running");
 	if (sound.holdPoint || sound.loop) {
+		debug("hold point or loop");
 		sound.ticksElapsed = sound.loopTicksElapsed;
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
@@ -1120,6 +1134,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			track.command = track.loopCommand;
 		}
 	} else {
+		debug("goodbye world");
 		removeSoundFromPlaylist(sound);
 		_needsUpdate = true;
 	}
