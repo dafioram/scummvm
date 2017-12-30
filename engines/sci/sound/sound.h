@@ -421,6 +421,14 @@ struct Sci1Sound {
 	Resource *resource;
 
 	/**
+	 * The Sound's resource ID. This is stored separately from the resource
+	 * pointer because the resource pointer only exists when a sound is actually
+	 * playing, and game scripts sometimes call sound kernel methods while
+	 * sounds are stopped.
+	 */
+	ResourceId id;
+
+	/**
 	 * A cue value which increments by one whenever a cue controller message is
 	 * encountered in the control channel.
 	 * TODO: was dataInc
