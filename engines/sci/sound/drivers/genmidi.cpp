@@ -40,7 +40,7 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion
 
 	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 4), false);
 	SciSpan<const byte> midiData;
-	if (!patchData) {
+	if (patchData) {
 		patchData->subspan(0, sizeof(_programMap)).unsafeCopyDataTo(_programMap);
 		patchData->subspan(128, sizeof(_noteShift)).unsafeCopyDataTo(_noteShift);
 		patchData->subspan(256, sizeof(_volumeShift)).unsafeCopyDataTo(_volumeShift);
@@ -48,7 +48,7 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion
 		_channels[kPercussionChannel].volumeShift = patchData->getInt8At(512);
 		patchData->subspan(513, sizeof(_programVelocityMap)).unsafeCopyDataTo(_programVelocityMap);
 		patchData->subspan(641, sizeof(_velocityMaps)).unsafeCopyDataTo(_velocityMaps);
-		midiData = patchData->subspan(1153 + 2, patchData->getUint16LEAt(1153));
+		midiData = patchData->subspan(1153 + sizeof(uint16), patchData->getUint16LEAt(1153));
 	} else {
 		warning("No GM patch data found, using defaults");
 		for (int i = 0; i < kNumPrograms; ++i) {
@@ -83,7 +83,6 @@ Sci1GeneralMidiDriver::~Sci1GeneralMidiDriver() {
 	// TODO: Send All Notes Off controller message if ScummVM does not clean up
 	// for us
 }
-
 
 void Sci1GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velocity) {
 	Channel &channel = _channels[channelNo];
