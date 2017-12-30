@@ -1239,7 +1239,7 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 
 	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
-	if (isExtraChannel && _channelList[inRangeChannelNo] != HardwareChannel::kUnmapped) {
+	if (isExtraChannel || _channelList[inRangeChannelNo] == HardwareChannel::kUnmapped) {
 		return;
 	}
 
