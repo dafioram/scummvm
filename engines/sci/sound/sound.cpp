@@ -977,11 +977,11 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 	// TODO: Use wall time when _restoringSound is not true
 	++sound.ticksElapsed;
 
-	assert(sound.resource);
-	SciSpan<const byte> base = *sound.resource;
-
 	bool allTracksEnded = false;
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+		// In SSCI playlist index was shifted here, we do it at point of use
+		// below
+
 		Sci1Sound::Track &track = sound.tracks[trackNo];
 		if (track.channelNo == Sci1Sound::Track::kEndOfData) {
 			debug("track %d end of data; end parsing", trackNo);
@@ -1112,6 +1112,8 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		;
 	}
 
+	// outParse
+
 	if (!allTracksEnded) {
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
@@ -1125,7 +1127,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 
 	debug("no tracks are running");
 	if (sound.holdPoint || sound.loop) {
-		debug("hold point or loop");
+		debug("hold point or loop %d %d", sound.holdPoint, sound.loop);
 		sound.ticksElapsed = sound.loopTicksElapsed;
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
