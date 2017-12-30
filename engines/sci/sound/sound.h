@@ -280,7 +280,7 @@ struct Sci1Sound {
 			loopPosition(3),
 			loopRest(0),
 			loopCommand(0) {}
-	} tracks[kNumTracks];
+	};
 
 	/**
 	 * A logical MIDI channel.
@@ -408,7 +408,7 @@ struct Sci1Sound {
 			flags(kNoFlags),
 			gameMuteCount(0),
 			muted(false) {}
-	} channels[kNumChannels];
+	};
 
 	/**
 	 * The nodePtr value returned to the VM to represent this sound object.
@@ -566,6 +566,31 @@ struct Sci1Sound {
 		paused(0),
 		isSample(false) {}
 
+	inline const Channel &getChannel(const uint8 channelNo) const {
+		assert(channelNo < kNumChannels);
+		return channels[channelNo];
+	}
+
+	inline Channel &getChannel(const uint8 channelNo) {
+		assert(channelNo < kNumChannels);
+		return channels[channelNo];
+	}
+
+	inline const Track &getTrack(const uint8 trackNo) const {
+		assert(trackNo < kNumTracks);
+		return tracks[trackNo];
+	}
+
+	inline Track &getTrack(const uint8 trackNo) {
+		assert(trackNo < kNumTracks);
+		return tracks[trackNo];
+	}
+
+	inline void resetPrivateState() {
+		Common::fill(channels, channels + Sci1Sound::kNumChannels, Channel());
+		Common::fill(tracks, tracks + Sci1Sound::kNumTracks, Track());
+	}
+
 	/**
 	 * Peeks at a byte of the data stream for the given track.
 	 */
@@ -589,6 +614,10 @@ struct Sci1Sound {
 	inline void advance(const uint8 trackNo) {
 		++tracks[trackNo].position;
 	}
+
+private:
+	Track tracks[kNumTracks];
+	Channel channels[kNumChannels];
 };
 
 #pragma mark -
