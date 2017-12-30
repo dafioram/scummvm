@@ -2055,6 +2055,7 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 		writeSelectorValue(_segMan, soundObj, SELECTOR(min), position.minutes);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(sec), position.seconds);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(frame), position.frames);
+		writeSelectorValue(_segMan, soundObj, SELECTOR(vol), sound->volume);
 	}
 }
 
