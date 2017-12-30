@@ -1786,6 +1786,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 
 	sound->isSample = (sound->id.getType() == kResourceTypeAudio);
 
+	assert(!sound->resource);
 	if (sound->isSample) {
 		// SSCI32 would optionally preload audio if there was a preload flag in
 		// the soundObj's `flags` selector; we do not need to worry about load
@@ -1794,7 +1795,6 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	} else {
 		sound->resource = _resMan.findResource(sound->id, true);
 	}
-
 	assert(sound->resource);
 
 	// In SSCI the handle was assigned to the MemID returned by a call to
@@ -1860,7 +1860,7 @@ void SoundManager::kernelStop(const reg_t soundObj) {
 			// anything
 			if (sound->resource) {
 				_resMan.unlockResource(sound->resource);
-				// Try not to unlock a resource more than once
+				// Don't try to unlock a resource more than once
 				sound->resource = nullptr;
 			}
 		}
