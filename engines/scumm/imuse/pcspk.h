@@ -110,7 +110,7 @@ private:
 		virtual void release();
 
 		virtual void send(uint32 b);
-		virtual void noteOff(byte note);
+		virtual void noteOff(byte note, byte velocity = 0);
 		virtual void noteOn(byte note, byte velocity);
 		virtual void programChange(byte program);
 		virtual void pitchBend(int16 bend);

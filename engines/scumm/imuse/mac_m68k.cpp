@@ -314,7 +314,7 @@ void MacM68kDriver::MidiChannel_MacM68k::send(uint32 b) {
 	}
 }
 
-void MacM68kDriver::MidiChannel_MacM68k::noteOff(byte note) {
+void MacM68kDriver::MidiChannel_MacM68k::noteOff(byte note, byte) {
 	for (VoiceChannel *i = _voice; i; i = i->next) {
 		if (i->note == note) {
 			if (_sustain) {

@@ -235,7 +235,7 @@ void PcSpkDriver::MidiChannel_PcSpk::send(uint32 b) {
 	}
 }
 
-void PcSpkDriver::MidiChannel_PcSpk::noteOff(byte note) {
+void PcSpkDriver::MidiChannel_PcSpk::noteOff(byte note, byte) {
 	if (!_allocated)
 		return;
 

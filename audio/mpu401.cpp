@@ -48,8 +48,8 @@ void MidiChannel_MPU401::send(uint32 b) {
 	_owner->send((b & 0xFFFFFFF0) | (_channel & 0xF));
 }
 
-void MidiChannel_MPU401::noteOff(byte note) {
-	_owner->send(note << 8 | 0x80 | _channel);
+void MidiChannel_MPU401::noteOff(byte note, byte velocity) {
+	_owner->send(velocity << 16 | note << 8 | 0x80 | _channel);
 }
 
 void MidiChannel_MPU401::noteOn(byte note, byte velocity) {

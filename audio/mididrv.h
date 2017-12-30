@@ -263,7 +263,7 @@ public:
 	virtual void send(uint32 b) = 0; // 4-bit channel portion is ignored
 
 	// Regular messages
-	virtual void noteOff(byte note) = 0;
+	virtual void noteOff(byte note, byte velocity = 0) = 0;
 	virtual void noteOn(byte note, byte velocity) = 0;
 	virtual void programChange(byte program) = 0;
 	virtual void pitchBend(int16 bend) = 0; // -0x2000 to +0x1FFF

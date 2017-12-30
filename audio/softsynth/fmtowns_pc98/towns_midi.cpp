@@ -127,7 +127,7 @@ public:
 
 	void send(uint32 b);
 
-	void noteOff(byte note);
+	void noteOff(byte note, byte velocity = 0);
 	void noteOn(byte note, byte velocity);
 	void programChange(byte program);
 	void pitchBend(int16 bend);
@@ -677,7 +677,7 @@ void TownsMidiInputChannel::send(uint32 b) {
 	_driver->send(b | _chanIndex);
 }
 
-void TownsMidiInputChannel::noteOff(byte note) {
+void TownsMidiInputChannel::noteOff(byte note, byte) {
 	if (!_out)
 		return;
 

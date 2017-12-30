@@ -137,7 +137,7 @@ public:
 	void send(uint32 b);
 
 	// Regular messages
-	void noteOff(byte note);
+	void noteOff(byte note, byte velocity = 0);
 	void noteOn(byte note, byte velocity);
 	void programChange(byte program);
 	void pitchBend(int16 bend);
@@ -173,7 +173,7 @@ protected:
 public:
 	~AdLibPercussionChannel();
 
-	void noteOff(byte note);
+	void noteOff(byte note, byte);
 	void noteOn(byte note, byte velocity);
 	void programChange(byte program) { }
 
@@ -1038,7 +1038,7 @@ void AdLibPart::send(uint32 b) {
 	_owner->send(_channel, b);
 }
 
-void AdLibPart::noteOff(byte note) {
+void AdLibPart::noteOff(byte note, byte) {
 #ifdef DEBUG_ADLIB
 	debug(6, "%10d: noteOff(%d)", g_tick, note);
 #endif
@@ -1288,7 +1288,7 @@ void AdLibPercussionChannel::init(MidiDriver_ADLIB *owner, byte channel) {
 	memset(_customInstruments, 0, sizeof(_customInstruments));
 }
 
-void AdLibPercussionChannel::noteOff(byte note) {
+void AdLibPercussionChannel::noteOff(byte note, byte) {
 	if (_customInstruments[note]) {
 		note = _notes[note];
 	}
