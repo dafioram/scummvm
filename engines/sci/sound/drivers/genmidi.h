@@ -54,7 +54,7 @@ public:
 
 	virtual int getNumVoices() const override { return 32; }
 
-	virtual DeviceId getDeviceId() const override { return 7; }
+	virtual DeviceId getDeviceId() const override { return _deviceId; }
 
 	virtual void getValidChannelRange(uint8 &low, uint8 &high) const override { low = kMinChannel; high = kPercussionChannel - 1; }
 
@@ -164,7 +164,12 @@ private:
 
 	bool remapNote(const uint8 channelNo, uint8 &note) const;
 
+	DeviceId _deviceId;
+
+	/** The last reverb mode passed to the driver. This value is not used. */
 	uint8 _reverbMode;
+
+	/** The current master volume. */
 	uint8 _masterVolume;
 
 	/** The output channel state. */

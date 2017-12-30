@@ -38,6 +38,14 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion
 		error("Failure opening General MIDI device: %s", _device->getErrorName(errNo));
 	}
 
+	if (version >= SCI_VERSION_2) {
+		_deviceId = 7;
+	} else if (version >= SCI_VERSION_1_LATE) {
+		_deviceId = 12;
+	} else {
+		error("Unimplemented SCI sound version %d", version);
+	}
+
 	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 4), false);
 	SciSpan<const byte> midiData;
 	if (patchData) {

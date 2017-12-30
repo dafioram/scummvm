@@ -1128,17 +1128,16 @@ private:
 
 	/**
 	 * Finds the hardware channel that is wired to the sound channel represented
-	 * by the given key. Returns `kNumHardwareChannels` if the input channel is
-	 * not currently wired to a hardware channel.
+	 * by the given key. Returns `HardwareChannel::kUnmapped` if the input
+	 * channel is not currently mapped to a hardware channel.
 	 */
 	inline uint8 findHwChannelNo(const uint8 key) const {
-		uint i;
-		for (i = 0; i < kNumHardwareChannels; ++i) {
+		for (int i = 0; i < kNumHardwareChannels; ++i) {
 			if (_channelList[i] == key) {
-				break;
+				return i;
 			}
 		}
-		return i;
+		return HardwareChannel::kUnmapped;
 	}
 
 	/**
@@ -1150,7 +1149,7 @@ private:
 	/**
 	 * Preempts the lowest priority preemptable hardware channel. Adds the newly
 	 * freed number of voices to `numFreeVoices` and returns the hardware
-	 * channel number which was preempted, or `kNumHardwareChannels` if no
+	 * channel number which was preempted, or `HardwareChannel::kUnmapped` if no
 	 * channel could be preempted.
 	 * TODO: was preemptChn1/2
 	 */

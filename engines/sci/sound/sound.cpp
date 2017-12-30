@@ -238,7 +238,9 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 		const char *status;
 		if (sound.state == Sci1Sound::kStopped) {
 			status = "stopped";
-		} else if (sound.paused) {
+		// The debugger will pause all sounds once when it is opened; do not
+		// reflect this in the debug output
+		} else if (sound.paused > (con.isActive() ? 1 : 0)) {
 			status = "paused";
 		} else {
 			status = "playing";
@@ -262,10 +264,14 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 		return;
 	}
 
+	// The debugger will pause all sounds once when it is opened; do not
+	// reflect this in the debug output
+	const uint8 pauses = sound->paused - (con.isActive() ? 1 : 0);
+
 	con.debugPrintf("%s, %s, %u pauses\n",
 					sound->resource->getId().toString().c_str(),
 					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
-					sound->paused);
+					pauses);
 	con.debugPrintf("cue %u, hold point %u, loop %d\n",
 					sound->cue, sound->holdPoint, sound->loop);
 	con.debugPrintf("signal %d, state %d, priority %d%s\n",
@@ -285,6 +291,9 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 
 	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 		const Sci1Sound::Track &track = sound->tracks[i];
+		if (track.offset == 0) {
+			break;
+		}
 		con.debugPrintf("%2d: offset %u, position %u, channel %d\n",
 						i, track.offset, track.position, track.channelNo);
 		con.debugPrintf("    rest %u, command %u\n",
@@ -828,7 +837,7 @@ void SoundManager::setNoteOff(Sci1Sound &sound, const uint8 channelNo, const uin
 	sound.channels[channelNo].currentNote = Sci1Sound::Channel::kNoCurrentNote;
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
-	if (hwChannelNo != kNumHardwareChannels) {
+	if (hwChannelNo != HardwareChannel::kUnmapped) {
 		_driver->noteOff(hwChannelNo, note, velocity);
 	}
 }
@@ -844,7 +853,7 @@ void SoundManager::setNoteOn(Sci1Sound &sound, const uint8 channelNo, const uint
 	sound.channels[channelNo].currentNote = note;
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
-	if (hwChannelNo != kNumHardwareChannels) {
+	if (hwChannelNo != HardwareChannel::kUnmapped) {
 		_driver->noteOn(hwChannelNo, note, velocity);
 	}
 }
@@ -891,7 +900,7 @@ void SoundManager::setController(Sci1Sound &sound, const uint8 channelNo, const 
 	}
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
-	if (hwChannelNo != kNumHardwareChannels) {
+	if (hwChannelNo != HardwareChannel::kUnmapped) {
 		if (controllerNo == kProgramChangeController) {
 			_driver->programChange(hwChannelNo, value);
 		} else {
@@ -911,7 +920,7 @@ void SoundManager::setProgram(Sci1Sound &sound, const uint8 channelNo, const uin
 	sound.channels[channelNo].program = programNo;
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
-	if (hwChannelNo != kNumHardwareChannels) {
+	if (hwChannelNo != HardwareChannel::kUnmapped) {
 		_driver->programChange(hwChannelNo, programNo);
 	}
 }
@@ -927,7 +936,7 @@ void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const u
 	sound.channels[channelNo].pitchBend = value;
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
-	if (hwChannelNo != kNumHardwareChannels) {
+	if (hwChannelNo != HardwareChannel::kUnmapped) {
 		_driver->pitchBend(hwChannelNo, value);
 	}
 }
@@ -941,8 +950,9 @@ void SoundManager::findTrackOffsets(Sci1Sound &sound) {
 		data += 8;
 	}
 
+	const Sci1SoundDriver::DeviceId searchId = _driver->getDeviceId();
 	for (uint8 deviceId = *data++; deviceId != 0xff; deviceId = *data++) {
-		if (deviceId == _driver->getDeviceId()) {
+		if (deviceId == searchId) {
 			int trackNo = 0;
 			for (uint8 endMarker = *data; endMarker != 0xff; endMarker = *data) {
 				assert(trackNo < Sci1Sound::kNumTracks);
@@ -952,11 +962,13 @@ void SoundManager::findTrackOffsets(Sci1Sound &sound) {
 			}
 			return;
 		} else {
-			while (*data != 0xff) {
-				data += 6;
+			while (*data++ != 0xff) {
+				data += 5;
 			}
 		}
 	}
+
+	error("Unable to find track offsets for device ID %u in %s", searchId, sound.resource->name().c_str());
 }
 
 void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
@@ -980,7 +992,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 
 		Sci1Sound::Channel &channel = sound.channels[track.channelNo];
 
-		uint8 hwChannelNo = HardwareChannel::kUnmapped;
+		uint8 hwChannelNo;
 		bool extraChannel;
 		if (channel.flags & Sci1Sound::Channel::kExtra) {
 			extraChannel = true;
@@ -988,14 +1000,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		} else {
 			extraChannel = false;
 			const uint8 key = (playlistIndex << 4) | track.channelNo;
-			for (uint i = 0; i < kNumHardwareChannels; ++i) {
-				if (_channelList[i] != key) {
-					continue;
-				}
-
-				hwChannelNo = i;
-				break;
-			}
+			hwChannelNo = findHwChannelNo(key);
 		}
 
 		// restorePtr
@@ -1039,7 +1044,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 
 			if (message == kEndOfTrack) {
 				track.position = 0;
-				continue;
+				goto nextTrack;
 			}
 
 			const MidiMessageType command = MidiMessageType(message & 0xf0);
@@ -1048,9 +1053,10 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			if (channelNo == kControlChannel) {
 				parseControlChannel(sound, trackNo, command);
 				if (track.position == 0) {
-					continue;
+					goto nextTrack;
 				}
 			} else {
+				debug("track %d process command %04x", trackNo, command);
 				switch (command) {
 				case kNoteOff:
 					processNoteOff(sound, trackNo, hwChannelNo);
@@ -1605,14 +1611,14 @@ void SoundManager::updateChannelList() {
 				continue;
 			}
 
-			uint8 lastOpenChannelNo = kNumHardwareChannels;
+			uint8 lastOpenChannelNo = HardwareChannel::kUnmapped;
 			for (int j = maxChannelNo; j >= minChannelNo; --j) {
 				if (_channelList[j] == HardwareChannel::kUnmapped) {
 					lastOpenChannelNo = j;
 					break;
 				}
 			}
-			assert(lastOpenChannelNo != kNumHardwareChannels);
+			assert(lastOpenChannelNo != HardwareChannel::kUnmapped);
 
 			_channelList[lastOpenChannelNo] = hwChannel.key;
 
@@ -1652,7 +1658,7 @@ void SoundManager::updateChannelList() {
 uint8 SoundManager::preemptChannel(const int &numFreeVoices) {
 	// 'lowest' is weird here since these priority values are inverted, so the
 	// biggest number is the lowest priority
-	uint8 lowestPriority = 0, lowestPriorityChannelNo = kNumHardwareChannels;
+	uint8 lowestPriority = 0, lowestPriorityChannelNo = HardwareChannel::kUnmapped;
 	for (int i = 0; i < kNumHardwareChannels; ++i) {
 		HardwareChannel &hwChannel = _hardwareChannels[i];
 		if (hwChannel.priority >= lowestPriority) {
@@ -1661,7 +1667,7 @@ uint8 SoundManager::preemptChannel(const int &numFreeVoices) {
 		}
 	}
 
-	if (lowestPriorityChannelNo != kNumHardwareChannels) {
+	if (lowestPriorityChannelNo != HardwareChannel::kUnmapped) {
 		_hardwareChannels[lowestPriorityChannelNo] = HardwareChannel();
 	}
 
@@ -1901,7 +1907,7 @@ void SoundManager::kernelPause(const reg_t soundObj, const bool shouldPause, con
 				}
 			} else
 #endif
-			pause(*sound, shouldPause);
+				pause(*sound, shouldPause);
 		}
 	}
 }
