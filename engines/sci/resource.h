@@ -638,6 +638,7 @@ private:
 	bool _hasBadResources;
 };
 
+// TODO: Get rid of this
 class SoundResource {
 public:
 	struct Channel {

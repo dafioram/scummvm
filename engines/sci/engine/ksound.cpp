@@ -69,6 +69,13 @@ reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv) {
+	// TODO: At least SCI32 GM driver indicates that drivers used to accept a
+	// value of 0xff to receive status without sending status. In SSCI1.1+ this
+	// value was never returned to game scripts. Figure this out.
+	if (argv[0].toUint16() == 0xff) {
+		warning("kDoSoundSuspend: Received request to get sound state, ignoring");
+		return s->r_acc;
+	}
 	g_sci->_sound->setSoundOn(!argv[0].toUint16());
 	return s->r_acc;
 }
