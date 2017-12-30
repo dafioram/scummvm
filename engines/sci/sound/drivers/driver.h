@@ -182,7 +182,7 @@ public:
 	 * Programmatically sets the pitch bend for all notes in a channel. For MIDI
 	 * devices, this is equivalent to a MIDI Pitch Bend Change message.
 	 */
-	virtual void pitchBend(const uint8 channelIndex, const uint8 lsb, const uint8 msb) = 0;
+	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) = 0;
 
 	/**
 	 * Sets the aftertouch key pressure for a single note. For MIDI devices,
@@ -233,13 +233,9 @@ public:
 	virtual bool isEnabled() const { return _isEnabled; }
 
 	/**
-	 * Enables or disables sound playback. The previous state is returned.
+	 * Enables or disables sound playback.
 	 */
-	virtual bool enable(const bool enable) {
-		const bool old = _isEnabled;
-		_isEnabled = enable;
-		return old;
-	}
+	virtual void enable(const bool enable) { _isEnabled = enable; }
 
 	// TODO: There are three additional APIs for digital sample playback which
 	// are used by at least Amiga/Mac.

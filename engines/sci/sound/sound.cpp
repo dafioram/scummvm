@@ -38,19 +38,9 @@
 #endif
 #include "sci/sound/sound.h"
 #include "sci/sound/drivers/adlib.h"
+#include "sci/sound/drivers/genmidi.h"
 
 namespace Sci {
-
-/**
- * Converts a 16-bit number into two MIDI bytes.
- */
-static inline void convert16To7(const uint16 word, byte &lsb, byte &msb) {
-	msb = (word >> 7) & 0x7e;
-	lsb = word & 0x7f;
-	if (word & 0x80) {
-		msb |= 1;
-	}
-}
 
 static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
@@ -89,8 +79,12 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 
 	// Default to MIDI for Windows versions of SCI1.1 games, as their
 	// soundtrack is written for GM.
-	if (features.useAltWinGMSound())
+	if (features.useAltWinGMSound()) {
 		deviceFlags |= MDT_PREFER_GM;
+		_useWindowsMidi = true;
+	} else {
+		_useWindowsMidi = false;
+	}
 
 	const Common::Platform platform = g_sci->getPlatform();
 
@@ -144,14 +138,20 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 		error("TODO FM-Towns");
 //		_driver.reset(makeFmTownsDriver(resMan, _soundVersion));
 		break;
-	default:
+	case MT_MT32:
+		error("TODO MT-32");
+		break;
+	case MT_GM:
 		if (ConfMan.getBool("native_fb01")) {
 			error("TODO FB-01");
 //			_driver.reset(makeFb01Driver(resMan, _soundVersion));
 		} else {
-			error("TODO General MIDI/MT-32 (shouldn't these be separate?)");
-//			_driver.reset(makeMidiDriver(resMan, _soundVersion));
+			// TODO: Wrong!
+			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion)));
 		}
+		break;
+	default:
+		error("Unknown music type %d", musicType);
 	}
 
 	if (!_driver) {
@@ -192,6 +192,34 @@ SoundManager::~SoundManager() {
 
 int SoundManager::getNumVoices() const {
 	return _driver->getNumVoices();
+}
+
+GuiResourceId SoundManager::getSoundResourceId(const uint16 soundNo) const {
+	if (_useWindowsMidi) {
+		const ResourceId testId(kResourceTypeSound, soundNo + 1000);
+		// Check if the alternate MIDI song actually exists...
+		// There are cases where it just doesn't exist (e.g. SQ4, room 530 -
+		// bug #3392767). In these cases, use the DOS tracks instead.
+		if (soundNo != 0 && _resMan.testResource(testId)) {
+			return soundNo + 1000;
+		}
+	}
+
+	if (g_sci->isCD() && g_sci->getGameId() == GID_SQ4 && soundNo < 1000) {
+		// For Space Quest 4 a few additional samples and also higher quality samples were played.
+		// We must not connect this to General MIDI support, because that will get disabled
+		// in case the user hasn't also chosen a General MIDI output device.
+		// We use those samples for DOS platform as well. We do basically the same for Space Quest 3,
+		// which also contains a few samples that were not played under the original interpreter.
+		// Maybe some fan wishes to opt-out of this. In this case a game specific option should be added.
+		// For more information see enhancement/bug #10228
+		// TODO: Check, if there are also enhanced samples for any of the other General MIDI games.
+		if (_resMan.testResource(ResourceId(kResourceTypeAudio, soundNo + 1000))) {
+			return soundNo + 1000;
+		}
+	}
+
+	return soundNo;
 }
 
 #pragma mark -
@@ -900,9 +928,7 @@ void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const u
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
 	if (hwChannelNo != kNumHardwareChannels) {
-		uint8 lsb, msb;
-		convert16To7(value, lsb, msb);
-		_driver->pitchBend(hwChannelNo, lsb, msb);
+		_driver->pitchBend(hwChannelNo, value);
 	}
 }
 
@@ -1016,7 +1042,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 				continue;
 			}
 
-			const MessageType command = MessageType(message & 0xf0);
+			const MidiMessageType command = MidiMessageType(message & 0xf0);
 			const uint8 channelNo = message & 0xf;
 
 			if (channelNo == kControlChannel) {
@@ -1093,7 +1119,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 	}
 }
 
-void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MessageType command) {
+void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command) {
 	Sci1Sound::Track &track = sound.tracks[trackNo];
 
 	switch (command) {
@@ -1292,10 +1318,11 @@ void SoundManager::processPitchBend(Sci1Sound &sound, const uint8 trackNo, const
 		return;
 	}
 
-	sound.channels[sound.tracks[trackNo].channelNo].pitchBend = convert7To16(lsb, msb);
+	const uint16 value = convert7To16(lsb, msb);
+	sound.channels[sound.tracks[trackNo].channelNo].pitchBend = value;
 
 	if (hwChannelNo != HardwareChannel::kUnmapped && !_restoringSound) {
-		_driver->pitchBend(inRangeChannelNo, lsb, msb);
+		_driver->pitchBend(inRangeChannelNo, value);
 	}
 }
 
@@ -1303,7 +1330,7 @@ void SoundManager::processSysEx(Sci1Sound &sound, const uint8 trackNo, const uin
 	skipCommand(sound, trackNo, kSysEx);
 }
 
-void SoundManager::skipCommand(Sci1Sound &sound, const uint8 trackNo, const MessageType command) {
+void SoundManager::skipCommand(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command) {
 	switch (command) {
 	case kSysEx:
 		while (sound.consume(trackNo) != kEndOfSysEx);
@@ -1653,10 +1680,7 @@ void SoundManager::sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::
 	driver.controllerChange(hwChannelNo, kPanController, channel.pan);
 	driver.controllerChange(hwChannelNo, kModulationController, channel.modulation);
 	driver.controllerChange(hwChannelNo, kDamperPedalController, channel.damperPedalOn ? 127 : 0);
-
-	byte lsb, msb;
-	convert16To7(channel.pitchBend, lsb, msb);
-	driver.pitchBend(hwChannelNo, lsb, msb);
+	driver.pitchBend(hwChannelNo, channel.pitchBend);
 
 	// TODO: Unclear what this is for, check drivers for information
 	driver.controllerChange(hwChannelNo, kMuteController, channel.currentNote);
@@ -1745,7 +1769,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	}
 #endif
 
-	const GuiResourceId soundNo = readSelectorValue(_segMan, soundObj, SELECTOR(number));
+	const GuiResourceId soundNo = getSoundResourceId(readSelectorValue(_segMan, soundObj, SELECTOR(number)));
 	const ResourceId soundId(getSoundResourceType(soundNo), soundNo);
 
 	// SSCI assigned the resource number to the Sound object here, since we

@@ -138,8 +138,8 @@ public:
 		debug("TODO: Channel %u program %u", channelIndex, programNo);
 	}
 
-	virtual void pitchBend(const uint8 channelIndex, const uint8 lsb, const uint8 msb) override {
-		debug("TODO: Channel %u pitch %u %u", channelIndex, lsb, msb);
+	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) override {
+		debug("TODO: Channel %u pitch %u", channelIndex, bend);
 	}
 
 	virtual void keyPressure(const uint8 channelIndex, const uint8 note, const uint8 pressure) override {

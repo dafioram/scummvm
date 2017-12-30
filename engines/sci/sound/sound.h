@@ -39,6 +39,66 @@ class Console;
 class Sci1SoundDriver;
 class SegManager;
 
+// TODO: All this stuff except for the kSetLoop is just standard MIDI messaging
+// stuff and should go into common code
+enum MidiMessage {
+	/**
+	 * A control channel message which marks the current position as a loop
+	 * point.
+	 */
+	kSetLoop = 0x7f,
+
+	/**
+	 * A flag indicating that the current byte starts a new command
+	 * sequence.
+	 */
+	kStartOfMessageFlag = 0x80,
+
+	/**
+	 * A standard MIDI message indicating the termination of a System
+	 * Exclusive sequence.
+	 */
+	kEndOfSysEx = 0xf7,
+
+	/**
+	 * A message indicating that playback of the track needs to be delayed
+	 * for a fixed duration.
+	 */
+	kTimingOverflow = 0xf8,
+
+	/**
+	 * A message indicating that the end of the track has been reached.
+	 */
+	kEndOfTrack = 0xfc
+};
+
+enum MidiMessageType {
+	kNoteOff = 0x80,
+	kNoteOn = 0x90,
+	kKeyPressure = 0xa0,
+	kControllerChange = 0xb0,
+	kProgramChange = 0xc0,
+	kChannelPressure = 0xd0,
+	kPitchBend = 0xe0,
+	kSysEx = 0xf0
+};
+
+enum MidiController {
+	kModulationController = 1,
+	kVolumeController = 7,
+	kPanController = 10,
+	kDamperPedalController = 64,
+	kMaxVoicesController = 75,
+	// TODO: This controller also receives the current note when channels
+	// are remapped, figure out what this means.
+	kMuteController = 78,
+	kReverbModeController = 80,
+	kLoopEndController = 82,
+	kCueController = 96,
+	kAllNotesOffController = 123,
+	kProgramChangeController = 127
+};
+
 enum Sci0PlayStrategy {
 	/**
 	 * The caller should synchronously invoke `service` on the driver until
@@ -548,6 +608,11 @@ public:
 	int getNumVoices() const;
 
 private:
+	/**
+	 * Returns the preferred resource ID for the given sound resource.
+	 */
+	GuiResourceId getSoundResourceId(const uint16 soundNo) const;
+
 	typedef Common::Array<Sci1Sound> SoundsList;
 
 	ResourceManager &_resMan;
@@ -559,6 +624,11 @@ private:
 	 * possible.
 	 */
 	bool _preferSampledSounds;
+
+	/**
+	 * If true, behave like Windows 3 (MPC) MIDI.
+	 */
+	bool _useWindowsMidi;
 
 	/**
 	 * The list of currently playing & queued sounds.
@@ -859,64 +929,6 @@ private:
 		kTimingOverflowValue = kTimingOverflowFlag | kTimingOverflowDelay
 	};
 
-	enum Message {
-		/**
-		 * A control channel message which marks the current position as a loop
-		 * point.
-		 */
-		kSetLoop = 0x7f,
-
-		/**
-		 * A flag indicating that the current byte starts a new command
-		 * sequence.
-		 */
-		kStartOfMessageFlag = 0x80,
-
-		/**
-		 * A standard MIDI message indicating the termination of a System
-		 * Exclusive sequence.
-		 */
-		kEndOfSysEx = 0xf7,
-
-		/**
-		 * A message indicating that playback of the track needs to be delayed
-		 * for a fixed duration.
-		 */
-		kTimingOverflow = 0xf8,
-
-		/**
-		 * A message indicating that the end of the track has been reached.
-		 */
-		kEndOfTrack = 0xfc
-	};
-
-	enum MessageType {
-		kNoteOff = 0x80,
-		kNoteOn = 0x90,
-		kKeyPressure = 0xa0,
-		kControllerChange = 0xb0,
-		kProgramChange = 0xc0,
-		kChannelPressure = 0xd0,
-		kPitchBend = 0xe0,
-		kSysEx = 0xf0
-	};
-
-	enum Controller {
-		kModulationController = 1,
-		kVolumeController = 7,
-		kPanController = 10,
-		kDamperPedalController = 64,
-		kMaxVoicesController = 75,
-		// TODO: This controller also receives the current note when channels
-		// are remapped, figure out what this means.
-		kMuteController = 78,
-		kReverbModeController = 80,
-		kLoopEndController = 82,
-		kCueController = 96,
-		kAllNotesOffController = 123,
-		kProgramChangeController = 127
-	};
-
 	/**
 	 * Finds and populates the offsets to the start of track data for each track
 	 * in the sound designed for the current output device. This is a highly
@@ -935,7 +947,7 @@ private:
 	 * Processes the next control channel message.
 	 * TODO: was controlChnl
 	 */
-	void parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MessageType command);
+	void parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command);
 
 	/**
 	 * Processes a Note Off message from a data track.
@@ -989,7 +1001,7 @@ private:
 	 * Skips past data for the given command in a data track.
 	 * TODO: was SkipMidi
 	 */
-	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const MessageType command);
+	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command);
 
 #pragma mark -
 #pragma mark Playlist management
