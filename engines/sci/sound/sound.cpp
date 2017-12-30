@@ -1127,6 +1127,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		sound.ticksElapsed = sound.loopTicksElapsed;
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
+			debug("Reset track %i. %d -> %d, %04x -> %04x, %02x -> %02x", i, track.position, track.loopPosition, track.rest, track.loopRest, track.command, track.loopCommand);
 			track.position = track.loopPosition;
 			track.rest = track.loopRest;
 			track.command = track.loopCommand;
