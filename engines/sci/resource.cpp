@@ -1448,7 +1448,7 @@ bool ResourceManager::isBlacklistedPatch(const ResourceId &resId) const {
 		// from RESSCI.000 will be used instead.
 		return g_sci->isDemo() &&
 			resId.getType() == kResourceTypeMap &&
-			resId.getNumber() == 65535;
+			resId.getNumber() == kSfxModule;
 	case GID_PHANTASMAGORIA:
 		// The GOG release of Phantasmagoria 1 merges all resources into a
 		// single-disc bundle, but they also include the 65535.MAP from the
@@ -1457,7 +1457,7 @@ bool ResourceManager::isBlacklistedPatch(const ResourceId &resId) const {
 		// correct maps will be found in the RESSCI.000 file. This also helps
 		// eliminate user error when copying files from the original CDs, since
 		// each CD had a different 65535.MAP patch file.
-		return resId.getType() == kResourceTypeMap && resId.getNumber() == 65535;
+		return resId.getType() == kResourceTypeMap && resId.getNumber() == kSfxModule;
 	default:
 		return false;
 	}
@@ -1930,12 +1930,12 @@ int ResourceManager::readResourceMapSCI1(ResourceSource *map) {
 
 				Common::String volumeName;
 				if (mapVolumeNr == kResPatVolumeNumber) {
-					if (resId.getNumber() == 65535) {
+					if (resId.getNumber() == kSfxModule) {
 						volumeName = "RESSCI.PAT";
 					} else {
 						volumeName = "RESAUD.001";
 					}
-				} else if (resId.getNumber() == 65535) {
+				} else if (resId.getNumber() == kSfxModule) {
 					volumeName = Common::String::format("RESSFX.%03d", mapVolumeNr);
 
 					if (g_sci->getGameId() == GID_RAMA && !Common::File::exists(volumeName)) {

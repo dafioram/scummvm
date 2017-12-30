@@ -354,7 +354,7 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 		}
 	}
 
-	if (map->_mapNumber == 65535) {
+	if (map->_mapNumber == kSfxModule) {
 		while (ptr != mapRes->cend()) {
 			uint16 n = ptr.getUint16LE();
 			ptr += 2;
@@ -1037,7 +1037,7 @@ bool ResourceManager::addAudioSources() {
 		const Resource *mapResource = _resMap.getVal(*itr);
 		ResourceSource *src = addSource(new IntMapResourceSource(mapResource->getResourceLocation(), 0, itr->getNumber()));
 
-		if (itr->getNumber() == 65535 && Common::File::exists("RESOURCE.SFX"))
+		if (itr->getNumber() == kSfxModule && Common::File::exists("RESOURCE.SFX"))
 			addSource(new AudioVolumeResourceSource(this, "RESOURCE.SFX", src, 0));
 		else if (Common::File::exists("RESOURCE.AUD"))
 			addSource(new AudioVolumeResourceSource(this, "RESOURCE.AUD", src, 0));
@@ -1067,7 +1067,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 		const ResourceType type = it->_key.getType();
 
 		if (type == kResourceTypeMap || type == kResourceTypeAudio36 || type == kResourceTypeSync36) {
-			if (type == kResourceTypeMap && it->_key.getNumber() == 65535) {
+			if (type == kResourceTypeMap && it->_key.getNumber() == kSfxModule) {
 				continue;
 			}
 
@@ -1094,7 +1094,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 
 	for (SourcesList::iterator it = _sources.begin(); it != _sources.end(); ) {
 		IntMapResourceSource *mapSource = dynamic_cast<IntMapResourceSource *>(*it);
-		if (mapSource && mapSource->_mapNumber != 65535) {
+		if (mapSource && mapSource->_mapNumber != kSfxModule) {
 			delete *it;
 			it = _sources.erase(it);
 			continue;
@@ -1124,7 +1124,7 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 
 		// Sound effects are the same across all audio directories, so ignore
 		// any new SFX map
-		if (mapNo == 65535) {
+		if (mapNo == kSfxModule) {
 			continue;
 		}
 

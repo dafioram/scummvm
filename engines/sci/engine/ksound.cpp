@@ -242,7 +242,7 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 		g_sci->_audio->stopAudio();
 
 		if (argc == 2) {
-			module = 65535;
+			module = kSfxModule;
 			number = argv[1].toUint16();
 		} else if (argc == 6 || argc == 8) {
 			module = argv[1].toUint16();

@@ -147,6 +147,10 @@ class ResourceManager;
 class ResourceSource;
 class ResourcePatcher;
 
+enum {
+	kSfxModule = 65535
+};
+
 class ResourceId {
 	static inline ResourceType fixupType(ResourceType type) {
 		if (type >= kResourceTypeInvalid)

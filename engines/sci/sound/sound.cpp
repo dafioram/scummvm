@@ -1826,7 +1826,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 			// TODO: This doesn't loop, it should loop, Sci::Audio does not have
 			// the capability to do this, it should probably just be using
 			// Audio32 which was actually RE'd properly
-			g_sci->_audio->startAudio(soundId.getNumber(), soundId.getTuple());
+			g_sci->_audio->startAudio(kSfxModule, soundId.getNumber());
 	} else {
 		kernelUpdate(soundObj);
 		play(*sound, exclusive);

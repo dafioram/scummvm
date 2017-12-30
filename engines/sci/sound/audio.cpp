@@ -161,7 +161,7 @@ int AudioPlayer::startAudio(uint16 module, uint32 number) {
 
 	if (audioStream) {
 		_wPlayFlag = false;
-		Audio::Mixer::SoundType soundType = (module == 65535) ? Audio::Mixer::kSFXSoundType : Audio::Mixer::kSpeechSoundType;
+		Audio::Mixer::SoundType soundType = (module == kSfxModule) ? Audio::Mixer::kSFXSoundType : Audio::Mixer::kSpeechSoundType;
 		_mixer->playStream(soundType, &_audioHandle, audioStream);
 		return sampleLen;
 	} else {
@@ -339,7 +339,7 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 
 	*sampleLen = 0;
 
-	if (volume == 65535) {
+	if (volume == kSfxModule) {
 		audioRes = _resMan->findResource(ResourceId(kResourceTypeAudio, number), false);
 		if (!audioRes) {
 			warning("Failed to find audio entry %i", number);
