@@ -1411,10 +1411,7 @@ void SoundManager::updateChannelList() {
 	Common::fill(_channelList.begin(), _channelList.end(), HardwareChannel::kUnmapped);
 	Common::fill(_hardwareChannels.begin(), _hardwareChannels.end(), HardwareChannel());
 
-	// TODO: This is just plain broken in SSCI32, it fills word SampleList with
-	// 0 and then word SampleList[2] with 0. That was OK for SCI16 only since it
-	// stored segment & offset. What it is really meaning to do, in both
-	// versions, is to clear out the pointer, so that is what we do here.
+	// TODO: This weird thing is never used.
 	_sample = nullptr;
 
 	const ChannelList oldChannelList(_channelList);
