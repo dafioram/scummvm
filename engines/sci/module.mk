@@ -69,13 +69,7 @@ MODULE_OBJS := \
 	sound/audio.o \
 	sound/sound.o \
 	sound/sync.o \
-	sound/drivers/adlib.o \
-	sound/drivers/amigamac.o \
-	sound/drivers/cms.o \
-	sound/drivers/fb01.o \
-	sound/drivers/fmtowns.o \
-	sound/drivers/midi.o \
-	sound/drivers/pcjr.o \
+	sound/drivers/genmidi.o \
 	video/seq_decoder.o
 
 
