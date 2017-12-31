@@ -112,7 +112,7 @@ public:
 
 	virtual DeviceId getDeviceId() const override { return 0; }
 
-	virtual void getValidChannelRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
+	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
 
 	virtual void service() override {
 		static int numServices = 0;

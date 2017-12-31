@@ -143,10 +143,11 @@ public:
 		_isEnabled(true) {}
 
 	/**
-	 * Returns the valid channel range for the driver. In SSCI, this information
-	 * would be communicated by a call to the driver's init function.
+	 * Returns the channel range which can be used for dynamically remapped
+	 * channels. In SSCI, this information would be communicated by a call to
+	 * the driver's init function.
 	 */
-	virtual void getValidChannelRange(uint8 &low, uint8 &high) const = 0;
+	virtual void getRemapRange(uint8 &low, uint8 &high) const = 0;
 
 	/**
 	 * Services the driver. This should be called once per tick.

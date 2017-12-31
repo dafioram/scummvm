@@ -1428,7 +1428,7 @@ void SoundManager::updateChannelList() {
 
 	if (_playlist[0]) {
 		uint8 minChannelNo, maxChannelNo;
-		_driver->getValidChannelRange(minChannelNo, maxChannelNo);
+		_driver->getRemapRange(minChannelNo, maxChannelNo);
 
 		uint8 reverbMode = _playlist[0]->reverbMode;
 		if (reverbMode == kUseDefaultReverb) {

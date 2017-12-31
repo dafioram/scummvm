@@ -56,7 +56,7 @@ public:
 
 	virtual DeviceId getDeviceId() const override { return _deviceId; }
 
-	virtual void getValidChannelRange(uint8 &low, uint8 &high) const override { low = kMinChannel; high = kPercussionChannel - 1; }
+	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = kMinChannel; high = kPercussionChannel - 1; }
 
 	virtual void service() override {
 		// no-op
