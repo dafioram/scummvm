@@ -641,6 +641,11 @@ public:
 	 */
 	int getNumVoices() const;
 
+	/**
+	 * Used to pause/resume sound when launcher or debugger are open.
+	 */
+	void systemSuspend(const bool pause);
+
 private:
 	/**
 	 * Returns the preferred resource ID for the given sound resource.
@@ -652,6 +657,12 @@ private:
 	ResourceManager &_resMan;
 	SegManager *_segMan;
 	Common::Mutex _mutex;
+
+	/**
+	 * The enabled state of the driver when engine execution was suspended by
+	 * OSystem.
+	 */
+	bool _driverEnabledState;
 
 	/**
 	 * If true, prefer sampled sound effects over synthesised sound effects when

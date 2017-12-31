@@ -2406,10 +2406,8 @@ bool Console::cmdSongInfo(int argc, const char **argv) {
 }
 
 bool Console::cmdChannelMap(int argc, const char **argv) {
-	g_sci->_sound->pauseAll(false);
 	debugPrintf("MIDI channel map:\n");
 	g_sci->_sound->debugPrintChannelMap(*this);
-	g_sci->_sound->pauseAll(true);
 	return true;
 }
 

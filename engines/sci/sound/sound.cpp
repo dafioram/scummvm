@@ -49,6 +49,7 @@ static inline uint16 convert7To16(byte lsb, byte msb) {
 SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features) :
 	_resMan(resMan),
 	_segMan(&segMan),
+	_driverEnabledState(true),
 	_soundVersion(features.detectDoSoundType()),
 	_restoringSound(false),
 	_numServerSuspensions(0),
@@ -190,6 +191,16 @@ SoundManager::~SoundManager() {
 
 int SoundManager::getNumVoices() const {
 	return _driver->getNumVoices();
+}
+
+void SoundManager::systemSuspend(const bool pause) {
+	enableSoundServer(!pause);
+	if (pause) {
+		_driverEnabledState = _driver->isEnabled();
+		_driver->enable(false);
+	} else{
+		_driver->enable(_driverEnabledState);
+	}
 }
 
 GuiResourceId SoundManager::getSoundResourceId(const uint16 soundNo) const {
@@ -2089,9 +2100,7 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 		const char *status;
 		if (sound.state == Sci1Sound::kStopped) {
 			status = "stopped";
-		// The debugger will pause all sounds once when it is opened; do not
-		// reflect this in the debug output
-		} else if (sound.paused > (con.isActive() ? 1 : 0)) {
+		} else if (sound.paused) {
 			status = "paused";
 		} else {
 			status = "playing";
@@ -2115,14 +2124,10 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 		return;
 	}
 
-	// The debugger will pause all sounds once when it is opened; do not
-	// reflect this in the debug output
-	const uint8 pauses = sound->paused - (con.isActive() ? 1 : 0);
-
 	con.debugPrintf("%s, %s, %u pauses\n",
 					sound->id.toString().c_str(),
 					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
-					pauses);
+					sound->paused);
 	con.debugPrintf("cue %u, hold point %u, loop %d\n",
 					sound->cue, sound->holdPoint, sound->loop);
 	con.debugPrintf("signal %d, state %d, priority %d%s\n",

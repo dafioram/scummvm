@@ -915,8 +915,9 @@ void SciEngine::setLauncherLanguage() {
 
 void SciEngine::pauseEngineIntern(bool pause) {
 	_mixer->pauseAll(pause);
-	if (_sound)
-		_sound->pauseAll(pause);
+	if (_sound) {
+		_sound->systemSuspend(pause);
+	}
 }
 
 void SciEngine::syncSoundSettings() {
