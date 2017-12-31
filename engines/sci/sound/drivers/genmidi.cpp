@@ -210,8 +210,8 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 		controllerChange(channelNo, kVolumeController, channel.volume);
 	}
 
-	channel.hw->programChange(programNo);
-	debug("PC %2d %3d", channelNo, programNo);
+	channel.hw->programChange(channel.outProgram);
+	debug("PC %2d %3d -> %3d", channelNo, programNo, channel.outProgram);
 }
 
 void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
