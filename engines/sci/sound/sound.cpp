@@ -58,9 +58,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_defaultReverbMode(0),
 	_sample(nullptr),
 	_playlist(),
-	_hardwareChannels(kNumHardwareChannels),
-	_mappedNodes(kNumHardwareChannels),
-	_channelList(kNumHardwareChannels, HardwareChannel::kUnmapped) {
+	_hardwareChannels() {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
@@ -220,130 +218,6 @@ GuiResourceId SoundManager::getSoundResourceId(const uint16 soundNo) const {
 	}
 
 	return soundNo;
-}
-
-#pragma mark -
-#pragma mark Debugging
-
-void SoundManager::debugPrintPlaylist(Console &con) const {
-	Common::StackLock lock(_mutex);
-
-	for (int i = 0; i < kPlaylistSize; ++i) {
-		if (!_playlist[i]) {
-			return;
-		}
-
-		const Sci1Sound &sound = *_playlist[i];
-
-		const char *status;
-		if (sound.state == Sci1Sound::kStopped) {
-			status = "stopped";
-		// The debugger will pause all sounds once when it is opened; do not
-		// reflect this in the debug output
-		} else if (sound.paused > (con.isActive() ? 1 : 0)) {
-			status = "paused";
-		} else {
-			status = "playing";
-		}
-
-		con.debugPrintf("%d: %04x:%04x (%s), resource id: %s, status: %s\n",
-						i,
-						PRINT_REG(sound.nodePtr),
-						_segMan->getObjectName(sound.nodePtr),
-						sound.resource ? sound.id.toString().c_str() : "<none>",
-						status);
-	}
-}
-
-void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
-	Common::StackLock lock(_mutex);
-
-	const Sci1Sound *sound = findSoundByRegT(nodePtr);
-	if (!sound) {
-		con.debugPrintf("Sound not found in playlist");
-		return;
-	}
-
-	// The debugger will pause all sounds once when it is opened; do not
-	// reflect this in the debug output
-	const uint8 pauses = sound->paused - (con.isActive() ? 1 : 0);
-
-	con.debugPrintf("%s, %s, %u pauses\n",
-					sound->id.toString().c_str(),
-					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
-					pauses);
-	con.debugPrintf("cue %u, hold point %u, loop %d\n",
-					sound->cue, sound->holdPoint, sound->loop);
-	con.debugPrintf("signal %d, state %d, priority %d%s\n",
-					sound->signal, sound->state, sound->priority,
-					sound->fixedPriority ? " (fixed)" : "");
-	con.debugPrintf("ticks elapsed %u, reverb mode %u, volume %d",
-					sound->ticksElapsed, sound->reverbMode, sound->volume);
-	if (sound->fadeAmountPerTick) {
-		con.debugPrintf(" -> %d\n", sound->fadeTargetVolume);
-		con.debugPrintf("fade delay %d, speed %d, stop %d\n",
-						sound->fadeDelay, sound->fadeAmountPerTick, sound->stopSoundOnFade);
-	} else {
-		con.debugPrintf("\n");
-	}
-
-	con.debugPrintf("\nTracks:\n");
-
-	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
-		const Sci1Sound::Track &track = sound->getTrack(i);
-		if (track.offset == 0) {
-			break;
-		}
-		con.debugPrintf("%2d: offset %u, position %u, channel %d\n",
-						i, track.offset, track.position, track.channelNo);
-		con.debugPrintf("    rest %u, command %u\n",
-						track.rest, track.command);
-		con.debugPrintf("    loop position %u, loop rest %u, loop command %u\n",
-						track.loopPosition, track.loopRest, track.loopCommand);
-	}
-
-	con.debugPrintf("\nChannels:\n");
-
-	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
-		const Sci1Sound::Channel &channel = sound->getChannel(i);
-		con.debugPrintf("%2d: priority %d, voices %u, note %u, volume %u\n",
-						i, channel.priority, channel.numVoices, channel.currentNote, channel.volume);
-		con.debugPrintf("    program %u, mod %u, pan %u, p bend %u\n",
-						channel.program, channel.modulation, channel.pan, channel.pitchBend);
-		con.debugPrintf("    dp %d, flags %u, mute %d, game mutes %u\n",
-						channel.damperPedalOn, channel.flags, channel.muted, channel.gameMuteCount);
-	}
-}
-
-void SoundManager::debugPrintChannelMap(Console &con) const {
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
-		const HardwareChannel &channel = _hardwareChannels[i];
-		if (channel.key == HardwareChannel::kUnmapped) {
-			con.debugPrintf("%2d: unmapped\n", i);
-		} else {
-			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
-							i,
-							_playlist[channel.playlistIndex()]->id.toString().c_str(),
-							channel.channelNo(),
-							channel.priority,
-							channel.numVoices,
-							channel.locked ? ", locked" : "");
-		}
-	}
-}
-
-void SoundManager::debugPlay(const GuiResourceId soundId) {
-	warning("TODO: Not implemented yet");
-}
-
-void SoundManager::debugStopAll() {
-	for (int i = 0; i < kPlaylistSize; ++i) {
-		if (!_playlist[i]) {
-			return;
-		}
-
-		stop(*_playlist[i]);
-	}
 }
 
 #pragma mark -
@@ -569,9 +443,9 @@ void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, con
 	playlistIndex <<= 4;
 
 	for (int hwChannelNo = 0; hwChannelNo < kNumHardwareChannels; ++hwChannelNo) {
-		if (_channelList[hwChannelNo] != HardwareChannel::kUnmapped && (_channelList[hwChannelNo] & 0xf0) == playlistIndex) {
-			const uint8 channelNo = _channelList[hwChannelNo] & 0xf;
-			changeChannelVolume(sound, channelNo, hwChannelNo, enqueue);
+		const HardwareChannel &hwChannel = _hardwareChannels[hwChannelNo];
+		if (hwChannel.isMapped() && hwChannel.playlistIndex() == playlistIndex) {
+			changeChannelVolume(sound, hwChannel.channelNo(), hwChannelNo, enqueue);
 		}
 	}
 
@@ -583,7 +457,8 @@ void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, con
 
 		const Sci1Sound::Channel &channel = sound.getChannel(channelNo);
 		if ((channel.flags & Sci1Sound::Channel::kExtra) &&
-			_channelList[channelNo] == HardwareChannel::kUnmapped) {
+			!_hardwareChannels[channelNo].isMapped()) {
+
 			changeChannelVolume(sound, channelNo, channelNo, enqueue);
 		}
 	}
@@ -1256,7 +1131,7 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 
 	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
-	if (isExtraChannel || _channelList[inRangeChannelNo] == HardwareChannel::kUnmapped) {
+	if (isExtraChannel && _hardwareChannels[inRangeChannelNo].isMapped()) {
 		return;
 	}
 
@@ -1313,7 +1188,7 @@ void SoundManager::processProgramChange(Sci1Sound &sound, const uint8 trackNo, c
 	const uint8 programNo = sound.consume(trackNo);
 	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
-	if (isExtraChannel && _channelList[inRangeChannelNo] != HardwareChannel::kUnmapped) {
+	if (isExtraChannel && _hardwareChannels[inRangeChannelNo].isMapped()) {
 		return;
 	}
 
@@ -1343,7 +1218,7 @@ void SoundManager::processPitchBend(Sci1Sound &sound, const uint8 trackNo, const
 
 	const uint8 inRangeChannelNo = hwChannelNo & 0xf;
 
-	if (isExtraChannel && _channelList[inRangeChannelNo] != HardwareChannel::kUnmapped) {
+	if (isExtraChannel && _hardwareChannels[inRangeChannelNo].isMapped()) {
 		return;
 	}
 
@@ -1418,13 +1293,8 @@ void SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
 void SoundManager::updateChannelList() {
 	_needsUpdate = false;
 
-	Common::fill(_channelList.begin(), _channelList.end(), HardwareChannel::kUnmapped);
+	const HardwareChannels oldChannels(_hardwareChannels);
 	Common::fill(_hardwareChannels.begin(), _hardwareChannels.end(), HardwareChannel());
-
-	// TODO: This weird thing is never used.
-	_sample = nullptr;
-
-	const ChannelList oldChannelList(_channelList);
 
 	if (_playlist[0]) {
 		uint8 minChannelNo, maxChannelNo;
@@ -1436,259 +1306,334 @@ void SoundManager::updateChannelList() {
 		}
 		_driver->setReverbMode(reverbMode);
 
-		HardwareChannels oldMappedChannels;
-		int numFreeVoices = _driver->getNumVoices();
-		for (int i = 0; i < kPlaylistSize; ++i) {
-			if (!_playlist[i]) {
-				break;
-			}
+		// loopDoNodes
+		HardwareChannels newChannels = makeChannelMap(minChannelNo, maxChannelNo);
 
-			Sci1Sound &sound = *_playlist[i];
-			if (sound.paused) {
-				continue;
-			}
+		debug("At end of pass 1, we got:");
+		debugPrintChannelMap(*g_sci->getSciDebugger());
 
-			if (sound.isSample) {
-				if (!_sample) {
-					_sample = &sound;
-				}
+		// TODO: Why was the old channels list being recreated here, are we
+		// missing something in makeChannelMap?
 
-				continue;
-			}
+		// doPass2
+		commitFixedChannels(newChannels, oldChannels, minChannelNo, maxChannelNo);
 
-			oldMappedChannels = _hardwareChannels;
-			const int oldNumFreeVoices = numFreeVoices;
+		debug("At end of pass 2:");
+		debugPrintChannelMap(*g_sci->getSciDebugger());
 
-			// loopDoTracks:
-			int basePriority = 0;
-			for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo, basePriority += 16) {
-				Sci1Sound::Track &track = sound.getTrack(trackNo);
-				if (track.channelNo == Sci1Sound::Track::kEndOfData ||
-					track.channelNo == Sci1Sound::Track::kSampleTrack ||
-					track.channelNo == kControlChannel) {
+		// doPass3
+		commitDynamicChannels(newChannels, oldChannels, minChannelNo, maxChannelNo);
 
-					continue;
-				}
-
-				Sci1Sound::Channel &channel = sound.getChannel(track.channelNo);
-
-				if ((channel.flags & Sci1Sound::Channel::kExtra) || channel.muted) {
-					continue;
-				}
-
-				const uint8 key = (i << 4) | track.channelNo;
-
-				uint8 priority = channel.priority;
-				if (priority != 0) {
-					priority = kNumHardwareChannels - priority + basePriority;
-				}
-
-				uint8 bestRemapIndex;
-				if ((channel.flags & Sci1Sound::Channel::kLocked) &&
-					_hardwareChannels[track.channelNo].key == HardwareChannel::kUnmapped) {
-					bestRemapIndex = track.channelNo;
-				} else {
-					bestRemapIndex = HardwareChannel::kUnmapped;
-					for (int channelNo = 0; channelNo < kNumHardwareChannels; ++channelNo) {
-						HardwareChannel &mappedChannel = _hardwareChannels[channelNo];
-						if (mappedChannel.key == HardwareChannel::kUnmapped) {
-							if (channelNo >= minChannelNo && channelNo <= maxChannelNo) {
-								bestRemapIndex = channelNo;
-							}
-						} else if (mappedChannel.key == key) {
-							goto nextTrack;
-						}
-					}
-
-					if (bestRemapIndex == HardwareChannel::kUnmapped) {
-						if (priority != 0) {
-							goto nextSound;
-						}
-
-						bestRemapIndex = preemptChannel(numFreeVoices);
-					}
-				}
-
-				if (bestRemapIndex == HardwareChannel::kUnmapped) {
-					_hardwareChannels = oldMappedChannels;
-					numFreeVoices = oldNumFreeVoices;
-					goto nextSound;
-				} else {
-					// checkVoices
-					if (channel.numVoices > numFreeVoices) {
-						if (priority == 0) {
-							do {
-								bestRemapIndex = preemptChannel(numFreeVoices);
-								if (bestRemapIndex == HardwareChannel::kUnmapped) {
-									_hardwareChannels = oldMappedChannels;
-									numFreeVoices = oldNumFreeVoices;
-									goto nextSound;
-								}
-							} while (channel.numVoices > numFreeVoices);
-						} else {
-							goto nextTrack;
-						}
-					}
-
-					// putChOnList
-					assert(bestRemapIndex < kNumHardwareChannels);
-					HardwareChannel &hwChannel = _hardwareChannels[bestRemapIndex];
-					hwChannel.key = key;
-					hwChannel.numVoices = channel.numVoices;
-					numFreeVoices -= channel.numVoices;
-					hwChannel.priority = priority;
-
-					if (channel.flags & Sci1Sound::Channel::kLocked) {
-						if (bestRemapIndex != track.channelNo) {
-							if (_hardwareChannels[track.channelNo].locked) {
-								if (priority == 0) {
-									if (_hardwareChannels[track.channelNo].priority == 0) {
-										_hardwareChannels = oldMappedChannels;
-										numFreeVoices = oldNumFreeVoices;
-										goto nextSound;
-									} else {
-										numFreeVoices += _hardwareChannels[track.channelNo].numVoices;
-										_hardwareChannels[track.channelNo] = hwChannel;
-										hwChannel = HardwareChannel();
-										numFreeVoices -= channel.numVoices;
-									}
-								} else {
-									hwChannel = HardwareChannel();
-									numFreeVoices += channel.numVoices;
-								}
-							} else {
-								SWAP(_hardwareChannels[track.channelNo], hwChannel);
-							}
-						}
-					} else {
-						hwChannel.locked = false;
-					}
-				}
-
-				nextTrack:
-				;
-			}
-
-			nextSound:
-			;
-		}
-
-		// pass 2
-		for (int channelNo = 0; channelNo < kNumHardwareChannels; ++channelNo) {
-			HardwareChannel &hwChannel = _hardwareChannels[channelNo];
-			if (hwChannel.key == HardwareChannel::kUnmapped) {
-				continue;
-			}
-
-			Sci1Sound *sound = _playlist[hwChannel.playlistIndex()];
-			assert(sound);
-
-			if (hwChannel.locked) {
-				// copyBedCh
-				_channelList[channelNo] = hwChannel.key;
-				hwChannel.key = HardwareChannel::kUnmapped;
-
-#ifdef ENABLE_SCI32
-				// TODO: Determine precise version, this exists in at least SQ6.
-				if (_soundVersion >= SCI_VERSION_2) {
-					hwChannel.priority = oldMappedChannels[channelNo].priority;
-				}
-#endif
-
-				// SSCI stored the old channel list separately premasked so used
-				// a direct equality comparison; we do not, so need to mask out
-				// the playlist index here.
-				if (hwChannel.channelNo() == (oldChannelList[channelNo] & 0xf) &&
-					_mappedNodes[channelNo] == _playlist[hwChannel.playlistIndex()]) {
-					continue;
-				}
-
-				sendChannelToDriver(*sound, sound->getChannel(hwChannel.channelNo()), channelNo);
-			} else {
-				// noCopyBedCh
-				for (int innerChannelNo = minChannelNo; innerChannelNo < maxChannelNo; ++innerChannelNo) {
-					if (_mappedNodes[innerChannelNo] == sound &&
-						// SSCI stored the old channel list separately premasked
-						// so used a direct equality comparison; we do not, so
-						// need to mask out the playlist index here.
-						(oldChannelList[innerChannelNo] & 0xf) == hwChannel.channelNo()) {
-
-						if (!hwChannel.locked) {
-							_channelList[innerChannelNo] = hwChannel.key;
-							hwChannel.key = HardwareChannel::kUnmapped;
-						}
-
-						break;
-					}
-				}
-			}
-		}
-
-		// pass 3
-		for (int i = 0; i < kNumHardwareChannels; ++i) {
-			HardwareChannel &hwChannel = _hardwareChannels[i];
-			if (hwChannel.key == HardwareChannel::kUnmapped) {
-				continue;
-			}
-
-			uint8 lastOpenChannelNo = HardwareChannel::kUnmapped;
-			for (int j = maxChannelNo; j >= minChannelNo; --j) {
-				if (_channelList[j] == HardwareChannel::kUnmapped) {
-					lastOpenChannelNo = j;
-					break;
-				}
-			}
-			assert(lastOpenChannelNo != HardwareChannel::kUnmapped);
-
-			_channelList[lastOpenChannelNo] = hwChannel.key;
-
-			Sci1Sound *sound = _playlist[hwChannel.playlistIndex()];
-			assert(sound);
-			sendChannelToDriver(*sound, sound->getChannel(hwChannel.channelNo()), lastOpenChannelNo);
-		}
+		debug("At end of pass 3:");
+		debugPrintChannelMap(*g_sci->getSciDebugger());
 	} else {
-		// SSCI fills _channelList with 0xffs here, but this was already just
-		// done above, so we don't do anything extra.
 	}
 
 	// cleanupChnls
+	stopOldChannels(_hardwareChannels, oldChannels);
+
+	// In SSCI the old channel list was persisted here; we do not need to do
+	// this since we just use the stack for this and record the state at the
+	// start of each update
+
+	// In SSCI the channel sound pointers were updated here; we merged this into
+	// the commitFixedChannels pass
+
+	// TODO: Just make it so when a channel becomes unmapped it clears its state
+	// so we do not need to do this
+	for (int i = 0; i < kNumHardwareChannels; ++i) {
+		HardwareChannel &hwChannel = _hardwareChannels[i];
+		if (hwChannel.isMapped()) {
+			hwChannel.sound = _playlist[hwChannel.playlistIndex()];
+		} else {
+			hwChannel.sound = nullptr;
+		}
+	}
+}
+
+SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const {
+	HardwareChannels committedChannels(_hardwareChannels);
+	int committedFreeVoices = _driver->getNumVoices();
+	int basePriority = 0;
+	// loopDoNodes
+	for (int i = 0; i < kPlaylistSize; ++i, basePriority += 16) {
+		if (!_playlist[i]) {
+			// jmp doPass2
+			break;
+		}
+
+		const Sci1Sound &sound = *_playlist[i];
+
+		if (sound.paused || sound.isSample) {
+			// jmp nextNode
+			continue;
+		}
+
+		HardwareChannels workingChannels(committedChannels);
+		int workingFreeVoices(committedFreeVoices);
+
+		// loopDoTracks
+		for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+			const Sci1Sound::Track &track = sound.getTrack(trackNo);
+			if (track.channelNo == Sci1Sound::Track::kEndOfData ||
+				track.channelNo == Sci1Sound::Track::kSampleTrack ||
+				track.channelNo == kControlChannel) {
+
+				// jmp nextChTrack
+				continue;
+			}
+
+			const Sci1Sound::Channel &channel = sound.getChannel(track.channelNo);
+
+			if ((channel.flags & Sci1Sound::Channel::kExtra) || channel.muted) {
+				// jmp nextChTrack
+				continue;
+			}
+
+			// notMutedChnl
+			const uint8 key = (i << 4) | track.channelNo;
+
+			uint8 priority = channel.priority;
+			if (priority != 0) {
+				priority = kNumHardwareChannels - priority + basePriority;
+			}
+
+			// nonPreemptable
+			if (mapSingleChannel(key, priority, workingFreeVoices, track.channelNo, channel, workingChannels, minChannelNo, maxChannelNo)) {
+				committedChannels = workingChannels;
+				committedFreeVoices = workingFreeVoices;
+			}
+
+			// blewIt
+			// nextNode
+		}
+	}
+
+	return committedChannels;
+}
+
+bool SoundManager::mapSingleChannel(const uint8 key, const uint8 priority, int &numFreeVoices, const uint8 inChannelNo, const Sci1Sound::Channel &channel, HardwareChannels &newChannels, const uint8 minChannelNo, const uint8 maxChannelNo) const {
+	uint8 bestHwChannelNo; // dh
+
+	// nonPreemptable
+	if (!(channel.flags & Sci1Sound::Channel::kLocked) || newChannels[inChannelNo].isMapped()) {
+		// lookOpenChnl
+		bestHwChannelNo = HardwareChannel::kUnmapped;
+		for (int hwChannelNo = 0; hwChannelNo < kNumHardwareChannels; ++hwChannelNo) {
+			const HardwareChannel &newHwChannel = newChannels[hwChannelNo];
+			if (newHwChannel.key == key) {
+				// jmp nextChTrack
+				return true;
+			} else if (!newHwChannel.isMapped() &&
+				hwChannelNo >= minChannelNo && hwChannelNo <= maxChannelNo) {
+
+				bestHwChannelNo = hwChannelNo;
+				// continue to find the last free channel
+				// TODO: can we not just do this by iterating in reverse?
+			}
+		}
+
+		// nextLookChnl
+		if (bestHwChannelNo == HardwareChannel::kUnmapped) {
+			if (priority != 0) {
+				// jmp nextNode, which is equivalent to jmp blewIt at this point
+				return false;
+			}
+
+			// gotToGetChnl
+			bestHwChannelNo = preemptChannel(newChannels, numFreeVoices);
+			if (bestHwChannelNo == HardwareChannel::kUnmapped) {
+				// jmp blewIt
+				return false;
+			}
+		}
+		// jmp checkVoices
+	} else {
+		bestHwChannelNo = inChannelNo;
+		// jmp checkVoices
+	}
+
+	// checkVoices
+	if (channel.numVoices <= numFreeVoices) {
+		// jmp putChOnList
+	} else if (priority == 0) {
+		// loopPreEmpt
+		do {
+			bestHwChannelNo = preemptChannel(newChannels, numFreeVoices);
+		} while (bestHwChannelNo != HardwareChannel::kUnmapped && channel.numVoices <= numFreeVoices);
+
+		if (bestHwChannelNo == HardwareChannel::kUnmapped) {
+			// jmp blewIt
+			return false;
+		}
+	} else {
+		// jmp nextChTrack
+		return true;
+	}
+
+	// putChOnList
+	assert(bestHwChannelNo < kNumHardwareChannels);
+
+	HardwareChannel &newHwChannel = newChannels[bestHwChannelNo];
+	newHwChannel.key = key;
+	newHwChannel.numVoices = channel.numVoices;
+	newHwChannel.priority = priority;
+	// This assignment here replaces the loopChNodes cleanup pass
+	newHwChannel.sound = _playlist[newHwChannel.playlistIndex()];
+	numFreeVoices -= channel.numVoices;
+
+	if (channel.flags & Sci1Sound::Channel::kLocked) {
+		// checkRightChnl
+		newHwChannel.locked = true;
+		if (bestHwChannelNo == inChannelNo) {
+			// jmp nextChTrack
+			return true;
+		}
+
+		HardwareChannel &preferredChannel = newChannels[inChannelNo];
+
+		// notRightChnl
+		if (preferredChannel.locked) {
+			// whichBedWins
+			if (priority == 0) {
+				// checkOtherBed
+				if (preferredChannel.priority == 0) {
+					// jmp blewIt
+					return false;
+				} else {
+					// preemptBed
+					numFreeVoices += preferredChannel.numVoices;
+					preferredChannel = newHwChannel;
+					newHwChannel = HardwareChannel();
+					// TODO: We already subtracted our voices once, is this an
+					// original engine bug?
+					numFreeVoices -= channel.numVoices;
+					// fall through to nextChTrack
+					return true;
+				}
+			} else {
+				newHwChannel = HardwareChannel();
+				numFreeVoices += channel.numVoices;
+				// jmp nextChTrack
+				return true;
+			}
+		} else {
+			SWAP(newChannels[inChannelNo], newChannels[bestHwChannelNo]);
+			// jmp nextChTrack
+			return true;
+		}
+	} else {
+		// jmp nextChTrack
+		return true;
+	}
+}
+
+void SoundManager::commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo) {
+	// loopPass2
+	for (int newChannelNo = 0; newChannelNo < kNumHardwareChannels; ++newChannelNo) {
+		HardwareChannel &newChannel = newChannels[newChannelNo];
+		if (!newChannel.isMapped()) {
+			// jmp nextPass2
+			continue;
+		}
+
+		// notEmptyChNew
+		assert(newChannel.sound);
+
+		if (newChannel.locked) {
+			// copyBedCh
+			const HardwareChannel &oldChannel = oldChannels[newChannelNo];
+			_hardwareChannels[newChannelNo] = newChannel;
+
+			// SSCI32 did some thing here copying priority information from the
+			// old list of channels, but priority is never used after the first
+			// pass so this operation was useless and is omitted
+
+			if (oldChannel.playlistIndex() != newChannel.playlistIndex() ||
+				oldChannel.sound != newChannel.sound) {
+				// The sound changed, either because a sound changed or
+				// because the sounds were reordered in the playlist
+
+				// notSameBed
+				sendChannelToDriver(*newChannel.sound, newChannel.sound->getChannel(newChannel.channelNo()), newChannelNo);
+			}
+			// jmp nextPass2
+
+			// This erasure of information from the new channel list occurred
+			// immediately after assigning to _hardwareChannels in SSCI; since
+			// we want to keep referencing this data for a bit for clarity, we
+			// defer resetting it until the end of this block
+			newChannel.key = HardwareChannel::kUnmapped;
+		} else {
+			// noCopyBedCh
+			for (int outChannelNo = minChannelNo; outChannelNo <= maxChannelNo; ++outChannelNo) {
+				const HardwareChannel &oldChannel = oldChannels[outChannelNo];
+
+				// loopSameNode
+				if (oldChannel.sound == newChannel.sound &&
+					oldChannel.channelNo() == newChannel.channelNo() &&
+					!newChannels[outChannelNo].locked) {
+					// sameNodeCh
+					_hardwareChannels[outChannelNo] = newChannel;
+					newChannel.key = HardwareChannel::kUnmapped;
+				}
+				// jmp nextPass2
+			}
+		}
+	}
+}
+
+void SoundManager::commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo) {
+	// doPass3
+	for (int i = 0; i < kNumHardwareChannels; ++i) {
+		// loopPass3
+		const HardwareChannel &newChannel = newChannels[i];
+		if (newChannel.key == HardwareChannel::kUnmapped) {
+			// jmp nextPass3
+			continue;
+		}
+
+		// findLastOpen
+		uint8 lastOpenChannelNo = HardwareChannel::kUnmapped;
+		for (int j = maxChannelNo; j >= minChannelNo; --j) {
+			if (!_hardwareChannels[j].isMapped()) {
+				lastOpenChannelNo = j;
+				break;
+			}
+		}
+		assert(lastOpenChannelNo != HardwareChannel::kUnmapped);
+
+		_hardwareChannels[lastOpenChannelNo] = newChannel;
+		sendChannelToDriver(*newChannel.sound, newChannel.sound->getChannel(newChannel.channelNo()), lastOpenChannelNo);
+	}
+}
+
+void SoundManager::stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels) {
 	for (int i = kNumHardwareChannels - 1; i >= 0; --i) {
-		if (oldChannelList[i] != HardwareChannel::kUnmapped && _channelList[i] == HardwareChannel::kUnmapped) {
+		if (oldChannels[i].isMapped() && !newChannels[i].isMapped()) {
 			_driver->controllerChange(i, kDamperPedalController, 0);
 			_driver->controllerChange(i, kAllNotesOffController, 0);
 			_driver->controllerChange(i, kMaxVoicesController, 0);
 		}
 	}
-
-	// In SSCI the old channel list was persisted here but we do not need to do
-	// that since we can just make it stack-local at the top of the function
-
-	// TODO: Just make it so when a channel becomes unmapped it clears its state
-	// so we do not need to do this
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
-		if (_channelList[i] == HardwareChannel::kUnmapped) {
-			_mappedNodes[i] = nullptr;
-		} else {
-			const uint8 playlistIndex = _channelList[i] >> 4;
-			_mappedNodes[i] = _playlist[playlistIndex];
-		}
-	}
 }
 
-uint8 SoundManager::preemptChannel(const int &numFreeVoices) {
-	// 'lowest' is weird here since these priority values are inverted, so the
-	// biggest number is the lowest priority
-	uint8 lowestPriority = 0, lowestPriorityChannelNo = HardwareChannel::kUnmapped;
+uint8 SoundManager::preemptChannel(HardwareChannels &newChannels, int &numFreeVoices) const {
+	uint8 lowestPriority = 0;
+	uint8 lowestPriorityChannelNo = HardwareChannel::kUnmapped;
 	for (int i = 0; i < kNumHardwareChannels; ++i) {
-		HardwareChannel &hwChannel = _hardwareChannels[i];
-		if (hwChannel.priority >= lowestPriority) {
-			lowestPriority = hwChannel.priority;
+		HardwareChannel &newChannel = newChannels[i];
+		// This is a little confusing because lower priorities are higher
+		// numerically
+		if (lowestPriority < newChannel.priority) {
+			lowestPriority = newChannel.priority;
 			lowestPriorityChannelNo = i;
 		}
 	}
 
 	if (lowestPriorityChannelNo != HardwareChannel::kUnmapped) {
-		_hardwareChannels[lowestPriorityChannelNo] = HardwareChannel();
+		numFreeVoices += newChannels[lowestPriorityChannelNo].numVoices;
+		newChannels[lowestPriorityChannelNo] = HardwareChannel();
 	}
 
 	return lowestPriorityChannelNo;
@@ -2125,6 +2070,134 @@ void SoundManager::kernelUpdate(const reg_t soundObj) {
 	const int16 priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 	if (sound->priority != priority) {
 		setPriority(*sound, priority);
+	}
+}
+
+#pragma mark -
+#pragma mark Debugging
+
+void SoundManager::debugPrintPlaylist(Console &con) const {
+	Common::StackLock lock(_mutex);
+
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		if (!_playlist[i]) {
+			return;
+		}
+
+		const Sci1Sound &sound = *_playlist[i];
+
+		const char *status;
+		if (sound.state == Sci1Sound::kStopped) {
+			status = "stopped";
+		// The debugger will pause all sounds once when it is opened; do not
+		// reflect this in the debug output
+		} else if (sound.paused > (con.isActive() ? 1 : 0)) {
+			status = "paused";
+		} else {
+			status = "playing";
+		}
+
+		con.debugPrintf("%d: %04x:%04x (%s), resource id: %s, status: %s\n",
+						i,
+						PRINT_REG(sound.nodePtr),
+						_segMan->getObjectName(sound.nodePtr),
+						sound.resource ? sound.id.toString().c_str() : "<none>",
+						status);
+	}
+}
+
+void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
+	Common::StackLock lock(_mutex);
+
+	const Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound) {
+		con.debugPrintf("Sound not found in playlist");
+		return;
+	}
+
+	// The debugger will pause all sounds once when it is opened; do not
+	// reflect this in the debug output
+	const uint8 pauses = sound->paused - (con.isActive() ? 1 : 0);
+
+	con.debugPrintf("%s, %s, %u pauses\n",
+					sound->id.toString().c_str(),
+					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
+					pauses);
+	con.debugPrintf("cue %u, hold point %u, loop %d\n",
+					sound->cue, sound->holdPoint, sound->loop);
+	con.debugPrintf("signal %d, state %d, priority %d%s\n",
+					sound->signal, sound->state, sound->priority,
+					sound->fixedPriority ? " (fixed)" : "");
+	con.debugPrintf("ticks elapsed %u, reverb mode %u, volume %d",
+					sound->ticksElapsed, sound->reverbMode, sound->volume);
+	if (sound->fadeAmountPerTick) {
+		con.debugPrintf(" -> %d\n", sound->fadeTargetVolume);
+		con.debugPrintf("fade delay %d, speed %d, stop %d\n",
+						sound->fadeDelay, sound->fadeAmountPerTick, sound->stopSoundOnFade);
+	} else {
+		con.debugPrintf("\n");
+	}
+
+	con.debugPrintf("\nTracks:\n");
+
+	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+		const Sci1Sound::Track &track = sound->getTrack(i);
+		if (track.offset == 0) {
+			break;
+		}
+		con.debugPrintf("%2d: offset %u, position %u, channel %d\n",
+						i, track.offset, track.position, track.channelNo);
+		con.debugPrintf("    rest %u, command %u\n",
+						track.rest, track.command);
+		con.debugPrintf("    loop position %u, loop rest %u, loop command %u\n",
+						track.loopPosition, track.loopRest, track.loopCommand);
+	}
+
+	con.debugPrintf("\nChannels:\n");
+
+	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		const Sci1Sound::Channel &channel = sound->getChannel(i);
+		con.debugPrintf("%2d: priority %d, voices %u, note %u, volume %u\n",
+						i, channel.priority, channel.numVoices, channel.currentNote, channel.volume);
+		con.debugPrintf("    program %u, mod %u, pan %u, p bend %u\n",
+						channel.program, channel.modulation, channel.pan, channel.pitchBend);
+		con.debugPrintf("    dp %d, flags %u, mute %d, game mutes %u\n",
+						channel.damperPedalOn, channel.flags, channel.muted, channel.gameMuteCount);
+	}
+}
+
+void SoundManager::debugPrintChannelMap(Console &con) const {
+	debugPrintChannelMap(con, _hardwareChannels);
+}
+
+void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &channels) const {
+	for (int i = 0; i < kNumHardwareChannels; ++i) {
+		const HardwareChannel &channel = _hardwareChannels[i];
+		if (channel.isMapped()) {
+			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
+							i,
+							_playlist[channel.playlistIndex()]->id.toString().c_str(),
+							channel.channelNo(),
+							channel.priority,
+							channel.numVoices,
+							channel.locked ? ", locked" : "");
+		} else {
+			con.debugPrintf("%2d: unmapped\n", i);
+		}
+	}
+}
+
+void SoundManager::debugPlay(const GuiResourceId soundId) {
+	warning("TODO: Not implemented yet");
+}
+
+void SoundManager::debugStopAll() {
+	for (int i = 0; i < kPlaylistSize; ++i) {
+		if (!_playlist[i]) {
+			return;
+		}
+
+		stop(*_playlist[i]);
 	}
 }
 

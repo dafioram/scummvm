@@ -567,28 +567,24 @@ struct Sci1Sound {
 		isSample(false) {}
 
 	inline const Channel &getChannel(const uint8 channelNo) const {
-		assert(channelNo < kNumChannels);
 		return channels[channelNo];
 	}
 
 	inline Channel &getChannel(const uint8 channelNo) {
-		assert(channelNo < kNumChannels);
 		return channels[channelNo];
 	}
 
 	inline const Track &getTrack(const uint8 trackNo) const {
-		assert(trackNo < kNumTracks);
 		return tracks[trackNo];
 	}
 
 	inline Track &getTrack(const uint8 trackNo) {
-		assert(trackNo < kNumTracks);
 		return tracks[trackNo];
 	}
 
 	inline void resetPrivateState() {
-		Common::fill(channels, channels + Sci1Sound::kNumChannels, Channel());
-		Common::fill(tracks, tracks + Sci1Sound::kNumTracks, Track());
+		Common::fill(channels.begin(), channels.end(), Channel());
+		Common::fill(tracks.begin(), tracks.end(), Track());
 	}
 
 	/**
@@ -616,8 +612,8 @@ struct Sci1Sound {
 	}
 
 private:
-	Track tracks[kNumTracks];
-	Channel channels[kNumChannels];
+	Common::FixedArray<Track, kNumTracks> tracks;
+	Common::FixedArray<Channel, kNumChannels> channels;
 };
 
 #pragma mark -
@@ -682,15 +678,6 @@ private:
 	 * The sound driver.
 	 */
 	Common::ScopedPtr<Sci1SoundDriver> _driver;
-
-#pragma mark -
-#pragma mark Debugging
-public:
-	void debugPrintPlaylist(Console &con) const;
-	void debugPrintSound(Console &con, const reg_t nodePtr) const;
-	void debugPrintChannelMap(Console &con) const;
-	void debugPlay(const GuiResourceId soundId);
-	void debugStopAll();
 
 #pragma mark -
 #pragma mark Save management
@@ -1050,12 +1037,12 @@ private:
 	};
 
 	// TODO: was sampleList, appears totally broken in SCI1.1+ so unclear what
-	// to do about it. In SSCI this is a 16-dword array, but the code uses it
-	// to hold a pointer in _samples[0], or an offset in the first word of
-	// _samples[0] and segment segment the first word of _samples[2]. The
-	// pointer is to a Sci1Sound object. In earlier versions this was probably a
-	// list corresponding to _playlist which stored pointers to the sample
-	// tracks for sounds which had digital sample tracks; need to verify that.
+	// to do about it. In SSCI32 this is a 16-dword array, but the code uses it
+	// to hold a pointer in _samples[0] (in SSCI16, 16-word array with offset in
+	// _samples[0] and segment in _samples[2]). The pointer is to a Sci1Sound
+	// object. In earlier versions this was probably a list corresponding to
+	// _playlist which stored pointers to the sample tracks for sounds which had
+	// digital sample tracks; need to verify that.
 	Sci1Sound *_sample;
 
 	/**
@@ -1110,11 +1097,15 @@ private:
 		/**
 		 * The key (playlist index << 4 | channel number) for the logical
 		 * channel currently mapped to this output channel.
-		 * TODO: was ChNew
+		 * TODO: was ChNew and ChList; ChNew was used only as a temporary for
+		 * recalculating hardware channels, so it is now held on the stack
 		 * TODO: Change this to separate the two fields for implementation
 		 * clarity.
 		 */
 		uint8 key;
+
+		// TODO: was ChNodes
+		Sci1Sound *sound;
 
 		/**
 		 * The global priority (sound priority * channel priority) of the
@@ -1146,7 +1137,10 @@ private:
 		inline void playlistIndex(const uint8 index) { key = (index << 4) | (key & 0xf); }
 		inline uint8 channelNo() const { return key & 0xf; }
 		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
+		inline bool isMapped() const { return key != kUnmapped; }
 	};
+
+	typedef Common::FixedArray<HardwareChannel, kNumHardwareChannels> HardwareChannels;
 
 	enum {
 		kUnknownSound = 0xff
@@ -1172,7 +1166,7 @@ private:
 	 */
 	inline uint8 findHwChannelNo(const uint8 key) const {
 		for (int i = 0; i < kNumHardwareChannels; ++i) {
-			if (_channelList[i] == key) {
+			if (_hardwareChannels[i].key == key) {
 				return i;
 			}
 		}
@@ -1185,6 +1179,20 @@ private:
 	 */
 	void updateChannelList();
 
+	// TODO: was pass 1 of doChannelList
+	HardwareChannels makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const;
+
+	bool mapSingleChannel(const uint8 key, const uint8 priority, int &numFreeVoices, const uint8 inChannelNo, const Sci1Sound::Channel &channel, HardwareChannels &newChannels, const uint8 minChannelNo, const uint8 maxChannelNo) const;
+
+	// TODO: was pass 2 of doChannelList
+	void commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
+
+	// TODO: was pass 3 of doChannelList
+	void commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
+
+	// TODO: was pass 4 of doChannelList
+	void stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels);
+
 	/**
 	 * Preempts the lowest priority preemptable hardware channel. Adds the newly
 	 * freed number of voices to `numFreeVoices` and returns the hardware
@@ -1192,7 +1200,7 @@ private:
 	 * channel could be preempted.
 	 * TODO: was preemptChn1/2
 	 */
-	uint8 preemptChannel(const int &numFreeVoices);
+	uint8 preemptChannel(HardwareChannels &newChannels, int &numFreeVoices) const;
 
 	/**
 	 * Sends the state of the channel given in `channel` to the hardware driver.
@@ -1201,29 +1209,10 @@ private:
 	 */
 	void sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
 
-	// TODO: Combine these next two things? Combine also with _channelList?
-	// The reason why they are not combined already is because only the fields
-	// that updateChannelList groups together were turned into the
-	// HardwareChannel struct.
-	typedef Common::Array<HardwareChannel> HardwareChannels;
+	/**
+	 * The currently mapped MIDI output channels.
+	 */
 	HardwareChannels _hardwareChannels;
-
-	typedef Common::Array<Sci1Sound *> MappedNodes;
-	/**
-	 * A map from hardware channel number to pointer to the sound playing in the
-	 * given channel.
-	 */
-	MappedNodes _mappedNodes;
-
-	// TODO: Turn this into a struct. key (ChList), node (ChNodes)
-	typedef Common::Array<uint8> ChannelList;
-
-	/**
-	 * A map from hardware channel number to sound key as used in
-	 * `HardwareChannel::key`.
-	 * TODO: was chList
-	 */
-	ChannelList _channelList;
 
 #pragma mark -
 #pragma mark Kernel
@@ -1274,6 +1263,16 @@ private:
 		}
 		return &*it;
 	}
+
+#pragma mark -
+#pragma mark Debugging
+public:
+	void debugPrintPlaylist(Console &con) const;
+	void debugPrintSound(Console &con, const reg_t nodePtr) const;
+	void debugPrintChannelMap(Console &con) const;
+	void debugPrintChannelMap(Console &con, const HardwareChannels &channels) const;
+	void debugPlay(const GuiResourceId soundId);
+	void debugStopAll();
 };
 
 } // End of namespace Sci
