@@ -1323,9 +1323,6 @@ void SoundManager::updateChannelList() {
 		debug("At end of pass 1, we got:");
 		debugPrintChannelMap(*g_sci->getSciDebugger());
 
-		// TODO: Why was the old channels list being recreated here, are we
-		// missing something in makeChannelMap?
-
 		// doPass2
 		commitFixedChannels(newChannels, oldChannels, minChannelNo, maxChannelNo);
 
@@ -1348,7 +1345,7 @@ void SoundManager::updateChannelList() {
 	// start of each update
 
 	// In SSCI the channel sound pointers were updated here; we merged this into
-	// the commitFixedChannels pass
+	// the makeChannelMap pass
 
 	// TODO: Just make it so when a channel becomes unmapped it clears its state
 	// so we do not need to do this
