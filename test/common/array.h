@@ -410,6 +410,29 @@ class ArrayTestSuite : public CxxTest::TestSuite
 		TS_ASSERT_EQUALS(array[1], 163);
 	}
 
+	void test_fixed_array() {
+		Common::FixedArray<int, 5> array;
+		TS_ASSERT_EQUALS(array.size(), 5);
+		array[0] = 1;
+		array[4] = 5;
+		TS_ASSERT_EQUALS(array[0], 1);
+		TS_ASSERT_EQUALS(array[4], 5);
+		TS_ASSERT_EQUALS(array.front(), 1);
+		TS_ASSERT_EQUALS(array.back(), 5);
+
+		TS_ASSERT_EQUALS(array.data(), array.begin());
+		TS_ASSERT_EQUALS(array.data() + array.size(), array.end());
+		TS_ASSERT_EQUALS(array.data(), array.cbegin());
+		TS_ASSERT_EQUALS(array.data() + array.size(), array.cend());
+
+		const Common::FixedArray<int, 5> &constArray = array;
+		TS_ASSERT_EQUALS(constArray.data(), constArray.begin());
+		TS_ASSERT_EQUALS(constArray.data() + array.size(), constArray.end());
+
+		Common::FixedArray<int, 5> copyArray(array);
+		TS_ASSERT_EQUALS(copyArray[0], 1);
+		TS_ASSERT_EQUALS(copyArray[4], 5);
+	}
 };
 
 struct ListElement {

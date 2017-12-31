@@ -390,6 +390,68 @@ protected:
 };
 
 /**
+ * This class implements a fixed-size container, which can be accessed similarly
+ * to a C++ array but with the addition of bounds checking and the standard
+ * container API.
+ */
+template <typename T, size_t N>
+class FixedArray {
+public:
+	typedef T * iterator;
+	typedef const T * const_iterator;
+	typedef T value_type;
+	typedef size_t size_type;
+
+	T &front() { return *_storage; }
+	const T &front() const { return *_storage; }
+
+	T &back() { return _storage[N - 1]; }
+	const T &back() const { return _storage[N - 1]; }
+
+	T *data() { return _storage; }
+	const T *data() const { return _storage; }
+
+	size_type size() const { return N; }
+
+	iterator begin() { return _storage; }
+	const_iterator begin() const { return _storage; }
+
+	iterator end() { return _storage + N; }
+	const_iterator end() const { return _storage + N; }
+
+	const_iterator cbegin() const { return _storage; }
+
+	const_iterator cend() const { return _storage + N; }
+
+	T &operator[](const size_type index) {
+		assert(index < N);
+		return _storage[index];
+	}
+	const T &operator[](const size_type index) const {
+		assert(index < N);
+		return _storage[index];
+	}
+
+	bool empty() const { return N == 0; }
+
+	bool operator==(const FixedArray<T, N> &other) const {
+		for (size_type i = 0; i < N; ++i) {
+			if (_storage[i] != other._storage[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool operator!=(const Array<T> &other) const {
+		return !(*this == other);
+	}
+
+private:
+	T _storage[N];
+};
+
+/**
  * Double linked list with sorted nodes.
  */
 template<class T>
