@@ -53,17 +53,17 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_soundVersion(features.detectDoSoundType()),
 	_restoringSound(false),
 	_numServerSuspensions(0),
+	_hardwareChannels(),
 	_needsUpdate(false),
-	_newChannelVolumes(kNumHardwareChannels, kNoVolumeChange),
 	_nextVolumeChangeChannel(0),
 	_defaultReverbMode(0),
 	_sample(nullptr),
-	_playlist(),
-	_hardwareChannels() {
+	_playlist() {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
 	_sounds.reserve(16);
+	Common::fill(_newChannelVolumes.begin(), _newChannelVolumes.end(), kNoVolumeChange);
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32

@@ -740,6 +740,145 @@ private:
 	 */
 	int _numServerSuspensions;
 
+#pragma mark -
+#pragma mark Channel remapping
+private:
+	enum {
+		kNumHardwareChannels = 16
+	};
+
+	/**
+	 * A physical output channel.
+	 */
+	struct HardwareChannel {
+		enum {
+			/**
+			 * Special `key` value for an unmapped hardware channel.
+			 */
+			kUnmapped = 0xff
+		};
+
+		/**
+		 * The key (playlist index << 4 | channel number) for the logical
+		 * channel currently mapped to this output channel.
+		 * TODO: was ChNew and ChList; ChNew was used only as a temporary for
+		 * recalculating hardware channels, so it is now held on the stack
+		 * TODO: Change this to separate the two fields for implementation
+		 * clarity.
+		 */
+		uint8 key;
+
+		// TODO: was ChNodes
+		Sci1Sound *sound;
+
+		/**
+		 * The global priority (sound priority * channel priority) of the
+		 * logical channel currently mapped to this channel.
+		 * TODO: was ChPri
+		 */
+		uint8 priority;
+
+		/**
+		 * The number of voices used by this channel.
+		 * TODO: was ChVoice
+		 */
+		uint8 numVoices;
+
+		/**
+		 * If true, this channel may not be preempted to play another channel
+		 * with higher priority.
+		 * TODO: was ChBed.
+		 */
+		bool locked;
+
+		HardwareChannel() :
+			key(kUnmapped),
+			sound(nullptr),
+			priority(0),
+			numVoices(0),
+			locked(false) {}
+
+		inline uint8 playlistIndex() const { return key >> 4; }
+		inline void playlistIndex(const uint8 index) { key = (index << 4) | (key & 0xf); }
+		inline uint8 channelNo() const { return key & 0xf; }
+		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
+		inline bool isMapped() const { return key != kUnmapped; }
+	};
+
+	typedef Common::FixedArray<HardwareChannel, kNumHardwareChannels> HardwareChannels;
+
+	enum {
+		kUnknownSound = 0xff
+	};
+
+	/**
+	 * Creates a channel key for the given sound and channel in the format used
+	 * by `_channelList`. If the given sound is not in the playlist,
+	 * `kUnknownSound` is returned.
+	 */
+	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
+		const uint8 playlistIndex = findPlaylistIndex(sound);
+		if (playlistIndex == kPlaylistSize) {
+			return kUnknownSound;
+		}
+		return (playlistIndex << 4) | channelNo;
+	}
+
+	/**
+	 * Finds the hardware channel that is wired to the sound channel represented
+	 * by the given key. Returns `HardwareChannel::kUnmapped` if the input
+	 * channel is not currently mapped to a hardware channel.
+	 */
+	inline uint8 findHwChannelNo(const uint8 key) const {
+		for (int i = 0; i < kNumHardwareChannels; ++i) {
+			if (_hardwareChannels[i].key == key) {
+				return i;
+			}
+		}
+		return HardwareChannel::kUnmapped;
+	}
+
+	/**
+	 * Updates the output channel mapping.
+	 * TODO: was doChannelList
+	 */
+	void updateChannelList();
+
+	// TODO: was pass 1 of doChannelList
+	HardwareChannels makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const;
+
+	bool mapSingleChannel(const uint8 key, const uint8 priority, int &numFreeVoices, const uint8 inChannelNo, const Sci1Sound::Channel &channel, HardwareChannels &newChannels, const uint8 minChannelNo, const uint8 maxChannelNo) const;
+
+	// TODO: was pass 2 of doChannelList
+	void commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
+
+	// TODO: was pass 3 of doChannelList
+	void commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
+
+	// TODO: was pass 4 of doChannelList
+	void stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels);
+
+	/**
+	 * Preempts the lowest priority preemptable hardware channel. Adds the newly
+	 * freed number of voices to `numFreeVoices` and returns the hardware
+	 * channel number which was preempted, or `HardwareChannel::kUnmapped` if no
+	 * channel could be preempted.
+	 * TODO: was preemptChn1/2
+	 */
+	uint8 preemptChannel(HardwareChannels &newChannels, int &numFreeVoices) const;
+
+	/**
+	 * Sends the state of the channel given in `channel` to the hardware driver.
+	 *
+	 * TODO: was updateChannel1/2
+	 */
+	void sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
+
+	/**
+	 * The currently mapped MIDI output channels.
+	 */
+	HardwareChannels _hardwareChannels;
+
 	/**
 	 * If true, the channel mapping needs to be updated the next time the sound
 	 * server is called.
@@ -820,7 +959,7 @@ private:
 	 * into `_hardwareChannels` and values are the new volumes for those
 	 * channels.
 	 */
-	Common::Array<uint8> _newChannelVolumes;
+	Common::FixedArray<uint8, kNumHardwareChannels> _newChannelVolumes;
 
 	/**
 	 * The next hardware channel which should be checked for a pending volume
@@ -1086,145 +1225,6 @@ private:
 	 * TODO: was DoEnd
 	 */
 	void removeSoundFromPlaylist(Sci1Sound &sound);
-
-#pragma mark -
-#pragma mark Channel remapping
-private:
-	enum {
-		kNumHardwareChannels = 16
-	};
-
-	/**
-	 * A physical output channel.
-	 */
-	struct HardwareChannel {
-		enum {
-			/**
-			 * Special `key` value for an unmapped hardware channel.
-			 */
-			kUnmapped = 0xff
-		};
-
-		/**
-		 * The key (playlist index << 4 | channel number) for the logical
-		 * channel currently mapped to this output channel.
-		 * TODO: was ChNew and ChList; ChNew was used only as a temporary for
-		 * recalculating hardware channels, so it is now held on the stack
-		 * TODO: Change this to separate the two fields for implementation
-		 * clarity.
-		 */
-		uint8 key;
-
-		// TODO: was ChNodes
-		Sci1Sound *sound;
-
-		/**
-		 * The global priority (sound priority * channel priority) of the
-		 * logical channel currently mapped to this channel.
-		 * TODO: was ChPri
-		 */
-		uint8 priority;
-
-		/**
-		 * The number of voices used by this channel.
-		 * TODO: was ChVoice
-		 */
-		uint8 numVoices;
-
-		/**
-		 * If true, this channel may not be preempted to play another channel
-		 * with higher priority.
-		 * TODO: was ChBed.
-		 */
-		bool locked;
-
-		HardwareChannel() :
-			key(kUnmapped),
-			sound(nullptr),
-			priority(0),
-			numVoices(0),
-			locked(false) {}
-
-		inline uint8 playlistIndex() const { return key >> 4; }
-		inline void playlistIndex(const uint8 index) { key = (index << 4) | (key & 0xf); }
-		inline uint8 channelNo() const { return key & 0xf; }
-		inline void channelNo(const uint8 number) { key = (key & 0xf0) | number; }
-		inline bool isMapped() const { return key != kUnmapped; }
-	};
-
-	typedef Common::FixedArray<HardwareChannel, kNumHardwareChannels> HardwareChannels;
-
-	enum {
-		kUnknownSound = 0xff
-	};
-
-	/**
-	 * Creates a channel key for the given sound and channel in the format used
-	 * by `_channelList`. If the given sound is not in the playlist,
-	 * `kUnknownSound` is returned.
-	 */
-	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
-		const uint8 playlistIndex = findPlaylistIndex(sound);
-		if (playlistIndex == kPlaylistSize) {
-			return kUnknownSound;
-		}
-		return (playlistIndex << 4) | channelNo;
-	}
-
-	/**
-	 * Finds the hardware channel that is wired to the sound channel represented
-	 * by the given key. Returns `HardwareChannel::kUnmapped` if the input
-	 * channel is not currently mapped to a hardware channel.
-	 */
-	inline uint8 findHwChannelNo(const uint8 key) const {
-		for (int i = 0; i < kNumHardwareChannels; ++i) {
-			if (_hardwareChannels[i].key == key) {
-				return i;
-			}
-		}
-		return HardwareChannel::kUnmapped;
-	}
-
-	/**
-	 * Updates the output channel mapping.
-	 * TODO: was doChannelList
-	 */
-	void updateChannelList();
-
-	// TODO: was pass 1 of doChannelList
-	HardwareChannels makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const;
-
-	bool mapSingleChannel(const uint8 key, const uint8 priority, int &numFreeVoices, const uint8 inChannelNo, const Sci1Sound::Channel &channel, HardwareChannels &newChannels, const uint8 minChannelNo, const uint8 maxChannelNo) const;
-
-	// TODO: was pass 2 of doChannelList
-	void commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
-
-	// TODO: was pass 3 of doChannelList
-	void commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
-
-	// TODO: was pass 4 of doChannelList
-	void stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels);
-
-	/**
-	 * Preempts the lowest priority preemptable hardware channel. Adds the newly
-	 * freed number of voices to `numFreeVoices` and returns the hardware
-	 * channel number which was preempted, or `HardwareChannel::kUnmapped` if no
-	 * channel could be preempted.
-	 * TODO: was preemptChn1/2
-	 */
-	uint8 preemptChannel(HardwareChannels &newChannels, int &numFreeVoices) const;
-
-	/**
-	 * Sends the state of the channel given in `channel` to the hardware driver.
-	 *
-	 * TODO: was updateChannel1/2
-	 */
-	void sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo);
-
-	/**
-	 * The currently mapped MIDI output channels.
-	 */
-	HardwareChannels _hardwareChannels;
 
 #pragma mark -
 #pragma mark Kernel
