@@ -113,6 +113,7 @@ private:
 	// Music/SFX
 	bool cmdSongLib(int argc, const char **argv);
 	bool cmdSongInfo(int argc, const char **argv);
+	bool cmdChannelMap(int argc, const char **argv);
 	bool cmdIsSample(int argc, const char **argv);
 	bool cmdStartSound(int argc, const char **argv);
 	bool cmdToggleSound(int argc, const char **argv);

@@ -688,6 +688,7 @@ private:
 public:
 	void debugPrintPlaylist(Console &con) const;
 	void debugPrintSound(Console &con, const reg_t nodePtr) const;
+	void debugPrintChannelMap(Console &con) const;
 	void debugPlay(const GuiResourceId soundId);
 	void debugStopAll();
 

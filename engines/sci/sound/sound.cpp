@@ -315,6 +315,23 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 	}
 }
 
+void SoundManager::debugPrintChannelMap(Console &con) const {
+	for (int i = 0; i < kNumHardwareChannels; ++i) {
+		const HardwareChannel &channel = _hardwareChannels[i];
+		if (channel.key == HardwareChannel::kUnmapped) {
+			con.debugPrintf("%2d: unmapped\n", i);
+		} else {
+			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
+							i,
+							_playlist[channel.playlistIndex()]->id.toString().c_str(),
+							channel.channelNo(),
+							channel.priority,
+							channel.numVoices,
+							channel.locked ? ", locked" : "");
+		}
+	}
+}
+
 void SoundManager::debugPlay(const GuiResourceId soundId) {
 	warning("TODO: Not implemented yet");
 }

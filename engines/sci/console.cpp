@@ -166,6 +166,7 @@ Console::Console(SciEngine *engine) : GUI::Debugger(),
 	// Music/SFX
 	registerCmd("songlib",			WRAP_METHOD(Console, cmdSongLib));
 	registerCmd("songinfo",			WRAP_METHOD(Console, cmdSongInfo));
+	registerCmd("channel_map",		WRAP_METHOD(Console, cmdChannelMap));
 	registerCmd("is_sample",			WRAP_METHOD(Console, cmdIsSample));
 	registerCmd("startsound",			WRAP_METHOD(Console, cmdStartSound));
 	registerCmd("togglesound",		WRAP_METHOD(Console, cmdToggleSound));
@@ -381,6 +382,7 @@ bool Console::cmdHelp(int argc, const char **argv) {
 	debugPrintf("Music/SFX:\n");
 	debugPrintf(" songlib - Shows the song library\n");
 	debugPrintf(" songinfo - Shows information about a specified song in the song library\n");
+	debugPrintf(" channel_map - Shows the current mapping of MIDI output channels\n");
 	debugPrintf(" togglesound - Starts/stops a sound in the song library\n");
 	debugPrintf(" stopallsounds - Stops all sounds in the playlist\n");
 	debugPrintf(" startsound - Starts the specified sound resource, replacing the first song in the song library\n");
@@ -2400,6 +2402,14 @@ bool Console::cmdSongInfo(int argc, const char **argv) {
 
 	g_sci->_sound->debugPrintSound(*this, addr);
 
+	return true;
+}
+
+bool Console::cmdChannelMap(int argc, const char **argv) {
+	g_sci->_sound->pauseAll(false);
+	debugPrintf("MIDI channel map:\n");
+	g_sci->_sound->debugPrintChannelMap(*this);
+	g_sci->_sound->pauseAll(true);
 	return true;
 }
 
