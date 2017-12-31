@@ -49,26 +49,28 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion
 	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 4), false);
 	SciSpan<const byte> midiData;
 	if (patchData) {
-		patchData->subspan(0, sizeof(_programMap)).unsafeCopyDataTo(_programMap);
-		patchData->subspan(128, sizeof(_noteShift)).unsafeCopyDataTo(_noteShift);
-		patchData->subspan(256, sizeof(_volumeShift)).unsafeCopyDataTo(_volumeShift);
-		patchData->subspan(384, sizeof(_percussionMap)).unsafeCopyDataTo(_percussionMap);
+		patchData->subspan(0, _programMap.size()).unsafeCopyDataTo(_programMap.data());
+		patchData->subspan(128, _noteShift.size()).unsafeCopyDataTo(_noteShift.data());
+		patchData->subspan(256, _volumeShift.size()).unsafeCopyDataTo(_volumeShift.data());
+		patchData->subspan(384, _percussionMap.size()).unsafeCopyDataTo(_percussionMap.data());
 		_channels[kPercussionChannel].volumeShift = patchData->getInt8At(512);
-		patchData->subspan(513, sizeof(_programVelocityMap)).unsafeCopyDataTo(_programVelocityMap);
-		patchData->subspan(641, sizeof(_velocityMaps)).unsafeCopyDataTo(_velocityMaps);
+		patchData->subspan(513, _programVelocityMap.size()).unsafeCopyDataTo(_programVelocityMap.data());
+		for (int i = 0; i < kNumVelocityMaps; ++i) {
+			patchData->subspan(641 + (i * _velocityMaps[0].size()), _velocityMaps[0].size()).unsafeCopyDataTo(_velocityMaps[i].data());
+		}
 		midiData = patchData->subspan(1153 + sizeof(uint16), patchData->getUint16LEAt(1153));
 	} else {
 		warning("No GM patch data found, using defaults");
 		for (int i = 0; i < kNumPrograms; ++i) {
 			_programMap[i] = i;
 		}
-		Common::fill(_noteShift, _noteShift + kNumPrograms, 0);
-		Common::fill(_volumeShift, _volumeShift + kNumPrograms, 0);
+		Common::fill(_noteShift.begin(), _noteShift.end(), 0);
+		Common::fill(_volumeShift.begin(), _volumeShift.end(), 0);
 		for (int i = 0; i < kNumNotes; ++i) {
 			_percussionMap[i] = i;
 		}
 		_percussionVolumeShift = 0;
-		Common::fill(_programVelocityMap, _programVelocityMap + kNumPrograms, 0);
+		Common::fill(_programVelocityMap.begin(), _programVelocityMap.end(), 0);
 		for (int i = 0; i < kNumVelocities; ++i) {
 			_velocityMaps[0][i] = i;
 		}

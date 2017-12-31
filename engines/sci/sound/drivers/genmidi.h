@@ -24,6 +24,7 @@
 #define SCI_SOUND_DRIVERS_GENMIDI_H
 
 #include "audio/mpu401.h"
+#include "common/array.h"
 #include "common/debug.h"
 #include "common/ptr.h"
 #include "sci/sound/drivers/driver.h"
@@ -176,25 +177,25 @@ private:
 	Channel _channels[16];
 
 	/** A map from input program # to output program #. */
-	uint8 _programMap[kNumPrograms];
+	Common::FixedArray<uint8, kNumPrograms> _programMap;
 
 	/** A map from program # to number of semitones to shift the output note. */
-	int8 _noteShift[kNumPrograms];
+	Common::FixedArray<int8, kNumPrograms> _noteShift;
 
 	/** A map from program # to amount to shift the output volume. */
-	int8 _volumeShift[kNumPrograms];
+	Common::FixedArray<int8, kNumPrograms> _volumeShift;
 
 	/** A map from percussion note # to output percussion note #. */
-	uint8 _percussionMap[kNumNotes];
+	Common::FixedArray<uint8, kNumNotes> _percussionMap;
 
 	/** An amount to shift the output volume of percussion. */
 	int8 _percussionVolumeShift;
 
 	/** A map from program # to the index of a velocity map in `_velocityMaps`. */
-	uint8 _programVelocityMap[kNumPrograms];
+	Common::FixedArray<uint8, kNumPrograms> _programVelocityMap;
 
 	/** A set of maps from input velocity to output velocity. */
-	uint8 _velocityMaps[kNumVelocityMaps][kNumVelocities];
+	Common::FixedArray<Common::FixedArray<uint8, kNumVelocities>, kNumVelocityMaps> _velocityMaps;
 };
 
 SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, SciVersion version);
