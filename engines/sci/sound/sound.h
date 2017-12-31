@@ -1140,6 +1140,7 @@ private:
 
 		HardwareChannel() :
 			key(kUnmapped),
+			sound(nullptr),
 			priority(0),
 			numVoices(0),
 			locked(false) {}
