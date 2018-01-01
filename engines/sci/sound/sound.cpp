@@ -1738,6 +1738,11 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		(_soundVersion < SCI_VERSION_2 || !sound->isSample)) {
 
 		kernelStop(soundObj);
+	} else if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
+		// SSCI did not store the resource pointer on the sound object in the
+		// same way we do, so did not do this; this is only necessary in order
+		// to avoid triggering the resource assertion below
+		sound->resource = nullptr;
 	}
 
 	sound->isSample = (sound->id.getType() == kResourceTypeAudio);
