@@ -617,8 +617,6 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		updateChannelList();
 	}
 
-	debugPrintSound(*g_sci->getSciDebugger(), sound.nodePtr);
-
 	return playlistIndex;
 }
 
@@ -1314,21 +1312,11 @@ void SoundManager::updateChannelList() {
 		// loopDoNodes
 		HardwareChannels newChannels = makeChannelMap(minChannelNo, maxChannelNo);
 
-		debug("At end of pass 1, we got:");
-		debugPrintChannelMap(*g_sci->getSciDebugger());
-
 		// doPass2
 		commitFixedChannels(newChannels, oldChannels, minChannelNo, maxChannelNo);
 
-		debug("At end of pass 2:");
-		debugPrintChannelMap(*g_sci->getSciDebugger());
-
 		// doPass3
 		commitDynamicChannels(newChannels, oldChannels, minChannelNo, maxChannelNo);
-
-		debug("At end of pass 3:");
-		debugPrintChannelMap(*g_sci->getSciDebugger());
-	} else {
 	}
 
 	// cleanupChnls
