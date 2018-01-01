@@ -132,7 +132,7 @@ reg_t kDoSoundSetPriority(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundSetLoop(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_sound->kernelSetLoop(argv[0], argv[1].toSint16());
+	g_sci->_sound->kernelSetLoop(argv[0], argv[1].toSint16() == -1);
 	return s->r_acc;
 }
 

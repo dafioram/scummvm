@@ -1951,12 +1951,16 @@ void SoundManager::kernelSetLoop(const reg_t soundObj, const bool enable) {
 
 	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
 
+	// SSCI normally did not set this selector until after the sound was found,
+	// but if we do this then at least the torch SFX at the character select in
+	// QFG4 does not loop, since the game sets loop before starting the sound
+	writeSelectorValue(_segMan, soundObj, SELECTOR(loop), enable ? 0xffff : 1);
+
 	Sci1Sound *sound = findSoundByRegT(nodePtr);
 	if (!sound) {
 		return;
 	}
 
-	writeSelectorValue(_segMan, soundObj, SELECTOR(loop), enable ? 0xffff : 1);
 #ifdef ENABLE_SCI32
 	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
 		g_sci->_audio32->setLoop(sound->id, nodePtr, enable);
