@@ -1328,17 +1328,6 @@ void SoundManager::updateChannelList() {
 
 	// In SSCI the channel sound pointers were updated here; we merged this into
 	// the makeChannelMap pass
-
-	// TODO: Just make it so when a channel becomes unmapped it clears its state
-	// so we do not need to do this
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
-		HardwareChannel &hwChannel = _hardwareChannels[i];
-		if (hwChannel.isMapped()) {
-			hwChannel.sound = _playlist[hwChannel.playlistIndex()];
-		} else {
-			hwChannel.sound = nullptr;
-		}
-	}
 }
 
 SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const {
