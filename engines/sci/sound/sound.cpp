@@ -53,7 +53,6 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_soundVersion(features.detectDoSoundType()),
 	_restoringSound(false),
 	_numServerSuspensions(0),
-	_hardwareChannels(),
 	_needsUpdate(false),
 	_nextVolumeChangeChannel(0),
 	_defaultReverbMode(0),
