@@ -193,12 +193,14 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 	channel.program = programNo;
 	channel.velocityMap = _programVelocityMap[programNo];
 
-	bool needsVolumeUpdate = channel.outProgram != kUnmapped;
+	bool needsControllerUpdate = channel.outProgram != kUnmapped;
 	channel.outProgram = _programMap[programNo];
 
 	if (channel.outProgram == kUnmapped) {
 		channel.hw->controlChange(kAllNotesOffController, 0);
-		channel.hw->controlChange(kDamperPedalController, 0);
+		if (_version >= SCI_VERSION_2) {
+			channel.hw->controlChange(kDamperPedalController, 0);
+		}
 		return;
 	}
 
@@ -207,13 +209,20 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 	if (channel.noteShift != _noteShift[programNo]) {
 		channel.noteShift = _noteShift[programNo];
 		channel.hw->controlChange(kAllNotesOffController, 0);
-		channel.hw->controlChange(kDamperPedalController, 0);
-		needsVolumeUpdate = true;
+		if (_version >= SCI_VERSION_2) {
+			channel.hw->controlChange(kDamperPedalController, 0);
+		}
+		needsControllerUpdate = true;
 	}
 
-	if (needsVolumeUpdate || channel.volumeShift != _volumeShift[programNo]) {
+	if (needsControllerUpdate || channel.volumeShift != _volumeShift[programNo]) {
 		channel.volumeShift = _volumeShift[programNo];
 		controllerChange(channelNo, kVolumeController, channel.volume);
+	}
+
+	if (needsControllerUpdate && _version < SCI_VERSION_2) {
+		channel.hw->controlChange(kPanController, channel.pan);
+		channel.hw->controlChange(kPitchBend, channel.pitchBend - 0x2000);
 	}
 
 	channel.hw->programChange(channel.outProgram);
