@@ -96,23 +96,25 @@ Sci1GeneralMidiDriver::~Sci1GeneralMidiDriver() {
 
 void Sci1GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velocity) {
 	Channel &channel = _channels[channelNo];
+	const uint8 origNote = note;
 	if (remapNote(channelNo, note)) {
 		velocity = _velocityMaps[channel.velocityMap][velocity];
 		channel.enabled = true;
 		channel.hw->noteOn(note, velocity);
-		debug("On  %2d %3d %3d", channelNo, note, velocity);
+		debug("On  %2d n %3d -> %3d v %3d", channelNo, origNote, note, velocity);
 	} else {
-		debug("OX  %2d %3d %3d", channelNo, note, velocity);
+		debug("OX  %2d n %3d        v %3d", channelNo, note, velocity);
 	}
 }
 
 void Sci1GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 velocity) {
 	Channel &channel = _channels[channelNo];
+	const uint8 origNote = note;
 	if (remapNote(channelNo, note)) {
 		channel.hw->noteOff(note, velocity);
-		debug("Off %2d %3d %3d", channelNo, note, velocity);
+		debug("Off %2d n %3d -> %3d v %3d", channelNo, origNote, note, velocity);
 	} else {
-		debug("OXX %2d %3d %3d", channelNo, note, velocity);
+		debug("OXX %2d n %3d        v %3d", channelNo, note, velocity);
 	}
 }
 
@@ -199,6 +201,8 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 		channel.hw->controlChange(kDamperPedalController, 0);
 		return;
 	}
+
+	debug("For program %u, note shift is %u", programNo, _noteShift[programNo]);
 
 	if (channel.noteShift != _noteShift[programNo]) {
 		channel.noteShift = _noteShift[programNo];
