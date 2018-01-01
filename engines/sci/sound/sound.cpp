@@ -918,6 +918,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		}
 		if (track.position != 0) {
 			// At least one track is still running
+			debug("Track %d is still running", i);
 			return;
 		}
 	}
@@ -1793,6 +1794,15 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	} else {
 		kernelUpdate(soundObj);
 		play(*sound, exclusive);
+
+		if (sound->id.getNumber() == 1) {
+			_restoringSound = true;
+			while (sound->ticksElapsed < 4000) {
+				parseNextNode(*sound, 0);
+			}
+			_restoringSound = false;
+		}
+
 		writeSelectorValue(_segMan, soundObj, SELECTOR(priority), sound->priority);
 	}
 }
