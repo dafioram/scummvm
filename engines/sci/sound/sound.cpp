@@ -205,28 +205,21 @@ void SoundManager::systemSuspend(const bool pause) {
 }
 
 GuiResourceId SoundManager::getSoundResourceId(const uint16 soundNo) const {
-	if (_useWindowsMidi) {
+	// Some Windows sounds don't exist (e.g. SQ4, room 530 - bug #3392767) so
+	// don't just unconditionally use the higher value
+	if (_useWindowsMidi && soundNo != 0) {
 		const ResourceId testId(kResourceTypeSound, soundNo + 1000);
-		// Check if the alternate MIDI song actually exists...
-		// There are cases where it just doesn't exist (e.g. SQ4, room 530 -
-		// bug #3392767). In these cases, use the DOS tracks instead.
-		if (soundNo != 0 && _resMan.testResource(testId)) {
+		if (_resMan.testResource(testId)) {
 			return soundNo + 1000;
 		}
 	}
 
-	if (g_sci->isCD() && g_sci->getGameId() == GID_SQ4 && soundNo < 1000) {
-		// For Space Quest 4 a few additional samples and also higher quality samples were played.
-		// We must not connect this to General MIDI support, because that will get disabled
-		// in case the user hasn't also chosen a General MIDI output device.
-		// We use those samples for DOS platform as well. We do basically the same for Space Quest 3,
-		// which also contains a few samples that were not played under the original interpreter.
-		// Maybe some fan wishes to opt-out of this. In this case a game specific option should be added.
-		// For more information see enhancement/bug #10228
-		// TODO: Check, if there are also enhanced samples for any of the other General MIDI games.
-		if (_resMan.testResource(ResourceId(kResourceTypeAudio, soundNo + 1000))) {
-			return soundNo + 1000;
-		}
+	// SQ4CD has some higher-quality samples in the Windows-range
+	if (soundNo < 1000 && _preferSampledSounds &&
+		g_sci->getGameId() == GID_SQ4 && g_sci->isCD() &&
+		_resMan.testResource(ResourceId(kResourceTypeAudio, soundNo + 1000))) {
+
+		return soundNo + 1000;
 	}
 
 	return soundNo;
