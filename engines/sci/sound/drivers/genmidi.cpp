@@ -204,8 +204,6 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 		return;
 	}
 
-	debug("For program %u, note shift is %u", programNo, _noteShift[programNo]);
-
 	if (channel.noteShift != _noteShift[programNo]) {
 		channel.noteShift = _noteShift[programNo];
 		channel.hw->controlChange(kAllNotesOffController, 0);
@@ -274,7 +272,7 @@ void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
 	for (int i = 0; i < kNumChannels; ++i) {
 		const Channel &channel = _channels[i];
 		if (channel.program != kUnmapped) {
-			con.debugPrintf("%2d: prog %u -> %u bend %u mod %u pan %u vol %u dp %d\n",
+			con.debugPrintf("%2d: prog %u -> %u bend %04x mod %u pan %u vol %u dp %d\n",
 							i,
 							channel.program,
 							channel.outProgram,
