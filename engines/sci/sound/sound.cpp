@@ -1091,6 +1091,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 			}
 			break;
 		}
+		break;
 	}
 	default:
 		return skipCommand(sound, trackNo, command);
