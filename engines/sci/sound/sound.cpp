@@ -292,12 +292,7 @@ void SoundManager::soundServer() {
 		updateChannelList();
 	}
 
-	for (int i = 0; i < kPlaylistSize; ++i) {
-		if (!_playlist[i]) {
-			// End of playlist
-			break;
-		}
-
+	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
 		Sci1Sound &sound = *_playlist[i];
 
 		// TODO: SSCI also checked if the resource pointer == 1 and would avoid
