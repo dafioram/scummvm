@@ -846,7 +846,9 @@ void SoundManager::findTrackOffsets(Sci1Sound &sound) {
 			int trackNo = 0;
 			for (uint8 endMarker = *data; endMarker != 0xff; endMarker = *data) {
 				// TODO: Could be SCI-endian
-				sound.getTrack(trackNo++).offset = data.getUint16LEAt(2);
+				Sci1Sound::Track &track = sound.getTrack(trackNo++);
+				track.offset = data.getUint16LEAt(2);
+				track.size = data.getUint16LEAt(4);
 				data += 6;
 			}
 			return;

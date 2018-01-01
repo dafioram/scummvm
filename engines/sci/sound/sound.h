@@ -232,6 +232,12 @@ struct Sci1Sound {
 		uint16 offset;
 
 		/**
+		 * The size of the track, in bytes. This value was not used in SSCI; we
+		 * use it for bounds-checking.
+		 */
+		uint16 size;
+
+		/**
 		 * The current playback position of the track, in bytes.
 		 */
 		uint16 position;
@@ -593,6 +599,7 @@ struct Sci1Sound {
 	 */
 	inline byte peek(const uint8 trackNo, const uint8 extra = 0) const {
 		const Track &track = tracks[trackNo];
+		assert(track.position < track.size);
 		return resource->getUint8At(track.offset + track.position + extra);
 	}
 
@@ -601,7 +608,7 @@ struct Sci1Sound {
 	 */
 	inline byte consume(const uint8 trackNo) {
 		const byte message = peek(trackNo);
-		++tracks[trackNo].position;
+		advance(trackNo);
 		return message;
 	}
 
@@ -609,6 +616,8 @@ struct Sci1Sound {
 	 * Advances the data stream for the given track by one byte.
 	 */
 	inline void advance(const uint8 trackNo) {
+		Track &track = tracks[trackNo];
+		assert(track.position < track.size);
 		++tracks[trackNo].position;
 	}
 
