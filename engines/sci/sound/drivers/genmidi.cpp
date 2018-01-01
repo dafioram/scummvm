@@ -256,6 +256,31 @@ void Sci1GeneralMidiDriver::enable(const bool enabled) {
 	}
 }
 
+void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
+	con.debugPrintf("Channels:\n\n");
+	for (int i = 0; i < kNumChannels; ++i) {
+		const Channel &channel = _channels[i];
+		if (channel.program != kUnmapped) {
+			con.debugPrintf("%2d: prog %u -> %u bend %u mod %u pan %u vol %u dp %d\n",
+							i,
+							channel.program,
+							channel.outProgram,
+							channel.pitchBend,
+							channel.modulation,
+							channel.pan,
+							channel.volume,
+							channel.damperPedalOn);
+			con.debugPrintf("    ns %d vs %d vmap %d%s\n",
+							channel.noteShift,
+							channel.volumeShift,
+							channel.velocityMap,
+							channel.enabled ? "" : ", disabled");
+		} else {
+			con.debugPrintf("%2d: unmapped\n", i);
+		}
+	}
+}
+
 void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
 	byte command = 0;
 

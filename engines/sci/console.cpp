@@ -167,6 +167,7 @@ Console::Console(SciEngine *engine) : GUI::Debugger(),
 	registerCmd("songlib",			WRAP_METHOD(Console, cmdSongLib));
 	registerCmd("songinfo",			WRAP_METHOD(Console, cmdSongInfo));
 	registerCmd("channel_map",		WRAP_METHOD(Console, cmdChannelMap));
+	registerCmd("driver_state",		WRAP_METHOD(Console, cmdDriverState));
 	registerCmd("is_sample",			WRAP_METHOD(Console, cmdIsSample));
 	registerCmd("startsound",			WRAP_METHOD(Console, cmdStartSound));
 	registerCmd("togglesound",		WRAP_METHOD(Console, cmdToggleSound));
@@ -383,6 +384,7 @@ bool Console::cmdHelp(int argc, const char **argv) {
 	debugPrintf(" songlib - Shows the song library\n");
 	debugPrintf(" songinfo - Shows information about a specified song in the song library\n");
 	debugPrintf(" channel_map - Shows the current mapping of MIDI output channels\n");
+	debugPrintf(" driver_state - Shows the current state of the MIDI driver\n");
 	debugPrintf(" togglesound - Starts/stops a sound in the song library\n");
 	debugPrintf(" stopallsounds - Stops all sounds in the playlist\n");
 	debugPrintf(" startsound - Starts the specified sound resource, replacing the first song in the song library\n");
@@ -2408,6 +2410,11 @@ bool Console::cmdSongInfo(int argc, const char **argv) {
 bool Console::cmdChannelMap(int argc, const char **argv) {
 	debugPrintf("MIDI channel map:\n");
 	g_sci->_sound->debugPrintChannelMap(*this);
+	return true;
+}
+
+bool Console::cmdDriverState(int argc, const char **argv) {
+	g_sci->_sound->debugPrintDriverState(*this);
 	return true;
 }
 

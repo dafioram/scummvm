@@ -2188,6 +2188,10 @@ void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &ch
 	}
 }
 
+void SoundManager::debugPrintDriverState(Console &con) const {
+	_driver->debugPrintState(con);
+}
+
 void SoundManager::debugPlay(const GuiResourceId soundId) {
 	warning("TODO: Not implemented yet");
 }

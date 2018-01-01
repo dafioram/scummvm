@@ -95,6 +95,8 @@ public:
 
 	virtual void enable(const bool enabled) override;
 
+	virtual void debugPrintState(Console &con) const override;
+
 private:
 	enum {
 		kNumPrograms = 128,

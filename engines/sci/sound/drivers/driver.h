@@ -24,6 +24,7 @@
 #define SCI_SOUND_DRIVERS_DRIVER_H
 
 #include "audio/audiostream.h"
+#include "sci/console.h"
 #include "sci/sound/sound.h"
 
 namespace Sci {
@@ -49,6 +50,13 @@ public:
 	 * Returns the device ID used to find the correct data in a Sound file.
 	 */
 	virtual DeviceId getDeviceId() const = 0;
+
+	/**
+	 * Prints state information usable for debugging the driver.
+	 */
+	virtual void debugPrintState(Console &con) const {
+		con.debugPrintf("No debugging information available from the current driver");
+	}
 
 protected:
 	SciVersion _version;
