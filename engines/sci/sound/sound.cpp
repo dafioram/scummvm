@@ -887,6 +887,7 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			continue;
 		}
 
+		// notFrozenTrk
 		if (track.rest) {
 			// TODO: Use wall time when _restoringSound is not true
 			--track.rest;
@@ -905,98 +906,16 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			continue;
 		}
 
-		// TODO: parseCommand
-		byte message;
-		do {
-			message = sound.peek(trackNo);
-			if (message & kStartOfMessageFlag) {
-				track.command = message;
-				sound.advance(trackNo);
-			} else {
-				message = track.command;
-			}
-
-			// Command/channel splitting was moved down from here nearer to its
-			// point of use
-
-			if (message == kEndOfTrack) {
-				track.position = 0;
-				goto nextTrack;
-			}
-
-			const MidiMessageType command = MidiMessageType(message & 0xf0);
-			const uint8 channelNo = message & 0xf;
-
-			if (channelNo == kControlChannel) {
-				parseControlChannel(sound, trackNo, command);
-				if (track.position == 0) {
-					goto nextTrack;
-				}
-			} else {
-				Sci1Sound::Channel &channel = sound.getChannel(channelNo);
-
-				// In SSCI, this code was earlier in the function, and for the
-				// control channel, it would overread past the end of channel
-				// flags into the mute save field
-				uint8 hwChannelNo;
-				bool extraChannel;
-				if (channel.flags & Sci1Sound::Channel::kExtra) {
-					extraChannel = true;
-					hwChannelNo = track.channelNo;
-				} else {
-					extraChannel = false;
-					const uint8 key = (playlistIndex << 4) | track.channelNo;
-					hwChannelNo = findHwChannelNo(key);
-				}
-
-				switch (command) {
-				case kNoteOff:
-					processNoteOff(sound, trackNo, hwChannelNo);
-					break;
-				case kNoteOn:
-					processNoteOn(sound, trackNo, hwChannelNo);
-					break;
-				case kKeyPressure:
-					processKeyPressure(sound, trackNo, hwChannelNo);
-					break;
-				case kControllerChange:
-					processControllerChange(sound, trackNo, hwChannelNo, extraChannel);
-					break;
-				case kProgramChange:
-					processProgramChange(sound, trackNo, hwChannelNo, extraChannel);
-					break;
-				case kChannelPressure:
-					processChannelPressure(sound, trackNo, hwChannelNo);
-					break;
-				case kPitchBend:
-					processPitchBend(sound, trackNo, hwChannelNo, extraChannel);
-					break;
-				case kSysEx:
-					processSysEx(sound, trackNo, hwChannelNo);
-					break;
-				default:
-					warning("Unknown command %u in track %u", command, trackNo);
-					track.position = 0;
-					goto nextTrack;
-				}
-			}
-		} while ((message = sound.consume(trackNo)) == 0);
-
-		if (message == kFixedRest) {
-			track.rest = kFixedRestValue;
-		} else {
-			track.rest = message;
-		}
-		--track.rest;
-
-		nextTrack:
-		;
+		parseCommand(sound, playlistIndex, trackNo, track);
 	}
 
 	// outParse
 
 	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 		Sci1Sound::Track &track = sound.getTrack(i);
+		if (track.channelNo == Sci1Sound::Track::kEndOfData) {
+			break;
+		}
 		if (track.position != 0) {
 			// At least one track is still running
 			return;
@@ -1017,6 +936,104 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		removeSoundFromPlaylist(sound);
 		_needsUpdate = true;
 	}
+}
+
+void SoundManager::parseCommand(Sci1Sound &sound, const uint8 playlistIndex, const uint8 trackNo, Sci1Sound::Track &track) {
+	// parseCommand
+	byte message; // dl
+	do {
+		message = sound.peek(trackNo);
+		if (message & kStartOfMessageFlag) {
+			track.command = message;
+			sound.advance(trackNo);
+		} else {
+			// runningStat
+			message = track.command;
+		}
+
+		// parseIt
+
+		// Command/channel splitting was moved down from here nearer to its
+		// point of use
+
+		if (message == kEndOfTrack) {
+			track.position = 0;
+			// jmp parseNext
+			return;
+		}
+
+		const MidiMessageType command = MidiMessageType(message & 0xf0); // ah
+		const uint8 channelNo = message & 0xf; // al
+
+		// notEndTrk
+		if (channelNo == kControlChannel) {
+			parseControlChannel(sound, trackNo, command);
+			if (track.position == 0) {
+				// jmp parseNext
+				return;
+			}
+		} else {
+			// notControlCh
+			Sci1Sound::Channel &channel = sound.getChannel(channelNo);
+
+			// In SSCI, this code was earlier in the function, and for the
+			// control channel, it would overread past the end of channel
+			// flags into the mute save field
+			uint8 hwChannelNo;
+			bool extraChannel;
+			if (channel.flags & Sci1Sound::Channel::kExtra) {
+				extraChannel = true;
+				hwChannelNo = track.channelNo;
+			} else {
+				extraChannel = false;
+				const uint8 key = (playlistIndex << 4) | track.channelNo;
+				hwChannelNo = findHwChannelNo(key);
+			}
+
+			// al = hwChannelNo
+			// ah = command
+			// bx = sound
+			// si = trackNo
+
+			switch (command) {
+			case kNoteOff:
+				processNoteOff(sound, trackNo, hwChannelNo);
+				break;
+			case kNoteOn:
+				processNoteOn(sound, trackNo, hwChannelNo);
+				break;
+			case kKeyPressure:
+				processKeyPressure(sound, trackNo, hwChannelNo);
+				break;
+			case kControllerChange:
+				processControllerChange(sound, trackNo, hwChannelNo, extraChannel);
+				break;
+			case kProgramChange:
+				processProgramChange(sound, trackNo, hwChannelNo, extraChannel);
+				break;
+			case kChannelPressure:
+				processChannelPressure(sound, trackNo, hwChannelNo);
+				break;
+			case kPitchBend:
+				processPitchBend(sound, trackNo, hwChannelNo, extraChannel);
+				break;
+			case kSysEx:
+				processSysEx(sound, trackNo, hwChannelNo);
+				break;
+			default:
+				warning("Unknown command %u in track %u", command, trackNo);
+				track.position = 0;
+				return;
+			}
+		}
+	} while ((message = sound.consume(trackNo)) == 0);
+
+	if (message == kFixedRest) {
+		track.rest = kFixedRestValue;
+	} else {
+		track.rest = message;
+	}
+	--track.rest;
 }
 
 void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command) {
@@ -1065,7 +1082,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 				++sound.cue;
 			}
 			break;
-		case kLoopEndController:
+		case kHoldPointController:
 			if (sound.holdPoint == value) {
 				for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 					sound.getTrack(i).position = 0;

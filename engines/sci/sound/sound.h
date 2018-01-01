@@ -94,7 +94,7 @@ enum MidiController {
 	// are remapped, figure out what this means.
 	kMuteController = 78,
 	kReverbModeController = 80,
-	kLoopEndController = 82,
+	kHoldPointController = 82,
 	kCueController = 96,
 	kAllNotesOffController = 123,
 	kProgramChangeController = 127
@@ -1120,6 +1120,8 @@ private:
 	 * TODO: was parseNode
 	 */
 	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
+
+	void parseCommand(Sci1Sound &sound, const uint8 playlistIndex, const uint8 trackNo, Sci1Sound::Track &track);
 
 	/**
 	 * Processes the next control channel message.
