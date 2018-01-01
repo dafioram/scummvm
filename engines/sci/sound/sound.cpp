@@ -918,7 +918,6 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		}
 		if (track.position != 0) {
 			// At least one track is still running
-			debug("Track %d is still running", i);
 			return;
 		}
 	}
@@ -927,13 +926,11 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 		sound.ticksElapsed = sound.loopTicksElapsed;
 		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
 			Sci1Sound::Track &track = sound.getTrack(i);
-			debug("Reset track %i. %d -> %d, %04x -> %04x, %02x -> %02x", i, track.position, track.loopPosition, track.rest, track.loopRest, track.command, track.loopCommand);
 			track.position = track.loopPosition;
 			track.rest = track.loopRest;
 			track.command = track.loopCommand;
 		}
 	} else {
-		debug("goodbye world");
 		removeSoundFromPlaylist(sound);
 		_needsUpdate = true;
 	}
@@ -1795,14 +1792,6 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	} else {
 		kernelUpdate(soundObj);
 		play(*sound, exclusive);
-
-		if (sound->id.getNumber() == 1) {
-			_restoringSound = true;
-			while (sound->ticksElapsed < 4000) {
-				parseNextNode(*sound, 0);
-			}
-			_restoringSound = false;
-		}
 
 		writeSelectorValue(_segMan, soundObj, SELECTOR(priority), sound->priority);
 	}
