@@ -904,11 +904,9 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 					track.rest = message;
 				}
 			}
-
-			continue;
+		} else {
+			parseCommand(sound, playlistIndex, trackNo, track);
 		}
-
-		parseCommand(sound, playlistIndex, trackNo, track);
 	}
 
 	// outParse
