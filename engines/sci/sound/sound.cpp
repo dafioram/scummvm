@@ -536,8 +536,8 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		track.channelNo = channelNo & 0xf;
 		track.command = kControllerChange | track.channelNo;
 		const uint8 message = trackData[12];
-		if (message == kTimingOverflow) {
-			track.rest = kTimingOverflowValue;
+		if (message == kFixedRest) {
+			track.rest = kFixedRestValue;
 		} else {
 			track.rest = message;
 		}
@@ -587,7 +587,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 				channel.pan = trackData[11];
 			}
 		} else {
-			// SSCI checked whether reverbMode != kDefaultReverbMode and then
+			// SSCI checked whether reverbMode != kUseDefaultReverb and then
 			// jumped to checking the channel pan, this was an impossible
 			// condition and would have led to an out-of-bounds access so is
 			// removed
@@ -896,12 +896,12 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			// TODO: Use wall time when _restoringSound is not true
 			--track.rest;
 
-			if (track.rest == kTimingOverflowFlag) {
+			if (track.rest == kFixedRestFlag) {
 				// The last rest was a "timing overflow" rest and now its timer
 				// has ticked down to zero
 				const byte message = sound.consume(trackNo);
-				if (message == kTimingOverflow) {
-					track.rest = kTimingOverflowValue;
+				if (message == kFixedRest) {
+					track.rest = kFixedRestValue;
 				} else {
 					track.rest = message;
 				}
@@ -987,8 +987,8 @@ void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
 			}
 		} while ((message = sound.consume(trackNo)) == 0);
 
-		if (message == kTimingOverflow) {
-			track.rest = kTimingOverflowValue;
+		if (message == kFixedRest) {
+			track.rest = kFixedRestValue;
 		} else {
 			track.rest = message;
 		}
@@ -1032,8 +1032,8 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 		const byte message = sound.consume(trackNo);
 		if (message == kSetLoop) {
 			const byte value = sound.peek(trackNo);
-			if (value == kTimingOverflow) {
-				track.rest = kTimingOverflowValue;
+			if (value == kFixedRest) {
+				track.rest = kFixedRestValue;
 			} else {
 				track.rest = value;
 			}

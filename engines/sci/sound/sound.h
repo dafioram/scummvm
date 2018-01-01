@@ -65,7 +65,7 @@ enum MidiMessage {
 	 * A message indicating that playback of the track needs to be delayed
 	 * for a fixed duration.
 	 */
-	kTimingOverflow = 0xf8,
+	kFixedRest = 0xf8,
 
 	/**
 	 * A message indicating that the end of the track has been reached.
@@ -972,7 +972,7 @@ private:
 
 	/**
 	 * The actual reverb mode to send to hardware when a song is played with
-	 * `kDefaultReverbMode` as its reverb mode.
+	 * `kUseDefaultReverb` as its reverb mode.
 	 */
 	uint8 _defaultReverbMode;
 
@@ -1102,9 +1102,9 @@ private:
 		kControlChannel = 15,
 
 		// TODO: used for rest/delay
-		kTimingOverflowFlag = 0x8000,
-		kTimingOverflowDelay = 240,
-		kTimingOverflowValue = kTimingOverflowFlag | kTimingOverflowDelay
+		kFixedRestFlag = 0x8000,
+		kFixedRestAmount = 240,
+		kFixedRestValue = kFixedRestFlag | kFixedRestAmount
 	};
 
 	/**
