@@ -220,7 +220,7 @@ void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) 
 	Channel &channel = _channels[channelNo];
 	if (channel.pitchBend != bend) {
 		channel.pitchBend = bend;
-		channel.hw->pitchBend(bend);
+		channel.hw->pitchBend(bend - 0x2000);
 		debug("PB %2d %04x", channelNo, bend);
 	}
 }
