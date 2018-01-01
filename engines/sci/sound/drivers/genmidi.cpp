@@ -174,8 +174,11 @@ void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 
 		channel.damperPedalOn = value;
 		break;
 	case kAllNotesOffController:
+		if (!channel.enabled) {
+			return;
+		}
 		channel.enabled = false;
-		return;
+		break;
 	default:
 		return;
 	}
