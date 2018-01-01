@@ -1763,7 +1763,11 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	} else {
 		sound->resource = _resMan.findResource(sound->id, true);
 	}
-	assert(sound->resource);
+
+	if (!sound->resource) {
+		writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
+		return;
+	}
 
 	// In SSCI the handle was assigned to the MemID returned by a call to
 	// ResourceManager::Get, we do not allocate memory through SegManager for
@@ -1821,6 +1825,7 @@ void SoundManager::kernelStop(const reg_t soundObj) {
 				// TODO: This should be accepting a sound number.
 				g_sci->_audio->stopAudio();
 #endif
+			sound->resource = nullptr;
 		} else {
 			stop(*sound);
 			// A sound may be stopped before it is ever started, in which case
