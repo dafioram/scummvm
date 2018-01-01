@@ -29,6 +29,7 @@
 #include "common/timer.h"
 #include "sci/console.h"
 #include "sci/engine/features.h"
+#include "sci/engine/guest_additions.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/selector.h"
@@ -46,9 +47,10 @@ static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
 }
 
-SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features) :
+SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	_resMan(resMan),
 	_segMan(&segMan),
+	_guestAdditions(guestAdditions),
 	_driverEnabledState(true),
 	_soundVersion(features.detectDoSoundType()),
 	_restoringSound(false),
@@ -1927,6 +1929,7 @@ void SoundManager::kernelSetVolume(const reg_t soundObj, const int16 volume) {
 	if (sound->volume != volume) {
 		setVolume(*sound, volume);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(vol), volume);
+		_guestAdditions.kDoSoundSetVolumeHook(soundObj, volume);
 	}
 }
 

@@ -22,6 +22,7 @@
 
 #include "sci/sci.h"
 #include "sci/engine/features.h"
+#include "sci/engine/guest_additions.h"
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/vm.h"		// for Object
@@ -50,7 +51,12 @@ reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
 	if (argc == 1 || argv[0].toSint16() == 0xff) {
 		return make_reg(0, g_sci->_sound->getMasterVolume());
 	} else {
-		return make_reg(0, g_sci->_sound->setMasterVolume(argv[0].toSint16()));
+		const int16 volume = argv[0].toSint16();
+		if (!g_sci->_guestAdditions->kDoSoundMasterVolumeHook(volume)) {
+			return make_reg(0, g_sci->_sound->setMasterVolume(volume));
+		} else {
+			return make_reg(0, g_sci->_sound->getMasterVolume());
+		}
 	}
 }
 

@@ -36,6 +36,7 @@ namespace Audio { class Mixer; }
 
 namespace Sci {
 class Console;
+class GuestAdditions;
 class Sci1SoundDriver;
 class SegManager;
 
@@ -621,7 +622,7 @@ private:
 
 class SoundManager : public Common::Serializable {
 public:
-	SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features);
+	SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions);
 	~SoundManager();
 
 	/**
@@ -656,6 +657,7 @@ private:
 
 	ResourceManager &_resMan;
 	SegManager *_segMan;
+	GuestAdditions &_guestAdditions;
 	Common::Mutex _mutex;
 
 	/**

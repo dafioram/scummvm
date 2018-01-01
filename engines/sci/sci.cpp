@@ -364,7 +364,7 @@ Common::Error SciEngine::run() {
 	// start of the game must pump the event loop to avoid making the OS think
 	// that ScummVM is hanged, and pumping the event loop requires GfxCursor to
 	// be initialized
-	_sound.reset(new SoundManager(*_resMan, *_gamestate->_segMan, *_features));
+	_sound.reset(new SoundManager(*_resMan, *_gamestate->_segMan, *_features, *_guestAdditions));
 
 	syncSoundSettings();
 	_guestAdditions->syncAudioOptionsFromScummVM();
