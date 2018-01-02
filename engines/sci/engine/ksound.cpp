@@ -48,7 +48,7 @@ reg_t kDoSound(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
-	if (argc == 1 || argv[0].toSint16() == 0xff) {
+	if (argc == 0 || argv[0].toSint16() == 0xff) {
 		return make_reg(0, g_sci->_sound->getMasterVolume());
 	} else {
 		const int16 volume = argv[0].toSint16();
