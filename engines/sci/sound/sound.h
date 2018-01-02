@@ -594,6 +594,7 @@ struct Sci1Sound : public Common::Serializable {
 	 */
 	inline byte peek(const uint8 trackNo, const uint8 extra = 0) const {
 		const Track &track = tracks[trackNo];
+		assert(resource);
 		assert(track.position < track.size);
 		return resource->getUint8At(track.offset + track.position + extra);
 	}
@@ -939,7 +940,10 @@ public:
 
 	// TODO: was SetReverb, one function
 	uint8 getReverbMode() const;
-	uint8 getDefaultReverbMode() const { return _defaultReverbMode; }
+	uint8 getDefaultReverbMode() const {
+		Common::StackLock lock(_mutex);
+		return _defaultReverbMode;
+	}
 	uint8 setReverbMode(const uint8 reverbMode);
 
 	/**
