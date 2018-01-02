@@ -24,6 +24,7 @@
 #define SCI_SOUND_SOUND_H
 
 #include "common/array.h"
+#include "common/list.h"
 #include "common/mutex.h"
 #include "common/ptr.h"
 #include "common/serializer.h"
@@ -660,7 +661,7 @@ private:
 	 */
 	bool gameHasGeneralMidiOnly() const;
 
-	typedef Common::Array<Sci1Sound> SoundsList;
+	typedef Common::List<Sci1Sound> SoundsList;
 
 	ResourceManager &_resMan;
 	SegManager *_segMan;
@@ -1334,6 +1335,11 @@ private:
 			return nullptr;
 		}
 		return &*it;
+	}
+
+	inline SoundsList::iterator findSoundIteratorByRegT(const reg_t key) {
+		SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+		return it;
 	}
 
 #pragma mark -

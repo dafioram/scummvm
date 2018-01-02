@@ -81,7 +81,6 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
-	_sounds.reserve(16);
 	Common::fill(_newChannelVolumes.begin(), _newChannelVolumes.end(), kNoVolumeChange);
 
 	uint32 deviceFlags;
@@ -1336,7 +1335,7 @@ uint8 SoundManager::insertSoundToPlaylist(Sci1Sound &sound) {
 }
 
 void SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
-	for (int i = 0; i < kPlaylistSize; ++i) {
+	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
 		if (_playlist[i] == &sound) {
 			sound.signal = Sci1Sound::kFinished;
 			sound.state = Sci1Sound::kStopped;
@@ -1741,8 +1740,8 @@ void SoundManager::kernelDispose(const reg_t soundObj) {
 	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
 	kernelStop(nodePtr);
 	if (!nodePtr.isNull()) {
-		Sci1Sound *it = findSoundByRegT(nodePtr);
-		if (it) {
+		SoundsList::iterator it = findSoundIteratorByRegT(nodePtr);
+		if (it != _sounds.end()) {
 			_sounds.erase(it);
 		}
 	}

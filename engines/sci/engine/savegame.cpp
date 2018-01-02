@@ -635,7 +635,6 @@ void SoundManager::serializeSounds(Common::Serializer &s) {
 
 	if (s.isLoading()) {
 		assert(_sounds.size() == 0);
-		_sounds.resize(numSounds);
 	}
 
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
