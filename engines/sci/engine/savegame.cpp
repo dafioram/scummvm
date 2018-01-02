@@ -601,142 +601,215 @@ void DataStack::saveLoadWithSerializer(Common::Serializer &s) {
 
 #pragma mark -
 
-// TODO: Fix this
-#if 0
-void SciMusic::saveLoadWithSerializer(Common::Serializer &s) {
-	// Sync song lib data. When loading, the actual song lib will be initialized
-	// afterwards in gamestate_restore()
-	int songcount = 0;
-	byte masterVolume = soundGetMasterVolume();
-	byte reverb = _pMidiDrv->getReverb();
-
-	if (s.isSaving()) {
-		s.syncAsByte(_soundOn);
-		s.syncAsByte(masterVolume);
-		s.syncAsByte(reverb, VER(17));
-	} else if (s.isLoading()) {
-		if (s.getVersion() >= 15) {
-			s.syncAsByte(_soundOn);
-			s.syncAsByte(masterVolume);
-			reverb = 0;
-			s.syncAsByte(reverb, VER(17));
-		} else {
-			_soundOn = true;
-			masterVolume = 15;
-			reverb = 0;
-		}
-
-		soundSetSoundOn(_soundOn);
-		soundSetMasterVolume(masterVolume);
-		setGlobalReverb(reverb);
-	}
-
-	if (s.isSaving())
-		songcount = _playList.size();
-	s.syncAsUint32LE(songcount);
-
-	if (s.isLoading())
-		clearPlayList();
-
+void SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
 	Common::StackLock lock(_mutex);
 
-	if (s.isLoading()) {
-		for (int i = 0; i < songcount; i++) {
-			MusicEntry *curSong = new MusicEntry();
-			curSong->saveLoadWithSerializer(s);
-			_playList.push_back(curSong);
-		}
+	enableSoundServer(false);
+
+	if (s.isSaving()) {
+		pauseAll(true);
 	} else {
-		for (int i = 0; i < songcount; i++) {
-			_playList[i]->saveLoadWithSerializer(s);
-		}
+		prepareForRestore();
+	}
+
+	if (s.getVersion() < VER(45)) {
+		legacyRestore(s);
+	} else {
+		serializeSounds(s);
+	}
+
+	if (s.isSaving()) {
+		enableSoundServer(true);
+		pauseAll(false);
 	}
 }
 
-void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
-	syncWithSerializer(s, soundObj);
-	s.syncAsSint16LE(resourceId);
-	s.syncAsSint16LE(dataInc);
-	s.syncAsSint16LE(ticker);
-	s.syncAsSint16LE(signal, VER(17));
-	if (s.getVersion() >= 31) // FE sound/music.h -> priority
-		s.syncAsSint16LE(priority);
-	else
-		s.syncAsByte(priority);
-	s.syncAsSint16LE(loop, VER(17));
-	s.syncAsByte(volume);
-	s.syncAsByte(hold, VER(17));
-	s.syncAsByte(fadeTo);
-	s.syncAsSint16LE(fadeStep);
-	s.syncAsSint32LE(fadeTicker);
-	s.syncAsSint32LE(fadeTickerStep);
-	s.syncAsByte(status);
-	if (s.getVersion() >= 32)
-		s.syncAsByte(playBed);
-	else if (s.isLoading())
-		playBed = false;
-	if (s.getVersion() >= 33)
-		s.syncAsByte(overridePriority);
-	else if (s.isLoading())
-		overridePriority = false;
+void SoundManager::serializeSounds(Common::Serializer &s) {
+	if (_soundVersion < SCI_VERSION_2) {
+		s.syncAsByte(_defaultReverbMode);
+	}
 
-	// pMidiParser and pStreamAud will be initialized when the
-	// sound list is reconstructed in gamestate_restore()
+	uint16 numSounds = _sounds.size();
+	assert(numSounds <= 0xffff);
+	s.syncAsUint16LE(numSounds);
+
 	if (s.isLoading()) {
-		soundRes = 0;
-		pMidiParser = 0;
-		pStreamAud = 0;
-		reverb = -1;	// invalid reverb, will be initialized in processInitSound()
+		assert(_sounds.size() == 0);
+		_sounds.resize(numSounds);
+	}
+
+	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
+		sound->saveLoadWithSerializer(s);
 	}
 }
 
-void SoundCommandParser::syncPlayList(Common::Serializer &s) {
-	_music->saveLoadWithSerializer(s);
-}
-
-void SoundCommandParser::reconstructPlayList() {
-	_music->_mutex.lock();
-
-	// We store all songs here because starting songs may re-shuffle their order
-	MusicList songs;
-	for (MusicList::iterator i = _music->getPlayListStart(); i != _music->getPlayListEnd(); ++i)
-		songs.push_back(*i);
-
-	// Done with main playlist, so release lock
-	_music->_mutex.unlock();
-
-	for (MusicList::iterator i = songs.begin(); i != songs.end(); ++i) {
-		MusicEntry *entry = *i;
-		initSoundResource(entry);
-
+void SoundManager::prepareForRestore() {
+	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
+		if (sound->isSample) {
 #ifdef ENABLE_SCI32
-		if (_soundVersion >= SCI_VERSION_2 && entry->isSample) {
-			const reg_t &soundObj = entry->soundObj;
-
-			if (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xFFFF &&
-				readSelector(_segMan, soundObj, SELECTOR(handle)) != NULL_REG) {
-
-				writeSelector(_segMan, soundObj, SELECTOR(handle), NULL_REG);
-				processPlaySound(soundObj, entry->playBed);
-			}
-		} else
+			if (_soundVersion >= SCI_VERSION_2) {
+				g_sci->_audio32->stop(sound->id, sound->nodePtr);
+			} else
 #endif
-		if (entry->status == kSoundPlaying) {
-			// WORKAROUND: PQ3 (German?) scripts can set volume negative in the
-			// sound object directly without going through DoSound.
-			// Since we re-read this selector when re-playing the sound after loading,
-			// this will lead to unexpected behaviour. As a workaround we
-			// sync the sound object's selectors here. (See bug #5501)
-			writeSelectorValue(_segMan, entry->soundObj, SELECTOR(loop), entry->loop);
-			writeSelectorValue(_segMan, entry->soundObj, SELECTOR(priority), entry->priority);
-			if (_soundVersion >= SCI_VERSION_1_EARLY)
-				writeSelectorValue(_segMan, entry->soundObj, SELECTOR(vol), entry->volume);
-
-			processPlaySound(entry->soundObj, entry->playBed);
+				// TODO: Needs to receive a resource number
+				g_sci->_audio->stopAudio();
+		} else {
+			const reg_t soundObj = sound->nodePtr;
+			stop(*sound);
+			if (!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull() &&
+				sound->resource) {
+				_resMan.unlockResource(sound->resource);
+			}
 		}
 	}
+	_sounds.clear();
 }
-#endif
+
+void SoundManager::reconstructPlaylist() {
+	Common::StackLock lock(_mutex);
+
+	enableSoundServer(true);
+
+	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
+		const reg_t soundObj = sound->nodePtr;
+		if (sound->isSample) {
+			if (_soundVersion >= SCI_VERSION_2 &&
+				readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff &&
+				!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull()) {
+				writeSelector(_segMan, soundObj, SELECTOR(handle), NULL_REG);
+				kernelPlay(soundObj, false);
+			}
+		} else if (sound->state != Sci1Sound::kStopped) {
+			sound->resource = _resMan.findResource(sound->id, true);
+			assert(sound->resource);
+			writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
+			restore(*sound);
+		} else {
+			writeSelector(_segMan, soundObj, SELECTOR(handle), NULL_REG);
+		}
+	}
+
+	setReverbMode(getDefaultReverbMode());
+	pauseAll(false);
+}
+
+void SoundManager::legacyRestore(Common::Serializer &s) {
+	uint numSounds;
+	byte masterVolume;
+	byte reverb;
+	byte soundOn;
+
+	if (s.getVersion() >= 15) {
+		s.syncAsByte(soundOn);
+		s.syncAsByte(masterVolume);
+		s.syncAsByte(reverb, VER(17));
+	} else {
+		soundOn = 1;
+		masterVolume = 15;
+		reverb = 0;
+	}
+
+	setSoundOn(soundOn);
+	setMasterVolume(masterVolume);
+	setReverbMode(reverb);
+
+	s.syncAsUint32LE(numSounds);
+
+	Sci1Sound prototype;
+	for (int i = 0; i < numSounds; ++i) {
+		uint16 resourceNo;
+		syncWithSerializer(s, prototype.nodePtr);
+		s.syncAsSint16LE(resourceNo);
+		prototype.id = ResourceId(getSoundResourceType(resourceNo), resourceNo);
+		s.syncAsSint16LE(prototype.cue);
+		s.syncAsSint16LE(prototype.ticksElapsed);
+		s.syncAsSint16LE(prototype.signal, VER(17));
+		s.syncAsByte(prototype.priority, VER(0), VER(30));
+		s.syncAsSint16LE(prototype.priority, VER(31));
+		s.syncAsSint16LE(prototype.loop, VER(17));
+		s.syncAsByte(prototype.volume);
+		s.syncAsByte(prototype.holdPoint, VER(17));
+		s.syncAsByte(prototype.fadeTargetVolume);
+		s.syncAsSint16LE(prototype.fadeDelayRemaining);
+		s.syncAsSint32LE(prototype.fadeDelay);
+		s.syncAsSint32LE(prototype.fadeAmountPerTick);
+		byte status;
+		byte playBed = 0;
+		s.syncAsByte(status);
+		if (s.getVersion() >= 32) {
+			s.syncAsByte(playBed);
+		}
+		if (playBed) {
+			prototype.state = Sci1Sound::kExclusive;
+		} else if (status == 2 || status == 3) {
+			prototype.state = Sci1Sound::kPlaying;
+		} else {
+			prototype.state = Sci1Sound::kStopped;
+		}
+		if (s.getVersion() >= 33)
+			s.syncAsByte(prototype.fixedPriority);
+		else
+			prototype.fixedPriority = false;
+
+		_sounds.push_back(prototype);
+	}
+}
+
+void Sci1Sound::Track::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsUint16LE(offset);
+	s.syncAsUint16LE(size);
+	s.syncAsUint16LE(position);
+	s.syncAsUint16LE(rest);
+	s.syncAsByte(command);
+	s.syncAsByte(channelNo);
+	s.syncAsUint16LE(loopPosition);
+	s.syncAsUint16LE(loopRest);
+	s.syncAsByte(loopCommand);
+}
+
+void Sci1Sound::Channel::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsByte(damperPedalOn);
+	s.syncAsUint16LE(pitchBend);
+	s.syncAsByte(numVoices);
+	s.syncAsByte(priority);
+	s.syncAsByte(modulation);
+	s.syncAsByte(pan);
+	s.syncAsByte(volume);
+	s.syncAsByte(program);
+	s.syncAsByte(currentNote);
+	s.syncAsByte(flags);
+	s.syncAsByte(gameMuteCount);
+	s.syncAsByte(muted);
+}
+
+void Sci1Sound::saveLoadWithSerializer(Common::Serializer &s) {
+	for (uint i = 0; i < tracks.size(); ++i) {
+		tracks[i].saveLoadWithSerializer(s);
+	}
+	for (uint i = 0; i < channels.size(); ++i) {
+		channels[i].saveLoadWithSerializer(s);
+	}
+	syncWithSerializer(s, nodePtr);
+	syncWithSerializer(s, id);
+	s.syncAsUint16LE(cue);
+	s.syncAsUint16LE(ticksElapsed);
+	s.syncAsUint16LE(loopTicksElapsed);
+	s.syncAsByte(signal);
+	s.syncAsByte(state);
+	s.syncAsByte(holdPoint);
+	s.syncAsByte(fixedPriority);
+	s.syncAsByte(priority);
+	s.syncAsByte(loop);
+	s.syncAsByte(volume);
+	s.syncAsByte(reverbMode);
+	s.syncAsByte(fadeTargetVolume);
+	s.syncAsByte(stopSoundOnFade);
+	s.syncAsByte(fadeDelay);
+	s.syncAsByte(fadeDelayRemaining);
+	s.syncAsByte(fadeAmountPerTick);
+	s.syncAsByte(numPauses);
+	s.syncAsByte(isSample);
+}
 
 #ifdef ENABLE_SCI32
 void ArrayTable::saveLoadWithSerializer(Common::Serializer &ser) {
@@ -1353,10 +1426,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	if (ser.getVersion() >= 30 && voc)
 		voc->saveLoadWithSerializer(ser);
 
-// TODO: Fix
-#if 0
-	g_sci->_soundCmd->reconstructPlayList();
-#endif
+	g_sci->_sound->reconstructPlaylist();
 
 	// Message state:
 	delete s->_msgState;

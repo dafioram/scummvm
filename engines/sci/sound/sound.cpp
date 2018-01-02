@@ -273,10 +273,6 @@ bool SoundManager::gameHasGeneralMidiOnly() const {
 #pragma mark -
 #pragma mark Save management
 
-void SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
-	error("TODO: Save/load for new sound system");
-}
-
 void SoundManager::restore(Sci1Sound &sound) {
 	Common::StackLock lock(_mutex);
 
@@ -289,7 +285,9 @@ void SoundManager::restore(Sci1Sound &sound) {
 
 	_restoringSound = true;
 
-	const uint8 playlistIndex = play(sound, false);
+	// TODO: SSCI32 always passed `false` even if the sound was an exclusive
+	// sound
+	const uint8 playlistIndex = play(sound, sound.state == Sci1Sound::kExclusive);
 
 	uint16 ticksToRestore = sound.ticksElapsed;
 	sound.ticksElapsed = 0;
@@ -1700,6 +1698,10 @@ void SoundManager::kernelInit(const reg_t soundObj) {
 	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
 	Sci1Sound *sound;
 	if (nodePtr.isNull()) {
+		// TODO: This comment may be irrelevant; in SSCI, sounds are associated
+		// 1:1 with a soundObj in order to be restored properly, so if one
+		// soundObj were active and used a different nodePtr then restores would
+		// be messed up.
 		// This use of soundObj as nodePtr is how the old ScummVM SCI MIDI code
 		// handled generating a nodePtr. It is only guaranteed to work correctly
 		// if these conditions are always true:

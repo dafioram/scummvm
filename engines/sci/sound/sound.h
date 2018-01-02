@@ -168,7 +168,7 @@ struct Sci0Sound {
 /**
  * A representation of the current state of a sound in SCI1+.
  */
-struct Sci1Sound {
+struct Sci1Sound : public Common::Serializable {
 	enum {
 		kNumTracks = 16,
 		kNumChannels = 15,
@@ -217,7 +217,7 @@ struct Sci1Sound {
 	/**
 	 * A MIDI data stream.
 	 */
-	struct Track {
+	struct Track : public Common::Serializable {
 		enum SpecialChannel {
 			/** Track is at the end of sound data. */
 			kEndOfData = 0xff,
@@ -289,12 +289,14 @@ struct Sci1Sound {
 			loopPosition(3),
 			loopRest(0),
 			loopCommand(0) {}
+
+		virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 	};
 
 	/**
 	 * A logical MIDI channel.
 	 */
-	struct Channel {
+	struct Channel : public Common::Serializable {
 		enum {
 			kNoCurrentNote = 0xff,
 			kUninitialized = 0xff
@@ -415,6 +417,8 @@ struct Sci1Sound {
 			flags(kNoFlags),
 			gameMuteCount(0),
 			muted(false) {}
+
+		virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 	};
 
 	/**
@@ -559,7 +563,9 @@ struct Sci1Sound {
 	bool isSample;
 
 	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
-	Sci1Sound(const reg_t nodePtr_) :
+	Sci1Sound(const reg_t nodePtr_ = NULL_REG) :
+		tracks(),
+		channels(),
 		nodePtr(nodePtr_),
 		resource(nullptr),
 		cue(0),
@@ -580,6 +586,8 @@ struct Sci1Sound {
 		fadeAmountPerTick(0),
 		numPauses(0),
 		isSample(false) {}
+
+	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	/**
 	 * Peeks at a byte of the data stream for the given track.
@@ -694,6 +702,12 @@ private:
 #pragma mark Save management
 public:
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
+	void legacyRestore(Common::Serializer &s);
+	void serializeSounds(Common::Serializer &s);
+	// TODO: was SaveRestoreAfter/RestoreAllSounds
+	void reconstructPlaylist();
+	// TODO: was KillAllSounds
+	void prepareForRestore();
 
 private:
 	/**
@@ -1240,7 +1254,7 @@ private:
 	/**
 	 * The list of currently active sounds, sorted by decreasing sound priority.
 	 */
-	Sci1Sound *_playlist[kPlaylistSize];
+	Common::FixedArray<Sci1Sound *, kPlaylistSize> _playlist;
 
 	/**
 	 * Finds the index of the given sound in the current playlist. Returns
