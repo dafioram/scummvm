@@ -147,7 +147,7 @@ reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv) {
-	if (argc == 1 || argv[0].toSint16() == 0xff) {
+	if (argc == 0 || argv[0].toSint16() == 0xff) {
 		return make_reg(0, g_sci->_sound->getReverbMode());
 	} else if (argv[0].toUint16() > 10) {
 		return make_reg(0, g_sci->_sound->getDefaultReverbMode());
