@@ -403,6 +403,15 @@ void SoundManager::processFade(Sci1Sound &sound) {
 
 uint8 SoundManager::getMasterVolume() const {
 	Common::StackLock lock(_mutex);
+
+	if (ConfMan.getBool("mute")) {
+		// When a game is muted, the master volume is set to zero so that
+		// mute applies to external MIDI devices, but this should not be
+		// communicated to the game as it will cause the UI to be drawn with
+		// the wrong (zero) volume for music
+		return (ConfMan.getInt("music_volume") + 1) * kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
+	}
+
 	return _driver->getMasterVolume();
 }
 
