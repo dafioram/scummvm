@@ -163,11 +163,6 @@ void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 
 		channel.pan = value;
 		break;
 	case kDamperPedalController:
-		// The SoundManager code would only ever use a boolean for the damper
-		// pedal, but technically this is a ranged value, so let's make sure
-		// a musician did not sneak in some damper pedal into the sound data
-		// with a non-boolean value
-		assert(value == 0 || value == 1);
 		if (channel.damperPedalOn == (value != 0)) {
 			return;
 		}
