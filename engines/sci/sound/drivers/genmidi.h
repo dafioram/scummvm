@@ -50,7 +50,7 @@ public:
 		kMinChannel = 1
 	};
 
-	Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion version);
+	Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version);
 	virtual ~Sci1GeneralMidiDriver();
 
 	virtual int getNumVoices() const override { return 32; }
@@ -83,15 +83,11 @@ public:
 
 	virtual uint8 getReverbMode() const override { return _reverbMode; }
 
-	virtual uint8 setReverbMode(const uint8 mode) override {
-		const uint8 oldMode = _reverbMode;
-		_reverbMode = mode;
-		return oldMode;
-	}
+	virtual void setReverbMode(const uint8 mode) override { _reverbMode = mode; }
 
 	virtual uint8 getMasterVolume() const override { return _masterVolume; }
 
-	virtual uint8 setMasterVolume(const uint8 volume) override;
+	virtual void setMasterVolume(const uint8 volume) override;
 
 	virtual void enable(const bool enabled) override;
 
@@ -200,7 +196,7 @@ private:
 	Common::FixedArray<Common::FixedArray<uint8, kNumVelocities>, kNumVelocityMaps> _velocityMaps;
 };
 
-SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, SciVersion version);
+SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version);
 
 } // End of namespace Sci
 

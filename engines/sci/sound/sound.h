@@ -40,8 +40,6 @@ class GuestAdditions;
 class Sci1SoundDriver;
 class SegManager;
 
-// TODO: All this stuff except for the kSetLoop is just standard MIDI messaging
-// stuff and should go into common code
 enum MidiMessage {
 	/**
 	 * A control channel message which marks the current position as a loop
@@ -73,6 +71,8 @@ enum MidiMessage {
 	kEndOfTrack = 0xfc
 };
 
+// TODO: All of these are standard MIDI status messages and could go into
+// common code
 enum MidiMessageType {
 	kNoteOff = 0x80,
 	kNoteOn = 0x90,
@@ -84,6 +84,8 @@ enum MidiMessageType {
 	kSysEx = 0xf0
 };
 
+// TODO: Many of these controllers are standard MIDI controllers and could go
+// into common code
 enum MidiController {
 	kModulationController = 1,
 	kVolumeController = 7,
@@ -318,7 +320,6 @@ struct Sci1Sound {
 			 * The channel is played directly to the same-numbered output
 			 * channel, but only when no other logical channel has been remapped
 			 * onto the same output channel.
-			 * TODO: Rename
 			 */
 			kExtra = 2
 		};
@@ -393,7 +394,6 @@ struct Sci1Sound {
 
 		/**
 		 * The number of times the channel was programmatically muted.
-		 * TODO: Removed around mid-SCI1.1?
 		 */
 		uint8 gameMuteCount;
 
@@ -416,6 +416,17 @@ struct Sci1Sound {
 			gameMuteCount(0),
 			muted(false) {}
 	};
+
+	/**
+	 * The sound's data tracks.
+	 */
+	Common::FixedArray<Track, kNumTracks> tracks;
+
+	/**
+	 * The sound's logical MIDI channels. These may be dynamically remapped to
+	 * different hardware MIDI channels so are not a 1:1 mapping to outputs.
+	 */
+	Common::FixedArray<Channel, kNumChannels> channels;
 
 	/**
 	 * The nodePtr value returned to the VM to represent this sound object.
@@ -538,9 +549,8 @@ struct Sci1Sound {
 
 	/**
 	 * If non-zero, playback of the sound is paused.
-	 * TODO: Unclear if this was ever a counter prior to SCI1.1.
 	 */
-	uint8 paused;
+	uint8 numPauses;
 
 	/**
 	 * If true, the sound is actually a digital sample which should be played
@@ -550,8 +560,6 @@ struct Sci1Sound {
 
 	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
 	Sci1Sound(const reg_t nodePtr_) :
-		tracks(),
-		channels(),
 		nodePtr(nodePtr_),
 		resource(nullptr),
 		cue(0),
@@ -570,29 +578,8 @@ struct Sci1Sound {
 		fadeDelay(0),
 		fadeDelayRemaining(0),
 		fadeAmountPerTick(0),
-		paused(0),
+		numPauses(0),
 		isSample(false) {}
-
-	inline const Channel &getChannel(const uint8 channelNo) const {
-		return channels[channelNo];
-	}
-
-	inline Channel &getChannel(const uint8 channelNo) {
-		return channels[channelNo];
-	}
-
-	inline const Track &getTrack(const uint8 trackNo) const {
-		return tracks[trackNo];
-	}
-
-	inline Track &getTrack(const uint8 trackNo) {
-		return tracks[trackNo];
-	}
-
-	inline void resetPrivateState() {
-		Common::fill(channels.begin(), channels.end(), Channel());
-		Common::fill(tracks.begin(), tracks.end(), Track());
-	}
 
 	/**
 	 * Peeks at a byte of the data stream for the given track.
@@ -620,10 +607,6 @@ struct Sci1Sound {
 		assert(track.position < track.size);
 		++tracks[trackNo].position;
 	}
-
-private:
-	Common::FixedArray<Track, kNumTracks> tracks;
-	Common::FixedArray<Channel, kNumChannels> channels;
 };
 
 #pragma mark -
@@ -776,8 +759,8 @@ private:
 		};
 
 		/**
-		 * The key (playlist index << 4 | channel number) for the logical
-		 * channel currently mapped to this output channel.
+		 * The key for the logical channel currently mapped to this hardware
+		 * channel.
 		 * TODO: was ChNew and ChList; ChNew was used only as a temporary for
 		 * recalculating hardware channels, so it is now held on the stack
 		 * TODO: Change this to separate the two fields for implementation
@@ -785,7 +768,10 @@ private:
 		 */
 		uint8 key;
 
-		// TODO: was ChNodes
+		/**
+		 * A pointer to the sound object currently playing in this channel.
+		 * TODO: was ChNodes
+		 */
 		Sci1Sound *sound;
 
 		/**
@@ -838,6 +824,10 @@ private:
 		if (playlistIndex == kPlaylistSize) {
 			return kUnknownSound;
 		}
+		return makeChannelKey(playlistIndex, channelNo);
+	}
+
+	inline uint8 makeChannelKey(const uint8 playlistIndex, const uint8 channelNo) const {
 		return (playlistIndex << 4) | channelNo;
 	}
 
@@ -856,23 +846,43 @@ private:
 	}
 
 	/**
-	 * Updates the output channel mapping.
+	 * Updates the logical (sound) channel to hardware channel mapping.
 	 * TODO: was doChannelList
 	 */
-	void updateChannelList();
+	void remapHardwareChannels();
 
-	// TODO: was pass 1 of doChannelList
+	/**
+	 * Creates a new candidate sound-to-hardware channel mapping list.
+	 * TODO: was pass 1 of doChannelList
+	 */
 	HardwareChannels makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const;
 
+	/**
+	 * Tries to map a single input channel into the given new HardwareChannels
+	 * list.
+	 * @returns true if mapping was successful.
+	 */
 	bool mapSingleChannel(const uint8 key, const uint8 priority, int &numFreeVoices, const uint8 inChannelNo, const Sci1Sound::Channel &channel, HardwareChannels &newChannels, const uint8 minChannelNo, const uint8 maxChannelNo) const;
 
-	// TODO: was pass 2 of doChannelList
-	void commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
+	/**
+	 * Commits channels in fixed positions from the given new channel list into
+	 * the actual hardware channel map.
+	 * TODO: was pass 2 of doChannelList
+	 */
+	 void commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
 
-	// TODO: was pass 3 of doChannelList
+	/**
+	 * Commits all remaining channels from the given new channel list into the
+	 * actual hardware channel map.
+	 * TODO: was pass 3 of doChannelList
+	 */
 	void commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo);
 
-	// TODO: was pass 4 of doChannelList
+	/**
+	 * Stops playback of hardware channels which used to contain a channel but
+	 * do no longer.
+	 * TODO: was pass 4 of doChannelList
+	 */
 	void stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels);
 
 	/**
@@ -911,7 +921,7 @@ public:
 
 	// TODO: was MasterVol, one function
 	uint8 getMasterVolume() const;
-	uint8 setMasterVolume(const uint8 volume);
+	void setMasterVolume(const uint8 volume);
 
 	// TODO: was SetReverb, one function
 	uint8 getReverbMode() const;
@@ -1108,7 +1118,6 @@ public:
 #pragma mark -
 #pragma mark Data processing
 private:
-	// TODO: Split this enum up more
 	enum {
 		/**
 		 * The number of the channel in the Sound which contains control data
@@ -1116,9 +1125,20 @@ private:
 		 */
 		kControlChannel = 15,
 
-		// TODO: used for rest/delay
+		/**
+		 * A special flag used to indicate that the current rest is a fixed
+		 * duration rest.
+		 */
 		kFixedRestFlag = 0x8000,
+
+		/**
+		 * The time, in ticks, that a fixed rest should rest.
+		 */
 		kFixedRestAmount = 240,
+
+		/**
+		 * The rest value used for new fixed rests in `Sci1Sound::rest`.
+		 */
 		kFixedRestValue = kFixedRestFlag | kFixedRestAmount
 	};
 
@@ -1134,8 +1154,11 @@ private:
 	 * Processes the next message in all active tracks of the given sound.
 	 * TODO: was parseNode
 	 */
-	void parseNextNode(Sci1Sound &sound, const uint8 playlistIndex);
+	void advancePlayback(Sci1Sound &sound, const uint8 playlistIndex);
 
+	/**
+	 * Processes the next sequence of non-control channel messages.
+	 */
 	void parseCommand(Sci1Sound &sound, const uint8 playlistIndex, const uint8 trackNo, Sci1Sound::Track &track);
 
 	/**

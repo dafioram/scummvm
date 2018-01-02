@@ -155,9 +155,8 @@ public:
 		return 0;
 	}
 
-	virtual uint8 setReverbMode(const uint8 mode) override {
+	virtual void setReverbMode(const uint8 mode) override {
 		debug("TODO: Set reverb mode to %u", mode);
-		return 0;
 	}
 
 	virtual uint8 getMasterVolume() const override {
@@ -165,9 +164,8 @@ public:
 		return 15;
 	}
 
-	virtual uint8 setMasterVolume(const uint8 volume) override {
+	virtual void setMasterVolume(const uint8 volume) override {
 		debug("TODO: Set master volume to %u", volume);
-		return 15;
 	}
 };
 

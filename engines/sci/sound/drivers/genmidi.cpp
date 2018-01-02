@@ -25,7 +25,7 @@
 
 namespace Sci {
 
-Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, SciVersion version) :
+Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version) :
 	Sci1SoundDriver(resMan, version),
 	_reverbMode(0),
 	_masterVolume(15) {
@@ -234,12 +234,11 @@ void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) 
 	}
 }
 
-uint8 Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
-	const uint8 oldVolume = _masterVolume;
+void Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 	_masterVolume = volume;
 
 	if (!_isEnabled) {
-		return oldVolume;
+		return;
 	}
 
 	debugC(kDebugLevelSound, "MV %2d", volume);
@@ -249,8 +248,6 @@ uint8 Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 			controllerChange(i, kVolumeController, channelVolume);
 		}
 	}
-
-	return oldVolume;
 }
 
 void Sci1GeneralMidiDriver::enable(const bool enabled) {
@@ -340,9 +337,9 @@ void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
 	}
 }
 
-SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, SciVersion version) {
+SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version) {
 	if (version <= SCI_VERSION_01) {
-		error("General MIDI not supported by SCI0");
+		return nullptr;
 	} else {
 		return new Sci1GeneralMidiDriver(resMan, version);
 	}

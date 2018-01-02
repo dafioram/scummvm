@@ -52,11 +52,11 @@ reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
 		return make_reg(0, g_sci->_sound->getMasterVolume());
 	} else {
 		const int16 volume = argv[0].toSint16();
+		const uint8 oldVolume = g_sci->_sound->getMasterVolume();
 		if (!g_sci->_guestAdditions->kDoSoundMasterVolumeHook(volume)) {
-			return make_reg(0, g_sci->_sound->setMasterVolume(volume));
-		} else {
-			return make_reg(0, g_sci->_sound->getMasterVolume());
+			g_sci->_sound->setMasterVolume(volume);
 		}
+		return make_reg(0, oldVolume);
 	}
 }
 

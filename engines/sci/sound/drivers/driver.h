@@ -218,7 +218,7 @@ public:
 	/**
 	 * Sets a new reverb mode for the driver and returns the previous mode.
 	 */
-	virtual uint8 setReverbMode(const uint8 mode) = 0;
+	virtual void setReverbMode(const uint8 mode) = 0;
 
 	// In SSCI, these two functions were one MasterVol function, where sending
 	// volume 0xFF would return the current volume without changing anything.
@@ -231,7 +231,7 @@ public:
 	/**
 	 * Sets the master volume and returns the previous volume.
 	 */
-	virtual uint8 setMasterVolume(const uint8 volume) = 0;
+	virtual void setMasterVolume(const uint8 volume) = 0;
 
 	// In SSCI, these two functions were one SoundOn function, where sending
 	// 0xFF would return the current state without changing anything.
