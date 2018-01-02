@@ -662,6 +662,12 @@ private:
 	 */
 	GuiResourceId getSoundResourceId(const uint16 soundNo) const;
 
+	/**
+	 * Determines whether or not the current game can only play General MIDI
+	 * sounds. Used by Windows-only games.
+	 */
+	bool gameHasGeneralMidiOnly() const;
+
 	typedef Common::Array<Sci1Sound> SoundsList;
 
 	ResourceManager &_resMan;
@@ -1122,7 +1128,7 @@ private:
 	 * modified version of the header fixup method from SSCI, changed so as to
 	 * not overwrite parts of the original resource data in memory.
 	 */
-	void findTrackOffsets(Sci1Sound &sound);
+	void readTrackOffsets(Sci1Sound &sound);
 
 	/**
 	 * Processes the next message in all active tracks of the given sound.

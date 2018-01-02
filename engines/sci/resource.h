@@ -399,7 +399,6 @@ public:
 	void setAudioLanguage(int language);
 	int getAudioLanguage() const;
 	void changeAudioDirectory(Common::String path);
-	bool isGMTrackIncluded();
 	bool isSci11Mac() const { return _volVersion == kResVersionSci11Mac; }
 	ViewType getViewType() const { return _viewType; }
 	const char *getMapVersionDesc() const { return versionDescription(_mapVersion); }
@@ -636,62 +635,6 @@ private:
 	// its destruction is managed by freeResourceSources.
 	ResourcePatcher *_patcher;
 	bool _hasBadResources;
-};
-
-// TODO: Get rid of this
-class SoundResource {
-public:
-	struct Channel {
-		byte number;
-		byte flags;
-		byte poly;
-		uint16 prio;
-		SciSpan<const byte> data;
-		uint16 curPos;
-		long time;
-		byte prev;
-
-		Channel() :
-			number(0),
-			flags(0),
-			poly(0),
-			prio(0),
-			data(),
-			curPos(0) {
-			time = 0;
-			prev = 0;
-		}
-	};
-
-	struct Track {
-		byte type;
-		byte channelCount;
-		Channel *channels;
-		int16 digitalChannelNr;
-		uint16 digitalSampleRate;
-		uint16 digitalSampleSize;
-		uint16 digitalSampleStart;
-		uint16 digitalSampleEnd;
-	};
-public:
-	SoundResource(uint32 resNumber, ResourceManager *resMan, SciVersion soundVersion);
-	~SoundResource();
-#if 0
-	Track *getTrackByNumber(uint16 number);
-#endif
-	Track *getTrackByType(byte type);
-	Track *getDigitalTrack();
-	int getChannelFilterMask(int hardwareMask, bool wantsRhythm);
-	byte getInitialVoiceCount(byte channel);
-	byte getSoundPriority() const { return _soundPriority; }
-
-private:
-	SciVersion _soundVersion;
-	int _trackCount;
-	Track *_tracks;
-	Resource *_innerResource;
-	ResourceManager *_resMan;
-	byte _soundPriority;
 };
 
 } // End of namespace Sci

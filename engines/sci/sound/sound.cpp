@@ -47,6 +47,24 @@ static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
 }
 
+static SciSpan<const byte> findTrackOffsets(SciSpan<const byte> data, const Sci1SoundDriver::DeviceId searchId) {
+	if (data[0] == 0xf0) {
+		data += 8;
+	}
+
+	for (uint8 deviceId = *data++; deviceId != 0xff; deviceId = *data++) {
+		if (deviceId == searchId) {
+			return data;
+		} else {
+			while (*data++ != 0xff) {
+				data += 5;
+			}
+		}
+	}
+
+	return SciSpan<const byte>();
+}
+
 SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	_resMan(resMan),
 	_segMan(&segMan),
@@ -68,7 +86,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32
-	if (features.generalMidiOnly()) {
+	if (gameHasGeneralMidiOnly()) {
 		deviceFlags = MDT_MIDI;
 	} else {
 #endif
@@ -105,7 +123,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 				"but no MIDI music device has been selected. Reverting to the DOS soundtrack");
 		features.forceDOSTracks();
 #ifdef ENABLE_SCI32
-	} else if (features.generalMidiOnly() && musicType != MT_GM) {
+	} else if (gameHasGeneralMidiOnly() && musicType != MT_GM) {
 		warning("This game only supports General MIDI, but a non-GM device has "
 				"been selected. Some music may be wrong or missing");
 #endif
@@ -223,6 +241,32 @@ GuiResourceId SoundManager::getSoundResourceId(const uint16 soundNo) const {
 	}
 
 	return soundNo;
+}
+
+bool SoundManager::gameHasGeneralMidiOnly() const {
+#ifdef ENABLE_SCI32
+	switch (g_sci->getGameId()) {
+	case GID_MOTHERGOOSEHIRES:
+		return true;
+	case GID_KQ7: {
+		if (g_sci->isDemo()) {
+			return false;
+		}
+
+		Resource *sound = _resMan.findResource(ResourceId(kResourceTypeSound, 13), false);
+		if (!sound) {
+			return false;
+		}
+
+		enum { kAdLib = 0 };
+		return findTrackOffsets(*sound, kAdLib);
+	}
+	default:
+		break;
+	}
+#endif
+
+	return false;
 }
 
 #pragma mark -
@@ -518,7 +562,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		base += 8;
 	}
 
-	findTrackOffsets(sound);
+	readTrackOffsets(sound);
 
 	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
 		Sci1Sound::Track &track = sound.getTrack(trackNo);
@@ -834,32 +878,21 @@ void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const u
 #pragma mark -
 #pragma mark Data processing
 
-void SoundManager::findTrackOffsets(Sci1Sound &sound) {
-	SciSpan<const byte> data = *sound.resource;
-	if (data[0] == 0xf0) {
-		data += 8;
+void SoundManager::readTrackOffsets(Sci1Sound &sound) {
+	Sci1SoundDriver::DeviceId deviceId = _driver->getDeviceId();
+	SciSpan<const byte> data = findTrackOffsets(*sound.resource, deviceId);
+	if (!data) {
+		error("Unable to find track offsets for device ID %u in %s", deviceId, sound.resource->name().c_str());
 	}
 
-	const Sci1SoundDriver::DeviceId searchId = _driver->getDeviceId();
-	for (uint8 deviceId = *data++; deviceId != 0xff; deviceId = *data++) {
-		if (deviceId == searchId) {
-			int trackNo = 0;
-			for (uint8 endMarker = *data; endMarker != 0xff; endMarker = *data) {
-				// TODO: Could be SCI-endian
-				Sci1Sound::Track &track = sound.getTrack(trackNo++);
-				track.offset = data.getUint16LEAt(2);
-				track.size = data.getUint16LEAt(4);
-				data += 6;
-			}
-			return;
-		} else {
-			while (*data++ != 0xff) {
-				data += 5;
-			}
-		}
+	int trackNo = 0;
+	for (uint8 endMarker = *data; endMarker != 0xff; endMarker = *data) {
+		// TODO: Could be SCI-endian
+		Sci1Sound::Track &track = sound.getTrack(trackNo++);
+		track.offset = data.getUint16LEAt(2);
+		track.size = data.getUint16LEAt(4);
+		data += 6;
 	}
-
-	error("Unable to find track offsets for device ID %u in %s", searchId, sound.resource->name().c_str());
 }
 
 void SoundManager::parseNextNode(Sci1Sound &sound, uint8 playlistIndex) {
