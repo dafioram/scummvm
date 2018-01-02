@@ -499,6 +499,12 @@ void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, con
 			break;
 		}
 
+		// In SSCI, this code would overread past the end of channel flags into
+		// the mute save field for the control channel
+		if (channelNo == kControlChannel) {
+			continue;
+		}
+
 		const Sci1Sound::Channel &channel = sound.getChannel(channelNo);
 		if ((channel.flags & Sci1Sound::Channel::kExtra) &&
 			!_hardwareChannels[channelNo].isMapped()) {
