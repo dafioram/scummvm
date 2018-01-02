@@ -679,6 +679,7 @@ void SoundManager::reconstructPlaylist() {
 				kernelPlay(soundObj, false);
 			}
 		} else if (sound->state != Sci1Sound::kStopped) {
+			assert(!sound->resource);
 			sound->resource = _resMan.findResource(sound->id, true);
 			assert(sound->resource);
 			writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
