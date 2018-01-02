@@ -716,7 +716,7 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 	s.syncAsUint32LE(numSounds);
 
 	Sci1Sound prototype;
-	for (int i = 0; i < numSounds; ++i) {
+	for (uint i = 0; i < numSounds; ++i) {
 		uint16 resourceNo;
 		syncWithSerializer(s, prototype.nodePtr);
 		s.syncAsSint16LE(resourceNo);
