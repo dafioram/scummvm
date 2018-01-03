@@ -466,7 +466,7 @@ void SoundManager::fade(Sci1Sound &sound, const int16 targetVolume, const int16 
 	// In SSCI the stop flag got baked into the high bit of target volume,
 	// make sure that we are not getting any out of range values from scripts
 	// that relied on that (or for any other reason)
-	assert(targetVolume >= 0 && targetVolume < Sci1Sound::kMaxVolume);
+	assert(targetVolume >= 0 && targetVolume <= Sci1Sound::kMaxVolume);
 
 	sound.fadeTargetVolume = targetVolume;
 	sound.stopSoundOnFade = stopAfterFade;
