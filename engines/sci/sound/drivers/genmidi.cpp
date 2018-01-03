@@ -266,7 +266,11 @@ void Sci1GeneralMidiDriver::enable(const bool enabled) {
 	if (enabled) {
 		setMasterVolume(_masterVolume);
 	} else {
-		for (int i = kMinChannel; i <= kPercussionChannel; ++i) {
+		uint8 maxChannel = kPercussionChannel;
+		if (_version < SCI_VERSION_2) {
+			--maxChannel;
+		}
+		for (int i = kMinChannel; i <= maxChannel; ++i) {
 			_channels[i].hw->controlChange(kVolumeController, 0);
 		}
 	}
