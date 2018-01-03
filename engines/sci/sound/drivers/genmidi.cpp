@@ -307,7 +307,7 @@ void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
 
 			int len = sysExEnd - sysExStart;
 
-			_device->sysEx(sysExEnd, len);
+			_device->sysEx(sysExStart, len);
 
 			// Wait the time it takes to send the SysEx data
 			uint32 delay = (len + 2) * 1000 / 3125;
