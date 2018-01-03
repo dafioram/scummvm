@@ -156,7 +156,12 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 //		_driver.reset(makeFmTownsDriver(resMan, _soundVersion));
 		break;
 	case MT_MT32:
-		error("TODO MT-32");
+		if (_soundVersion >= SCI_VERSION_2) {
+			// TODO: Wrong!
+			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion, true)));
+		} else {
+			error("TODO MT-32");
+		}
 		break;
 	case MT_GM:
 		if (ConfMan.getBool("native_fb01")) {
@@ -164,7 +169,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 //			_driver.reset(makeFb01Driver(resMan, _soundVersion));
 		} else {
 			// TODO: Wrong!
-			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion)));
+			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion, false)));
 		}
 		break;
 	default:

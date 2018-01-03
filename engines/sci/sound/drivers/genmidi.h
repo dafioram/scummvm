@@ -50,7 +50,7 @@ public:
 		kMinChannel = 1
 	};
 
-	Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version);
+	Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32);
 	virtual ~Sci1GeneralMidiDriver();
 
 	virtual int getNumVoices() const override { return 32; }
@@ -159,7 +159,7 @@ private:
 
 	// TODO: Make common code let us send MIDI data like this, having to parse
 	// the messages ourselves is lame.
-	void sendBytes(Common::Span<const byte> data) const;
+	void sendBytes(Common::Span<const byte> data, const bool skipDelays) const;
 
 	bool remapNote(const uint8 channelNo, uint8 &note) const;
 
@@ -196,7 +196,7 @@ private:
 	Common::FixedArray<Common::FixedArray<uint8, kNumVelocities>, kNumVelocityMaps> _velocityMaps;
 };
 
-SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version);
+SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32);
 
 } // End of namespace Sci
 

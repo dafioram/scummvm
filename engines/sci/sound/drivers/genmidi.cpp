@@ -25,12 +25,12 @@
 
 namespace Sci {
 
-Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version) :
+Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) :
 	Sci1SoundDriver(resMan, version),
 	_reverbMode(0),
 	_masterVolume(15) {
 
-	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_PREFER_GM);
+	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | (isMt32 ? MDT_PREFER_MT32 : MDT_PREFER_GM));
 	_device.reset(MidiDriver::createMidi(dev));
 	assert(_device);
 	const int errNo = _device->open();
@@ -39,14 +39,20 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 	}
 
 	if (version >= SCI_VERSION_2) {
-		_deviceId = 7;
-	} else if (version >= SCI_VERSION_1_LATE) {
-		_deviceId = 12;
+		_deviceId = isMt32 ? 12 : 7;
 	} else {
-		error("Unimplemented SCI sound version %d", version);
+		if (isMt32) {
+			error("General MIDI driver can only be used for MT-32 in SCI32");
+		}
+
+		if (version >= SCI_VERSION_1_LATE) {
+			_deviceId = 12;
+		} else {
+			error("Unimplemented SCI sound version %d", version);
+		}
 	}
 
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 4), false);
+	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, isMt32 ? 1 : 4), false);
 	SciSpan<const byte> midiData;
 	if (patchData) {
 		patchData->subspan(0, _programMap.size()).unsafeCopyDataTo(_programMap.data());
@@ -59,7 +65,7 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 			patchData->subspan(641 + (i * _velocityMaps[0].size()), _velocityMaps[0].size()).unsafeCopyDataTo(_velocityMaps[i].data());
 		}
 		midiData = patchData->subspan(1153 + sizeof(uint16), patchData->getUint16LEAt(1153));
-	} else {
+	} else if (!isMt32) {
 		warning("No GM patch data found, using defaults");
 		for (int i = 0; i < kNumPrograms; ++i) {
 			_programMap[i] = i;
@@ -75,6 +81,8 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 			_velocityMaps[0][i] = i;
 		}
 		midiData = SciSpan<const byte>(defaultSci32GMPatchMidiData, sizeof(defaultSci32GMPatchMidiData));
+	} else {
+		error("No MT-32 patch found");
 	}
 
 	for (int i = 0; i < kNumChannels; ++i) {
@@ -85,7 +93,9 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 		}
 	}
 
-	sendBytes(midiData);
+	const bool isEmulatedMt32 = (MidiDriver::getDeviceString(dev, MidiDriver::kDriverId) == "mt32");
+
+	sendBytes(midiData, isEmulatedMt32);
 	setMasterVolume(12);
 }
 
@@ -287,7 +297,7 @@ void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
 	}
 }
 
-void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
+void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data, const bool skipDelays) const {
 	byte command = 0;
 
 	uint i = 0;
@@ -309,10 +319,12 @@ void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
 
 			_device->sysEx(sysExStart, len);
 
-			// Wait the time it takes to send the SysEx data
-			uint32 delay = (len + 2) * 1000 / 3125;
-			g_system->updateScreen();
-			g_sci->sleep(delay);
+			if (!skipDelays) {
+				// Wait the time it takes to send the SysEx data
+				uint32 delay = (len + 2) * 1000 / 3125;
+				g_system->updateScreen();
+				g_sci->sleep(delay);
+			}
 
 			i += len + 1; // One more for the 0xf7
 			break;
@@ -337,11 +349,11 @@ void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data) const {
 	}
 }
 
-SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version) {
+SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) {
 	if (version <= SCI_VERSION_01) {
 		return nullptr;
 	} else {
-		return new Sci1GeneralMidiDriver(resMan, version);
+		return new Sci1GeneralMidiDriver(resMan, version, isMt32);
 	}
 }
 
