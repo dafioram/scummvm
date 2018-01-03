@@ -159,7 +159,7 @@ private:
 
 	// TODO: Make common code let us send MIDI data like this, having to parse
 	// the messages ourselves is lame.
-	void sendBytes(Common::Span<const byte> data, const bool skipDelays) const;
+	void sendBytes(SciSpan<const byte> data, const bool skipDelays) const;
 
 	bool remapNote(const uint8 channelNo, uint8 &note) const;
 

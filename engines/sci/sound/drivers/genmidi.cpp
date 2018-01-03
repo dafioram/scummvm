@@ -301,7 +301,7 @@ void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
 	}
 }
 
-void Sci1GeneralMidiDriver::sendBytes(Common::Span<const byte> data, const bool skipDelays) const {
+void Sci1GeneralMidiDriver::sendBytes(SciSpan<const byte> data, const bool skipDelays) const {
 	byte command = 0;
 
 	uint i = 0;
