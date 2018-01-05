@@ -172,7 +172,7 @@ private:
 	uint8 _masterVolume;
 
 	/** The output channel state. */
-	Channel _channels[16];
+	Common::FixedArray<Channel, 16> _channels;
 
 	/** A map from input program # to output program #. */
 	Common::FixedArray<uint8, kNumPrograms> _programMap;

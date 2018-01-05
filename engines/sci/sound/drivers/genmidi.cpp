@@ -38,6 +38,14 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 		error("Failure opening General MIDI device: %s", _device->getErrorName(errNo));
 	}
 
+	for (int i = 0; i < kNumChannels; ++i) {
+		if (i == kPercussionChannel) {
+			_channels[i].hw = static_cast<MidiChannel_MPU401 *>(_device->getPercussionChannel());
+		} else {
+			_channels[i].hw = static_cast<MidiChannel_MPU401 *>(_device->allocateChannel());
+		}
+	}
+
 	if (version >= SCI_VERSION_2) {
 		_deviceId = isMt32 ? 12 : 7;
 	} else {
@@ -85,14 +93,6 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 		error("No MT-32 patch found");
 	}
 
-	for (int i = 0; i < kNumChannels; ++i) {
-		if (i == kPercussionChannel) {
-			_channels[i].hw = static_cast<MidiChannel_MPU401 *>(_device->getPercussionChannel());
-		} else {
-			_channels[i].hw = static_cast<MidiChannel_MPU401 *>(_device->allocateChannel());
-		}
-	}
-
 	const bool isEmulatedMt32 = (MidiDriver::getDeviceString(dev, MidiDriver::kDriverId) == "mt32");
 
 	sendBytes(midiData, isEmulatedMt32);
@@ -100,6 +100,7 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 }
 
 Sci1GeneralMidiDriver::~Sci1GeneralMidiDriver() {
+	_device->close();
 	// TODO: Send All Notes Off controller message if ScummVM does not clean up
 	// for us
 }
