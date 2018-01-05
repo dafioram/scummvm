@@ -295,7 +295,9 @@ void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool ski
 		_device->sysEx(buffer, kHeaderSize + length + 1);
 
 		if (!skipDelays) {
-			const uint32 delay = (length + kNonDataSize) * 1000 / 3125;
+			enum { kMt32Rev00BufferOverflowAvoidance = 40 };
+			const uint32 delay = (length + kNonDataSize) * 1000 / 3125 +
+				kMt32Rev00BufferOverflowAvoidance;
 			g_system->updateScreen();
 			g_sci->sleep(delay);
 		}
