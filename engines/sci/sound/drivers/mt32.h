@@ -144,12 +144,12 @@ private:
 			hw(nullptr) {}
 	};
 
+	typedef SciSpan<const byte> SysEx;
+
 	/**
 	 * The list of preprogrammed reverb mode settings.
 	 */
 	Common::FixedArray<Common::FixedArray<byte, 3>, 11> _reverbModes;
-
-	typedef SciSpan<const byte> SysEx;
 
 	/**
 	 * Send a DT1 SysEx to the given address.
@@ -157,15 +157,28 @@ private:
 	void sendSysEx(const uint32 address, const SysEx &data, const bool skipDelays);
 
 	/**
-	 * Send a DT1 SysEx to the given address
+	 * Send a DT1 SysEx to the given address, incrementing the address and
+	 * and SysEx positions automatically by the given size.
 	 */
 	void sendCountingSysEx(uint32 &address, SysEx &data, const uint8 size);
 
+	/**
+	 * Sends a patch set to the given device address, and increments the address
+	 * to point to the next free address in the patch bank.
+	 */
 	void sendPatches(uint32 &address, SysEx data);
+
+	/**
+	 * Sends timbre data to the device.
+	 */
 	void sendTimbres(const uint8 numTimbres, SysEx data);
 
+	/**
+	 * Converts and sends the given master volume to the device.
+	 */
 	void sendMasterVolume(const uint8 volume);
 
+	/** The ID used within Sound resources for identifying this device. */
 	DeviceId _deviceId;
 
 	/** The last reverb mode passed to the driver. */
@@ -177,8 +190,10 @@ private:
 	/** The output channel state. */
 	Common::FixedArray<Channel, kNumChannels> _channels;
 
+	/** Whether or not the MT-32 device is a softsynth. */
 	bool _isEmulated;
 
+	/** The message written to the MT-32 display on shutdown. */
 	Common::FixedArray<byte, 20> _goodbyeSysEx;
 };
 

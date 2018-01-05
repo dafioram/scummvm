@@ -49,7 +49,7 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 
 	if (version >= SCI_VERSION_2) {
 		error("MT-32 driver should be the GM driver for SCI32");
-	} else if (version >= SCI_VERSION_1_LATE) {
+	} else if (version >= SCI_VERSION_1_EGA_ONLY) {
 		_deviceId = 12;
 	} else {
 		error("Unimplemented SCI sound version %d", version);
