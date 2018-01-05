@@ -70,6 +70,7 @@ MODULE_OBJS := \
 	sound/sound.o \
 	sound/sync.o \
 	sound/drivers/genmidi.o \
+	sound/drivers/mt32.o \
 	video/seq_decoder.o
 
 

@@ -40,6 +40,7 @@
 #include "sci/sound/sound.h"
 #include "sci/sound/drivers/adlib.h"
 #include "sci/sound/drivers/genmidi.h"
+#include "sci/sound/drivers/mt32.h"
 
 namespace Sci {
 
@@ -160,7 +161,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 			// TODO: Wrong!
 			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion, true)));
 		} else {
-			error("TODO MT-32");
+			_driver.reset(static_cast<Sci1SoundDriver *>(makeMt32Driver(resMan, _soundVersion)));
 		}
 		break;
 	case MT_GM:
