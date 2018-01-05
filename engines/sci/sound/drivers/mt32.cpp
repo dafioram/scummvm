@@ -280,7 +280,6 @@ void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool ski
 		buffer[5] = (address >> 8) & 0xff;
 		buffer[6] = address & 0xff;
 		const uint length = MIN<uint>(size, kMaxDataSize);
-		Common::copy(source, source + length, buffer + kHeaderSize);
 
 		uint16 checksum = 0;
 		for (uint i = 4; i < kHeaderSize; ++i) {
