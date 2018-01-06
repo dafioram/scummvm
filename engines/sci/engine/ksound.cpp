@@ -151,6 +151,8 @@ reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv) {
+	// In SSCI, these checks were in the single SetReverb function; since we
+	// split the function for clarity, the checks are moved here instead
 	if (argc == 0 || argv[0].toSint16() == 0xff) {
 		return make_reg(0, g_sci->_sound->getReverbMode());
 	} else if (argv[0].toUint16() > 10) {
