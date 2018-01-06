@@ -143,6 +143,8 @@ SciVersion GameFeatures::detectDoSoundType() {
 			//  SCI0LATE. Although the last SCI0EARLY game (lsl2) uses SCI0LATE resources
 			_doSoundType = g_sci->getResMan()->detectEarlySound() ? SCI_VERSION_0_EARLY : SCI_VERSION_0_LATE;
 #ifdef ENABLE_SCI32
+		} else if (getSciVersion() == SCI_VERSION_3) {
+			_doSoundType = SCI_VERSION_3;
 		} else if (getSciVersion() >= SCI_VERSION_2_1_MIDDLE &&
 				   g_sci->getGameId() != GID_SQ6 &&
 				   // Assuming MGDX uses SCI2.1early sound mode since SQ6 does

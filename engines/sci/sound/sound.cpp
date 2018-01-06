@@ -1771,7 +1771,8 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	}
 
 #ifdef ENABLE_SCI32
-	// TODO: Figure out the exact SCI versions which did this
+	// TODO: Figure out the exact SCI versions which did this, it is at least
+	// SCI2.1early
 	if (_soundVersion >= SCI_VERSION_2 &&
 		sound->resource &&
 		sound->resource->getType() == kResourceTypeAudio) {
@@ -2019,7 +2020,7 @@ void SoundManager::kernelSetLoop(const reg_t soundObj, const bool enable) {
 	}
 
 #ifdef ENABLE_SCI32
-	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
+	if (_soundVersion >= SCI_VERSION_2_1_MIDDLE && sound->isSample) {
 		g_sci->_audio32->setLoop(sound->id, nodePtr, enable);
 	} else
 #endif
@@ -2042,7 +2043,7 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 		if (_soundVersion >= SCI_VERSION_2) {
 			position = g_sci->_audio32->getPosition(sound->id, nodePtr);
 
-			if (getSciVersion() == SCI_VERSION_3) {
+			if (_soundVersion == SCI_VERSION_3) {
 				// In SSCI the volume is first set to -1 and then reset later if
 				// a sample is playing in the audio player, but since our audio
 				// code returns -1 for not-found samples, the extra check is not
