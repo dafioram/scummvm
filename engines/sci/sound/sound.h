@@ -631,7 +631,10 @@ public:
 	 * Returns the preferred resource type for the given sound resource.
 	 */
 	ResourceType getSoundResourceType(const uint16 resourceNo) const {
-		if (_preferSampledSounds && _resMan.testResource(ResourceId(kResourceTypeAudio, resourceNo))) {
+		if (_preferSampledSounds &&
+			_soundVersion >= SCI_VERSION_1_1 &&
+			_resMan.testResource(ResourceId(kResourceTypeAudio, resourceNo))) {
+
 			return kResourceTypeAudio;
 		} else {
 			return kResourceTypeSound;

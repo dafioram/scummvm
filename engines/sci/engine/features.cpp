@@ -161,8 +161,9 @@ SciVersion GameFeatures::detectDoSoundType() {
 			// No nodePtr selector, so this game is definitely using newer
 			// SCI0 sound code (i.e. SCI_VERSION_0_LATE)
 			_doSoundType = SCI_VERSION_0_LATE;
+		} else if (getSciVersion() == SCI_VERSION_1_1 && Common::File::exists("RESOURCE.AUD")) {
+			_doSoundType = SCI_VERSION_1_1;
 		} else if (getSciVersion() >= SCI_VERSION_1_LATE) {
-			// All SCI1 late games use the newer doSound semantics
 			_doSoundType = SCI_VERSION_1_LATE;
 		} else {
 			if (!autoDetectSoundType()) {

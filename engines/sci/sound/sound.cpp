@@ -2121,6 +2121,9 @@ void SoundManager::kernelSendMidi(const reg_t soundObj, int16 channel, const int
 		setProgram(*sound, channel, a);
 		break;
 	case kPitchBend:
+		// In SCI1late, the MIDI ASM code accepted the signed value and
+		// converted it; in SCI1.1+ the value was converted here. TODO: Change
+		// this to the SCI1late mode to eliminate unnecessary arithmetic
 		setPitchBend(*sound, channel, a + 0x2000);
 		break;
 	}
