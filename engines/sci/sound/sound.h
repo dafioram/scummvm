@@ -948,6 +948,11 @@ public:
 	uint8 setReverbMode(const uint8 reverbMode);
 
 	/**
+	 * Returns whether sound reproduction is enabled in the driver.
+	 */
+	bool isSoundEnabled() const;
+
+	/**
 	 * Enables and disables sound reproduction in the driver. This method is
 	 * idempotent.
 	 */

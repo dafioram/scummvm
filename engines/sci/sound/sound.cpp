@@ -448,6 +448,11 @@ uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
 	return oldReverbMode;
 }
 
+bool SoundManager::isSoundEnabled() const {
+	Common::StackLock lock(_mutex);
+	return _driver->isEnabled();
+}
+
 void SoundManager::setSoundOn(const bool enable) {
 	Common::StackLock lock(_mutex);
 	_driver->enable(enable);

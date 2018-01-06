@@ -61,7 +61,11 @@ reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv) {
-	error("kDoSoundMute: Not reimplemented yet");
+	const reg_t oldState = make_reg(0, g_sci->_sound->isSoundEnabled());
+	if (argc > 0 && argv[0].toSint16() != 0xff) {
+		g_sci->_sound->setSoundOn(argv[0].toSint16());
+	}
+	return oldState;
 }
 
 reg_t kDoSoundGetPolyphony(EngineState *s, int argc, reg_t *argv) {
@@ -78,11 +82,11 @@ reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv) {
 	// TODO: At least SCI32 GM driver indicates that drivers used to accept a
 	// value of 0xff to receive status without sending status. In SSCI1.1+ this
 	// value was never returned to game scripts. Figure this out.
-	if (argv[0].toUint16() == 0xff) {
+	if (argv[0].toSint16() == 0xff) {
 		warning("kDoSoundSuspend: Received request to get sound state, ignoring");
 		return s->r_acc;
 	}
-	g_sci->_sound->setSoundOn(!argv[0].toUint16());
+	g_sci->_sound->enableSoundServer(!argv[0].toSint16());
 	return s->r_acc;
 }
 
