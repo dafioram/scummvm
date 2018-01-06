@@ -104,6 +104,8 @@ private:
 		kMaxVolume = 127
 	};
 
+	// TODO: These values are common to at least GM and MT-32 so should probably
+	// go somewhere common
 	enum {
 		kPercussionChannel = 9,
 		kUnmapped = 0xff,
@@ -158,11 +160,16 @@ private:
 	};
 
 	// TODO: Make common code let us send MIDI data like this, having to parse
-	// the messages ourselves is lame.
+	// the messages ourselves seems like it would cause a lot of code
+	// redundancy.
 	void sendBytes(SciSpan<const byte> data, const bool skipDelays) const;
 
 	bool remapNote(const uint8 channelNo, uint8 &note) const;
 
+	/**
+	 * The ID used within Sound resources for identifying the correct tracks
+	 * for this device.
+	 */
 	DeviceId _deviceId;
 
 	/** The last reverb mode passed to the driver. This value is not used. */

@@ -129,25 +129,6 @@ void Sci1GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 vel
 	}
 }
 
-bool Sci1GeneralMidiDriver::remapNote(const uint8 channelNo, uint8 &note) const {
-	const Channel &channel = _channels[channelNo];
-	if (channelNo == kPercussionChannel) {
-		if (_percussionMap[note] == kUnmapped) {
-			return false;
-		}
-		note = _percussionMap[note];
-		return true;
-	} else if (channel.outProgram != kUnmapped) {
-		note += channel.noteShift;
-		const int8 octave = channel.noteShift > 0 ? -kNotesPerOctave : kNotesPerOctave;
-		while (note >= kNumNotes) {
-			note += octave;
-		}
-		return true;
-	}
-	return false;
-}
-
 void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 controllerNo, uint8 value) {
 	Channel &channel = _channels[channelNo];
 	switch (controllerNo) {
@@ -352,6 +333,25 @@ void Sci1GeneralMidiDriver::sendBytes(SciSpan<const byte> data, const bool skipD
 			error("Failed to find MIDI command byte");
 		}
 	}
+}
+
+bool Sci1GeneralMidiDriver::remapNote(const uint8 channelNo, uint8 &note) const {
+	const Channel &channel = _channels[channelNo];
+	if (channelNo == kPercussionChannel) {
+		if (_percussionMap[note] == kUnmapped) {
+			return false;
+		}
+		note = _percussionMap[note];
+		return true;
+	} else if (channel.outProgram != kUnmapped) {
+		note += channel.noteShift;
+		const int8 octave = channel.noteShift > 0 ? -kNotesPerOctave : kNotesPerOctave;
+		while (note >= kNumNotes) {
+			note += octave;
+		}
+		return true;
+	}
+	return false;
 }
 
 SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) {

@@ -129,12 +129,6 @@ Sci1Mt32Driver::~Sci1Mt32Driver() {
 	_device->close();
 }
 
-void Sci1Mt32Driver::sendPatches(uint32 &address, SysEx data) {
-	for (int i = 0; i < 48; ++i) {
-		sendCountingSysEx(address, data, 8);
-	}
-}
-
 void Sci1Mt32Driver::noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	_channels[channelNo].hw->noteOff(note, velocity);
 }
@@ -217,14 +211,6 @@ void Sci1Mt32Driver::setMasterVolume(const uint8 volume) {
 	sendMasterVolume(volume);
 }
 
-void Sci1Mt32Driver::sendMasterVolume(uint8 volume) {
-	// SSCI used a LUT, we don't need that extra bit of performance so we just
-	// calculate the value
-	volume = (volume * 100 + (kMaxMasterVolume / 2)) / kMaxMasterVolume;
-	const byte data[] = { volume };
-	sendSysEx(kMasterVolumeAddress, SysEx(data, sizeof(data)), true);
-}
-
 void Sci1Mt32Driver::enable(const bool enabled) {
 	Sci1SoundDriver::enable(enabled);
 	if (enabled) {
@@ -234,23 +220,23 @@ void Sci1Mt32Driver::enable(const bool enabled) {
 	}
 }
 
-void Sci1Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8 size) {
-	sendSysEx(address, data.subspan(0, size), _isEmulated);
-	address += size;
-	data += size;
-	if (address & 0x80) {
-		address += 0x100 - 0x80;
-	}
-}
-
-void Sci1Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
-	uint32 address = kTimbreAddress;
-	for (int i = 0; i < numTimbres; ++i) {
-		sendCountingSysEx(address, data, 14);
-		for (int j = 0; j < 4; ++j) {
-			sendCountingSysEx(address, data, 58);
+void Sci1Mt32Driver::debugPrintState(Console &con) const {
+	con.debugPrintf("Channels:\n\n");
+	for (int i = 0; i < kNumChannels; ++i) {
+		const Channel &channel = _channels[i];
+		if (channel.program != kUnmapped) {
+			// modulation is excluded because it is never sent to the device
+			con.debugPrintf("%2d: prog %u bend %04x pan %u vol %u dp %d%s\n",
+							i,
+							channel.program,
+							channel.pitchBend,
+							channel.pan,
+							channel.volume,
+							channel.damperPedalOn,
+							channel.enabled ? "" : ", disabled");
+		} else {
+			con.debugPrintf("%2d: unmapped\n", i);
 		}
-		address += 0x200;
 	}
 }
 
@@ -311,24 +297,38 @@ void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool ski
 	}
 }
 
-void Sci1Mt32Driver::debugPrintState(Console &con) const {
-	con.debugPrintf("Channels:\n\n");
-	for (int i = 0; i < kNumChannels; ++i) {
-		const Channel &channel = _channels[i];
-		if (channel.program != kUnmapped) {
-			// modulation is excluded because it is never sent to the device
-			con.debugPrintf("%2d: prog %u bend %04x pan %u vol %u dp %d%s\n",
-							i,
-							channel.program,
-							channel.pitchBend,
-							channel.pan,
-							channel.volume,
-							channel.damperPedalOn,
-							channel.enabled ? "" : ", disabled");
-		} else {
-			con.debugPrintf("%2d: unmapped\n", i);
-		}
+void Sci1Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8 size) {
+	sendSysEx(address, data.subspan(0, size), _isEmulated);
+	address += size;
+	data += size;
+	if (address & 0x80) {
+		address += 0x100 - 0x80;
 	}
+}
+
+void Sci1Mt32Driver::sendPatches(uint32 &address, SysEx data) {
+	for (int i = 0; i < kPatchesPerBank; ++i) {
+		sendCountingSysEx(address, data, kPatchSize);
+	}
+}
+
+void Sci1Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
+	uint32 address = kTimbreAddress;
+	for (int i = 0; i < numTimbres; ++i) {
+		sendCountingSysEx(address, data, kShortTimbreSize);
+		for (int j = 0; j < kNumLongTimbres; ++j) {
+			sendCountingSysEx(address, data, kLongTimbreSize);
+		}
+		address += 0x200;
+	}
+}
+
+void Sci1Mt32Driver::sendMasterVolume(uint8 volume) {
+	// SSCI used a LUT, we don't need that extra bit of performance so we just
+	// calculate the value
+	volume = (volume * 100 + (kMaxMasterVolume / 2)) / kMaxMasterVolume;
+	const byte data[] = { volume };
+	sendSysEx(kMasterVolumeAddress, SysEx(data, sizeof(data)), true);
 }
 
 SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version) {

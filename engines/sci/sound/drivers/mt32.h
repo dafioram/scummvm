@@ -83,18 +83,14 @@ public:
 
 private:
 	enum {
-		kNumChannels = 16
-	};
-
-	enum {
-		kPercussionChannel = 9,
-		kUnmapped = 0xff,
-		kMaxMasterVolume = 15
-	};
-
-	enum {
-		kPatchDataSize = 8 * 48,
-		kTimbreDataSize = 14 + 58 * 4
+		kNumChannels = 16,
+		kPatchesPerBank = 48,
+		kPatchSize = 8,
+		kShortTimbreSize = 14,
+		kLongTimbreSize = 58,
+		kNumLongTimbres = 4,
+		kPatchDataSize = kPatchSize * kPatchesPerBank,
+		kTimbreDataSize = kShortTimbreSize + kLongTimbreSize * 4
 	};
 
 	enum {
@@ -106,6 +102,14 @@ private:
 		kMasterVolumeAddress = 0x100016,
 		kDisplayAddress = 0x200000,
 		kDisableCm32PAddress = 0x52000a
+	};
+
+	// TODO: These values are common to at least GM and MT-32 so should probably
+	// go somewhere common
+	enum {
+		kPercussionChannel = 9,
+		kUnmapped = 0xff,
+		kMaxMasterVolume = 15
 	};
 
 	Common::ScopedPtr<MidiDriver> _device;
@@ -147,11 +151,6 @@ private:
 	typedef SciSpan<const byte> SysEx;
 
 	/**
-	 * The list of preprogrammed reverb mode settings.
-	 */
-	Common::FixedArray<Common::FixedArray<byte, 3>, 11> _reverbModes;
-
-	/**
 	 * Send a DT1 SysEx to the given address.
 	 */
 	void sendSysEx(const uint32 address, const SysEx &data, const bool skipDelays);
@@ -178,8 +177,14 @@ private:
 	 */
 	void sendMasterVolume(const uint8 volume);
 
-	/** The ID used within Sound resources for identifying this device. */
+	/**
+	 * The ID used within Sound resources for identifying the correct tracks
+	 * for this device.
+	 */
 	DeviceId _deviceId;
+
+	/** Whether or not the MT-32 device is a softsynth. */
+	bool _isEmulated;
 
 	/** The last reverb mode passed to the driver. */
 	uint8 _reverbMode;
@@ -187,14 +192,14 @@ private:
 	/** The current master volume. */
 	uint8 _masterVolume;
 
-	/** The output channel state. */
-	Common::FixedArray<Channel, kNumChannels> _channels;
-
-	/** Whether or not the MT-32 device is a softsynth. */
-	bool _isEmulated;
-
 	/** The message written to the MT-32 display on shutdown. */
 	Common::FixedArray<byte, 20> _goodbyeSysEx;
+
+	/** The list of preprogrammed reverb mode settings. */
+	Common::FixedArray<Common::FixedArray<byte, 3>, 11> _reverbModes;
+
+	/** The output channel state. */
+	Common::FixedArray<Channel, kNumChannels> _channels;
 };
 
 SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version);
@@ -202,4 +207,3 @@ SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version);
 } // End of namespace Sci
 
 #endif
-
