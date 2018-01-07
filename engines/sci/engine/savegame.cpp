@@ -644,7 +644,7 @@ void SoundManager::serializeSounds(Common::Serializer &s) {
 
 void SoundManager::prepareForRestore() {
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
-		if (sound->isSample) {
+		if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 #ifdef ENABLE_SCI32
 			if (_soundVersion >= SCI_VERSION_2) {
 				g_sci->_audio32->stop(sound->id, sound->nodePtr);
@@ -671,7 +671,7 @@ void SoundManager::reconstructPlaylist() {
 
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
 		const reg_t soundObj = sound->nodePtr;
-		if (sound->isSample) {
+		if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 			if (_soundVersion >= SCI_VERSION_2 &&
 				readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff &&
 				!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull()) {
@@ -684,6 +684,8 @@ void SoundManager::reconstructPlaylist() {
 			assert(sound->resource);
 			writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
 			restore(*sound);
+			// SSCI1late locked the resource handle here for digital samples,
+			// but we already do this anyway
 		} else {
 			writeSelector(_segMan, soundObj, SELECTOR(handle), NULL_REG);
 		}

@@ -557,11 +557,19 @@ struct Sci1Sound : public Common::Serializable {
 	 */
 	uint8 numPauses;
 
-	/**
-	 * If true, the sound is actually a digital sample which should be played
-	 * through Audio/Audio32. TODO: Added around SCI1.1?
-	 */
-	bool isSample;
+	union {
+		/**
+		 * If true, the sound is actually a digital sample which should be
+		 * played through Audio/Audio32. This is used by SCI1.1+.
+		 */
+		bool isSample;
+
+		/**
+		 * If non-zero, the sound is actually a digital sample. If 0x80 bit is
+		 * set, the sample has also been loaded. This is used by SCI1late-.
+		 */
+		uint8 sampleTrackNo;
+	};
 
 	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
 	Sci1Sound(const reg_t nodePtr_ = NULL_REG) :
@@ -586,7 +594,7 @@ struct Sci1Sound : public Common::Serializable {
 		fadeDelayRemaining(0),
 		fadeAmountPerTick(0),
 		numPauses(0),
-		isSample(false) {}
+		sampleTrackNo(0) {}
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 
@@ -648,6 +656,19 @@ public:
 	int getNumVoices() const;
 
 	/**
+	 * Gets the number of available channels for playing digital audio samples.
+	 */
+	int getNumDacs() const {
+		// TODO: Decide if non-PC platforms can benefit from being told of more
+		// than one DAC.
+		if (_preferSampledSounds) {
+			return 1;
+		}
+
+		return 0;
+	}
+
+	/**
 	 * Used to pause/resume sound when launcher or debugger are open.
 	 */
 	void systemSuspend(const bool pause);
@@ -707,14 +728,15 @@ private:
 #pragma mark Save management
 public:
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
-	void legacyRestore(Common::Serializer &s);
-	void serializeSounds(Common::Serializer &s);
 	// TODO: was SaveRestoreAfter/RestoreAllSounds
 	void reconstructPlaylist();
+
+private:
+	void legacyRestore(Common::Serializer &s);
+	void serializeSounds(Common::Serializer &s);
 	// TODO: was KillAllSounds
 	void prepareForRestore();
 
-private:
 	/**
 	 * Restores the given sound to its previous playback state by
 	 * fast-forwarding up to the point given in `ticksElapsed`.
@@ -929,7 +951,7 @@ private:
 	 * If true, the channel mapping needs to be updated the next time the sound
 	 * server is called.
 	 */
-	bool _needsUpdate;
+	bool _needsRemap;
 
 #pragma mark -
 #pragma mark Effects
@@ -961,6 +983,7 @@ public:
 	 */
 	void setSoundOn(const bool enable);
 
+private:
 	/**
 	 * Immediately sets the volume of the given sound.
 	 * TODO: was ChangeVolume
@@ -1041,6 +1064,13 @@ public:
 	};
 
 	/**
+	 * Pauses or unpauses all sounds. This function uses the same counter as
+	 * single-sound pauses so will also unpause individually paused sounds.
+	 */
+	void pauseAll(const bool pause);
+
+private:
+	/**
 	 * Starts playback of the given sound. If the sound already exists in the
 	 * playlist, it will be restarted.
 	 *
@@ -1059,12 +1089,6 @@ public:
 	 * TODO: was PauseSound, one function
 	 */
 	void pause(Sci1Sound &sound, const bool pause);
-
-	/**
-	 * Pauses or unpauses all sounds. This function uses the same counter as
-	 * single-sound pauses so will also unpause individually paused sounds.
-	 */
-	void pauseAll(const bool pause);
 
 	/**
 	 * Stops playback of the given sound.
@@ -1111,7 +1135,7 @@ public:
 
 #pragma mark -
 #pragma mark Sound generation
-public:
+private:
 	/**
 	 * Programmatically stops playback of a note on the given sound channel.
 	 * TODO: was SendNoteOff
@@ -1255,15 +1279,6 @@ private:
 		kPlaylistSize = 16
 	};
 
-	// TODO: was sampleList, appears totally broken in SCI1.1+ so unclear what
-	// to do about it. In SSCI32 this is a 16-dword array, but the code uses it
-	// to hold a pointer in _samples[0] (in SSCI16, 16-word array with offset in
-	// _samples[0] and segment in _samples[2]). The pointer is to a Sci1Sound
-	// object. In earlier versions this was probably a list corresponding to
-	// _playlist which stored pointers to the sample tracks for sounds which had
-	// digital sample tracks; need to verify that.
-	Sci1Sound *_sample;
-
 	/**
 	 * The list of currently active sounds, sorted by decreasing sound priority.
 	 */
@@ -1294,6 +1309,59 @@ private:
 	 * TODO: was DoEnd
 	 */
 	void removeSoundFromPlaylist(Sci1Sound &sound);
+
+#pragma mark -
+#pragma mark Digital sample playback
+private:
+	enum { kSampleLoadedFlag = 0x80 };
+
+	// In SSCI, sample playback was handled by individual drivers; we instead
+	// always play back digital audio tracks within the player itself, for
+	// simplicity and to allow combinations of digital + MIDI which were not
+	// always possible in the original engine.
+	class SamplePlayer {
+	public:
+		enum Status {
+			/** The sample is playing. */
+			kPlaying = 0,
+			/** The sample has looped. */
+			kLooped = 1,
+			/** The sample is finished. */
+			kFinished = 2
+		};
+
+		// In SSCI this received pointer to sample data, volume, and loop
+		void load(const Sci1Sound &sound);
+
+		// In SSCI this received pointer to sample data and used AL and AH to
+		// communicate status
+		Status advance(const Sci1Sound &sound);
+
+		// In SSCI this received pointer to sample data
+		void unload(const Sci1Sound &sound);
+	};
+
+	/**
+	 * Validates that a sample is playing for the given sound, and removes the
+	 * sound from the playlist if it is not.
+	 * TODO: was SampleActive
+	 */
+	void validateSample(Sci1Sound &sound);
+
+	/**
+	 *
+	 * TODO: was DoSamples
+	 */
+	void advanceSamplePlayback();
+
+	SamplePlayer _samplePlayer;
+
+	/**
+	 * The last active sound which was playing a sample.
+	 * TODO: In SSCI this was an array of 16 dd, of which only the first entry
+	 * was ever used to hold a far pointer in at least SCI1late+.
+	 */
+	Common::FixedArray<Sci1Sound *, kPlaylistSize> _sampleList;
 
 #pragma mark -
 #pragma mark Kernel
@@ -1356,10 +1424,12 @@ public:
 	void debugPrintPlaylist(Console &con) const;
 	void debugPrintSound(Console &con, const reg_t nodePtr) const;
 	void debugPrintChannelMap(Console &con) const;
-	void debugPrintChannelMap(Console &con, const HardwareChannels &channels) const;
 	void debugPrintDriverState(Console &con) const;
 	void debugPlay(const GuiResourceId soundId);
 	void debugStopAll();
+
+private:
+	void debugPrintChannelMap(Console &con, const HardwareChannels &channels) const;
 };
 
 } // End of namespace Sci

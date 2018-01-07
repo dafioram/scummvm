@@ -73,9 +73,7 @@ reg_t kDoSoundGetPolyphony(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv) {
-	// TODO: Decide if non-PC platforms can benefit from being told of more
-	// than one DAC.
-	return make_reg(0, 1);
+	return make_reg(0, g_sci->_sound->getNumDacs());
 }
 
 reg_t kDoSoundSuspend(EngineState *s, int argc, reg_t *argv) {
