@@ -519,10 +519,11 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 			if (mapSingleChannel(key, priority, workingFreeVoices, track.channelNo, channel, workingChannels, minChannelNo, maxChannelNo)) {
 				committedChannels = workingChannels;
 				committedFreeVoices = workingFreeVoices;
+			} else {
+				// blewIt
+				// nextNode
+				break;
 			}
-
-			// blewIt
-			// nextNode
 		}
 	}
 
