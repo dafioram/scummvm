@@ -103,13 +103,13 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 	if (flag == 0xabcd) {
 		// Patches 49-96
 		sendPatches(patchAddress, extraData.subspan(2, kPatchDataSize));
-		extraData += kPatchDataSize;
+		extraData += kPatchDataSize + 2;
 		flag = extraData.getUint16BEAt(0);
 	}
 
 	if (flag == 0xdcba) {
 		uint32 address = kRhythmKeyMapAddress;
-		SysEx rhythmData = extraData.subspan(0, 4 * 64 + 9);
+		SysEx rhythmData = extraData.subspan(2, 4 * 64 + 9);
 		for (int i = 0; i < 64; ++i) {
 			sendCountingSysEx(address, rhythmData, 4);
 		}
