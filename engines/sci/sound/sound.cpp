@@ -2230,7 +2230,7 @@ void SoundManager::sendMidi(const reg_t soundObj, int16 channel, const int16 com
 		a = CLIP<int16>(a, -0x2000, 0x1fff);
 	} else {
 		a = CLIP<int16>(a, 0, 127);
-		b = CLIP<int16>(a, 0, 127);
+		b = CLIP<int16>(b, 0, 127);
 	}
 
 	switch (command) {
