@@ -665,11 +665,8 @@ void SoundManager::commitFixedChannels(HardwareChannels &newChannels, const Hard
 			// old list of channels, but priority is never used after the first
 			// pass so this operation was useless and is omitted
 
-			if (oldChannel.playlistIndex() != newChannel.playlistIndex() ||
+			if (oldChannel.channelNo() != newChannel.channelNo() ||
 				oldChannel.sound != newChannel.sound) {
-				// The sound changed, either because a sound changed or
-				// because the sounds were reordered in the playlist
-
 				// notSameBed
 				sendChannelToDriver(*newChannel.sound, newChannel.sound->channels[newChannel.channelNo()], newChannelNo);
 			}
