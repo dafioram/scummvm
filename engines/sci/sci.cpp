@@ -706,6 +706,7 @@ void SciEngine::runGame() {
 				_gfxMenu->reset();
 			_gamestate->abortScriptProcessing = kAbortNone;
 			_guestAdditions->reset();
+			_sound->reset();
 		} else if (_gamestate->abortScriptProcessing == kAbortLoadGame) {
 			_gamestate->abortScriptProcessing = kAbortNone;
 			_gamestate->_executionStack.clear();

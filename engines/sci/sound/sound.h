@@ -650,6 +650,11 @@ public:
 	}
 
 	/**
+	 * Resets the SoundManager state when the game is restarted.
+	 */
+	void reset() { _defaultReverbMode = 0; }
+
+	/**
 	 * Gets the maximum number of simultaneous voices supported by the current
 	 * sound driver.
 	 */
