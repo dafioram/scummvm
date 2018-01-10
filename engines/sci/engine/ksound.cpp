@@ -144,7 +144,7 @@ reg_t kDoSoundUpdateCues(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_sound->kernelSendMidi(argv[0], argv[1].toSint16(), argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	g_sci->_sound->kernelSendMidi(argc, argv);
 	return s->r_acc;
 }
 

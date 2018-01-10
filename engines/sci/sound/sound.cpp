@@ -2173,7 +2173,48 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 	}
 }
 
-void SoundManager::kernelSendMidi(const reg_t soundObj, int16 channel, const int16 command, int16 a, int16 b) {
+void SoundManager::kernelSendMidi(const int argc, const reg_t *const argv) {
+	const reg_t soundObj = argv[0];
+	const int16 channelNo = argv[1].toSint16();
+
+	if (_soundVersion < SCI_VERSION_1_LATE) {
+		enum { kPitchBendCommand = 0xff };
+
+		const int16 a = argv[2].toSint16();
+		const int16 b = argv[3].toSint16();
+
+		if (a == kPitchBendCommand) {
+			sendMidi(soundObj, channelNo, kPitchBend, b, 0);
+		} else {
+			sendMidi(soundObj, channelNo, kControllerChange, a, b);
+		}
+	} else {
+		sendMidi(soundObj, channelNo, argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	}
+}
+
+void SoundManager::kernelUpdate(const reg_t soundObj) {
+	Common::StackLock lock(_mutex);
+
+	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+
+	Sci1Sound *sound = findSoundByRegT(nodePtr);
+	if (!sound || (_soundVersion >= SCI_VERSION_2 && sound->isSample)) {
+		return;
+	}
+
+	sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
+	const int16 volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
+	if (sound->volume != volume) {
+		setVolume(*sound, volume);
+	}
+	const int16 priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
+	if (sound->priority != priority) {
+		setPriority(*sound, priority);
+	}
+}
+
+void SoundManager::sendMidi(const reg_t soundObj, int16 channel, const int16 command, int16 a, int16 b) {
 	Common::StackLock lock(_mutex);
 
 	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
@@ -2211,27 +2252,6 @@ void SoundManager::kernelSendMidi(const reg_t soundObj, int16 channel, const int
 		// this to the SCI1late mode to eliminate unnecessary arithmetic
 		setPitchBend(*sound, channel, a + 0x2000);
 		break;
-	}
-}
-
-void SoundManager::kernelUpdate(const reg_t soundObj) {
-	Common::StackLock lock(_mutex);
-
-	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
-
-	Sci1Sound *sound = findSoundByRegT(nodePtr);
-	if (!sound || (_soundVersion >= SCI_VERSION_2 && sound->isSample)) {
-		return;
-	}
-
-	sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
-	const int16 volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
-	if (sound->volume != volume) {
-		setVolume(*sound, volume);
-	}
-	const int16 priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
-	if (sound->priority != priority) {
-		setPriority(*sound, priority);
 	}
 }
 

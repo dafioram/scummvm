@@ -92,6 +92,7 @@ void Kernel::mapSelectors() {
 	FIND_SELECTOR(play);
 	FIND_SELECTOR(restore);
 	FIND_SELECTOR(number);
+	FIND_SELECTOR(send);
 	FIND_SELECTOR(handle);	// nodePtr
 	FIND_SELECTOR(client);
 	FIND_SELECTOR(dx);

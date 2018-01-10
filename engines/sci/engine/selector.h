@@ -65,6 +65,7 @@ struct SelectorCache {
 	Selector play; ///< Play function (first function to be called)
 	Selector restore;
 	Selector number;
+	Selector send;
 	Selector handle;	///< Replaced by nodePtr in SCI1+
 	Selector nodePtr;	///< Replaces handle in SCI1+
 	Selector client; ///< The object that wants to be moved

@@ -48,7 +48,7 @@ GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan)
 	_pseudoMouseAbility = kPseudoMouseAbilityUninitialized;
 }
 
-reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc, int methodNum) {
+reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc, int methodNum) const {
 	// Get address of target object
 	reg_t objAddr = _segMan->findObjectByName(objName, 0);
 	reg_t addr;
@@ -71,69 +71,70 @@ reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc
 }
 
 bool GameFeatures::autoDetectSoundType() {
-	// Look up the script address
-	reg_t addr = getDetectionAddr("Sound", SELECTOR(play));
+	const int kernelNo = _kernel->findKernelFuncPos("DoSound");
 
-	if (!addr.getSegment())
+	if (kernelNo == -1) {
 		return false;
+	}
+
+	if (getCallInfo<kArgumentCount>("Sound", SELECTOR(send), kernelNo) == 5) {
+		_doSoundType = SCI_VERSION_1_MIDDLE;
+		return true;
+	}
+
+	// The play method of the Sound object pushes the DoSound command that
+	// it will use just before it calls DoSound. We intercept that here in
+	// order to check what sound semantics are used, cause the position of
+	// the sound commands has changed at some point during SCI1 middle.
+	switch (getCallInfo<kFirstArgument>("Sound", SELECTOR(play), kernelNo)) {
+	case 1:
+		_doSoundType = SCI_VERSION_0_EARLY;
+		return true;
+	case 7:
+		_doSoundType = SCI_VERSION_1_EARLY;
+		return true;
+	case 8:
+		_doSoundType = SCI_VERSION_1_LATE;
+		return true;
+	}
+
+	return false;
+}
+
+template <GameFeatures::CallInfoType TYPE>
+int GameFeatures::getCallInfo(const char *objectName, Selector selector, int kernelCallNo) const {
+	const reg_t addr = getDetectionAddr(objectName, selector);
+
+	if (!addr.getSegment()) {
+		return false;
+	}
 
 	uint32 offset = addr.getOffset();
-	Script *script = _segMan->getScript(addr.getSegment());
-	uint16 intParam = 0xFFFF;
-	bool foundTarget = false;
-
-	while (true) {
+	const Script *script = _segMan->getScript(addr.getSegment());
+	int intParam = -1;
+	for (;;) {
 		int16 opparams[4];
 		byte extOpcode;
 		byte opcode;
 		offset += readPMachineInstruction(script->getBuf(offset), extOpcode, opparams);
 		opcode = extOpcode >> 1;
 
-		// Check for end of script
-		if (opcode == op_ret || offset >= script->getBufSize())
-			break;
+		if (opcode == op_ret || offset >= script->getBufSize()) {
+			return -1;
+		}
 
-		// The play method of the Sound object pushes the DoSound command that
-		// it will use just before it calls DoSound. We intercept that here in
-		// order to check what sound semantics are used, cause the position of
-		// the sound commands has changed at some point during SCI1 middle.
-		if (opcode == op_pushi) {
-			// Load the pushi parameter
-			intParam = opparams[0];
-		} else if (opcode == op_callk) {
-			uint16 kFuncNum = opparams[0];
-
-			// Late SCI1 games call kIsObject before kDoSound
-			if (kFuncNum == 6) {	// kIsObject (SCI0-SCI11)
-				foundTarget = true;
-			} else if (kFuncNum == 45) {	// kDoSound (SCI1)
-				// First, check which DoSound function is called by the play
-				// method of the Sound object
-				switch (intParam) {
-				case 1:
-					_doSoundType = SCI_VERSION_0_EARLY;
-					break;
-				case 7:
-					_doSoundType = SCI_VERSION_1_EARLY;
-					break;
-				case 8:
-					_doSoundType = SCI_VERSION_1_LATE;
-					break;
-				default:
-					// Unknown case... should never happen. We fall back to
-					// alternative detection here, which works in general, apart
-					// from some transitive games like Jones CD
-					_doSoundType = foundTarget ? SCI_VERSION_1_LATE : SCI_VERSION_1_EARLY;
-					break;
-				}
-
-				if (_doSoundType != SCI_VERSION_NONE)
-					return true;
+		if (TYPE == kFirstArgument) {
+			if (opcode == op_pushi) {
+				intParam = opparams[0];
+			} else if (opcode == op_callk && opparams[0] == kernelCallNo) {
+				return intParam;
+			}
+		} else {
+			if (opcode == op_callk && opparams[0] == kernelCallNo) {
+				return opparams[1] / 2;
 			}
 		}
 	}
-
-	return false;	// not found
 }
 
 SciVersion GameFeatures::detectDoSoundType() {

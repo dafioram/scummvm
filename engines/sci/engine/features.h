@@ -252,11 +252,18 @@ public:
 	PseudoMouseAbilityType detectPseudoMouseAbility();
 
 private:
-	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1);
+	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1) const;
 
 	bool autoDetectLofsType(Common::String gameSuperClassName, int methodNum);
 	bool autoDetectGfxFunctionsType(int methodNum = -1);
 	bool autoDetectSoundType();
+
+	enum CallInfoType {
+		kFirstArgument,
+		kArgumentCount
+	};
+	template <CallInfoType TYPE>
+	int getCallInfo(const char *objectName, Selector selector, int kernelCallNo) const;
 	bool autoDetectMoveCountType();
 #ifdef ENABLE_SCI32
 	bool autoDetectSci21KernelType();

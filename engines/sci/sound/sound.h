@@ -1382,7 +1382,7 @@ public:
 	void kernelSetPriority(const reg_t soundObj, const int16 priority);
 	void kernelSetLoop(const reg_t soundObj, const bool enable);
 	void kernelUpdateCues(const reg_t soundObj);
-	void kernelSendMidi(const reg_t soundObj, const int16 channel, const int16 command, const int16 a, const int16 b);
+	void kernelSendMidi(const int argc, const reg_t *const argv);
 	void kernelUpdate(const reg_t soundObj);
 
 private:
@@ -1422,6 +1422,8 @@ private:
 		SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
 		return it;
 	}
+
+	void sendMidi(const reg_t soundObj, const int16 channel, const int16 command, const int16 a, const int16 b);
 
 #pragma mark -
 #pragma mark Debugging
