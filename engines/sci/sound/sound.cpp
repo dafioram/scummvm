@@ -1530,7 +1530,8 @@ void SoundManager::processNoteOff(Sci1Sound &sound, const uint8 trackNo, const u
 }
 
 void SoundManager::processNoteOn(Sci1Sound &sound, const uint8 trackNo, const uint8 hwChannelNo) {
-	if (sound.peek(trackNo, 1) == 0) {
+	enum { kVelocityOffset = 1 };
+	if (sound.peek(trackNo, kVelocityOffset) == 0) {
 		return processNoteOff(sound, trackNo, hwChannelNo);
 	}
 
