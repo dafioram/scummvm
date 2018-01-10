@@ -604,7 +604,7 @@ struct Sci1Sound : public Common::Serializable {
 	inline byte peek(const uint8 trackNo, const uint8 extra = 0) const {
 		const Track &track = tracks[trackNo];
 		assert(resource);
-		assert(track.position < track.size);
+		assert(track.position + extra < track.size);
 		return resource->getUint8At(track.offset + track.position + extra);
 	}
 
