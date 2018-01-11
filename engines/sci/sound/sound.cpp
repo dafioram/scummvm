@@ -1460,7 +1460,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 	case kProgramChange: {
 		const byte message = sound.consume(trackNo);
 		if (message == kSetLoop) {
-			const byte value = sound.peek(trackNo);
+			const byte value = sound.consume(trackNo);
 			if (value == kFixedRest) {
 				track.rest = kFixedRestValue;
 			} else {
@@ -1478,6 +1478,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 
 			sound.loopTicksElapsed = sound.ticksElapsed;
 			track.rest = 0;
+			--track.position;
 		} else if (!_restoringSound) {
 			sound.signal = Sci1Sound::Signal(message);
 		}
