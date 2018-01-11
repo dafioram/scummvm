@@ -84,13 +84,17 @@ public:
 private:
 	enum {
 		kNumChannels = 16,
-		kPatchesPerBank = 48,
+		kNumPatchesPerBank = 48,
 		kPatchSize = 8,
+		kNumRhythmPatches = 64,
+		kRhythmPatchSize = 4,
+		kPartialReserveSize = 9,
 		kShortTimbreSize = 14,
 		kLongTimbreSize = 58,
 		kNumLongTimbres = 4,
-		kPatchDataSize = kPatchSize * kPatchesPerBank,
-		kTimbreDataSize = kShortTimbreSize + kLongTimbreSize * 4
+		kPatchDataSize = kPatchSize * kNumPatchesPerBank,
+		kTimbreDataSize = kShortTimbreSize + kLongTimbreSize * kNumLongTimbres,
+		kRhythmDataSize = kNumRhythmPatches * kRhythmPatchSize
 	};
 
 	enum {

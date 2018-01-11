@@ -97,29 +97,32 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 	assert(numTimbres <= 64);
 	sendTimbres(numTimbres, patchData->subspan(492, numTimbres * kTimbreDataSize));
 
-	SysEx extraData = patchData->subspan(492 + kTimbreDataSize * numTimbres);
+	SysEx extraData = patchData->subspan(492 + numTimbres * kTimbreDataSize);
 	uint16 flag = extraData.getUint16BEAt(0);
+	extraData += 2;
 
 	if (flag == 0xabcd) {
 		// Patches 49-96
-		sendPatches(patchAddress, extraData.subspan(2, kPatchDataSize));
-		extraData += kPatchDataSize + 2;
+		sendPatches(patchAddress, extraData.subspan(0, kPatchDataSize));
+		extraData += kPatchDataSize;
 		flag = extraData.getUint16BEAt(0);
+		extraData += 2;
 	}
 
 	if (flag == 0xdcba) {
 		uint32 address = kRhythmKeyMapAddress;
-		SysEx rhythmData = extraData.subspan(2, 4 * 64 + 9);
-		for (int i = 0; i < 64; ++i) {
-			sendCountingSysEx(address, rhythmData, 4);
+		SysEx rhythmData = extraData.subspan(0, kRhythmDataSize + kPartialReserveSize);
+		for (int i = 0; i < kNumRhythmPatches; ++i) {
+			sendCountingSysEx(address, rhythmData, kRhythmPatchSize);
 		}
-		sendSysEx(kPartialReserveAddress, rhythmData, _isEmulated);
+		sendSysEx(kPartialReserveAddress, rhythmData.subspan(0, kPartialReserveSize), _isEmulated);
 	}
 
 	// Message displayed at game startup
 	sendSysEx(kDisplayAddress, patchData->subspan(0, 20), _isEmulated);
 
-	sendSysEx(kDisableCm32PAddress, SysEx(reinterpret_cast<const byte *>("\x16\x16\x16\x16\x16\x16\x20"), 7), _isEmulated);
+	const byte disableCm32P[] = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16, 0x20 };
+	sendSysEx(kDisableCm32PAddress, SysEx(disableCm32P, sizeof(disableCm32P)), _isEmulated);
 
 	setMasterVolume(12);
 }
@@ -131,11 +134,13 @@ Sci1Mt32Driver::~Sci1Mt32Driver() {
 
 void Sci1Mt32Driver::noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	_channels[channelNo].hw->noteOff(note, velocity);
+	debugC(kDebugLevelSound, "Off %2d n %3d v %3d", channelNo, note, velocity);
 }
 
 void Sci1Mt32Driver::noteOn(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	Channel &channel = _channels[channelNo];
 	channel.enabled = true;
+	debugC(kDebugLevelSound, "On  %2d n %3d v %3d", channelNo, note, velocity);
 	channel.hw->noteOn(note, velocity);
 }
 
@@ -172,8 +177,11 @@ void Sci1Mt32Driver::controllerChange(const uint8 channelNo, const uint8 control
 		}
 		channel.enabled = false;
 		break;
+	default:
+		return;
 	}
 
+	debugC(kDebugLevelSound, "CC  %2d n %3d v %3d", channelNo, controllerNo, value);
 	channel.hw->controlChange(controllerNo, value);
 }
 
@@ -183,6 +191,7 @@ void Sci1Mt32Driver::programChange(const uint8 channelNo, const uint8 programNo)
 		return;
 	}
 	channel.program = programNo;
+	debugC(kDebugLevelSound, "PC  %2d p %3d", channelNo, programNo);
 	channel.hw->programChange(programNo);
 }
 
@@ -192,6 +201,7 @@ void Sci1Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
 		return;
 	}
 	channel.pitchBend = bend;
+	debugC(kDebugLevelSound, "PB  %2d p %04x", channelNo, bend);
 	channel.hw->pitchBend(bend - 0x2000);
 }
 
@@ -242,7 +252,7 @@ void Sci1Mt32Driver::debugPrintState(Console &con) const {
 
 void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool skipDelays) {
 	enum {
-		kMaxPacketSize = 0x200,
+		kMaxPacketSize = 0x100,
 		kHeaderSize = 7,
 		kNonDataSize = kHeaderSize + /* sysex command + checksum + end of sysex */ 3,
 		kMaxDataSize = kMaxPacketSize - kNonDataSize,
@@ -252,48 +262,39 @@ void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool ski
 		kCommandId = 0x12
 	};
 
-	byte buffer[kMaxDataSize + kHeaderSize];
+	byte buffer[kMaxDataSize + kHeaderSize + /* checksum */ 1];
 	buffer[0] = kManufacturerId;
 	buffer[1] = kDeviceId;
 	buffer[2] = kModelId;
 	buffer[3] = kCommandId;
 
 	const byte *source = data.data();
-	uint size = data.size();
+	const uint size = data.size();
+	assert(size < kMaxDataSize);
 
-	while (size > 0) {
-		buffer[4] = (address >> 16) & 0xff;
-		buffer[5] = (address >> 8) & 0xff;
-		buffer[6] = address & 0xff;
-		const uint length = MIN<uint>(size, kMaxDataSize);
+	buffer[4] = (address >> 16) & 0xff;
+	buffer[5] = (address >> 8) & 0xff;
+	buffer[6] = address & 0xff;
 
-		uint16 checksum = 0;
-		for (uint i = 4; i < kHeaderSize; ++i) {
-			checksum -= buffer[i];
-		}
-		for (uint i = kHeaderSize; i < kHeaderSize + length; ++i) {
-			const byte b = *source++;
-			buffer[i] = b;
-			checksum -= b;
-		}
-		buffer[kHeaderSize + length] = checksum & 0x7f;
+	uint16 checksum = 0;
+	for (uint i = 4; i < kHeaderSize; ++i) {
+		checksum -= buffer[i];
+	}
+	for (uint i = kHeaderSize; i < kHeaderSize + size; ++i) {
+		const byte b = *source++;
+		buffer[i] = b;
+		checksum -= b;
+	}
+	buffer[kHeaderSize + size] = checksum & 0x7f;
 
-		_device->sysEx(buffer, kHeaderSize + length + 1);
+	_device->sysEx(buffer, kHeaderSize + size + 1);
 
-		if (!skipDelays) {
-			enum { kMt32Rev00BufferOverflowAvoidance = 40 };
-			const uint32 delay = (length + kNonDataSize) * 1000 / 3125 +
-				kMt32Rev00BufferOverflowAvoidance;
-			g_system->updateScreen();
-			g_sci->sleep(delay);
-		}
-
-		source += length;
-		address += length;
-		if (address & 0x80) {
-			address += 0x100 - 0x80;
-		}
-		size -= length;
+	if (!skipDelays) {
+		enum { kMt32Rev00BufferOverflowAvoidance = 40 };
+		const uint32 delay = (size + kNonDataSize) * 1000 / 3125 +
+			kMt32Rev00BufferOverflowAvoidance;
+		g_system->updateScreen();
+		g_sci->sleep(delay);
 	}
 }
 
@@ -307,7 +308,7 @@ void Sci1Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8
 }
 
 void Sci1Mt32Driver::sendPatches(uint32 &address, SysEx data) {
-	for (int i = 0; i < kPatchesPerBank; ++i) {
+	for (int i = 0; i < kNumPatchesPerBank; ++i) {
 		sendCountingSysEx(address, data, kPatchSize);
 	}
 }
