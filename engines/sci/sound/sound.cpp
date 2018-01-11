@@ -475,7 +475,7 @@ void SoundManager::remapHardwareChannels() {
 }
 
 SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const {
-	HardwareChannels committedChannels(_hardwareChannels);
+	HardwareChannels committedChannels = {};
 	int committedFreeVoices = _driver->getNumVoices();
 	// loopDoNodes
 	for (int i = 0, basePriority = 0; i < kPlaylistSize && _playlist[i]; ++i, basePriority += 16) {
