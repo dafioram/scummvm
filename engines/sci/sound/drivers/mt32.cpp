@@ -121,7 +121,7 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 	// Message displayed at game startup
 	sendSysEx(kDisplayAddress, patchData->subspan(0, 20), _isEmulated);
 
-	const byte disableCm32P[] = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16, 0x20 };
+	const byte disableCm32P[] = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 };
 	sendSysEx(kDisableCm32PAddress, SysEx(disableCm32P, sizeof(disableCm32P)), _isEmulated);
 
 	setMasterVolume(12);
