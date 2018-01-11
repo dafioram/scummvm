@@ -1462,7 +1462,11 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 		if (message == kSetLoop) {
 			const byte value = sound.consume(trackNo);
 			if (value == kFixedRest) {
-				track.rest = kFixedRestValue;
+				if (_soundVersion <= SCI_VERSION_1_EARLY) {
+					track.rest = kFixedRestFlag | value;
+				} else {
+					track.rest = kFixedRestValue;
+				}
 			} else {
 				track.rest = value;
 			}
