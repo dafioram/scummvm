@@ -314,13 +314,12 @@ void Sci1Mt32Driver::sendPatches(uint32 &address, SysEx data) {
 }
 
 void Sci1Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
-	uint32 address = kTimbreAddress;
 	for (int i = 0; i < numTimbres; ++i) {
+		uint32 address = kTimbreAddress + i * 0x200;
 		sendCountingSysEx(address, data, kShortTimbreSize);
 		for (int j = 0; j < kNumLongTimbres; ++j) {
 			sendCountingSysEx(address, data, kLongTimbreSize);
 		}
-		address += 0x200;
 	}
 }
 
