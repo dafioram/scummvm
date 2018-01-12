@@ -23,6 +23,8 @@
 #ifndef SCI_SOUND_SOUND_H
 #define SCI_SOUND_SOUND_H
 
+#include "audio/audiostream.h"
+#include "audio/mixer.h"
 #include "common/array.h"
 #include "common/list.h"
 #include "common/mutex.h"
@@ -1324,16 +1326,19 @@ private:
 	// always play back digital audio tracks within the player itself, for
 	// simplicity and to allow combinations of digital + MIDI which were not
 	// always possible in the original engine.
-	class SamplePlayer {
+	class SamplePlayer : public Audio::AudioStream {
 	public:
 		enum Status {
-			/** The sample is playing. */
-			kPlaying = 0,
+			/** The sample is finished. */
+			kFinished = 0,
 			/** The sample has looped. */
 			kLooped = 1,
-			/** The sample is finished. */
-			kFinished = 2
+			/** The sample is playing. */
+			kPlaying = 2
 		};
+
+		SamplePlayer(SoundManager &manager, Audio::Mixer &mixer);
+		~SamplePlayer();
 
 		// In SSCI this received pointer to sample data, volume, and loop
 		void load(const Sci1Sound &sound);
@@ -1343,7 +1348,28 @@ private:
 		Status advance(const Sci1Sound &sound);
 
 		// In SSCI this received pointer to sample data
-		void unload(const Sci1Sound &sound);
+		void unload();
+
+		virtual int readBuffer(int16 *buffer, int numSamples) override;
+
+		virtual bool isStereo() const override { return false; }
+
+		virtual int getRate() const override { return _sampleRate; }
+
+		virtual bool endOfData() const override { return false; }
+
+	private:
+		SoundManager &_manager;
+		Audio::Mixer &_mixer;
+		Audio::SoundHandle _handle;
+		bool _loop;
+		bool _playing;
+		uint16 _pos;
+		uint16 _sampleRate;
+		uint16 _size;
+		uint16 _loopStart;
+		uint16 _loopEnd;
+		SciSpan<const byte> _data;
 	};
 
 	/**

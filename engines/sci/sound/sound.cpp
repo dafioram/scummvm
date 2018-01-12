@@ -78,7 +78,8 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_nextVolumeChangeChannel(0),
 	_defaultReverbMode(0),
 	_playlist(),
-	_sampleList() {
+	_sampleList(),
+	_samplePlayer(*this, *g_system->getMixer()) {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
@@ -481,7 +482,7 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 	for (int i = 0, basePriority = 0; i < kPlaylistSize && _playlist[i]; ++i, basePriority += 16) {
 		const Sci1Sound &sound = *_playlist[i];
 
-		if (sound.numPauses > 0 || sound.isSample) {
+		if (sound.numPauses > 0 || (_soundVersion < SCI_VERSION_1_1 && sound.isSample)) {
 			// jmp nextNode
 			continue;
 		}
@@ -1608,7 +1609,10 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 		break;
 	case kMaxVoicesController:
 		_needsRemap = true;
-		channel.numVoices = value & 0xf;
+		if (_soundVersion >= SCI_VERSION_1_1) {
+			value &= 0xf;
+		}
+		channel.numVoices = value;
 		break;
 	case kMuteController:
 		channel.muted = (value != 0);
@@ -1716,7 +1720,7 @@ void SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
 			sound.signal = Sci1Sound::kFinished;
 			sound.state = Sci1Sound::kStopped;
 			if (_soundVersion < SCI_VERSION_1_1 && (sound.sampleTrackNo & kSampleLoadedFlag)) {
-				_samplePlayer.unload(sound);
+				_samplePlayer.unload();
 			}
 			for (; i < kPlaylistSize - 1; ++i) {
 				_playlist[i] = _playlist[i + 1];
@@ -1766,22 +1770,73 @@ void SoundManager::advanceSamplePlayback() {
 	}
 }
 
+SoundManager::SamplePlayer::SamplePlayer(SoundManager &manager, Audio::Mixer &mixer) :
+	_manager(manager),
+	_mixer(mixer),
+	_playing(false) {}
+
+SoundManager::SamplePlayer::~SamplePlayer() {
+	_mixer.stopHandle(_handle);
+}
+
 void SoundManager::SamplePlayer::load(const Sci1Sound &sound) {
+	if (sound.volume == 0 || _manager.getMasterVolume() == 0 || !_manager.isSoundEnabled()) {
+		return;
+	}
+
 	const uint8 trackNo = (sound.sampleTrackNo - 1) & 0xf;
-	sound.resource->subspan(sound.tracks[trackNo].offset);
-	sound.volume;
-	sound.loop;
+	SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
+
+	enum { kSampleMarker = 0xfe };
+	while (*data++ == kSampleMarker);
+
+	_mixer.stopHandle(_handle);
+	_loop = sound.loop;
+	_playing = false;
+	_pos = 8;
+	_sampleRate = data.getUint16LEAt(0);
+	_size = data.getUint16LEAt(2);
+	_loopStart = data.getUint16LEAt(4);
+	_loopEnd = data.getUint16LEAt(6);
+	_data = data.subspan(0, _size);
+	_mixer.playStream(Audio::Mixer::kSFXSoundType, &_handle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 }
 
 SoundManager::SamplePlayer::Status SoundManager::SamplePlayer::advance(const Sci1Sound &sound) {
-	const uint8 trackNo = (sound.sampleTrackNo - 1) & 0xf;
-	sound.resource->subspan(sound.tracks[trackNo].offset);
-	return kFinished;
+	_loop = sound.loop;
+	_playing = true;
+
+	if (!_loop && _pos == _size) {
+		_mixer.stopHandle(_handle);
+		_playing = false;
+		return kFinished;
+	}
+
+	return kPlaying;
 }
 
-void SoundManager::SamplePlayer::unload(const Sci1Sound &sound) {
-	const uint8 trackNo = (sound.sampleTrackNo - 1) & 0xf;
-	sound.resource->subspan(sound.tracks[trackNo].offset);
+void SoundManager::SamplePlayer::unload() {
+	_mixer.stopHandle(_handle);
+	_playing = false;
+}
+
+int SoundManager::SamplePlayer::readBuffer(int16 *buffer, const int numSamples) {
+	if (!_playing) {
+		return 0;
+	}
+
+	int samplesRead = 0;
+	for (samplesRead = 0; samplesRead < numSamples; ++samplesRead) {
+		if (_loop && _pos == _loopEnd) {
+			_pos = _loopStart;
+		}
+		if (_pos == _size) {
+			break;
+		}
+
+		*buffer++ = (_data[_pos++] << 8) ^ 0x8000;
+	}
+	return samplesRead;
 }
 
 #pragma mark -
@@ -1822,10 +1877,11 @@ void SoundManager::kernelInit(const reg_t soundObj) {
 		assert(sound != nullptr);
 	}
 
-	// isSample only exists in SCI1.1+; getSoundResourceType will always return
-	// Sound type for earlier versions
-	sound->isSample = (getSoundResourceType(resourceNo) == kResourceTypeAudio);
-	if (!sound->isSample) {
+	if (_soundVersion >= SCI_VERSION_1_1) {
+		sound->isSample = (getSoundResourceType(resourceNo) == kResourceTypeAudio);
+	}
+
+	if (_soundVersion < SCI_VERSION_1_1 || !sound->isSample) {
 		sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
 		sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 		sound->signal = Sci1Sound::kNoSignal;
@@ -1890,10 +1946,12 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		sound->resource = nullptr;
 	}
 
-	sound->isSample = (sound->id.getType() == kResourceTypeAudio);
+	if (_soundVersion >= SCI_VERSION_1_1) {
+		sound->isSample = (sound->id.getType() == kResourceTypeAudio);
+	}
 
 	assert(!sound->resource);
-	if (sound->isSample) {
+	if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 		// SSCI32 would optionally preload audio if there was a preload flag in
 		// the soundObj's `flags` selector; we do not need to worry about load
 		// times, so we just don't do that
@@ -1926,7 +1984,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		sound->loop = loop;
 	}
 
-	if (sound->isSample) {
+	if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 		// SSCI set up fake VM arguments and made direct kernel calls here,
 		// which is not very pleasant; we do normal calls into the audio
 		// components instead
@@ -2174,7 +2232,9 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 		writeSelectorValue(_segMan, soundObj, SELECTOR(min), position.minutes);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(sec), position.seconds);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(frame), position.frames);
-		writeSelectorValue(_segMan, soundObj, SELECTOR(vol), sound->volume);
+		if (_soundVersion > SCI_VERSION_1_EARLY) {
+			writeSelectorValue(_segMan, soundObj, SELECTOR(vol), sound->volume);
+		}
 	}
 }
 
