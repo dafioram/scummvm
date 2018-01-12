@@ -184,7 +184,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 		// unsupported. That demo doesn't have any sound anyway, so this
 		// shouldn't be fatal.
 		// The GK2 demo has a similar issue, it has no audio drivers at all but
-		// plays no MIDI it is not fatal for it to have no driver.
+		// plays no MIDI so it is not fatal for it to have no driver.
 		if (g_sci->getGameId() == GID_FUNSEEKER ||
 			(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
 			return;
