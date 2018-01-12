@@ -109,7 +109,7 @@ reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_sound->kernelPause(argv[0], argv[1].toUint16(), getSciVersion() >= SCI_VERSION_2);
+	g_sci->_sound->kernelPause(argv[0], argv[1].toSint16(), getSciVersion() >= SCI_VERSION_2);
 	return s->r_acc;
 }
 

@@ -1091,6 +1091,10 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 	return playlistIndex;
 }
 
+void SoundManager::pause(Sci1Sound &sound, const uint8 numPauses) {
+	sound.numPauses = numPauses;
+}
+
 void SoundManager::pause(Sci1Sound &sound, const bool pause) {
 	if (pause) {
 		++sound.numPauses;
@@ -2043,8 +2047,10 @@ void SoundManager::kernelStop(const reg_t soundObj) {
 	writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
 }
 
-void SoundManager::kernelPause(const reg_t soundObj, const bool shouldPause, const bool pauseDac) {
+void SoundManager::kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac) {
 	Common::StackLock lock(_mutex);
+
+	const bool shouldPause = (numPauses != 0);
 
 	if (soundObj.isNull()) {
 		pauseAll(shouldPause);
@@ -2076,7 +2082,11 @@ void SoundManager::kernelPause(const reg_t soundObj, const bool shouldPause, con
 				}
 			} else
 #endif
-				pause(*sound, shouldPause);
+				if (_soundVersion <= SCI_VERSION_1_EARLY) {
+					pause(*sound, uint8(numPauses));
+				} else {
+					pause(*sound, shouldPause);
+				}
 		}
 	}
 }

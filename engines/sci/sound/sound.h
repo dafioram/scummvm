@@ -1092,7 +1092,14 @@ private:
 	uint8 play(Sci1Sound &sound, const bool exclusive);
 
 	/**
-	 * Pauses or unpauses a single sound. This method uses a counter.
+	 * Pauses or unpauses a single sound. This method sets the number of pauses
+	 * directly and is used by SCI1early-.
+	 */
+	void pause(Sci1Sound &sound, const uint8 numPauses);
+
+	/**
+	 * Pauses or unpauses a single sound. This method uses a counter and is used
+	 * by SCI1mid+.
 	 * TODO: was PauseSound, one function
 	 */
 	void pause(Sci1Sound &sound, const bool pause);
@@ -1401,7 +1408,7 @@ public:
 	void kernelDispose(const reg_t soundObj);
 	void kernelPlay(const reg_t soundObj, const bool exclusive);
 	void kernelStop(const reg_t soundObj);
-	void kernelPause(const reg_t soundObj, const bool shouldPause, const bool pauseDac);
+	void kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac);
 	void kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade);
 	void kernelHold(const reg_t soundObj, const int16 holdPoint);
 	void kernelSetVolume(const reg_t soundObj, const int16 volume);
