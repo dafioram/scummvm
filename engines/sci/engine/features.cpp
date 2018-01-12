@@ -77,11 +77,6 @@ bool GameFeatures::autoDetectSoundType() {
 		return false;
 	}
 
-	if (getCallInfo<kArgumentCount>("Sound", SELECTOR(send), kernelNo) == 5) {
-		_doSoundType = SCI_VERSION_1_MIDDLE;
-		return true;
-	}
-
 	// The play method of the Sound object pushes the DoSound command that
 	// it will use just before it calls DoSound. We intercept that here in
 	// order to check what sound semantics are used, cause the position of
@@ -94,7 +89,11 @@ bool GameFeatures::autoDetectSoundType() {
 		_doSoundType = SCI_VERSION_1_EARLY;
 		return true;
 	case 8:
-		_doSoundType = SCI_VERSION_1_LATE;
+		if (getCallInfo<kArgumentCount>("Sound", SELECTOR(send), kernelNo) == 5) {
+			_doSoundType = SCI_VERSION_1_MIDDLE;
+		} else {
+			_doSoundType = SCI_VERSION_1_LATE;
+		}
 		return true;
 	}
 
