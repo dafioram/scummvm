@@ -289,8 +289,10 @@ void SoundManager::restore(Sci1Sound &sound) {
 	uint8 muteCounts[Sci1Sound::kNumChannels];
 	const uint8 holdPoint = sound.holdPoint;
 
-	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
-		muteCounts[i] = sound.channels[i].gameMuteCount;
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+		for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+			muteCounts[i] = sound.channels[i].gameMuteCount;
+		}
 	}
 
 	_restoringSound = true;
@@ -304,22 +306,32 @@ void SoundManager::restore(Sci1Sound &sound) {
 	const bool loopToRestore = sound.loop;
 	sound.loop = true;
 
+	// SSCI performed an early jump if ticksToRestore was 0 which is equivalent
+	// to this while-loop condition
 	while (sound.ticksElapsed != ticksToRestore) {
 		uint16 lastTicks = sound.ticksElapsed;
 		advancePlayback(sound, playlistIndex);
 		if (lastTicks == sound.ticksElapsed) {
 			break;
 		} else if (lastTicks > sound.ticksElapsed) {
-			ticksToRestore -= lastTicks - sound.ticksElapsed;
+			if (_soundVersion <= SCI_VERSION_1_EARLY) {
+				ticksToRestore -= lastTicks;
+			} else {
+				ticksToRestore -= lastTicks - sound.ticksElapsed;
+			}
 		}
 	}
 
 	sound.loop = loopToRestore;
 	_restoringSound = false;
-	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
-		sound.channels[i].gameMuteCount = muteCounts[i];
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+		for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+			sound.channels[i].gameMuteCount = muteCounts[i];
+		}
 	}
-	sound.holdPoint = holdPoint;
+	if (_soundVersion >= SCI_VERSION_1_1) {
+		sound.holdPoint = holdPoint;
+	}
 	remapHardwareChannels();
 }
 
