@@ -1812,7 +1812,7 @@ void SoundManager::SamplePlayer::load(const Sci1Sound &sound) {
 	const uint8 trackNo = (sound.sampleTrackNo - 1) & 0xf;
 	SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
 
-	enum { kSampleMarker = 0xfe };
+	enum { kSampleMarker = Sci1Sound::Track::kSampleTrack };
 	while (*data++ == kSampleMarker);
 
 	_mixer.stopHandle(_handle);
