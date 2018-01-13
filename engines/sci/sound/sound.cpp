@@ -1997,7 +1997,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		sound->resource = _resMan.findResource(sound->id, true);
 	}
 
-	if (!sound->resource) {
+	if (_soundVersion >= SCI_VERSION_1_1 && !sound->resource) {
 		writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
 		return;
 	}
@@ -2015,7 +2015,9 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	const bool loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
 	const int16 volume = readSelectorValue(_segMan, soundObj, SELECTOR(vol));
 
-	if (_soundVersion < SCI_VERSION_2 || !sound->isSample) {
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE &&
+		(_soundVersion < SCI_VERSION_2 || !sound->isSample)) {
+
 		sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 		sound->volume = volume;
 		sound->loop = loop;
@@ -2038,7 +2040,9 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		kernelUpdate(soundObj);
 		play(*sound, exclusive);
 
-		writeSelectorValue(_segMan, soundObj, SELECTOR(priority), sound->priority);
+		if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+			writeSelectorValue(_segMan, soundObj, SELECTOR(priority), sound->priority);
+		}
 	}
 }
 
