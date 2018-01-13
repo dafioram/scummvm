@@ -1629,9 +1629,11 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 		channel.numVoices = value;
 		break;
 	case kMuteController:
-		channel.muted = (value != 0);
-		if (channel.muted) {
-			value = 1;
+		if (_soundVersion > SCI_VERSION_1_EARLY) {
+			channel.muted = (value != 0);
+			if (channel.muted) {
+				value = 1;
+			}
 		}
 		break;
 	}
