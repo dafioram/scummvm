@@ -178,6 +178,13 @@ private:
 	/** The current master volume. */
 	uint8 _masterVolume;
 
+	/**
+	 * Whether or not the driver is running in the MT-32 General MIDI emulation
+	 * mode. In SSCI, this corresponds to the MT32.DRV in games with
+	 * soundtracks composed for General MIDI only.
+	 */
+	bool _isMt32;
+
 	/** The output channel state. */
 	Common::FixedArray<Channel, 16> _channels;
 

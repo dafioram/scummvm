@@ -20,9 +20,35 @@
  *
  */
 
+#include "sci/sound/drivers/genmidi.h"
 #include "sci/sound/drivers/mt32.h"
 
 namespace Sci {
+
+static bool isGeneralMidiPatch(Resource &patchData) {
+	uint size = patchData.size();
+
+	if (size < 1155) {
+		return false;
+	}
+
+	// The maximum possible size of an MT-32 patch is 16889, plus some Mac
+	// games' patches (e.g. LSL5) have an extra byte at the end
+	if (size > 16890) {
+		return true;
+	}
+
+	if (patchData.getUint16LEAt(1153) + 1155 == size) {
+		return true;
+	}
+
+	enum { kNumTimbresOffset = 491 };
+	if (patchData[kNumTimbresOffset] > 64) {
+		return true;
+	}
+
+	return false;
+}
 
 Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	Sci1SoundDriver(resMan, version),
@@ -47,17 +73,17 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 
 	_isEmulated = (MidiDriver::getDeviceString(dev, MidiDriver::kDriverId) == "mt32");
 
-	if (version >= SCI_VERSION_2) {
-		error("MT-32 driver should be the GM driver for SCI32");
+	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+	if (!patchData) {
+		error("Could not find MT-32 patch data");
+	}
+
+	if (isGeneralMidiPatch(*patchData)) {
+		error("Patch data indicates that the GM driver should have been used");
 	} else if (version >= SCI_VERSION_1_EGA_ONLY) {
 		_deviceId = 12;
 	} else {
 		error("Unimplemented SCI sound version %d", version);
-	}
-
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
-	if (!patchData) {
-		error("Could not find MT-32 patch data");
 	}
 
 	// MT-32 patch contents:
@@ -335,6 +361,12 @@ SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version) {
 	if (version <= SCI_VERSION_01) {
 		error("TODO: SCI0 MT-32");
 	} else {
+		Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+		if (getSciVersion() >= SCI_VERSION_2 ||
+			(patchData && isGeneralMidiPatch(*patchData))) {
+			return makeGeneralMidiDriver(resMan, version, true);
+		}
+
 		return new Sci1Mt32Driver(resMan, version);
 	}
 }

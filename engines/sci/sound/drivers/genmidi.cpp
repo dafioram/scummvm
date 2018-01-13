@@ -28,7 +28,8 @@ namespace Sci {
 Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) :
 	Sci1SoundDriver(resMan, version),
 	_reverbMode(0),
-	_masterVolume(15) {
+	_masterVolume(15),
+	_isMt32(isMt32) {
 
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | (isMt32 ? MDT_PREFER_MT32 : MDT_PREFER_GM));
 	_device.reset(MidiDriver::createMidi(dev));
@@ -48,16 +49,10 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 
 	if (version >= SCI_VERSION_2) {
 		_deviceId = isMt32 ? 12 : 7;
+	} else if (version >= SCI_VERSION_1_LATE) {
+		_deviceId = 12;
 	} else {
-		if (isMt32) {
-			error("General MIDI driver can only be used for MT-32 in SCI32");
-		}
-
-		if (version >= SCI_VERSION_1_LATE) {
-			_deviceId = 12;
-		} else {
-			error("Unimplemented SCI sound version %d", version);
-		}
+		error("Unimplemented SCI sound version %d", version);
 	}
 
 	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, isMt32 ? 1 : 4), false);
@@ -188,7 +183,7 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 
 	if (channel.outProgram == kUnmapped) {
 		channel.hw->controlChange(kAllNotesOffController, 0);
-		if (_version >= SCI_VERSION_2) {
+		if (_version >= SCI_VERSION_2 || _isMt32) {
 			channel.hw->controlChange(kDamperPedalController, 0);
 		}
 		return;
@@ -197,7 +192,7 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 	if (channel.noteShift != _noteShift[programNo]) {
 		channel.noteShift = _noteShift[programNo];
 		channel.hw->controlChange(kAllNotesOffController, 0);
-		if (_version >= SCI_VERSION_2) {
+		if (_version >= SCI_VERSION_2 || _isMt32) {
 			channel.hw->controlChange(kDamperPedalController, 0);
 		}
 		needsControllerUpdate = true;
@@ -208,7 +203,7 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 		controllerChange(channelNo, kVolumeController, channel.volume);
 	}
 
-	if (needsControllerUpdate && _version < SCI_VERSION_2) {
+	if (needsControllerUpdate && _version < SCI_VERSION_2 && !_isMt32) {
 		channel.hw->controlChange(kPanController, channel.pan);
 		channel.hw->controlChange(kPitchBend, channel.pitchBend - 0x2000);
 	}

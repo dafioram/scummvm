@@ -158,12 +158,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 //		_driver.reset(makeFmTownsDriver(resMan, _soundVersion));
 		break;
 	case MT_MT32:
-		if (_soundVersion >= SCI_VERSION_2) {
-			// TODO: Wrong!
-			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion, true)));
-		} else {
-			_driver.reset(static_cast<Sci1SoundDriver *>(makeMt32Driver(resMan, _soundVersion)));
-		}
+		_driver.reset(static_cast<Sci1SoundDriver *>(makeMt32Driver(resMan, _soundVersion)));
 		break;
 	case MT_GM:
 		if (ConfMan.getBool("native_fb01")) {
