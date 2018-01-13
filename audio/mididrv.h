@@ -248,7 +248,14 @@ public:
 	virtual uint32 getBaseTempo() = 0;
 
 	// Channel allocation functions
+
+	/**
+	 * Finds the lowest unallocated non-percussion channel, marks it as
+	 * allocated, and returns a pointer to it. If there are no more free
+	 * channels to allocate, nullptr is returned.
+	 */
 	virtual MidiChannel *allocateChannel() = 0;
+
 	virtual MidiChannel *getPercussionChannel() = 0;
 };
 
