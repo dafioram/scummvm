@@ -207,6 +207,10 @@ SoundManager::~SoundManager() {
 	// server callback has finished running
 	Common::StackLock lock(_mutex);
 
+	// SSCI1early- also looped the playlist to explicitly terminate all sounds;
+	// we do not need to do this since the other destructors will do all our
+	// cleaning up for us
+
 	// In SSCI, this is in STerminate; since we do not implement that operation,
 	// we perform its additional termination operations here
 	if (_driver) {
@@ -324,6 +328,11 @@ void SoundManager::restore(Sci1Sound &sound) {
 
 void SoundManager::enableSoundServer(const bool enable) {
 	Common::StackLock lock(_mutex);
+
+	// In SSCI1early- this function used a boolean instead of a counter, but
+	// games could not access this function at all, so we can just always use
+	// the counter mode
+
 	if (!enable) {
 		++_numServerSuspensions;
 	} else if (_numServerSuspensions) {
