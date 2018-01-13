@@ -516,7 +516,8 @@ struct Sci1Sound : public Common::Serializable {
 	uint8 volume;
 
 	/**
-	 * The reverb mode (0-10).
+	 * The reverb mode (0-10), or `kUseDefaultReverb` to allow the reverb mode
+	 * to be selected programmatically.
 	 */
 	uint8 reverbMode;
 

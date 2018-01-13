@@ -809,10 +809,18 @@ uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
 
 	uint8 oldReverbMode = _defaultReverbMode;
 	_defaultReverbMode = reverbMode;
-	if (_playlist[0]) {
+
+	// TODO: SCI1early- used 255 instead of 127 for kUseDefaultReverb
+	bool valid = (_playlist[0] && _playlist[0]->reverbMode == kUseDefaultReverb);
+	if (!valid && _playlist[0] && _soundVersion <= SCI_VERSION_1_EARLY) {
+		valid = (_playlist[1] && _playlist[1]->reverbMode == kUseDefaultReverb);
+	}
+
+	if (valid) {
 		oldReverbMode = _driver->getReverbMode();
 		_driver->setReverbMode(reverbMode);
 	}
+
 	return oldReverbMode;
 }
 
@@ -1214,15 +1222,17 @@ void SoundManager::setController(Sci1Sound &sound, const uint8 channelNo, const 
 		channel.damperPedalOn = (value != 0);
 		break;
 	case kMuteController:
-		enum { kUnmute = 0 };
-		if (value == kUnmute) {
-			if (channel.gameMuteCount) {
-				--channel.gameMuteCount;
+		if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+			enum { kUnmute = 0 };
+			if (value == kUnmute) {
+				if (channel.gameMuteCount) {
+					--channel.gameMuteCount;
+					remapHardwareChannels();
+				}
+			} else if (channel.gameMuteCount < 15) {
+				++channel.gameMuteCount;
 				remapHardwareChannels();
 			}
-		} else if (channel.gameMuteCount < 15) {
-			++channel.gameMuteCount;
-			remapHardwareChannels();
 		}
 		break;
 	case kProgramChangeController:
