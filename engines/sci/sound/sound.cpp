@@ -44,26 +44,18 @@
 
 namespace Sci {
 
+// In SCI1early- the first playlist item is reserved for an
+// exclusive sound, so may be blank even if other sounds are playing
+// so must be handled separately from the loop over the rest of the
+// playlist
+#define VALIDATE_PLAYLIST_ITERATOR \
+	if (!_playlist[i]) { \
+		if (_soundVersion <= SCI_VERSION_1_EARLY && i == 0) continue; \
+		else break; \
+	}
+
 static inline uint16 convert7To16(byte lsb, byte msb) {
 	return (msb << 7) | lsb;
-}
-
-static SciSpan<const byte> findTrackOffsets(SciSpan<const byte> data, const Sci1SoundDriver::DeviceId searchId) {
-	if (data[0] == 0xf0) {
-		data += 8;
-	}
-
-	for (uint8 deviceId = *data++; deviceId != 0xff; deviceId = *data++) {
-		if (deviceId == searchId) {
-			return data;
-		} else {
-			while (*data++ != 0xff) {
-				data += 5;
-			}
-		}
-	}
-
-	return SciSpan<const byte>();
 }
 
 SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
@@ -296,6 +288,12 @@ void SoundManager::restore(Sci1Sound &sound) {
 	// sound
 	const uint8 playlistIndex = play(sound, sound.state == Sci1Sound::kExclusive);
 
+	// This was an unchecked condition in SSCI, which would have caused some
+	// problems if >16 sounds were ever saved
+	if (playlistIndex == _playlist.size()) {
+		return;
+	}
+
 	uint16 ticksToRestore = sound.ticksElapsed;
 	sound.ticksElapsed = 0;
 	const bool loopToRestore = sound.loop;
@@ -357,10 +355,11 @@ void SoundManager::soundServer() {
 		remapHardwareChannels();
 	}
 
-	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
+	for (uint i = 0; i < _playlist.size(); ++i) {
+		VALIDATE_PLAYLIST_ITERATOR
 		Sci1Sound &sound = *_playlist[i];
 
-		// SSCI also checked if the resource pointer == 1 and would avoid
+		// SSCI1.1+ also checked if the resource pointer == 1 and would avoid
 		// processing in that case as well; game scripts cannot send pointers to
 		// the sound engine, so that value would have had to come from elsewhere
 		// in the kernel, and we have no code that does that, so we do not do
@@ -378,7 +377,7 @@ void SoundManager::soundServer() {
 			}
 		}
 
-		if (_soundVersion < SCI_VERSION_1_1 && sound.sampleTrackNo != 0) {
+		if (_soundVersion < SCI_VERSION_1_1 && sound.isSample) {
 			validateSample(sound);
 		} else {
 			advancePlayback(sound, i);
@@ -439,11 +438,11 @@ void SoundManager::remapHardwareChannels() {
 	const HardwareChannels oldChannels(_hardwareChannels);
 	Common::fill(_hardwareChannels.begin(), _hardwareChannels.end(), HardwareChannel());
 
-	if (_playlist[0]) {
+	if (_playlist[0] || (_soundVersion <= SCI_VERSION_1_EARLY && _playlist[1])) {
 		uint8 minChannelNo, maxChannelNo;
 		_driver->getRemapRange(minChannelNo, maxChannelNo);
 
-		uint8 reverbMode = _playlist[0]->reverbMode;
+		uint8 reverbMode = _playlist[_playlist[0] ? 0 : 1]->reverbMode;
 		if (reverbMode == kUseDefaultReverb) {
 			reverbMode = _defaultReverbMode;
 		}
@@ -451,21 +450,22 @@ void SoundManager::remapHardwareChannels() {
 
 		// In SSCI, this was done in the same loop as creating the channel map;
 		// for the sake of clarity, and to keep makeChannelMap const, we do this
-		// extra loop here, until it becomes apparent that we need to create a
-		// true sample list for earlier SCI versions.
-		// TODO: Remove the loops if it turns out no SCI version actually used
-		// a sample list
+		// extra loop here
 		if (_soundVersion < SCI_VERSION_1_1) {
-			_sampleList[0] = nullptr;
-			for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
+			// This is a compatible combination of the SCI1early- and SCI1mid+
+			// digital sample list creation algorithms. In SCI1mid+ at most one
+			// sample is ever assigned; in SCI1early- up to `numFreeDacs`
+			// samples are put into the sample list for playback.
+			int numFreeDacs = getNumDacs();
+			int nextSampleIndex = 0;
+			Common::fill(_sampleList.begin(), _sampleList.end(), nullptr);
+
+			for (uint i = 0; numFreeDacs && i < _playlist.size(); ++i) {
+				VALIDATE_PLAYLIST_ITERATOR
 				Sci1Sound &sound = *_playlist[i];
-				// In SSCI, _sampleList[0] would be erased at the start of
-				// `remapHardwareChannels` and then reassigned to the first
-				// Sound in the playlist with a sample track number. We can just
-				// unconditionally assign and break the loop instead.
-				if (sound.sampleTrackNo != 0) {
-					_sampleList[0] = &sound;
-					break;
+				if (sound.isSample) {
+					_sampleList[nextSampleIndex++] = &sound;
+					--numFreeDacs;
 				}
 			}
 		}
@@ -495,10 +495,11 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 	HardwareChannels committedChannels = {};
 	int committedFreeVoices = _driver->getNumVoices();
 	// loopDoNodes
-	for (int i = 0, basePriority = 0; i < kPlaylistSize && _playlist[i]; ++i, basePriority += 16) {
+	for (uint i = 0, basePriority = 0; i < _playlist.size(); ++i, basePriority += 16) {
+		VALIDATE_PLAYLIST_ITERATOR
 		const Sci1Sound &sound = *_playlist[i];
 
-		if (sound.numPauses > 0 || (_soundVersion < SCI_VERSION_1_1 && sound.isSample)) {
+		if (sound.numPauses > 0 || sound.isSample) {
 			// jmp nextNode
 			continue;
 		}
@@ -826,7 +827,7 @@ uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
 	uint8 oldReverbMode = _defaultReverbMode;
 	_defaultReverbMode = reverbMode;
 
-	// TODO: SCI1early- used 255 instead of 127 for kUseDefaultReverb
+	// TODO: SCI1early- used 255 instead of 127 here?
 	bool valid = (_playlist[0] && _playlist[0]->reverbMode == kUseDefaultReverb);
 	if (!valid && _playlist[0] && _soundVersion <= SCI_VERSION_1_EARLY) {
 		valid = (_playlist[1] && _playlist[1]->reverbMode == kUseDefaultReverb);
@@ -894,7 +895,7 @@ void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, con
 	sound.volume = volume;
 
 	const uint8 playlistIndex = findPlaylistIndex(sound);
-	if (playlistIndex == kPlaylistSize) {
+	if (playlistIndex == _playlist.size()) {
 		return;
 	}
 
@@ -959,30 +960,58 @@ void SoundManager::applyPendingVolumeChanges() {
 
 void SoundManager::pauseAll(const bool pause) {
 	Common::StackLock lock(_mutex);
-	for (int i = 0; i < kPlaylistSize; ++i) {
-		Sci1Sound *sound = _playlist[i];
-		if (!sound) {
-			// TODO: This is weird
-			if (i == 0) {
-				continue;
-			} else {
-				break;
-			}
-		}
-
+	for (uint i = 0; i < _playlist.size(); ++i) {
+		// SSCI1mid+ didn't get rid of the i == 0 check here from SCI1early-
+		// even though it was no longer valid; this does not matter functionally
+		// and would just have been a tiny efficiency issue in SSCI
+		VALIDATE_PLAYLIST_ITERATOR
+		Sci1Sound &sound = *_playlist[i];
 		if (pause) {
-			++sound->numPauses;
-		} else if (sound->numPauses) {
-			--sound->numPauses;
+			++sound.numPauses;
+		} else if (sound.numPauses) {
+			--sound.numPauses;
 		}
 	}
 
 	remapHardwareChannels();
 }
 
+static bool hasSynthesisedTracks(const Sci1Sound &sound) {
+	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+		const Sci1Sound::Track &track = sound.tracks[trackNo];
+		if (track.offset == 0) {
+			break;
+		}
+		SciSpan<const byte> trackData = sound.resource->subspan(track.offset);
+		const uint8 channelNo = trackData[0];
+		if (channelNo != Sci1Sound::Track::kSampleTrack) {
+			return true;
+		}
+	}
+	return false;
+}
+
 uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
-	if (findPlaylistIndex(sound) != kPlaylistSize) {
-		removeSoundFromPlaylist(sound);
+	const bool removed = removeSoundFromPlaylist(sound);
+
+	uint8 playlistIndex;
+
+	if (_soundVersion <= SCI_VERSION_1_EARLY) {
+		if (removed) {
+			remapHardwareChannels();
+		}
+
+		if (exclusive) {
+			if (_playlist[0]) {
+				removeSoundFromPlaylist(*_playlist[0]);
+			}
+			_playlist[0] = &sound;
+		} else {
+			playlistIndex = insertSoundToPlaylist(sound);
+			if (playlistIndex == _playlist.size()) {
+				return playlistIndex;
+			}
+		}
 	}
 
 	sound.state = exclusive ? Sci1Sound::kExclusive : Sci1Sound::kPlaying;
@@ -994,14 +1023,12 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 	sound.loopTicksElapsed = 0;
 	sound.volume = Sci1Sound::kMaxVolume;
 
-	SciSpan<const byte> base = *sound.resource;
-
 	// This is a little different than SSCI because we do not scribble a new
 	// header onto the file, so this used to be stuff that fixupHeader did.
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE &&
+		!sound.fixedPriority && sound.resource->getUint8At(0) == 0xf0) {
 
-	if (!sound.fixedPriority && base[0] == 0xf0) {
-		sound.priority = base[1];
-		base += 8;
+		sound.priority = sound.resource->getUint8At(1);
 	}
 
 	readTrackOffsets(sound);
@@ -1018,8 +1045,9 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		if (_soundVersion < SCI_VERSION_1_1 && channelNo == Sci1Sound::Track::kSampleTrack) {
 			track.channelNo = channelNo;
 
-			if (_preferSampledSounds) {
-				sound.sampleTrackNo = trackNo + 1;
+			if (_preferSampledSounds || !hasSynthesisedTracks(sound)) {
+				sound.isSample = true;
+				sound.sampleTrackNo = trackNo;
 			} else {
 				track.position = 0;
 				track.loopPosition = 0;
@@ -1044,6 +1072,12 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		if (track.channelNo != kControlChannel) {
 			Sci1Sound::Channel &channel = sound.channels[track.channelNo];
 
+			// SCI1early- did not have channel flags, instead they had only
+			// channels 0-15 for normal channels and 16-31 for extra channels
+			// and checked the channel number instead of flags where necessary.
+			// This information is never exposed outside of the MIDI engine so
+			// we can just always use the SCI1mid+ flags-based implementation.
+
 			enum {
 				kExtraChannelFlag  = 0x10,
 				kLockedChannelFlag = 0x20,
@@ -1057,12 +1091,14 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 				continue;
 			}
 
-			if (channelNo & kLockedChannelFlag) {
-				channel.flags = Sci1Sound::Channel::kLocked;
-			}
+			if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+				if (channelNo & kLockedChannelFlag) {
+					channel.flags = Sci1Sound::Channel::kLocked;
+				}
 
-			if (channelNo & kMutedChannelFlag) {
-				channel.muted = true;
+				if (channelNo & kMutedChannelFlag) {
+					channel.muted = true;
+				}
 			}
 
 			if (channel.priority == Sci1Sound::Channel::kUninitialized) {
@@ -1090,6 +1126,13 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		}
 	}
 
+	// SSCI1early- did not have a way of marking individual channels as locked.
+	// Instead, when an exclusive sound was received, it would do special work
+	// to keep the exclusive sound in playlist position 0 and keep its channels
+	// locked to the hardware channels. SSCI1mid+ used this flags approach
+	// instead. For simplicity in implementation, we always use the flags
+	// approach, since it should be compatible with the SSCI1early- channel
+	// remapping algorithm.
 	if (sound.state & Sci1Sound::kExclusive) {
 		for (int channelNo = 0; channelNo < Sci1Sound::kNumChannels; ++channelNo) {
 			Sci1Sound::Channel &channel = sound.channels[channelNo];
@@ -1097,8 +1140,11 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 		}
 	}
 
-	const uint8 playlistIndex = insertSoundToPlaylist(sound);
-	if (playlistIndex != kPlaylistSize && !_restoringSound) {
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
+		playlistIndex = insertSoundToPlaylist(sound);
+	}
+
+	if (playlistIndex != _playlist.size() && !_restoringSound) {
 		sound.cue = 0;
 		sound.ticksElapsed = 0;
 		sound.signal = Sci1Sound::kNoSignal;
@@ -1171,14 +1217,18 @@ void SoundManager::setPriority(Sci1Sound &sound, const uint8 priority) {
 	sound.priority = priority;
 
 	const uint8 playlistIndex = findPlaylistIndex(sound);
-	if (playlistIndex == kPlaylistSize) {
+	if (playlistIndex == _playlist.size()) {
 		return;
 	}
 
-	for (int i = playlistIndex; i < kPlaylistSize - 1; ++i) {
+	if (_soundVersion <= SCI_VERSION_1_EARLY && playlistIndex == 0) {
+		return;
+	}
+
+	for (uint i = playlistIndex; i < _playlist.size() - 1; ++i) {
 		_playlist[i] = _playlist[i + 1];
 	}
-	_playlist[kPlaylistSize - 1] = nullptr;
+	_playlist[_playlist.size() - 1] = nullptr;
 	insertSoundToPlaylist(sound);
 
 	remapHardwareChannels();
@@ -1296,6 +1346,24 @@ void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const u
 
 #pragma mark -
 #pragma mark Data processing
+
+SciSpan<const byte> SoundManager::findTrackOffsets(SciSpan<const byte> data, const uint8 deviceId) const {
+	if (_soundVersion >= SCI_VERSION_1_MIDDLE && data[0] == 0xf0) {
+		data += 8;
+	}
+
+	for (uint8 searchId = *data++; searchId != 0xff; searchId = *data++) {
+		if (searchId == deviceId) {
+			return data;
+		} else {
+			while (*data++ != 0xff) {
+				data += 5;
+			}
+		}
+	}
+
+	return SciSpan<const byte>();
+}
 
 void SoundManager::readTrackOffsets(Sci1Sound &sound) {
 	Sci1SoundDriver::DeviceId deviceId = _driver->getDeviceId();
@@ -1728,39 +1796,41 @@ void SoundManager::skipCommand(Sci1Sound &sound, const uint8 trackNo, const Midi
 #pragma mark Playlist management
 
 uint8 SoundManager::insertSoundToPlaylist(Sci1Sound &sound) {
-	int insertAt;
-	for (insertAt = 0; insertAt < kPlaylistSize; ++insertAt) {
+	uint insertAt = _soundVersion <= SCI_VERSION_1_EARLY ? 1 : 0;
+	for (; insertAt < _playlist.size(); ++insertAt) {
 		if (!_playlist[insertAt] || sound.priority <= _playlist[insertAt]->priority) {
 			break;
 		}
 	}
 
-	if (insertAt == kPlaylistSize) {
+	if (insertAt == _playlist.size()) {
 		return insertAt;
 	}
 
-	for (int i = kPlaylistSize - 2; i >= insertAt; --i) {
+	for (int i = int(_playlist.size()) - 2; i >= int(insertAt); --i) {
 		_playlist[i + 1] = _playlist[i];
 	}
 	_playlist[insertAt] = &sound;
 	return insertAt;
 }
 
-void SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
-	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
+bool SoundManager::removeSoundFromPlaylist(Sci1Sound &sound) {
+	for (uint i = 0; i < _playlist.size(); ++i) {
+		VALIDATE_PLAYLIST_ITERATOR
 		if (_playlist[i] == &sound) {
 			sound.signal = Sci1Sound::kFinished;
 			sound.state = Sci1Sound::kStopped;
 			if (_soundVersion < SCI_VERSION_1_1 && (sound.sampleTrackNo & kSampleLoadedFlag)) {
 				_samplePlayer.unload();
 			}
-			for (; i < kPlaylistSize - 1; ++i) {
+			for (; i < _playlist.size() - 1; ++i) {
 				_playlist[i] = _playlist[i + 1];
 			}
 			_playlist[i] = nullptr;
-			break;
+			return true;
 		}
 	}
+	return false;
 }
 
 #pragma mark -
@@ -1770,7 +1840,7 @@ void SoundManager::validateSample(Sci1Sound &sound) {
 	// In SSCI a null sample list entry was not checked, but since the list is
 	// always contiguous there is no reason to continue testing after reaching a
 	// null pointer
-	for (int i = 0; i < kPlaylistSize && _sampleList[i]; ++i) {
+	for (uint i = 0; i < _sampleList.size() && _sampleList[i]; ++i) {
 		if (&sound == _sampleList[i]) {
 			return;
 		}
@@ -1780,7 +1850,7 @@ void SoundManager::validateSample(Sci1Sound &sound) {
 }
 
 void SoundManager::advanceSamplePlayback() {
-	for (int i = 0; i < kPlaylistSize && _sampleList[i]; ++i) {
+	for (uint i = 0; i < _sampleList.size() && _sampleList[i]; ++i) {
 		Sci1Sound &sound = *_sampleList[i];
 
 		++sound.ticksElapsed;
@@ -1794,6 +1864,7 @@ void SoundManager::advanceSamplePlayback() {
 				sound.ticksElapsed = 0;
 			}
 			if (!(status & SamplePlayer::kPlaying)) {
+				sound.isSample = false;
 				sound.sampleTrackNo = 0;
 				removeSoundFromPlaylist(sound);
 				_needsRemap = true;
@@ -1816,7 +1887,7 @@ void SoundManager::SamplePlayer::load(const Sci1Sound &sound) {
 		return;
 	}
 
-	const uint8 trackNo = (sound.sampleTrackNo - 1) & 0xf;
+	const uint8 trackNo = sound.sampleTrackNo & 0xf;
 	SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
 
 	enum { kSampleMarker = Sci1Sound::Track::kSampleTrack };
@@ -1909,11 +1980,13 @@ void SoundManager::kernelInit(const reg_t soundObj) {
 		assert(sound != nullptr);
 	}
 
-	if (_soundVersion >= SCI_VERSION_1_1) {
-		sound->isSample = (getSoundResourceType(resourceNo) == kResourceTypeAudio);
-	}
+	// SSCI1late- don't set `isSample` here and instead always set the sound
+	// properties; for simplicity of implementation we just always follow the
+	// SCI1.1 way, since it is compatible
 
-	if (_soundVersion < SCI_VERSION_1_1 || !sound->isSample) {
+	sound->isSample = (getSoundResourceType(resourceNo) == kResourceTypeAudio);
+
+	if (!sound->isSample) {
 		sound->loop = (readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff);
 		sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 		sound->signal = Sci1Sound::kNoSignal;
@@ -2368,7 +2441,16 @@ void SoundManager::sendMidi(const reg_t soundObj, int16 channel, const int16 com
 void SoundManager::debugPrintPlaylist(Console &con) const {
 	Common::StackLock lock(_mutex);
 
-	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
+	for (uint i = 0; i < _playlist.size(); ++i) {
+		if (!_playlist[i]) {
+			if (_soundVersion <= SCI_VERSION_1_EARLY && i == 0) {
+				con.debugPrintf("0: no exclusive sound\n");
+				continue;
+			} else {
+				break;
+			}
+		}
+
 		const Sci1Sound &sound = *_playlist[i];
 
 		const char *status;
@@ -2461,7 +2543,8 @@ void SoundManager::debugPlay(const GuiResourceId soundId) {
 
 void SoundManager::debugStopAll() {
 	Common::StackLock lock(_mutex);
-	for (int i = 0; i < kPlaylistSize && _playlist[i]; ++i) {
+	for (uint i = 0; i < _playlist.size(); ++i) {
+		VALIDATE_PLAYLIST_ITERATOR
 		stop(*_playlist[i]);
 	}
 }

@@ -205,14 +205,11 @@ struct Sci1Sound : public Common::Serializable {
 		/**
 		 * A sound created by `playBed` is playing.
 		 *
-		 * Sounds played back normally have 15 instrument channels plus a
-		 * control channel, and the instrument channels are dynamically remapped
-		 * to hardware channels algorithmically.
-		 *
-		 * Sounds played back exclusively with `playBed` instead use a 1:1
-		 * mapping from sound channel to hardware channel, so offer 15
-		 * instrument channels plus a percussion channel instead. They also may
-		 * not be preempted by other sounds with higher priorities.
+		 * Sounds played non-exclusively have their instrument channels
+		 * dynamically remapped to hardware channels by priority. Sounds played
+		 * exclusively have an enforced 1:1 mapping from sound channel to
+		 * hardware channel, and may not be preempted by other normal sounds
+		 * with higher priorities.
 		 */
 		kExclusive = 2
 	};
@@ -560,19 +557,25 @@ struct Sci1Sound : public Common::Serializable {
 	 */
 	uint8 numPauses;
 
-	union {
-		/**
-		 * If true, the sound is actually a digital sample which should be
-		 * played through Audio/Audio32. This is used by SCI1.1+.
-		 */
-		bool isSample;
+	/**
+	 * If true, the sound is actually a digital sample. For SCI1.1+ this means
+	 * the sound should be played through Audio/Audio32; for SCI1late- this
+	 * means the sound should be played through the sample list.
+	 *
+	 * @note In SSCI1late-, whether or not a sound was sampled was determined
+	 * by whether or not `sampleTrackNo` was non-zero. In SSCI1.1 this was
+	 * turned into a boolean flag instead. For clarity of implementation, we use
+	 * this flag consistently for all SCI versions instead of checking the
+	 * sample track number.
+	 */
+	bool isSample;
 
-		/**
-		 * If non-zero, the sound is actually a digital sample. If 0x80 bit is
-		 * set, the sample has also been loaded. This is used by SCI1late-.
-		 */
-		uint8 sampleTrackNo;
-	};
+	/**
+	 * If the sound is a sample, this is the track number for the sample track.
+	 * If 0x80 bit is set, the sample has also been loaded. This is used by
+	 * SCI1late-.
+	 */
+	uint8 sampleTrackNo;
 
 	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
 	Sci1Sound(const reg_t nodePtr_ = NULL_REG) :
@@ -597,6 +600,7 @@ struct Sci1Sound : public Common::Serializable {
 		fadeDelayRemaining(0),
 		fadeAmountPerTick(0),
 		numPauses(0),
+		isSample(false),
 		sampleTrackNo(0) {}
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
@@ -667,8 +671,8 @@ public:
 	 * Gets the number of available channels for playing digital audio samples.
 	 */
 	int getNumDacs() const {
-		// TODO: Decide if non-PC platforms can benefit from being told of more
-		// than one DAC.
+		// TODO: Decide if platforms can benefit from being told of more
+		// than one DAC. This would apply only for SCI1early games on PC.
 		if (_preferSampledSounds) {
 			return 1;
 		}
@@ -870,7 +874,7 @@ private:
 	 */
 	inline uint8 makeChannelKey(const Sci1Sound &sound, const uint8 channelNo) const {
 		const uint8 playlistIndex = findPlaylistIndex(sound);
-		if (playlistIndex == kPlaylistSize) {
+		if (playlistIndex == _playlist.size()) {
 			return kUnknownSound;
 		}
 		return makeChannelKey(playlistIndex, channelNo);
@@ -1085,8 +1089,8 @@ private:
 	 * @param exclusive If true, the sound will be played back in exclusive mode
 	 * (calls to `playBed` in game scripts are supposed to do this).
 	 *
-	 * @returns the new index of the sound in the playlist, or `kPlaylistSize`
-	 * if the sound was not added to the playlist.
+	 * @returns the new index of the sound in the playlist, or
+	 * `_playlist.size()` if the sound was not added to the playlist.
 	 *
 	 * TODO: was PlaySound. returns playlist index
 	 */
@@ -1209,6 +1213,12 @@ private:
 	};
 
 	/**
+	 * Finds the offset table for the given device ID. Returns a null span no
+	 * offset table exists for the given device ID.
+	 */
+	SciSpan<const byte> findTrackOffsets(SciSpan<const byte> data, const uint8 deviceId) const;
+
+	/**
 	 * Finds and populates the offsets to the start of track data for each track
 	 * in the sound designed for the current output device. This is a highly
 	 * modified version of the header fixup method from SSCI, changed so as to
@@ -1291,7 +1301,8 @@ private:
 #pragma mark Playlist management
 private:
 	enum {
-		kPlaylistSize = 16
+		kPlaylistSize = 16,
+		kSampleListSize = 16
 	};
 
 	/**
@@ -1301,11 +1312,11 @@ private:
 
 	/**
 	 * Finds the index of the given sound in the current playlist. Returns
-	 * `kPlaylistSize` if the sound could not be found in the playlist.
+	 * `_playlist.size()` if the sound could not be found in the playlist.
 	 */
 	inline uint8 findPlaylistIndex(const Sci1Sound &sound) const {
 		uint i;
-		for (i = 0; i < kPlaylistSize; ++i) {
+		for (i = 0; i < _playlist.size(); ++i) {
 			if (_playlist[i] == &sound) {
 				break;
 			}
@@ -1321,9 +1332,10 @@ private:
 
 	/**
 	 * Removes the given sound from _playlist.
+	 * @returns true if the sound was found and removed.
 	 * TODO: was DoEnd
 	 */
-	void removeSoundFromPlaylist(Sci1Sound &sound);
+	bool removeSoundFromPlaylist(Sci1Sound &sound);
 
 #pragma mark -
 #pragma mark Digital sample playback
@@ -1400,7 +1412,7 @@ private:
 	 * TODO: In SSCI this was an array of 16 dd, of which only the first entry
 	 * was ever used to hold a far pointer in at least SCI1late+.
 	 */
-	Common::FixedArray<Sci1Sound *, kPlaylistSize> _sampleList;
+	Common::FixedArray<Sci1Sound *, kSampleListSize> _sampleList;
 
 #pragma mark -
 #pragma mark Kernel

@@ -810,6 +810,7 @@ void Sci1Sound::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsByte(fadeAmountPerTick);
 	s.syncAsByte(numPauses);
 	s.syncAsByte(isSample);
+	s.syncAsByte(sampleTrackNo);
 }
 
 #ifdef ENABLE_SCI32
