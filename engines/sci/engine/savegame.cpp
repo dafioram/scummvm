@@ -788,12 +788,8 @@ void Sci1Sound::Channel::saveLoadWithSerializer(Common::Serializer &s) {
 }
 
 void Sci1Sound::saveLoadWithSerializer(Common::Serializer &s) {
-	for (uint i = 0; i < tracks.size(); ++i) {
-		tracks[i].saveLoadWithSerializer(s);
-	}
-	for (uint i = 0; i < channels.size(); ++i) {
-		channels[i].saveLoadWithSerializer(s);
-	}
+	s.syncArray(tracks.data(), tracks.size());
+	s.syncArray(channels.data(), channels.size());
 	syncWithSerializer(s, nodePtr);
 	syncWithSerializer(s, id);
 	s.syncAsUint16LE(cue);

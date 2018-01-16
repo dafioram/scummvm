@@ -256,6 +256,16 @@ public:
 	}
 
 	template <typename T>
+	void syncArray(T *arr, size_t entries, Version minVersion = 0, Version maxVersion = kLastVersion) {
+		if (_version < minVersion || _version > maxVersion)
+			return;
+
+		for (size_t i = 0; i < entries; ++i) {
+			arr[i].saveLoadWithSerializer(*this);
+		}
+	}
+
+	template <typename T>
 	void syncArray(T *arr, size_t entries, void (*serializer)(Serializer &, T &), Version minVersion = 0, Version maxVersion = kLastVersion) {
 		if (_version < minVersion || _version > maxVersion)
 			return;
