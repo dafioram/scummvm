@@ -277,7 +277,7 @@ void SoundManager::restore(Sci1Sound &sound) {
 	const uint8 holdPoint = sound.holdPoint;
 
 	if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
-		for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		for (uint i = 0; i < Sci1Sound::kNumChannels; ++i) {
 			muteCounts[i] = sound.channels[i].gameMuteCount;
 		}
 	}
@@ -318,7 +318,7 @@ void SoundManager::restore(Sci1Sound &sound) {
 	sound.loop = loopToRestore;
 	_restoringSound = false;
 	if (_soundVersion >= SCI_VERSION_1_MIDDLE) {
-		for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+		for (uint i = 0; i < sound.channels.size(); ++i) {
 			sound.channels[i].gameMuteCount = muteCounts[i];
 		}
 	}
@@ -495,7 +495,7 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 	HardwareChannels committedChannels = {};
 	int committedFreeVoices = _driver->getNumVoices();
 	// loopDoNodes
-	for (uint i = 0, basePriority = 0; i < _playlist.size(); ++i, basePriority += 16) {
+	for (uint i = 0, basePriority = 0; i < _playlist.size(); ++i, basePriority += Sci1Sound::kNumChannels) {
 		VALIDATE_PLAYLIST_ITERATOR
 		const Sci1Sound &sound = *_playlist[i];
 
@@ -508,7 +508,7 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 		int workingFreeVoices(committedFreeVoices);
 
 		// loopDoTracks
-		for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+		for (uint trackNo = 0; trackNo < sound.tracks.size(); ++trackNo) {
 			const Sci1Sound::Track &track = sound.tracks[trackNo];
 			if (track.channelNo == Sci1Sound::Track::kEndOfData ||
 				track.channelNo == Sci1Sound::Track::kSampleTrack ||
@@ -530,7 +530,7 @@ SoundManager::HardwareChannels SoundManager::makeChannelMap(const uint8 minChann
 
 			uint8 priority = channel.priority;
 			if (priority != 0) {
-				priority = kNumHardwareChannels - priority + basePriority;
+				priority = Sci1Sound::kNumChannels - priority + basePriority;
 			}
 
 			// nonPreemptable
@@ -555,7 +555,7 @@ bool SoundManager::mapSingleChannel(const uint8 key, const uint8 priority, int &
 	if (!(channel.flags & Sci1Sound::Channel::kLocked) || newChannels[inChannelNo].isMapped()) {
 		// lookOpenChnl
 		bestHwChannelNo = HardwareChannel::kUnmapped;
-		for (int hwChannelNo = 0; hwChannelNo < kNumHardwareChannels; ++hwChannelNo) {
+		for (uint hwChannelNo = 0; hwChannelNo < newChannels.size(); ++hwChannelNo) {
 			const HardwareChannel &newHwChannel = newChannels[hwChannelNo];
 			if (newHwChannel.key == key) {
 				// jmp nextChTrack
@@ -606,7 +606,7 @@ bool SoundManager::mapSingleChannel(const uint8 key, const uint8 priority, int &
 	}
 
 	// putChOnList
-	assert(bestHwChannelNo < kNumHardwareChannels);
+	assert(bestHwChannelNo < newChannels.size());
 
 	HardwareChannel &newHwChannel = newChannels[bestHwChannelNo];
 	newHwChannel.key = key;
@@ -639,7 +639,7 @@ bool SoundManager::mapSingleChannel(const uint8 key, const uint8 priority, int &
 					numFreeVoices += preferredChannel.numVoices;
 					preferredChannel = newHwChannel;
 					newHwChannel = HardwareChannel();
-					// TODO: We already subtracted our voices once, is this an
+					// TODO: We already subtracted these voices once, is this an
 					// original engine bug?
 					numFreeVoices -= channel.numVoices;
 					// fall through to nextChTrack
@@ -664,7 +664,7 @@ bool SoundManager::mapSingleChannel(const uint8 key, const uint8 priority, int &
 
 void SoundManager::commitFixedChannels(HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo) {
 	// loopPass2
-	for (int newChannelNo = 0; newChannelNo < kNumHardwareChannels; ++newChannelNo) {
+	for (uint newChannelNo = 0; newChannelNo < newChannels.size(); ++newChannelNo) {
 		HardwareChannel &newChannel = newChannels[newChannelNo];
 		if (!newChannel.isMapped()) {
 			// jmp nextPass2
@@ -716,7 +716,7 @@ void SoundManager::commitFixedChannels(HardwareChannels &newChannels, const Hard
 
 void SoundManager::commitDynamicChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels, const uint8 minChannelNo, const uint8 maxChannelNo) {
 	// doPass3
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
+	for (uint i = 0; i < newChannels.size(); ++i) {
 		// loopPass3
 		const HardwareChannel &newChannel = newChannels[i];
 		if (newChannel.key == HardwareChannel::kUnmapped) {
@@ -740,7 +740,7 @@ void SoundManager::commitDynamicChannels(const HardwareChannels &newChannels, co
 }
 
 void SoundManager::stopOldChannels(const HardwareChannels &newChannels, const HardwareChannels &oldChannels) {
-	for (int i = kNumHardwareChannels - 1; i >= 0; --i) {
+	for (int i = newChannels.size() - 1; i >= 0; --i) {
 		if (oldChannels[i].isMapped() && !newChannels[i].isMapped()) {
 			_driver->controllerChange(i, kDamperPedalController, 0);
 			_driver->controllerChange(i, kAllNotesOffController, 0);
@@ -752,7 +752,7 @@ void SoundManager::stopOldChannels(const HardwareChannels &newChannels, const Ha
 uint8 SoundManager::preemptChannel(HardwareChannels &newChannels, int &numFreeVoices) const {
 	uint8 lowestPriority = 0;
 	uint8 lowestPriorityChannelNo = HardwareChannel::kUnmapped;
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
+	for (uint i = 0; i < newChannels.size(); ++i) {
 		HardwareChannel &newChannel = newChannels[i];
 		// This is a little confusing because lower priorities are higher
 		// numerically
@@ -874,7 +874,7 @@ void SoundManager::fade(Sci1Sound &sound, const int16 targetVolume, const int16 
 
 void SoundManager::mute(Sci1Sound &sound, const bool mute) {
 	Common::StackLock lock(_mutex);
-	for (int channelNo = Sci1Sound::kNumChannels - 1; channelNo >= 0; --channelNo) {
+	for (int channelNo = sound.channels.size() - 1; channelNo >= 0; --channelNo) {
 		Sci1Sound::Channel &channel = sound.channels[channelNo];
 		if (mute) {
 			if (channel.gameMuteCount < 15) {
@@ -899,14 +899,14 @@ void SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume, con
 		return;
 	}
 
-	for (int hwChannelNo = 0; hwChannelNo < kNumHardwareChannels; ++hwChannelNo) {
+	for (uint hwChannelNo = 0; hwChannelNo < _hardwareChannels.size(); ++hwChannelNo) {
 		const HardwareChannel &hwChannel = _hardwareChannels[hwChannelNo];
 		if (hwChannel.isMapped() && hwChannel.playlistIndex() == playlistIndex) {
 			changeChannelVolume(sound, hwChannel.channelNo(), hwChannelNo, enqueue);
 		}
 	}
 
-	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+	for (uint trackNo = 0; trackNo < sound.tracks.size(); ++trackNo) {
 		const uint8 channelNo = sound.tracks[trackNo].channelNo;
 		if (channelNo == Sci1Sound::Track::kEndOfData) {
 			break;
@@ -949,7 +949,7 @@ void SoundManager::applyPendingVolumeChanges() {
 			++numUpdates;
 			volume = kNoVolumeChange;
 		}
-		if (++channelNo == kNumHardwareChannels) {
+		if (++channelNo == _newChannelVolumes.size()) {
 			channelNo = 0;
 		}
 	} while (numUpdates < 2 && channelNo != originalChannel);
@@ -977,7 +977,7 @@ void SoundManager::pauseAll(const bool pause) {
 }
 
 static bool hasSynthesisedTracks(const Sci1Sound &sound) {
-	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+	for (uint trackNo = 0; trackNo < sound.tracks.size(); ++trackNo) {
 		const Sci1Sound::Track &track = sound.tracks[trackNo];
 		if (track.offset == 0) {
 			break;
@@ -1033,7 +1033,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 
 	readTrackOffsets(sound);
 
-	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+	for (uint trackNo = 0; trackNo < sound.tracks.size(); ++trackNo) {
 		Sci1Sound::Track &track = sound.tracks[trackNo];
 		if (track.offset == 0) {
 			break;
@@ -1134,7 +1134,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 	// approach, since it should be compatible with the SSCI1early- channel
 	// remapping algorithm.
 	if (sound.state & Sci1Sound::kExclusive) {
-		for (int channelNo = 0; channelNo < Sci1Sound::kNumChannels; ++channelNo) {
+		for (uint channelNo = 0; channelNo < sound.channels.size(); ++channelNo) {
 			Sci1Sound::Channel &channel = sound.channels[channelNo];
 			channel.flags = Sci1Sound::Channel::ChannelFlags(channel.flags | Sci1Sound::Channel::kLocked);
 		}
@@ -1385,7 +1385,7 @@ void SoundManager::readTrackOffsets(Sci1Sound &sound) {
 void SoundManager::advancePlayback(Sci1Sound &sound, uint8 playlistIndex) {
 	++sound.ticksElapsed;
 
-	for (int trackNo = 0; trackNo < Sci1Sound::kNumTracks; ++trackNo) {
+	for (uint trackNo = 0; trackNo < sound.tracks.size(); ++trackNo) {
 		// In SSCI playlist index was shifted here, we do it at point of use
 		// below
 
@@ -1429,7 +1429,7 @@ void SoundManager::advancePlayback(Sci1Sound &sound, uint8 playlistIndex) {
 
 	// outParse
 
-	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+	for (uint i = 0; i < sound.tracks.size(); ++i) {
 		Sci1Sound::Track &track = sound.tracks[i];
 		if (track.channelNo == Sci1Sound::Track::kEndOfData) {
 			break;
@@ -1442,7 +1442,7 @@ void SoundManager::advancePlayback(Sci1Sound &sound, uint8 playlistIndex) {
 
 	if (sound.holdPoint || sound.loop) {
 		sound.ticksElapsed = sound.loopTicksElapsed;
-		for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+		for (uint i = 0; i < sound.tracks.size(); ++i) {
 			Sci1Sound::Track &track = sound.tracks[i];
 			track.position = track.loopPosition;
 			track.rest = track.loopRest;
@@ -1572,7 +1572,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 
 			track.command = kProgramChange | kControlChannel;
 
-			for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+			for (uint i = 0; i < sound.tracks.size(); ++i) {
 				Sci1Sound::Track &loopTrack = sound.tracks[i];
 				loopTrack.loopPosition = loopTrack.position;
 				loopTrack.loopRest = loopTrack.rest;
@@ -1605,7 +1605,7 @@ void SoundManager::parseControlChannel(Sci1Sound &sound, const uint8 trackNo, co
 			break;
 		case kHoldPointController:
 			if (sound.holdPoint == value) {
-				for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+				for (uint i = 0; i < sound.tracks.size(); ++i) {
 					sound.tracks[i].position = 0;
 				}
 			}
@@ -1655,7 +1655,7 @@ void SoundManager::processKeyPressure(Sci1Sound &sound, const uint8 trackNo, con
 
 	if (hwChannelNo != HardwareChannel::kUnmapped && !_restoringSound) {
 		// SSCI did not clamp the channel range here, see if this is a problem
-		if (hwChannelNo >= kNumHardwareChannels) {
+		if (hwChannelNo >= _hardwareChannels.size()) {
 			warning("Key pressure note %u pressure %u channel %u out of range", note, pressure, hwChannelNo);
 		}
 
@@ -1677,7 +1677,9 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 
 	switch (controllerNo) {
 	case kVolumeController:
-		if (hwChannelNo >= kNumHardwareChannels * 2) {
+		// TODO: This is vestigial in SSCI1mid+, left in from SSCI1early- where
+		// high channel numbers were used for the 'extra' channel flags
+		if (hwChannelNo >= _hardwareChannels.size() * 2) {
 			return;
 		}
 
@@ -1686,7 +1688,7 @@ void SoundManager::processControllerChange(Sci1Sound &sound, const uint8 trackNo
 		// used 0xff instead of 0xf); we do not do that, this might cause volume
 		// issues since any pending volumes would have been applied again in
 		// SSCI and won't here.
-		if (hwChannelNo >= kNumHardwareChannels) {
+		if (hwChannelNo >= _hardwareChannels.size()) {
 			warning("Out of range volume change applied to channel %u", hwChannelNo);
 		}
 
@@ -1747,7 +1749,7 @@ void SoundManager::processChannelPressure(Sci1Sound &sound, const uint8 trackNo,
 
 	if (hwChannelNo != HardwareChannel::kUnmapped && !_restoringSound) {
 		// SSCI did not clamp the channel range here, see if this is a problem
-		if (hwChannelNo >= kNumHardwareChannels) {
+		if (hwChannelNo >= _hardwareChannels.size()) {
 			warning("Channel pressure pressure %u channel %u out of range", pressure, hwChannelNo);
 		}
 
@@ -2501,7 +2503,7 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 
 	con.debugPrintf("\nTracks:\n");
 
-	for (int i = 0; i < Sci1Sound::kNumTracks; ++i) {
+	for (uint i = 0; i < sound->tracks.size(); ++i) {
 		const Sci1Sound::Track &track = sound->tracks[i];
 		if (track.offset == 0) {
 			break;
@@ -2516,7 +2518,7 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 
 	con.debugPrintf("\nChannels:\n");
 
-	for (int i = 0; i < Sci1Sound::kNumChannels; ++i) {
+	for (uint i = 0; i < sound->channels.size(); ++i) {
 		const Sci1Sound::Channel &channel = sound->channels[i];
 		con.debugPrintf("%2d: priority %d, voices %u, note %u, volume %u\n",
 						i, channel.priority, channel.numVoices, channel.currentNote, channel.volume);
@@ -2551,7 +2553,7 @@ void SoundManager::debugStopAll() {
 
 void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &channels) const {
 	Common::StackLock lock(_mutex);
-	for (int i = 0; i < kNumHardwareChannels; ++i) {
+	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
 		const HardwareChannel &channel = _hardwareChannels[i];
 		if (channel.isMapped()) {
 			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
