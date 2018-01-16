@@ -1103,7 +1103,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 
 			if (channel.priority == Sci1Sound::Channel::kUninitialized) {
 				channel.priority = trackData[1] >> 4;
-				channel.numVoices = trackData[1] & 4;
+				channel.numVoices = trackData[1] & 0xf;
 			}
 
 			if (channel.program == Sci1Sound::Channel::kUninitialized) {
