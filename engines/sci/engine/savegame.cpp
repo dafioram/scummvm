@@ -704,7 +704,7 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 	byte reverb;
 	byte soundOn;
 
-	if (s.getVersion() >= 15) {
+	if (s.getVersion() >= VER(15)) {
 		s.syncAsByte(soundOn);
 		s.syncAsByte(masterVolume);
 		s.syncAsByte(reverb, VER(17));
@@ -741,7 +741,7 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 		byte status;
 		byte playBed = 0;
 		s.syncAsByte(status);
-		if (s.getVersion() >= 32) {
+		if (s.getVersion() >= VER(32)) {
 			s.syncAsByte(playBed);
 		}
 		if (playBed) {
@@ -751,7 +751,7 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 		} else {
 			prototype.state = Sci1Sound::kStopped;
 		}
-		if (s.getVersion() >= 33)
+		if (s.getVersion() >= VER(33))
 			s.syncAsByte(prototype.fixedPriority);
 		else
 			prototype.fixedPriority = false;
