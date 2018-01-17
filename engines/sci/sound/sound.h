@@ -444,9 +444,7 @@ struct Sci1Sound : public Common::Serializable {
 
 	/**
 	 * The Sound's resource ID. This is stored separately from the resource
-	 * pointer because the resource pointer only exists when a sound is actually
-	 * playing, and game scripts sometimes call sound kernel methods while
-	 * sounds are stopped.
+	 * pointer because it is used for save/load.
 	 */
 	ResourceId id;
 

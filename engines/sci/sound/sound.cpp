@@ -2031,16 +2031,15 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	// TODO: Figure out the exact SCI versions which did this, it is at least
 	// SCI2.1early
 	if (_soundVersion >= SCI_VERSION_2 &&
-		sound->resource &&
-		sound->resource->getType() == kResourceTypeAudio) {
+		sound->id.getType() == kResourceTypeAudio) {
 
-		g_sci->_audio32->stop(sound->id);
+		g_sci->_audio32->stop(sound->id, sound->nodePtr);
 	}
 #endif
 
 	const GuiResourceId soundNo = getSoundResourceId(readSelectorValue(_segMan, soundObj, SELECTOR(number)));
-
-	sound->id = ResourceId(getSoundResourceType(soundNo), soundNo);
+	const ResourceId id(getSoundResourceType(soundNo), soundNo);
+	sound->id = id;
 
 	if (!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull() &&
 		(_soundVersion < SCI_VERSION_2 || !sound->isSample)) {
@@ -2054,7 +2053,7 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 	}
 
 	if (_soundVersion >= SCI_VERSION_1_1) {
-		sound->isSample = (sound->id.getType() == kResourceTypeAudio);
+		sound->isSample = (id.getType() == kResourceTypeAudio);
 	}
 
 	assert(!sound->resource);
@@ -2062,9 +2061,9 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		// SSCI32 would optionally preload audio if there was a preload flag in
 		// the soundObj's `flags` selector; we do not need to worry about load
 		// times, so we just don't do that
-		sound->resource = _resMan.testResource(sound->id);
+		sound->resource = _resMan.testResource(id);
 	} else {
-		sound->resource = _resMan.findResource(sound->id, true);
+		sound->resource = _resMan.findResource(id, true);
 	}
 
 	if (_soundVersion >= SCI_VERSION_1_1 && !sound->resource) {
@@ -2099,13 +2098,13 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		// components instead
 #ifdef ENABLE_SCI32
 		if (_soundVersion >= SCI_VERSION_2) {
-			g_sci->_audio32->play(g_sci->_audio32->findChannelById(sound->id, soundObj), sound->id, true, loop, volume, nodePtr, false);
+			g_sci->_audio32->play(g_sci->_audio32->findChannelById(id, soundObj), id, true, loop, volume, nodePtr, false);
 		} else
 #endif
 			// TODO: This doesn't loop, it should loop, Sci::Audio does not have
 			// the capability to do this, it should probably just be using
 			// Audio32 which was actually RE'd properly
-			g_sci->_audio->startAudio(kSfxModule, sound->id.getNumber());
+			g_sci->_audio->startAudio(kSfxModule, id.getNumber());
 	} else {
 		kernelUpdate(soundObj);
 		play(*sound, exclusive);
@@ -2182,10 +2181,11 @@ void SoundManager::kernelPause(const reg_t soundObj, const int16 numPauses, cons
 			// which is not very pleasant; we do normal calls into the audio
 			// components instead
 			if (pauseDac && _soundVersion >= SCI_VERSION_2 && sound->isSample) {
+				const ResourceId id(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
 				if (shouldPause) {
-					g_sci->_audio32->pause(sound->id, nodePtr);
+					g_sci->_audio32->pause(id, nodePtr);
 				} else {
-					g_sci->_audio32->resume(sound->id, nodePtr);
+					g_sci->_audio32->resume(id, nodePtr);
 				}
 			} else
 #endif
@@ -2210,8 +2210,8 @@ void SoundManager::kernelFade(const reg_t soundObj, const int16 targetVolume, co
 
 #ifdef ENABLE_SCI32
 	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
-		g_sci->_audio32->fadeChannel(sound->id, nodePtr,
-									 targetVolume, speed, steps, stopAfterFade);
+		const ResourceId id(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+		g_sci->_audio32->fadeChannel(id, nodePtr, targetVolume, speed, steps, stopAfterFade);
 	} else
 #endif
 		fade(*sound, targetVolume, speed, steps, stopAfterFade);
@@ -2238,7 +2238,8 @@ void SoundManager::kernelSetVolume(const reg_t soundObj, const int16 volume) {
 
 #ifdef ENABLE_SCI32
 	if (_soundVersion >= SCI_VERSION_2 && sound->isSample) {
-		g_sci->_audio32->setVolume(sound->id, nodePtr, volume);
+		const ResourceId id(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+		g_sci->_audio32->setVolume(id, nodePtr, volume);
 	}
 #endif
 	if (sound->volume != volume) {
@@ -2291,7 +2292,8 @@ void SoundManager::kernelSetLoop(const reg_t soundObj, const bool enable) {
 
 #ifdef ENABLE_SCI32
 	if (_soundVersion >= SCI_VERSION_2_1_MIDDLE && sound->isSample) {
-		g_sci->_audio32->setLoop(sound->id, nodePtr, enable);
+		const ResourceId id(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+		g_sci->_audio32->setLoop(id, nodePtr, enable);
 	} else
 #endif
 		sound->loop = enable;
@@ -2311,7 +2313,8 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 		int position;
 #ifdef ENABLE_SCI32
 		if (_soundVersion >= SCI_VERSION_2) {
-			position = g_sci->_audio32->getPosition(sound->id, nodePtr);
+			const ResourceId id(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+			position = g_sci->_audio32->getPosition(id, nodePtr);
 
 			if (_soundVersion == SCI_VERSION_3) {
 				// In SSCI the volume is first set to -1 and then reset later if
@@ -2319,7 +2322,7 @@ void SoundManager::kernelUpdateCues(const reg_t soundObj) {
 				// code returns -1 for not-found samples, the extra check is not
 				// needed and we can just always set it to the return value of
 				// the getVolume call
-				const int16 volume = g_sci->_audio32->getVolume(sound->id, nodePtr);
+				const int16 volume = g_sci->_audio32->getVolume(id, nodePtr);
 				writeSelectorValue(_segMan, soundObj, SELECTOR(vol), volume);
 			}
 		} else
@@ -2468,7 +2471,7 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 						i,
 						PRINT_REG(sound.nodePtr),
 						_segMan->getObjectName(sound.nodePtr),
-						sound.resource ? sound.id.toString().c_str() : "<none>",
+						sound.resource ? sound.resource->name().c_str() : "<none>",
 						status);
 	}
 }
@@ -2483,7 +2486,7 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 	}
 
 	con.debugPrintf("%s, %s, %u pauses\n",
-					sound->id.toString().c_str(),
+					sound->resource ? sound->resource->name().c_str() : "<none>",
 					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
 					sound->numPauses);
 	con.debugPrintf("cue %u, hold point %u, loop %d\n",
@@ -2556,9 +2559,10 @@ void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &ch
 	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
 		const HardwareChannel &channel = _hardwareChannels[i];
 		if (channel.isMapped()) {
+			const Resource *resource = _playlist[channel.playlistIndex()]->resource;
 			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
 							i,
-							_playlist[channel.playlistIndex()]->id.toString().c_str(),
+							resource ? resource->name().c_str() : "<none>",
 							channel.channelNo(),
 							channel.priority,
 							channel.numVoices,
