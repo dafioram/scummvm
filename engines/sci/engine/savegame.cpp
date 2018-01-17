@@ -756,7 +756,11 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 		else
 			prototype.fixedPriority = false;
 
-		_sounds.push_back(prototype);
+		if (prototype.state == Sci1Sound::kStopped && !resourceNo) {
+			warning("Culling empty sound object for %04x:%04x", PRINT_REG(prototype.nodePtr));
+		} else {
+			_sounds.push_back(prototype);
+		}
 	}
 }
 
