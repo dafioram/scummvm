@@ -827,10 +827,18 @@ uint8 SoundManager::setReverbMode(const uint8 reverbMode) {
 	uint8 oldReverbMode = _defaultReverbMode;
 	_defaultReverbMode = reverbMode;
 
-	// TODO: SCI1early- used 255 instead of 127 here?
-	bool valid = (_playlist[0] && _playlist[0]->reverbMode == kUseDefaultReverb);
-	if (!valid && _playlist[0] && _soundVersion <= SCI_VERSION_1_EARLY) {
-		valid = (_playlist[1] && _playlist[1]->reverbMode == kUseDefaultReverb);
+	uint8 unset;
+	if (_soundVersion <= SCI_VERSION_1_EARLY) {
+		// This is probably an original engine bug, since the default reverb
+		// mode is the same value across all SCI versions
+		unset = 0xff;
+	} else {
+		unset = kUseDefaultReverb;
+	}
+
+	bool valid = (_playlist[0] && _playlist[0]->reverbMode == unset);
+	if (!valid && _soundVersion <= SCI_VERSION_1_EARLY) {
+		valid = (_playlist[1] && _playlist[1]->reverbMode == unset);
 	}
 
 	if (valid) {
