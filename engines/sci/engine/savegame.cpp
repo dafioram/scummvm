@@ -656,7 +656,7 @@ void SoundManager::prepareForRestore() {
 				// TODO: Needs to receive a resource number
 				g_sci->_audio->stopAudio();
 		} else {
-			const reg_t soundObj = sound->nodePtr;
+			const reg_t soundObj = sound->soundObj;
 			stop(*sound);
 			if (!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull() &&
 				sound->resource) {
@@ -673,7 +673,7 @@ void SoundManager::reconstructPlaylist() {
 	enableSoundServer(true);
 
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
-		const reg_t soundObj = sound->nodePtr;
+		const reg_t soundObj = sound->soundObj;
 		if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 			if (_soundVersion >= SCI_VERSION_2 &&
 				readSelectorValue(_segMan, soundObj, SELECTOR(loop)) == 0xffff &&
@@ -685,7 +685,7 @@ void SoundManager::reconstructPlaylist() {
 			assert(!sound->resource);
 			sound->resource = _resMan.findResource(sound->id, true);
 			assert(sound->resource);
-			writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
+			writeSelector(_segMan, soundObj, SELECTOR(handle), sound->nodePtr);
 			restore(*sound);
 			// SSCI1late locked the resource handle here for digital samples,
 			// but we already do this anyway
@@ -724,6 +724,7 @@ void SoundManager::legacyRestore(Common::Serializer &s) {
 	for (uint i = 0; i < numSounds; ++i) {
 		uint16 resourceNo;
 		syncWithSerializer(s, prototype.nodePtr);
+		prototype.soundObj = prototype.nodePtr;
 		s.syncAsSint16LE(resourceNo);
 		prototype.id = ResourceId(getSoundResourceType(resourceNo), resourceNo);
 		s.syncAsSint16LE(prototype.cue);
@@ -795,6 +796,7 @@ void Sci1Sound::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncArray(tracks.data(), tracks.size());
 	s.syncArray(channels.data(), channels.size());
 	syncWithSerializer(s, nodePtr);
+	syncWithSerializer(s, soundObj);
 	syncWithSerializer(s, id);
 	s.syncAsUint16LE(cue);
 	s.syncAsUint16LE(ticksElapsed);

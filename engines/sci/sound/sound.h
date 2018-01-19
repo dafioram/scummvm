@@ -438,6 +438,11 @@ struct Sci1Sound : public Common::Serializable {
 	reg_t nodePtr;
 
 	/**
+	 * The VM Sound object for this kernel sound object.
+	 */
+	reg_t soundObj;
+
+	/**
 	 * The Sound's resource.
 	 */
 	Resource *resource;
@@ -576,10 +581,11 @@ struct Sci1Sound : public Common::Serializable {
 	uint8 sampleTrackNo;
 
 	// In SSCI, this structure is zero-filled when it is constructed in InitSnd
-	Sci1Sound(const reg_t nodePtr_ = NULL_REG) :
+	Sci1Sound(const reg_t soundObj_ = NULL_REG, const reg_t nodePtr_ = NULL_REG) :
 		tracks(),
 		channels(),
 		nodePtr(nodePtr_),
+		soundObj(soundObj_),
 		resource(nullptr),
 		cue(0),
 		ticksElapsed(0),

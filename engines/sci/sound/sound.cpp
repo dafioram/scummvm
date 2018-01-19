@@ -1967,7 +1967,7 @@ void SoundManager::kernelInit(const reg_t soundObj) {
 	Sci1Sound *sound;
 	if (nodePtr.isNull()) {
 		nodePtr = make_reg(kUninitializedSegment, _nextObjectId++);
-		_sounds.push_back(Sci1Sound(nodePtr));
+		_sounds.push_back(Sci1Sound(soundObj, nodePtr));
 		sound = &_sounds.back();
 		writeSelector(_segMan, soundObj, SELECTOR(nodePtr), nodePtr);
 	} else {
@@ -2067,8 +2067,10 @@ void SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 
 	// In SSCI the handle was assigned to the MemID returned by a call to
 	// ResourceManager::Get, we do not allocate memory through SegManager for
-	// resources so instead we just give the handle property a valid pointer
-	writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
+	// resources so instead we just give the handle property a valid-ish pointer
+	// and hope that games don't try to dereference the handle to try to read
+	// raw MIDI data
+	writeSelector(_segMan, soundObj, SELECTOR(handle), nodePtr);
 
 	writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kNoSignal);
 	writeSelectorValue(_segMan, soundObj, SELECTOR(min), 0);
