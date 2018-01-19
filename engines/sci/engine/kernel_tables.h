@@ -152,7 +152,8 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 	{ SIG_SOUNDSCI1,      15, MAP_CALL(DoSoundSetPriority),        "oi",                   NULL },
 	{ SIG_SOUNDSCI1,      16, MAP_CALL(DoSoundSetLoop),            "oi",                   NULL },
 	{ SIG_SOUNDSCI1,      17, MAP_CALL(DoSoundUpdateCues),         "o",                    NULL },
-	{ SIG_SOUNDSCI1,      18, MAP_CALL(DoSoundSendMidi),           "oiiii",                NULL },
+	{ SCI_VERSION_1_MIDDLE, SCI_VERSION_1_MIDDLE, 18, MAP_CALL(DoSoundSendMidi), "oiii",   NULL },
+	{ SIG_SOUNDSCI1LATE,  18, MAP_CALL(DoSoundSendMidi),           "oiiii",                NULL },
 	{ SIG_SOUNDSCI1,      19, MAP_CALL(DoSoundGlobalReverb),       "(i)",                  NULL },
 	{ SIG_SOUNDSCI1,      20, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
 	SCI_SUBOPENTRY_TERMINATOR

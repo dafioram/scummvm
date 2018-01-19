@@ -1349,7 +1349,7 @@ void SoundManager::setPitchBend(Sci1Sound &sound, const uint8 channelNo, const u
 
 	const uint8 hwChannelNo = findHwChannelNo(key);
 	if (hwChannelNo != HardwareChannel::kUnmapped) {
-		_driver->pitchBend(hwChannelNo, value - 0x2000);
+		_driver->pitchBend(hwChannelNo, value);
 	}
 }
 
