@@ -2552,10 +2552,6 @@ void SoundManager::debugPrintDriverState(Console &con) const {
 	_driver->debugPrintState(con);
 }
 
-void SoundManager::debugPlay(const GuiResourceId soundId) {
-	warning("TODO: Not implemented yet");
-}
-
 void SoundManager::debugStopAll() {
 	Common::StackLock lock(_mutex);
 	for (uint i = 0; i < _playlist.size(); ++i) {

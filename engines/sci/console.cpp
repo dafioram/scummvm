@@ -164,12 +164,12 @@ Console::Console(SciEngine *engine) : GUI::Debugger(),
 	registerCmd("gc_freeable",		WRAP_METHOD(Console, cmdGCShowFreeable));
 	registerCmd("gc_normalize",		WRAP_METHOD(Console, cmdGCNormalize));
 	// Music/SFX
-	registerCmd("songlib",			WRAP_METHOD(Console, cmdSongLib));
-	registerCmd("songinfo",			WRAP_METHOD(Console, cmdSongInfo));
+	registerCmd("sound_list",		WRAP_METHOD(Console, cmdSoundList));
+	registerCmd("songlib",			WRAP_METHOD(Console, cmdSoundList)); // alias
+	registerCmd("sound_info",		WRAP_METHOD(Console, cmdSongInfo));
+	registerCmd("songinfo",			WRAP_METHOD(Console, cmdSongInfo)); // alias
 	registerCmd("channel_map",		WRAP_METHOD(Console, cmdChannelMap));
 	registerCmd("driver_state",		WRAP_METHOD(Console, cmdDriverState));
-	registerCmd("is_sample",			WRAP_METHOD(Console, cmdIsSample));
-	registerCmd("startsound",			WRAP_METHOD(Console, cmdStartSound));
 	registerCmd("togglesound",		WRAP_METHOD(Console, cmdToggleSound));
 	registerCmd("stopallsounds",		WRAP_METHOD(Console, cmdStopAllSounds));
 	registerCmd("sfx01_header",		WRAP_METHOD(Console, cmdSfx01Header));
@@ -381,14 +381,12 @@ bool Console::cmdHelp(int argc, const char **argv) {
 	debugPrintf(" gc_normalize - Prints the \"normal\" address of a given address\n");
 	debugPrintf("\n");
 	debugPrintf("Music/SFX:\n");
-	debugPrintf(" songlib - Shows the song library\n");
-	debugPrintf(" songinfo - Shows information about a specified song in the song library\n");
+	debugPrintf(" sound_list - Lists currently active sounds\n");
+	debugPrintf(" sound_info - Shows information about the specified song\n");
 	debugPrintf(" channel_map - Shows the current mapping of MIDI output channels\n");
 	debugPrintf(" driver_state - Shows the current state of the MIDI driver\n");
 	debugPrintf(" togglesound - Starts/stops a sound in the song library\n");
 	debugPrintf(" stopallsounds - Stops all sounds in the playlist\n");
-	debugPrintf(" startsound - Starts the specified sound resource, replacing the first song in the song library\n");
-	debugPrintf(" is_sample - Shows information on a given sound resource, if it's a PCM sample\n");
 	debugPrintf(" sfx01_header - Dumps the header of a SCI01 song\n");
 	debugPrintf(" sfx01_track - Dumps a track of a SCI01 song\n");
 	debugPrintf(" audio_list - Lists currently active digital audio samples (SCI2+)\n");
@@ -2380,8 +2378,8 @@ bool Console::cmdShowMap(int argc, const char **argv) {
 	return cmdExit(0, 0);
 }
 
-bool Console::cmdSongLib(int argc, const char **argv) {
-	debugPrintf("Song library:\n");
+bool Console::cmdSoundList(int argc, const char **argv) {
+	debugPrintf("Sound list:\n");
 	g_sci->_sound->debugPrintPlaylist(*this);
 
 	return true;
@@ -2389,7 +2387,7 @@ bool Console::cmdSongLib(int argc, const char **argv) {
 
 bool Console::cmdSongInfo(int argc, const char **argv) {
 	if (argc != 2) {
-		debugPrintf("Shows information about a given song in the playlist\n");
+		debugPrintf("Shows information about a given sound in the playlist\n");
 		debugPrintf("Usage: %s <song object>\n", argv[0]);
 		return true;
 	}
@@ -2416,25 +2414,6 @@ bool Console::cmdChannelMap(int argc, const char **argv) {
 bool Console::cmdDriverState(int argc, const char **argv) {
 	g_sci->_sound->debugPrintDriverState(*this);
 	return true;
-}
-
-bool Console::cmdStartSound(int argc, const char **argv) {
-	if (argc != 2) {
-		debugPrintf("Adds the requested sound resource to the playlist, and starts playing it\n");
-		debugPrintf("Usage: %s <sound resource id>\n", argv[0]);
-		return true;
-	}
-
-	int16 number = atoi(argv[1]);
-
-	if (!_engine->getResMan()->testResource(ResourceId(kResourceTypeSound, number))) {
-		debugPrintf("Unable to load this sound resource, most probably it has an equivalent audio resource (SCI1.1)\n");
-		return true;
-	}
-
-	// TODO: Maybe also add a playBed option.
-	g_sci->_sound->debugPlay(number);
-	return cmdExit(0, 0);
 }
 
 bool Console::cmdToggleSound(int argc, const char **argv) {
@@ -2474,25 +2453,6 @@ bool Console::cmdStopAllSounds(int argc, const char **argv) {
 	g_sci->_sound->debugStopAll();
 
 	debugPrintf("All sounds have been stopped\n");
-	return true;
-}
-
-bool Console::cmdIsSample(int argc, const char **argv) {
-	if (argc != 2) {
-		debugPrintf("Tests whether a given sound resource is a PCM sample, \n");
-		debugPrintf("and displays information on it if it is.\n");
-		debugPrintf("Usage: %s <sample id>\n", argv[0]);
-		return true;
-	}
-
-	int16 number = atoi(argv[1]);
-
-	if (!_engine->getResMan()->testResource(ResourceId(kResourceTypeSound, number))) {
-		debugPrintf("Unable to load this sound resource, most probably it has an equivalent audio resource (SCI1.1)\n");
-		return true;
-	}
-
-	error("TODO: Reimplement");
 	return true;
 }
 

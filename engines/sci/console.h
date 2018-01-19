@@ -111,12 +111,11 @@ private:
 	bool cmdGCShowFreeable(int argc, const char **argv);
 	bool cmdGCNormalize(int argc, const char **argv);
 	// Music/SFX
-	bool cmdSongLib(int argc, const char **argv);
+	bool cmdSoundList(int argc, const char **argv);
 	bool cmdSongInfo(int argc, const char **argv);
 	bool cmdChannelMap(int argc, const char **argv);
 	bool cmdDriverState(int argc, const char **argv);
 	bool cmdIsSample(int argc, const char **argv);
-	bool cmdStartSound(int argc, const char **argv);
 	bool cmdToggleSound(int argc, const char **argv);
 	bool cmdStopAllSounds(int argc, const char **argv);
 	bool cmdSfx01Header(int argc, const char **argv);

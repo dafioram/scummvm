@@ -1476,7 +1476,6 @@ public:
 	void debugPrintSound(Console &con, const reg_t nodePtr) const;
 	void debugPrintChannelMap(Console &con) const;
 	void debugPrintDriverState(Console &con) const;
-	void debugPlay(const GuiResourceId soundId);
 	void debugStopAll();
 
 private:
