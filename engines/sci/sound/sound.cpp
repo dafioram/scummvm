@@ -1171,6 +1171,7 @@ uint8 SoundManager::play(Sci1Sound &sound, const bool exclusive) {
 
 void SoundManager::pause(Sci1Sound &sound, const uint8 numPauses) {
 	sound.numPauses = numPauses;
+	remapHardwareChannels();
 }
 
 void SoundManager::pause(Sci1Sound &sound, const bool pause) {
