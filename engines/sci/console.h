@@ -115,7 +115,7 @@ private:
 	bool cmdSongInfo(int argc, const char **argv);
 	bool cmdChannelMap(int argc, const char **argv);
 	bool cmdDriverState(int argc, const char **argv);
-	bool cmdIsSample(int argc, const char **argv);
+	bool cmdPlaySound(int argc, const char **argv);
 	bool cmdToggleSound(int argc, const char **argv);
 	bool cmdStopAllSounds(int argc, const char **argv);
 	bool cmdSfx01Header(int argc, const char **argv);

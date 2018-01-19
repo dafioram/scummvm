@@ -641,6 +641,12 @@ void SoundManager::serializeSounds(Common::Serializer &s) {
 	}
 
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
+		// A sound with no soundObj is a debugger-generated sound, so do not
+		// bother to save it
+		if (s.isSaving() && sound->soundObj == NULL_REG) {
+			continue;
+		}
+
 		sound->saveLoadWithSerializer(s);
 	}
 }

@@ -2537,6 +2537,27 @@ void SoundManager::debugStopAll() {
 	}
 }
 
+void SoundManager::debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive) {
+	const ResourceId id(kResourceTypeSound, resourceNo);
+	if (!_resMan.testResource(id)) {
+		con.debugPrintf("Could not find %s\n", id.toString().c_str());
+		return;
+	}
+
+	if (getSoundResourceType(resourceNo) != kResourceTypeSound) {
+		con.debugPrintf("SCI1.1+ digital audio playback not supported\n");
+		return;
+	}
+
+	const reg_t nodePtr = make_reg(kUninitializedSegment, _nextObjectId++);
+	_sounds.push_back(Sci1Sound(NULL_REG, nodePtr));
+	Sci1Sound &sound = _sounds.back();
+	sound.id = id;
+	sound.resource = _resMan.findResource(id, true);
+	assert(sound.resource);
+	play(sound, exclusive);
+}
+
 void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &channels) const {
 	Common::StackLock lock(_mutex);
 	for (uint i = 0; i < channels.size(); ++i) {

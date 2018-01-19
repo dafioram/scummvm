@@ -170,6 +170,7 @@ Console::Console(SciEngine *engine) : GUI::Debugger(),
 	registerCmd("songinfo",			WRAP_METHOD(Console, cmdSongInfo)); // alias
 	registerCmd("channel_map",		WRAP_METHOD(Console, cmdChannelMap));
 	registerCmd("driver_state",		WRAP_METHOD(Console, cmdDriverState));
+	registerCmd("play_sound",		WRAP_METHOD(Console, cmdPlaySound));
 	registerCmd("togglesound",		WRAP_METHOD(Console, cmdToggleSound));
 	registerCmd("stopallsounds",		WRAP_METHOD(Console, cmdStopAllSounds));
 	registerCmd("sfx01_header",		WRAP_METHOD(Console, cmdSfx01Header));
@@ -385,6 +386,7 @@ bool Console::cmdHelp(int argc, const char **argv) {
 	debugPrintf(" sound_info - Shows information about the specified song\n");
 	debugPrintf(" channel_map - Shows the current mapping of MIDI output channels\n");
 	debugPrintf(" driver_state - Shows the current state of the MIDI driver\n");
+	debugPrintf(" play_sound - Plays a sound\n");
 	debugPrintf(" togglesound - Starts/stops a sound in the song library\n");
 	debugPrintf(" stopallsounds - Stops all sounds in the playlist\n");
 	debugPrintf(" sfx01_header - Dumps the header of a SCI01 song\n");
@@ -2405,6 +2407,22 @@ bool Console::cmdChannelMap(int argc, const char **argv) {
 
 bool Console::cmdDriverState(int argc, const char **argv) {
 	g_sci->_sound->debugPrintDriverState(*this);
+	return true;
+}
+
+bool Console::cmdPlaySound(int argc, const char **argv) {
+	if (argc < 2) {
+		debugPrintf("Plays the given sound\n");
+		debugPrintf("Usage: %s <resource id> [<exclusive>]\n", argv[0]);
+		debugPrintf("Where <resource id> is a valid sound resource ID\n");
+		debugPrintf("and <exclusive> is an optional boolean (0/1) to play the\n");
+		debugPrintf("sound in exclusive (play bed) mode in SCI1.1-.\n");
+		return true;
+	}
+
+	const GuiResourceId id = atoi(argv[1]);
+	const bool exclusive = argc > 2 ? atoi(argv[2]) : false;
+	g_sci->_sound->debugPlaySound(*this, id, exclusive);
 	return true;
 }
 

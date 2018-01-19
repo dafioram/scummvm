@@ -1487,6 +1487,7 @@ public:
 	void debugPrintSound(Console &con, const Sci1Sound &sound) const;
 	void debugPrintChannelMap(Console &con) const;
 	void debugPrintDriverState(Console &con) const;
+	void debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive);
 	void debugStopAll();
 
 private:
