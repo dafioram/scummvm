@@ -2557,8 +2557,8 @@ void SoundManager::debugStopAll() {
 
 void SoundManager::debugPrintChannelMap(Console &con, const HardwareChannels &channels) const {
 	Common::StackLock lock(_mutex);
-	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
-		const HardwareChannel &channel = _hardwareChannels[i];
+	for (uint i = 0; i < channels.size(); ++i) {
+		const HardwareChannel &channel = channels[i];
 		if (channel.isMapped()) {
 			const Resource *resource = _playlist[channel.playlistIndex()]->resource;
 			con.debugPrintf("%2d: %s ch %2d pr %3d vo %2d%s\n",
