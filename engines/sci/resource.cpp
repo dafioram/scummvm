@@ -1685,6 +1685,7 @@ void ResourceManager::readResourcePatches() {
 	uint16 resourceNr = 0;
 	const char *szResType;
 	ResourceSource *psrcPatch;
+	const bool shouldUseSci0 = shouldFindSci0Patches();
 
 	for (int i = kResourceTypeView; i < kResourceTypeInvalid; ++i) {
 		// Ignore the types that can't be patched (and Robot/VMD is handled externally for now)
@@ -1692,11 +1693,13 @@ void ResourceManager::readResourcePatches() {
 			continue;
 
 		files.clear();
-		szResType = getResourceTypeName((ResourceType)i);
-		// SCI0 naming - type.nnn
-		mask = szResType;
-		mask += ".???";
-		SearchMan.listMatchingMembers(files, mask);
+		if (shouldUseSci0) {
+			szResType = getResourceTypeName((ResourceType)i);
+			// SCI0 naming - type.nnn
+			mask = szResType;
+			mask += ".???";
+			SearchMan.listMatchingMembers(files, mask);
+		}
 		// SCI1 and later naming - nnn.typ
 		mask = "*.";
 		mask += s_resourceTypeSuffixes[i];
@@ -1724,7 +1727,7 @@ void ResourceManager::readResourcePatches() {
 				char *end = 0;
 				resourceNr = strtol(name.c_str(), &end, 10);
 				bAdd = (*end == '.'); // Ensure the next character is the period
-			} else {
+			} else if (shouldUseSci0) {
 				// SCI0 scheme
 				int resname_len = strlen(szResType);
 				if (scumm_strnicmp(name.c_str(), szResType, resname_len) == 0
@@ -1740,6 +1743,14 @@ void ResourceManager::readResourcePatches() {
 			}
 		}
 	}
+}
+
+bool ResourceManager::shouldFindSci0Patches() const {
+	if (g_sci->isCD() && g_sci->getGameId() == GID_MOTHERGOOSE256) {
+		return false;
+	}
+
+	return true;
 }
 
 int ResourceManager::readResourceMapSCI0(ResourceSource *map) {

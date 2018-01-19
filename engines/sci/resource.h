@@ -600,6 +600,12 @@ protected:
 	 */
 	bool isBlacklistedPatch(const ResourceId &resId) const;
 
+	/**
+	 * Returns whether or not patches using the SCI0 naming convention should be
+	 * search for when looking for patch files.
+	 */
+	bool shouldFindSci0Patches() const;
+
 	void processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0);
 
 	/**
