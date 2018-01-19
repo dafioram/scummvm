@@ -1391,14 +1391,14 @@ void SoundManager::readTrackOffsets(Sci1Sound &sound) {
 		track.size = data.getUint16LEAt(4);
 
 		if (track.offset >= sound.resource->size()) {
-			warning("Offset for %s track %d is out of bounds (%u >= %u); skipping",
-					sound.resource->name().c_str(), trackNo,
+			warning("Offset for %s device %u track %u is out of bounds (%u >= %u); skipping",
+					sound.resource->name().c_str(), deviceId, trackNo,
 					track.offset, sound.resource->size());
 			track.offset = 0;
 		} else if (track.offset + track.size > sound.resource->size()) {
 			const uint16 maxSize = sound.resource->size() - track.offset;
-			warning("Size for %s track %d is out of bounds (%u > %u); truncating",
-					sound.resource->name().c_str(), trackNo,
+			warning("Size for %s device %u track %u is out of bounds (%u > %u); truncating",
+					sound.resource->name().c_str(), deviceId, trackNo,
 					track.size, maxSize);
 			track.size = maxSize;
 		}
