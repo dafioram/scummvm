@@ -118,7 +118,7 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 
 	{ SIG_SOUNDSCI1EARLY,  0, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
 	{ SIG_SOUNDSCI1EARLY,  1, MAP_CALL(DoSoundMute),               "(i)",                  NULL },
-	{ SIG_SOUNDSCI1EARLY,  2, MAP_EMPTY(DoSoundRestore),           NULL,                   NULL },
+	{ SIG_SOUNDSCI1EARLY,  2, MAP_EMPTY(DoSoundRestore),           "(.*)",                 NULL },
 	{ SIG_SOUNDSCI1EARLY,  3, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
 	{ SIG_SOUNDSCI1EARLY,  4, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
 	{ SIG_SOUNDSCI1EARLY,  5, MAP_CALL(DoSoundInit),               "o",                    NULL },
@@ -135,7 +135,7 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 
 	{ SIG_SOUNDSCI1,       0, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
 	{ SIG_SOUNDSCI1,       1, MAP_CALL(DoSoundMute),               "(i)",                  NULL },
-	{ SIG_SOUNDSCI1,       2, MAP_EMPTY(DoSoundRestore),           NULL,                   NULL },
+	{ SIG_SOUNDSCI1,       2, MAP_EMPTY(DoSoundRestore),           "(.*)",                 NULL },
 	{ SIG_SOUNDSCI1,       3, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
 	{ SIG_SOUNDSCI1,       4, MAP_CALL(DoSoundGetAudioCapability), "",                     NULL },
 	{ SIG_SOUNDSCI1,       5, MAP_CALL(DoSoundSuspend),            "i",                    NULL },
