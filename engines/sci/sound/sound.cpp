@@ -1379,7 +1379,8 @@ void SoundManager::readTrackOffsets(Sci1Sound &sound) {
 	Sci1SoundDriver::DeviceId deviceId = _driver->getDeviceId();
 	SciSpan<const byte> data = findTrackOffsets(*sound.resource, deviceId);
 	if (!data) {
-		error("Unable to find track offsets for device ID %u in %s", deviceId, sound.resource->name().c_str());
+		debugC(kDebugLevelSound, "%s has no data for device type %u", sound.resource->name().c_str(), deviceId);
+		return;
 	}
 
 	int trackNo = 0;
@@ -1388,6 +1389,19 @@ void SoundManager::readTrackOffsets(Sci1Sound &sound) {
 		Sci1Sound::Track &track = sound.tracks[trackNo++];
 		track.offset = data.getUint16LEAt(2);
 		track.size = data.getUint16LEAt(4);
+
+		if (track.offset >= sound.resource->size()) {
+			warning("Offset for %s track %d is out of bounds (%u >= %u); skipping",
+					sound.resource->name().c_str(), trackNo,
+					track.offset, sound.resource->size());
+			track.offset = 0;
+		} else if (track.offset + track.size > sound.resource->size()) {
+			const uint16 maxSize = sound.resource->size() - track.offset;
+			warning("Size for %s track %d is out of bounds (%u > %u); truncating",
+					sound.resource->name().c_str(), trackNo,
+					track.size, maxSize);
+			track.size = maxSize;
+		}
 		data += 6;
 	}
 }

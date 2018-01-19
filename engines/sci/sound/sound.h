@@ -615,8 +615,14 @@ struct Sci1Sound : public Common::Serializable {
 	inline byte peek(const uint8 trackNo, const uint8 extra = 0) const {
 		const Track &track = tracks[trackNo];
 		assert(resource);
-		assert(track.position + extra < track.size);
-		return resource->getUint8At(track.offset + track.position + extra);
+		if (track.position + extra < track.size) {
+			return resource->getUint8At(track.offset + track.position + extra);
+		} else {
+			// KQ5 sound 699 is truncated, so instead of asserting when an
+			// overread occurs we instead return kEndOfTrack markers
+			warning("Attempt to read past end of %s track %u", resource->name().c_str(), trackNo);
+			return kEndOfTrack;
+		}
 	}
 
 	/**
@@ -633,8 +639,13 @@ struct Sci1Sound : public Common::Serializable {
 	 */
 	inline void advance(const uint8 trackNo) {
 		Track &track = tracks[trackNo];
-		assert(track.position < track.size);
-		++tracks[trackNo].position;
+		if (track.position < track.size) {
+			++tracks[trackNo].position;
+		} else {
+			// KQ5 sound 699 is truncated, so instead of asserting when an
+			// overseek occurs we instead just print a warning
+			warning("Attempt to advance past end of %s track %u", resource->name().c_str(), trackNo);
+		}
 	}
 };
 
