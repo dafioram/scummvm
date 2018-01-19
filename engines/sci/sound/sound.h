@@ -1467,11 +1467,18 @@ private:
 
 	void sendMidi(const reg_t soundObj, const int16 channel, const int16 command, const int16 a, const int16 b);
 
+	/**
+	 * A serial used for a sound object nodePtr in the case that two sounds are
+	 * playing simultaneously while originating from the same VM Sound object.
+	 */
+	uint16 _nextObjectId;
+
 #pragma mark -
 #pragma mark Debugging
 public:
 	void debugPrintPlaylist(Console &con) const;
-	void debugPrintSound(Console &con, const reg_t nodePtr) const;
+	void debugPrintSound(Console &con, const uint index) const;
+	void debugPrintSound(Console &con, const Sci1Sound &sound) const;
 	void debugPrintChannelMap(Console &con) const;
 	void debugPrintDriverState(Console &con) const;
 	void debugStopAll();

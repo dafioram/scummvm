@@ -71,7 +71,8 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_defaultReverbMode(0),
 	_playlist(),
 	_sampleList(),
-	_samplePlayer(*this, *g_system->getMixer()) {
+	_samplePlayer(*this, *g_system->getMixer()),
+	_nextObjectId(0) {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
@@ -1962,32 +1963,15 @@ void SoundManager::kernelInit(const reg_t soundObj) {
 
 	const GuiResourceId resourceNo = readSelectorValue(_segMan, soundObj, SELECTOR(number));
 
-	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
+	reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
 	Sci1Sound *sound;
 	if (nodePtr.isNull()) {
-		// TODO: This comment may be irrelevant; in SSCI, sounds are associated
-		// 1:1 with a soundObj in order to be restored properly, so if one
-		// soundObj were active and used a different nodePtr then restores would
-		// be messed up.
-		// This use of soundObj as nodePtr is how the old ScummVM SCI MIDI code
-		// handled generating a nodePtr. It is only guaranteed to work correctly
-		// if these conditions are always true:
-		// 1. `nodePtr` is not passed between objects in the VM in a way where
-		// game scripts expect that the first object can now create another new
-		// sound without disposing the old sound first.
-		// 2. A cloned object is not used to create a new sound, since the
-		// cloned object's ID will get reused once the original object is
-		// destroyed.
-		// This may never happen, in which case this kind of ID reuse makes
-		// implementation a bit simpler, but if it does, this assertion should
-		// at least let us know so we work harder at not blowing up.
-		assert(findSoundByRegT(soundObj) == nullptr);
-
-		_sounds.push_back(Sci1Sound(soundObj));
+		nodePtr = make_reg(kUninitializedSegment, _nextObjectId++);
+		_sounds.push_back(Sci1Sound(nodePtr));
 		sound = &_sounds.back();
-		writeSelector(_segMan, soundObj, SELECTOR(nodePtr), soundObj);
+		writeSelector(_segMan, soundObj, SELECTOR(nodePtr), nodePtr);
 	} else {
-		kernelStop(nodePtr);
+		kernelStop(soundObj);
 		sound = findSoundByRegT(nodePtr);
 		assert(sound != nullptr);
 	}
@@ -2459,7 +2443,7 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 	for (uint i = 0; i < _playlist.size(); ++i) {
 		if (!_playlist[i]) {
 			if (_soundVersion <= SCI_VERSION_1_EARLY && i == 0) {
-				con.debugPrintf("0: no exclusive sound\n");
+				con.debugPrintf(" 0: no exclusive sound\n");
 				continue;
 			} else {
 				break;
@@ -2467,57 +2451,27 @@ void SoundManager::debugPrintPlaylist(Console &con) const {
 		}
 
 		const Sci1Sound &sound = *_playlist[i];
-
-		const char *status;
-		if (sound.state == Sci1Sound::kStopped) {
-			status = "stopped";
-		} else if (sound.numPauses > 0) {
-			status = "paused";
-		} else {
-			status = "playing";
-		}
-
-		con.debugPrintf("%d: %04x:%04x (%s), resource id: %s, status: %s\n",
-						i,
-						PRINT_REG(sound.nodePtr),
-						_segMan->getObjectName(sound.nodePtr),
-						sound.resource ? sound.resource->name().c_str() : "<none>",
-						status);
+		con.debugPrintf("%2d: ", i);
+		debugPrintSound(con, sound);
 	}
 }
 
-void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
+void SoundManager::debugPrintSound(Console &con, const uint index) const {
 	Common::StackLock lock(_mutex);
 
-	const Sci1Sound *sound = findSoundByRegT(nodePtr);
-	if (!sound) {
-		con.debugPrintf("Sound not found in playlist");
+	if (index >= _playlist.size() || !_playlist[index]) {
+		con.debugPrintf("Index out of range\n");
 		return;
 	}
 
-	con.debugPrintf("%s, %s, %u pauses\n",
-					sound->resource ? sound->resource->name().c_str() : "<none>",
-					sound->state == Sci1Sound::kStopped ? "stopped" : "playing",
-					sound->numPauses);
-	con.debugPrintf("cue %u, hold point %u, loop %d\n",
-					sound->cue, sound->holdPoint, sound->loop);
-	con.debugPrintf("signal %d, state %d, priority %d%s\n",
-					sound->signal, sound->state, sound->priority,
-					sound->fixedPriority ? " (fixed)" : "");
-	con.debugPrintf("ticks elapsed %u, reverb mode %u, volume %d",
-					sound->ticksElapsed, sound->reverbMode, sound->volume);
-	if (sound->fadeAmountPerTick) {
-		con.debugPrintf(" -> %d\n", sound->fadeTargetVolume);
-		con.debugPrintf("fade delay %d, speed %d, stop %d\n",
-						sound->fadeDelay, sound->fadeAmountPerTick, sound->stopSoundOnFade);
-	} else {
-		con.debugPrintf("\n");
-	}
+	const Sci1Sound &sound = *_playlist[index];
+
+	debugPrintSound(con, sound);
 
 	con.debugPrintf("\nTracks:\n");
 
-	for (uint i = 0; i < sound->tracks.size(); ++i) {
-		const Sci1Sound::Track &track = sound->tracks[i];
+	for (uint i = 0; i < sound.tracks.size(); ++i) {
+		const Sci1Sound::Track &track = sound.tracks[i];
 		if (track.offset == 0) {
 			break;
 		}
@@ -2531,14 +2485,35 @@ void SoundManager::debugPrintSound(Console &con, const reg_t nodePtr) const {
 
 	con.debugPrintf("\nChannels:\n");
 
-	for (uint i = 0; i < sound->channels.size(); ++i) {
-		const Sci1Sound::Channel &channel = sound->channels[i];
+	for (uint i = 0; i < sound.channels.size(); ++i) {
+		const Sci1Sound::Channel &channel = sound.channels[i];
 		con.debugPrintf("%2d: priority %d, voices %u, note %u, volume %u\n",
 						i, channel.priority, channel.numVoices, channel.currentNote, channel.volume);
 		con.debugPrintf("    program %u, mod %u, pan %u, p bend %u\n",
 						channel.program, channel.modulation, channel.pan, channel.pitchBend);
 		con.debugPrintf("    dp %d, flags %u, mute %d, game mutes %u\n",
 						channel.damperPedalOn, channel.flags, channel.muted, channel.gameMuteCount);
+	}
+}
+
+void SoundManager::debugPrintSound(Console &con, const Sci1Sound &sound) const {
+	con.debugPrintf("%s, %s, %u pauses\n",
+					sound.resource ? sound.resource->name().c_str() : "<none>",
+					sound.state == Sci1Sound::kStopped ? "stopped" : "playing",
+					sound.numPauses);
+	con.debugPrintf("    cue %u, hold point %u, loop %d\n",
+					sound.cue, sound.holdPoint, sound.loop);
+	con.debugPrintf("    signal %d, state %d, priority %d%s\n",
+					sound.signal, sound.state, sound.priority,
+					sound.fixedPriority ? " (fixed)" : "");
+	con.debugPrintf("    ticks elapsed %u, reverb mode %u, volume %d",
+					sound.ticksElapsed, sound.reverbMode, sound.volume);
+	if (sound.fadeAmountPerTick) {
+		con.debugPrintf("     -> %d\n", sound.fadeTargetVolume);
+		con.debugPrintf("    fade delay %d, speed %d, stop %d\n",
+						sound.fadeDelay, sound.fadeAmountPerTick, sound.stopSoundOnFade);
+	} else {
+		con.debugPrintf("\n");
 	}
 }
 

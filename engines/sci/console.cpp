@@ -2388,19 +2388,11 @@ bool Console::cmdSoundList(int argc, const char **argv) {
 bool Console::cmdSongInfo(int argc, const char **argv) {
 	if (argc != 2) {
 		debugPrintf("Shows information about a given sound in the playlist\n");
-		debugPrintf("Usage: %s <song object>\n", argv[0]);
+		debugPrintf("Usage: %s <playlist index>\n", argv[0]);
 		return true;
 	}
 
-	reg_t addr;
-
-	if (parse_reg_t(_engine->_gamestate, argv[1], &addr, false)) {
-		debugPrintf("Invalid address passed.\n");
-		debugPrintf("Check the \"addresses\" command on how to use addresses\n");
-		return true;
-	}
-
-	g_sci->_sound->debugPrintSound(*this, addr);
+	g_sci->_sound->debugPrintSound(*this, atoi(argv[1]));
 
 	return true;
 }
