@@ -1398,7 +1398,7 @@ private:
 	void validateSample(Sci1Sound &sound);
 
 	/**
-	 *
+	 * Advances playback of all samples in the sample list.
 	 * TODO: was DoSamples
 	 */
 	void advanceSamplePlayback();
@@ -1406,9 +1406,7 @@ private:
 	SamplePlayer _samplePlayer;
 
 	/**
-	 * The last active sound which was playing a sample.
-	 * TODO: In SSCI this was an array of 16 dd, of which only the first entry
-	 * was ever used to hold a far pointer in at least SCI1late+.
+	 * The list of sampled sounds which are currently playing.
 	 */
 	Common::FixedArray<Sci1Sound *, kSampleListSize> _sampleList;
 
