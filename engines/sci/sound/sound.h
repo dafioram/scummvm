@@ -40,7 +40,7 @@ namespace Audio { class Mixer; }
 namespace Sci {
 class Console;
 class GuestAdditions;
-class Sci1SoundDriver;
+class SoundDriver;
 class SegManager;
 
 enum MidiMessage {
@@ -749,7 +749,7 @@ private:
 	/**
 	 * The sound driver.
 	 */
-	Common::ScopedPtr<Sci1SoundDriver> _driver;
+	Common::ScopedPtr<SoundDriver> _driver;
 
 #pragma mark -
 #pragma mark Save management

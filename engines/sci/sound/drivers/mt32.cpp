@@ -50,8 +50,8 @@ static bool isGeneralMidiPatch(Resource &patchData) {
 	return false;
 }
 
-Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version) :
-	Sci1SoundDriver(resMan, version),
+Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
+	SoundDriver(resMan, version),
 	_reverbMode(0xff),
 	_masterVolume(15) {
 
@@ -153,24 +153,24 @@ Sci1Mt32Driver::Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version
 	setMasterVolume(12);
 }
 
-Sci1Mt32Driver::~Sci1Mt32Driver() {
+Mt32Driver::~Mt32Driver() {
 	sendSysEx(kDisplayAddress, SysEx(_goodbyeSysEx.data(), _goodbyeSysEx.size()), true);
 	_device->close();
 }
 
-void Sci1Mt32Driver::noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) {
+void Mt32Driver::noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	_channels[channelNo].hw->noteOff(note, velocity);
 	debugC(kDebugLevelSound, "Off %2d n %3d v %3d", channelNo, note, velocity);
 }
 
-void Sci1Mt32Driver::noteOn(const uint8 channelNo, const uint8 note, const uint8 velocity) {
+void Mt32Driver::noteOn(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	Channel &channel = _channels[channelNo];
 	channel.enabled = true;
 	debugC(kDebugLevelSound, "On  %2d n %3d v %3d", channelNo, note, velocity);
 	channel.hw->noteOn(note, velocity);
 }
 
-void Sci1Mt32Driver::controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) {
+void Mt32Driver::controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) {
 	Channel &channel = _channels[channelNo];
 	switch (controllerNo) {
 	case kModulationController:
@@ -211,7 +211,7 @@ void Sci1Mt32Driver::controllerChange(const uint8 channelNo, const uint8 control
 	channel.hw->controlChange(controllerNo, value);
 }
 
-void Sci1Mt32Driver::programChange(const uint8 channelNo, const uint8 programNo) {
+void Mt32Driver::programChange(const uint8 channelNo, const uint8 programNo) {
 	Channel &channel = _channels[channelNo];
 	if (channel.program == programNo) {
 		return;
@@ -221,7 +221,7 @@ void Sci1Mt32Driver::programChange(const uint8 channelNo, const uint8 programNo)
 	channel.hw->programChange(programNo);
 }
 
-void Sci1Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
+void Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	Channel &channel = _channels[channelNo];
 	if (channel.pitchBend == bend) {
 		return;
@@ -231,7 +231,7 @@ void Sci1Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	channel.hw->pitchBend(bend - 0x2000);
 }
 
-void Sci1Mt32Driver::setReverbMode(const uint8 modeNo) {
+void Mt32Driver::setReverbMode(const uint8 modeNo) {
 	if (modeNo == _reverbMode) {
 		return;
 	}
@@ -242,13 +242,13 @@ void Sci1Mt32Driver::setReverbMode(const uint8 modeNo) {
 	sendSysEx(kReverbModeAddress, SysEx(data, _reverbModes[modeNo].size()), true);
 }
 
-void Sci1Mt32Driver::setMasterVolume(const uint8 volume) {
+void Mt32Driver::setMasterVolume(const uint8 volume) {
 	_masterVolume = volume;
 	sendMasterVolume(volume);
 }
 
-void Sci1Mt32Driver::enable(const bool enabled) {
-	Sci1SoundDriver::enable(enabled);
+void Mt32Driver::enable(const bool enabled) {
+	SoundDriver::enable(enabled);
 	if (enabled) {
 		sendMasterVolume(_masterVolume);
 	} else {
@@ -256,7 +256,7 @@ void Sci1Mt32Driver::enable(const bool enabled) {
 	}
 }
 
-void Sci1Mt32Driver::debugPrintState(Console &con) const {
+void Mt32Driver::debugPrintState(Console &con) const {
 	con.debugPrintf("Channels:\n\n");
 	for (int i = 0; i < kNumChannels; ++i) {
 		const Channel &channel = _channels[i];
@@ -276,7 +276,7 @@ void Sci1Mt32Driver::debugPrintState(Console &con) const {
 	}
 }
 
-void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool skipDelays) {
+void Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool skipDelays) {
 	enum {
 		kMaxPacketSize = 0x100,
 		kHeaderSize = 7,
@@ -324,7 +324,7 @@ void Sci1Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool ski
 	}
 }
 
-void Sci1Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8 size) {
+void Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8 size) {
 	sendSysEx(address, data.subspan(0, size), _isEmulated);
 	address += size;
 	data += size;
@@ -333,13 +333,13 @@ void Sci1Mt32Driver::sendCountingSysEx(uint32 &address, SysEx &data, const uint8
 	}
 }
 
-void Sci1Mt32Driver::sendPatches(uint32 &address, SysEx data) {
+void Mt32Driver::sendPatches(uint32 &address, SysEx data) {
 	for (int i = 0; i < kNumPatchesPerBank; ++i) {
 		sendCountingSysEx(address, data, kPatchSize);
 	}
 }
 
-void Sci1Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
+void Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
 	for (int i = 0; i < numTimbres; ++i) {
 		uint32 address = kTimbreAddress + i * 0x200;
 		sendCountingSysEx(address, data, kShortTimbreSize);
@@ -349,7 +349,7 @@ void Sci1Mt32Driver::sendTimbres(const uint8 numTimbres, SysEx data) {
 	}
 }
 
-void Sci1Mt32Driver::sendMasterVolume(uint8 volume) {
+void Mt32Driver::sendMasterVolume(uint8 volume) {
 	// SSCI used a LUT, we don't need that extra bit of performance so we just
 	// calculate the value
 	volume = (volume * 100 + (kMaxMasterVolume / 2)) / kMaxMasterVolume;
@@ -367,7 +367,7 @@ SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version) {
 			return makeGeneralMidiDriver(resMan, version, true);
 		}
 
-		return new Sci1Mt32Driver(resMan, version);
+		return new Mt32Driver(resMan, version);
 	}
 }
 

@@ -25,8 +25,8 @@
 
 namespace Sci {
 
-Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) :
-	Sci1SoundDriver(resMan, version),
+GeneralMidiDriver::GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32) :
+	SoundDriver(resMan, version),
 	_reverbMode(0),
 	_masterVolume(15),
 	_isMt32(isMt32) {
@@ -94,13 +94,15 @@ Sci1GeneralMidiDriver::Sci1GeneralMidiDriver(ResourceManager &resMan, const SciV
 	setMasterVolume(12);
 }
 
-Sci1GeneralMidiDriver::~Sci1GeneralMidiDriver() {
+GeneralMidiDriver::~GeneralMidiDriver() {
+	// TODO: Why does the device not close itself when it is destroyed? This is
+	// a RAII-violating leak.
 	_device->close();
 	// TODO: Send All Notes Off controller message if ScummVM does not clean up
 	// for us
 }
 
-void Sci1GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velocity) {
+void GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velocity) {
 	Channel &channel = _channels[channelNo];
 	const uint8 origNote = note;
 	if (remapNote(channelNo, note)) {
@@ -113,7 +115,7 @@ void Sci1GeneralMidiDriver::noteOn(const uint8 channelNo, uint8 note, uint8 velo
 	}
 }
 
-void Sci1GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 velocity) {
+void GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 velocity) {
 	Channel &channel = _channels[channelNo];
 	const uint8 origNote = note;
 	if (remapNote(channelNo, note)) {
@@ -124,7 +126,7 @@ void Sci1GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 vel
 	}
 }
 
-void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 controllerNo, uint8 value) {
+void GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 controllerNo, uint8 value) {
 	Channel &channel = _channels[channelNo];
 	switch (controllerNo) {
 	case kVolumeController: {
@@ -169,7 +171,7 @@ void Sci1GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 
 	debugC(kDebugLevelSound, "CC %2d %3d %3d", channelNo, controllerNo, value);
 }
 
-void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 programNo) {
+void GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 programNo) {
 	Channel &channel = _channels[channelNo];
 	if (channelNo == kPercussionChannel || channel.program == programNo) {
 		return;
@@ -212,7 +214,7 @@ void Sci1GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 pro
 	debugC(kDebugLevelSound, "PC %2d %3d -> %3d", channelNo, programNo, channel.outProgram);
 }
 
-void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
+void GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	Channel &channel = _channels[channelNo];
 	if (channel.pitchBend != bend) {
 		channel.pitchBend = bend;
@@ -221,7 +223,7 @@ void Sci1GeneralMidiDriver::pitchBend(const uint8 channelNo, const uint16 bend) 
 	}
 }
 
-void Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
+void GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 	_masterVolume = volume;
 
 	if (!_isEnabled) {
@@ -237,9 +239,9 @@ void Sci1GeneralMidiDriver::setMasterVolume(const uint8 volume) {
 	}
 }
 
-void Sci1GeneralMidiDriver::enable(const bool enabled) {
+void GeneralMidiDriver::enable(const bool enabled) {
 	debugC(kDebugLevelSound, "EN %d", enabled);
-	Sci1SoundDriver::enable(enabled);
+	SoundDriver::enable(enabled);
 	if (enabled) {
 		setMasterVolume(_masterVolume);
 	} else {
@@ -253,7 +255,7 @@ void Sci1GeneralMidiDriver::enable(const bool enabled) {
 	}
 }
 
-void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
+void GeneralMidiDriver::debugPrintState(Console &con) const {
 	con.debugPrintf("Channels:\n\n");
 	for (int i = 0; i < kNumChannels; ++i) {
 		const Channel &channel = _channels[i];
@@ -278,7 +280,7 @@ void Sci1GeneralMidiDriver::debugPrintState(Console &con) const {
 	}
 }
 
-void Sci1GeneralMidiDriver::sendBytes(SciSpan<const byte> data, const bool skipDelays) const {
+void GeneralMidiDriver::sendBytes(SciSpan<const byte> data, const bool skipDelays) const {
 	byte command = 0;
 
 	uint i = 0;
@@ -330,7 +332,7 @@ void Sci1GeneralMidiDriver::sendBytes(SciSpan<const byte> data, const bool skipD
 	}
 }
 
-bool Sci1GeneralMidiDriver::remapNote(const uint8 channelNo, uint8 &note) const {
+bool GeneralMidiDriver::remapNote(const uint8 channelNo, uint8 &note) const {
 	const Channel &channel = _channels[channelNo];
 	if (channelNo == kPercussionChannel) {
 		if (_percussionMap[note] == kUnmapped) {
@@ -353,7 +355,7 @@ SoundDriver *makeGeneralMidiDriver(ResourceManager &resMan, const SciVersion ver
 	if (version <= SCI_VERSION_01) {
 		return nullptr;
 	} else {
-		return new Sci1GeneralMidiDriver(resMan, version, isMt32);
+		return new GeneralMidiDriver(resMan, version, isMt32);
 	}
 }
 

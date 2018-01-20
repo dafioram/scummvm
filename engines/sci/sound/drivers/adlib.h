@@ -32,9 +32,11 @@
 
 namespace Sci {
 
-class AdLibDriverMixin {
+class AdLibDriver final : public SoundDriver {
 public:
-	AdLibDriverMixin() {
+	AdLibDriver(ResourceManager &resMan, SciVersion version) :
+		SoundDriver(resMan, version) {
+
 		_opl.reset(OPL::Config::create(OPL::Config::kDualOpl2));
 		if (!_opl) {
 			_opl.reset(OPL::Config::create(OPL::Config::kOpl2));
@@ -49,16 +51,6 @@ public:
 		_opl->start(nullptr);
 	}
 
-protected:
-	Common::ScopedPtr<OPL::OPL> _opl;
-};
-
-class Sci0AdLibDriver final : public Sci0SoundDriver, AdLibDriverMixin {
-public:
-	Sci0AdLibDriver(ResourceManager &resMan, SciVersion version) :
-		Sci0SoundDriver(resMan, version),
-		AdLibDriverMixin() {}
-
 	virtual int getNumVoices() const override { return 9; }
 
 	virtual DeviceId getDeviceId() const override {
@@ -71,46 +63,6 @@ public:
 			return 0;
 		}
 	}
-
-	virtual void service(Sci0Sound &) override {
-		debug("TODO: Service");
-	}
-
-	virtual Sci0PlayStrategy play(Sci0Sound &) override {
-		debug("TODO: Play");
-		return kAbort;
-	}
-
-	virtual void fade(Sci0Sound &) override {
-		debug("TODO: Fade");
-	}
-
-	virtual void stop(Sci0Sound &) override {
-		debug("TODO: Stop");
-	}
-
-	virtual void pause(Sci0Sound &) override {
-		debug("TODO: Pause");
-	}
-
-	virtual void restore(Sci0Sound &) override {
-		debug("TODO: Restore");
-	}
-
-	virtual void setMasterVolume(Sci0Sound &sound) override {
-		debug("TODO: Set master volume to %u", sound.volume);
-	}
-};
-
-class Sci1AdLibDriver final : public Sci1SoundDriver, AdLibDriverMixin {
-public:
-	Sci1AdLibDriver(ResourceManager &resMan, SciVersion version) :
-		Sci1SoundDriver(resMan, version),
-		AdLibDriverMixin() {}
-
-	virtual int getNumVoices() const override { return 9; }
-
-	virtual DeviceId getDeviceId() const override { return 0; }
 
 	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
 
@@ -167,14 +119,12 @@ public:
 	virtual void setMasterVolume(const uint8 volume) override {
 		debug("TODO: Set master volume to %u", volume);
 	}
+protected:
+	Common::ScopedPtr<OPL::OPL> _opl;
 };
 
 SoundDriver *makeAdLibDriver(ResourceManager &resMan, SciVersion version) {
-	if (version <= SCI_VERSION_01) {
-		return new Sci0AdLibDriver(resMan, version);
-	} else {
-		return new Sci1AdLibDriver(resMan, version);
-	}
+	return new AdLibDriver(resMan, version);
 }
 
 } // End of namespace Sci

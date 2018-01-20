@@ -34,10 +34,43 @@ namespace Sci {
  */
 class SoundDriver {
 public:
+	// SCI0 ops (offsets):
+	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
+	// 2 - init device (constructor)
+	// 4 - shutdown device (destructor)
+	// 6 - start sound
+	// 8 - advance playback
+	// 10 - set volume
+	// 12 - fade sound
+	// 14 - stop sound
+	// 16 - pause sound
+	// 18 - restore sound
+
+	// SCI1 ops:
+	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
+	// 1 - init device (constructor)
+	// 2 - shutdown device (destructor)
+	// 3 - service driver (60Hz)
+	// 4 - note off
+	// 5 - note on
+	// 6 - poly aftertouch/pressure
+	// 7 - controller change
+	// 8 - program/patch change
+	// 9 - channel aftertouch/pressure
+	// 10 - pitch bend
+	// 11 - get/set reverb
+	// 12 - get/set global volume
+	// 13 - get/set sound on/off
+	// 14 - load sample
+	// 15 - stop sample
+	// 16 - advance sample
+	// 17 - unused
+
 	typedef uint8 DeviceId;
 
 	SoundDriver(ResourceManager &resMan, SciVersion version) :
-		_version(version) {}
+		_version(version),
+		_isEnabled(true) {}
 
 	virtual ~SoundDriver() {}
 
@@ -50,105 +83,6 @@ public:
 	 * Returns the device ID used to find the correct data in a Sound file.
 	 */
 	virtual DeviceId getDeviceId() const = 0;
-
-	/**
-	 * Prints state information usable for debugging the driver.
-	 */
-	virtual void debugPrintState(Console &con) const {
-		con.debugPrintf("No debugging information available from the current driver");
-	}
-
-protected:
-	SciVersion _version;
-};
-
-/**
- * Sound driver interface for SCI0.
- */
-class Sci0SoundDriver : public SoundDriver {
-public:
-	Sci0SoundDriver(ResourceManager &resMan, SciVersion version) :
-		SoundDriver(resMan, version) {}
-
-	// ops (offsets):
-	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
-	// 2 - init device (constructor)
-	// 4 - shutdown device (destructor)
-	// 6 - start sound
-	// 8 - advance playback
-	// 10 - set volume
-	// 12 - fade sound
-	// 14 - stop sound
-	// 16 - pause sound
-	// 18 - restore sound
-
-	/**
-	 * Advances sound playback. The given object will be updated with
-	 * information about the new playback state of the driver, if it was time
-	 * to advance playback. This should be called at least once per tick.
-	 */
-	virtual void service(Sci0Sound &) = 0;
-
-	/**
-	 * Begins playback of the sound in the given object.
-	 */
-	virtual Sci0PlayStrategy play(Sci0Sound &) = 0;
-
-	/**
-	 * Fade out the sound using the volume in the given Sci0Sound object.
-	 */
-	virtual void fade(Sci0Sound &) = 0;
-
-	/**
-	 * Stops playback.
-	 */
-	virtual void stop(Sci0Sound &) = 0;
-
-	/**
-	 * Pauses playback.
-	 */
-	virtual void pause(Sci0Sound &) = 0;
-
-	/**
-	 * Restores the driver's playback state to match the given object.
-	 */
-	virtual void restore(Sci0Sound &) = 0;
-
-	/**
-	 * Updates the master volume of the driver from the volume in the given
-	 * object.
-	 */
-	virtual void setMasterVolume(Sci0Sound &) = 0;
-};
-
-/**
- * Sound driver interface for SCI1+.
- */
-class Sci1SoundDriver : public SoundDriver {
-public:
-	// ops:
-	// 0 - get device info (getPatchNumber/getNumVoices/getNumDacs)
-	// 1 - init device (constructor)
-	// 2 - shutdown device (destructor)
-	// 3 - service driver
-	// 4 - note off
-	// 5 - note on
-	// 6 - poly aftertouch/pressure
-	// 7 - controller change
-	// 8 - program/patch change
-	// 9 - channel aftertouch/pressure
-	// 10 - pitch bend
-	// 11 - get/set reverb
-	// 12 - get/set global volume
-	// 13 - get/set sound on/off
-	// 14 - play sample
-	// 15 - stop sample
-	// 16 - TODO get sample position or sample state or seek sample?
-	// 17 - unused
-
-	Sci1SoundDriver(ResourceManager &resMan, SciVersion version) :
-		SoundDriver(resMan, version),
-		_isEnabled(true) {}
 
 	/**
 	 * Returns the channel range which can be used for dynamically remapped
@@ -250,10 +184,19 @@ public:
 	 */
 	virtual void enable(const bool enable) { _isEnabled = enable; }
 
-	// TODO: There are three additional APIs for digital sample playback which
-	// are used by at least Amiga/Mac.
+	/**
+	 * Prints state information usable for debugging the driver.
+	 */
+	virtual void debugPrintState(Console &con) const {
+		con.debugPrintf("No debugging information available from the current driver");
+	}
 
 protected:
+	/**
+	 * The SCI version which should be emulated by the driver.
+	 */
+	SciVersion _version;
+
 	/**
 	 * Whether or not sound playback is enabled.
 	 */

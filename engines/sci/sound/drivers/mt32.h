@@ -32,14 +32,14 @@
 
 namespace Sci {
 
-class Sci1Mt32Driver final : public Sci1SoundDriver {
+class Mt32Driver final : public SoundDriver {
 public:
 	enum {
 		kMinChannel = 1
 	};
 
-	Sci1Mt32Driver(ResourceManager &resMan, const SciVersion version);
-	virtual ~Sci1Mt32Driver();
+	Mt32Driver(ResourceManager &resMan, const SciVersion version);
+	virtual ~Mt32Driver();
 
 	virtual int getNumVoices() const override { return 32; }
 

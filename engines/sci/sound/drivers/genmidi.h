@@ -44,14 +44,14 @@ static const byte defaultSci32GMPatchMidiData[] = {
 	0x00, 0x06, 0x0C, 0x26, 0x00, 0xBF, 0x65, 0x00, 0x64, 0x00, 0x06, 0x0C, 0x26, 0x00
 };
 
-class Sci1GeneralMidiDriver final : public Sci1SoundDriver {
+class GeneralMidiDriver final : public SoundDriver {
 public:
 	enum {
 		kMinChannel = 1
 	};
 
-	Sci1GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32);
-	virtual ~Sci1GeneralMidiDriver();
+	GeneralMidiDriver(ResourceManager &resMan, const SciVersion version, const bool isMt32);
+	virtual ~GeneralMidiDriver();
 
 	virtual int getNumVoices() const override { return 32; }
 

@@ -130,8 +130,7 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 			error("TODO AmigaMac");
 //			_driver.reset(makeAmigaMacDriver(resMan, _soundVersion));
 		} else {
-			// TODO: Wrong!
-			_driver.reset(static_cast<Sci1SoundDriver *>(makeAdLibDriver(resMan, _soundVersion)));
+			_driver.reset(makeAdLibDriver(resMan, _soundVersion));
 		}
 		break;
 	case MT_PCJR:
@@ -151,15 +150,14 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 //		_driver.reset(makeFmTownsDriver(resMan, _soundVersion));
 		break;
 	case MT_MT32:
-		_driver.reset(static_cast<Sci1SoundDriver *>(makeMt32Driver(resMan, _soundVersion)));
+		_driver.reset(makeMt32Driver(resMan, _soundVersion));
 		break;
 	case MT_GM:
 		if (ConfMan.getBool("native_fb01")) {
 			error("TODO FB-01");
 //			_driver.reset(makeFb01Driver(resMan, _soundVersion));
 		} else {
-			// TODO: Wrong!
-			_driver.reset(static_cast<Sci1SoundDriver *>(makeGeneralMidiDriver(resMan, _soundVersion, false)));
+			_driver.reset(makeGeneralMidiDriver(resMan, _soundVersion, false));
 		}
 		break;
 	default:
@@ -772,7 +770,7 @@ uint8 SoundManager::preemptChannel(HardwareChannels &newChannels, int &numFreeVo
 }
 
 void SoundManager::sendChannelToDriver(const Sci1Sound &sound, const Sci1Sound::Channel &channel, const uint8 hwChannelNo) {
-	Sci1SoundDriver &driver = static_cast<Sci1SoundDriver &>(*_driver);
+	SoundDriver &driver = *_driver;
 	driver.controllerChange(hwChannelNo, kAllNotesOffController, 0);
 	driver.controllerChange(hwChannelNo, kMaxVoicesController, channel.numVoices);
 	driver.programChange(hwChannelNo, channel.program);
@@ -1376,7 +1374,7 @@ SciSpan<const byte> SoundManager::findTrackOffsets(SciSpan<const byte> data, con
 }
 
 void SoundManager::readTrackOffsets(Sci1Sound &sound) {
-	Sci1SoundDriver::DeviceId deviceId = _driver->getDeviceId();
+	SoundDriver::DeviceId deviceId = _driver->getDeviceId();
 	SciSpan<const byte> data = findTrackOffsets(*sound.resource, deviceId);
 	if (!data) {
 		debugC(kDebugLevelSound, "%s has no data for device type %u", sound.resource->name().c_str(), deviceId);
