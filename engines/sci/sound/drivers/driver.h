@@ -209,6 +209,8 @@ public:
 
 	// In SSCI, these two functions were one SetReverb function, where sending
 	// mode 0xFF would return the current reverb mode without changing anything.
+	// In our driver model, 0xff will not be sent to setReverbMode unless there
+	// is a bug.
 
 	/**
 	 * Gets the currently active reverb mode for the driver.
@@ -222,6 +224,8 @@ public:
 
 	// In SSCI, these two functions were one MasterVol function, where sending
 	// volume 0xFF would return the current volume without changing anything.
+	// In our driver model, 0xff will not be sent to setMasterVolume unless
+	// there is a bug.
 
 	/**
 	 * Gets the master volume (0-15).

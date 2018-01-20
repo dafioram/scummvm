@@ -1030,6 +1030,7 @@ private:
 	/**
 	 * Mutes or unmutes the given sound. This method uses a counter.
 	 * TODO: was MuteSound
+	 * TODO: Unused for SCI1, remove if unused for SCI0 too
 	 */
 	void mute(Sci1Sound &sound, const bool mute);
 
@@ -1139,6 +1140,7 @@ private:
 	/**
 	 * Gets the signal for the given sound without resetting the signal.
 	 * TODO: was GetSignal
+	 * TODO: Unused for SCI1, remove if unused for SCI0 too
 	 */
 	Sci1Sound::Signal peekSignal(const Sci1Sound &sound);
 
@@ -1151,6 +1153,7 @@ private:
 	/**
 	 * Gets the last data increment cue value for the given sound.
 	 * TODO: was GetDataInc
+	 * TODO: Unused for SCI1, remove if unused for SCI0 too
 	 */
 	uint16 getCue(const Sci1Sound &sound);
 
