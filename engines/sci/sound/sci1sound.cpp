@@ -1901,7 +1901,7 @@ void Sci1SoundManager::kernelDispose(const reg_t soundObj) {
 	Common::StackLock lock(_mutex);
 
 	const reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
-	kernelStop(nodePtr);
+	kernelStop(soundObj);
 	if (!nodePtr.isNull()) {
 		SoundsList::iterator it = findSoundIteratorByRegT(nodePtr);
 		if (it != _sounds.end()) {
