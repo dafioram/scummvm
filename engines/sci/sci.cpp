@@ -47,7 +47,8 @@
 
 #include "sci/sound/audio.h"
 #include "sci/sound/sync.h"
-#include "sci/sound/sound.h"
+#include "sci/sound/sci0sound.h"
+#include "sci/sound/sci1sound.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
@@ -364,7 +365,11 @@ Common::Error SciEngine::run() {
 	// start of the game must pump the event loop to avoid making the OS think
 	// that ScummVM is hanged, and pumping the event loop requires GfxCursor to
 	// be initialized
-	_sound.reset(new SoundManager(*_resMan, *_gamestate->_segMan, *_features, *_guestAdditions));
+	if (getSciVersion() <= SCI_VERSION_01) {
+		error("TODO: SCI0");
+	} else {
+		_sound.reset(new Sci1SoundManager(*_resMan, *_gamestate->_segMan, *_features, *_guestAdditions));
+	}
 
 	syncSoundSettings();
 	_guestAdditions->syncAudioOptionsFromScummVM();

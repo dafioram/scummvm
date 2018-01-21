@@ -25,7 +25,6 @@
 
 #include "audio/audiostream.h"
 #include "sci/console.h"
-#include "sci/sound/sound.h"
 
 namespace Sci {
 

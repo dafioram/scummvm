@@ -688,7 +688,7 @@ MoveCountType GameFeatures::detectMoveCountType() {
 	return _moveCountType;
 }
 
-bool GameFeatures::useAltWinGMSound() {
+bool GameFeatures::useAltWinGMSound() const {
 	if (g_sci && g_sci->getPlatform() == Common::kPlatformWindows && g_sci->isCD() && !_forceDOSTracks) {
 		SciGameId id = g_sci->getGameId();
 		return (id == GID_ECOQUEST ||

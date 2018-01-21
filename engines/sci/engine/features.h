@@ -237,7 +237,7 @@ public:
 	 * soundtracks are available for the Windows CD versions of EcoQuest, Jones,
 	 * KQ5 and SQ4.
 	 */
-	bool useAltWinGMSound();
+	bool useAltWinGMSound() const;
 
 	/**
 	 * Forces DOS soundtracks in Windows CD versions when the user hasn't

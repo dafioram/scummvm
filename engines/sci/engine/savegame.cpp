@@ -46,7 +46,8 @@
 #include "sci/graphics/screen.h"
 #include "sci/parser/vocabulary.h"
 #include "sci/sound/audio.h"
-#include "sci/sound/sound.h"
+#include "sci/sound/sci0sound.h"
+#include "sci/sound/sci1sound.h"
 
 #ifdef ENABLE_SCI32
 #include "common/config-manager.h"
@@ -601,7 +602,7 @@ void DataStack::saveLoadWithSerializer(Common::Serializer &s) {
 
 #pragma mark -
 
-void SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
+void Sci1SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
 	Common::StackLock lock(_mutex);
 
 	enableSoundServer(false);
@@ -624,7 +625,7 @@ void SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
 	}
 }
 
-void SoundManager::serializeSounds(Common::Serializer &s) {
+void Sci1SoundManager::serializeSounds(Common::Serializer &s) {
 	if (_soundVersion < SCI_VERSION_2) {
 		s.syncAsByte(_defaultReverbMode);
 	}
@@ -651,7 +652,7 @@ void SoundManager::serializeSounds(Common::Serializer &s) {
 	}
 }
 
-void SoundManager::prepareForRestore() {
+void Sci1SoundManager::prepareForRestore() {
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
 		if (_soundVersion >= SCI_VERSION_1_1 && sound->isSample) {
 #ifdef ENABLE_SCI32
@@ -673,7 +674,7 @@ void SoundManager::prepareForRestore() {
 	_sounds.clear();
 }
 
-void SoundManager::reconstructPlaylist() {
+void Sci1SoundManager::reconstructPlaylist() {
 	Common::StackLock lock(_mutex);
 
 	enableSoundServer(true);
@@ -704,7 +705,7 @@ void SoundManager::reconstructPlaylist() {
 	pauseAll(false);
 }
 
-void SoundManager::legacyRestore(Common::Serializer &s) {
+void Sci1SoundManager::legacyRestore(Common::Serializer &s) {
 	uint numSounds;
 	byte masterVolume;
 	byte reverb;

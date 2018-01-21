@@ -36,7 +36,7 @@
 #include "sci/graphics/frameout.h"
 #include "sci/sound/audio32.h"
 #endif
-#include "sci/sound/sound.h"
+#include "sci/sound/sci1sound.h"
 #include "sci/sci.h"
 
 namespace Sci {

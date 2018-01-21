@@ -109,12 +109,20 @@ reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_sound->kernelPause(argv[0], argv[1].toSint16(), getSciVersion() >= SCI_VERSION_2);
-	return s->r_acc;
+	if (getSciVersion() <= SCI_VERSION_01) {
+		return make_reg(0, g_sci->_sound->kernelPause(argv[0]));
+	} else {
+		g_sci->_sound->kernelPause(argv[0], argv[1].toSint16(), getSciVersion() >= SCI_VERSION_2);
+		return s->r_acc;
+	}
 }
 
 reg_t kDoSoundFade(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_sound->kernelFade(argv[0], argv[1].toSint16(), argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	if (getSciVersion() <= SCI_VERSION_01) {
+		g_sci->_sound->kernelFade(argv[0]);
+	} else {
+		g_sci->_sound->kernelFade(argv[0], argv[1].toSint16(), argv[2].toSint16(), argv[3].toSint16(), argv[4].toSint16());
+	}
 	return s->r_acc;
 }
 
@@ -149,15 +157,7 @@ reg_t kDoSoundSendMidi(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundGlobalReverb(EngineState *s, int argc, reg_t *argv) {
-	// In SSCI, these checks were in the single SetReverb function; since we
-	// split the function for clarity, the checks are moved here instead
-	if (argc == 0 || argv[0].toSint16() == 0xff) {
-		return make_reg(0, g_sci->_sound->getReverbMode());
-	} else if (argv[0].toUint16() > 10) {
-		return make_reg(0, g_sci->_sound->getDefaultReverbMode());
-	} else {
-		return make_reg(0, g_sci->_sound->setReverbMode(argv[0].toSint16()));
-	}
+	return g_sci->_sound->kernelGlobalReverb(argc, argv);
 }
 
 reg_t kDoSoundUpdate(EngineState *s, int argc, reg_t *argv) {
