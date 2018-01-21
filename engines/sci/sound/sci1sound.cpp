@@ -1872,6 +1872,17 @@ void Sci1SoundManager::kernelInit(const reg_t soundObj) {
 	reg_t nodePtr = readSelector(_segMan, soundObj, SELECTOR(nodePtr));
 	Sci1Sound *sound;
 	if (nodePtr.isNull()) {
+		// At least MUMG-CD (the SCI1 CD version) calls to fade out a sound,
+		// clears the VM Sound object's `nodePtr`, and inits a new sound using
+		// the same VM Sound object before the old sound has finished playing.
+		// As a result, we need to always create a synthetic `nodePtr` value
+		// instead of just using `soundObj` as the `nodePtr` (since then there
+		// would be two sounds in `_sounds` with the same `nodePtr`). Deleting
+		// or reusing the old sound entry doesn't work since that would break
+		// the fade.
+		// The uninitialised segment is a preemptive defensive move so that it
+		// is impossible for a game to manually set nodePtr to a number to gain
+		// control of a random sound
 		nodePtr = make_reg(kUninitializedSegment, _nextObjectId++);
 		_sounds.push_back(Sci1Sound(soundObj, nodePtr));
 		sound = &_sounds.back();
