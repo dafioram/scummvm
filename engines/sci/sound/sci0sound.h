@@ -61,11 +61,16 @@ enum Sci0PlayState {
 /**
  * A representation of the current state of a sound in SCI0.
  */
-struct Sci0Sound {
+struct Sci0Sound : public Common::Serializable {
 	/**
 	 * The VM sound object used to create this sound.
 	 */
 	reg_t soundObj;
+
+	/**
+	 * The sound resource ID.
+	 */
+	uint16 resourceNo;
 
 	/**
 	 * The Sound resource.
@@ -96,18 +101,18 @@ struct Sci0Sound {
 
 	uint16 chain; // TODO: May be unused, replaced by priority
 
-	int16 state;
+	Sci0PlayState state;
 
-	uint16 signal;
+	int16 signal;
 
 	/**
-	 * The playback volume of the sound, TODO: from 0 to 15?
+	 * The playback volume of the sound, from 0 to 15.
 	 */
 	int16 volume;
 
 	uint16 effect; // TODO: Not a clue what this is
 
-	Sci0Sound(const reg_t soundObj_) :
+	Sci0Sound(const reg_t soundObj_ = NULL_REG) :
 		soundObj(soundObj_),
 		resource(nullptr),
 		numLoops(0),
@@ -115,16 +120,20 @@ struct Sci0Sound {
 		priority(0),
 		strategy(kStrategySync),
 		chain(0),
-		state(0),
+		state(kStateNotReady),
 		signal(0),
 		volume(0),
 		effect(0) {}
+
+	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 };
 
 class Sci0SoundManager final : public SoundManager {
 public:
 	Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions);
 	~Sci0SoundManager();
+
+	virtual void reset() override;
 
 private:
 	typedef Common::Array<Sci0Sound> SoundsList;
@@ -137,6 +146,11 @@ private:
 #pragma mark -
 #pragma mark Save management
 public:
+	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
+	virtual void reconstructPlaylist() override;
+
+private:
+	void legacyRestore(Common::Serializer &s);
 
 #pragma mark -
 #pragma mark MIDI server
@@ -151,36 +165,119 @@ private:
 	 */
 	void soundServer();
 
+	void finishActivation(Sci0Sound &sound);
+
+#pragma mark -
+#pragma mark Effects
+public:
+	virtual void setMasterVolume(const uint8 volume) override;
+
+private:
+	void setSoundVolumes(const uint8 volume);
+
+#pragma mark -
+#pragma mark Playback management
+public:
+	virtual void pauseAll(const bool pause) override;
+
+private:
+	void stopAllSounds();
+
+	void play(Sci0Sound &sound);
+	void activate(Sci0Sound &sound);
+	void pause(Sci0Sound &sound);
+	void restore(Sci0Sound &sound);
+	void stop(Sci0Sound &sound);
+	void fade(Sci0Sound &sound);
+
+	/**
+	 * The value of `_numServerSuspensions` the last time that sounds were
+	 * paused by a call to `pauseAll`.
+	 */
+	int _lastNumServerSuspensions;
+
 #pragma mark -
 #pragma mark Kernel
 public:
 	void kernelInit(const reg_t soundObj) override;
+	void kernelPlay(const reg_t soundObj, const bool) override;
+	void kernelDispose(const reg_t soundObj) override;
+	void kernelStop(const reg_t soundObj) override;
+	bool kernelPause(const bool pause) override;
+	void kernelUpdate(const reg_t soundObj) override;
+	void kernelFade(const reg_t soundObj) override;
 
 private:
-	class SoundByRegT {
+	class ByLowerPriority {
+		int16 _priority;
+	public:
+		inline ByLowerPriority(const int16 priority) : _priority(priority) {}
+		inline bool operator()(const Sci0Sound &sound) const {
+			return sound.priority <= _priority;
+		}
+	};
+
+	class ByRegT {
 		reg_t _key;
 	public:
-		inline SoundByRegT(const reg_t key) : _key(key) {}
+		inline ByRegT(const reg_t key) : _key(key) {}
 		inline bool operator()(const Sci0Sound &sound) const {
 			return sound.soundObj == _key;
 		}
 	};
 
-	inline const Sci0Sound *findSoundByRegT(const reg_t key) const {
-		SoundsList::const_iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+	class ByState {
+		Sci0PlayState _state;
+	public:
+		inline ByState(const Sci0PlayState state) : _state(state) {}
+		inline bool operator()(const Sci0Sound &sound) const {
+			return sound.state == _state;
+		}
+	};
+
+	template <typename Comparator, typename T>
+	inline const Sci0Sound *findSound(const T key) const {
+		const SoundsList::const_iterator it = Common::find_if(_sounds.begin(), _sounds.end(), Comparator(key));
 		if (it == _sounds.end()) {
 			return nullptr;
 		}
 		return &*it;
 	}
 
-	inline Sci0Sound *findSoundByRegT(const reg_t key) {
-		SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+	template <typename Comparator, typename T>
+	inline Sci0Sound *findSound(const T key) {
+		const SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), Comparator(key));
 		if (it == _sounds.end()) {
 			return nullptr;
 		}
 		return &*it;
 	}
+
+	template <typename Comparator, typename T>
+	inline SoundsList::iterator findSoundIterator(const T key) {
+		return Common::find_if(_sounds.begin(), _sounds.end(), Comparator(key));
+	}
+
+	template <Sci0PlayState STATE>
+	inline Sci0Sound *findSoundByState() {
+		const SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), ByState(STATE));
+		if (it == _sounds.end()) {
+			return nullptr;
+		}
+		return &*it;
+	}
+
+#pragma mark -
+#pragma mark Debugging
+public:
+	virtual void debugPrintPlaylist(Console &con) const override;
+	virtual void debugPrintSound(Console &con, const uint index) const override;
+	virtual void debugPrintChannelMap(Console &con) const override;
+	virtual void debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive) override;
+	virtual void debugStopAll() override;
+
+private:
+	void debugPrintSound(Console &con, const Sci0Sound &sound) const;
 };
 
 } // End of namespace Sci

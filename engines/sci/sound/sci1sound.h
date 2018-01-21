@@ -1195,9 +1195,7 @@ public:
 	virtual void kernelDispose(const reg_t soundObj) override;
 	virtual void kernelPlay(const reg_t soundObj, const bool exclusive) override;
 	virtual void kernelStop(const reg_t soundObj) override;
-	virtual int16 kernelPause(const reg_t soundObj) override;
 	virtual void kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac) override;
-	virtual void kernelFade(const reg_t soundObj) override;
 	virtual void kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) override;
 	virtual void kernelHold(const reg_t soundObj, const int16 holdPoint) override;
 	virtual void kernelSetVolume(const reg_t soundObj, const int16 volume) override;
@@ -1253,7 +1251,6 @@ public:
 	virtual void debugPrintPlaylist(Console &con) const override;
 	virtual void debugPrintSound(Console &con, const uint index) const override;
 	virtual void debugPrintChannelMap(Console &con) const override;
-	virtual void debugPrintDriverState(Console &con) const override;
 	virtual void debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive) override;
 	virtual void debugStopAll() override;
 

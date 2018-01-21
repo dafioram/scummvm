@@ -165,4 +165,9 @@ void SoundManager::setSoundOn(const bool enable) {
 	_driver->enable(enable);
 }
 
+void SoundManager::debugPrintDriverState(Console &con) const {
+	Common::StackLock lock(_mutex);
+	_driver->debugPrintState(con);
+}
+
 } // end of namespace Sci

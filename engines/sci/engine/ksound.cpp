@@ -61,6 +61,7 @@ reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv) {
+	// TODO: Not accurate for SCI0, but does it matter?
 	const reg_t oldState = make_reg(0, g_sci->_sound->isSoundEnabled());
 	if (argc > 0 && argv[0].toSint16() != 0xff) {
 		g_sci->_sound->setSoundOn(argv[0].toSint16());
@@ -110,14 +111,14 @@ reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv) {
 
 reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv) {
 	if (getSciVersion() <= SCI_VERSION_01) {
-		return make_reg(0, g_sci->_sound->kernelPause(argv[0]));
+		return make_reg(0, g_sci->_sound->kernelPause(argv[0].toSint16()));
 	} else {
 		g_sci->_sound->kernelPause(argv[0], argv[1].toSint16(), getSciVersion() >= SCI_VERSION_2);
 		return s->r_acc;
 	}
 }
 
-reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv) {
+reg_t kDoSoundRestoreAll(EngineState *s, int argc, reg_t *argv) {
 	g_sci->_sound->reconstructPlaylist();
 	return s->r_acc;
 }

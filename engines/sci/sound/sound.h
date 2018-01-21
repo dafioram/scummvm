@@ -228,7 +228,7 @@ public:
 
 	// TODO: was MasterVol, one function
 	uint8 getMasterVolume() const;
-	void setMasterVolume(const uint8 volume);
+	virtual void setMasterVolume(const uint8 volume);
 
 	/**
 	 * Returns whether sound reproduction is enabled in the driver.
@@ -248,18 +248,40 @@ public:
 	virtual void kernelDispose(const reg_t soundObj) = 0;
 	virtual void kernelPlay(const reg_t soundObj, const bool exclusive) = 0;
 	virtual void kernelStop(const reg_t soundObj) = 0;
-	virtual int16 kernelPause(const reg_t soundObj) = 0;
-	virtual void kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac) = 0;
-	virtual void kernelFade(const reg_t soundObj) = 0;
-	virtual void kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) = 0;
-	virtual void kernelHold(const reg_t soundObj, const int16 holdPoint) = 0;
-	virtual void kernelSetVolume(const reg_t soundObj, const int16 volume) = 0;
-	virtual void kernelSetPriority(const reg_t soundObj, const int16 priority) = 0;
-	virtual void kernelSetLoop(const reg_t soundObj, const bool enable) = 0;
-	virtual void kernelUpdateCues(const reg_t soundObj) = 0;
-	virtual void kernelSendMidi(const int argc, const reg_t *const argv) = 0;
+	virtual bool kernelPause(const bool paused) {
+		error("Wrong SCI version for kernelPause");
+	}
+	virtual void kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac) {
+		error("Wrong SCI version for kernelPause");
+	}
+	virtual void kernelFade(const reg_t soundObj) {
+		error("Wrong SCI version for kernelFade");
+	}
+	virtual void kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) {
+		error("Wrong SCI version for kernelFade");
+	}
+	virtual void kernelHold(const reg_t soundObj, const int16 holdPoint) {
+		error("Wrong SCI version for kernelHold");
+	}
+	virtual void kernelSetVolume(const reg_t soundObj, const int16 volume) {
+		error("Wrong SCI version for kernelSetVolume");
+	}
+	virtual void kernelSetPriority(const reg_t soundObj, const int16 priority) {
+		error("Wrong SCI version for kernelSetPriority");
+	}
+	virtual void kernelSetLoop(const reg_t soundObj, const bool enable) {
+		error("Wrong SCI version for kernelSetLoop");
+	}
+	virtual void kernelUpdateCues(const reg_t soundObj) {
+		error("Wrong SCI version for kernelUpdateCues");
+	}
+	virtual void kernelSendMidi(const int argc, const reg_t *const argv) {
+		error("Wrong SCI version for kernelSendMidi");
+	}
 	virtual void kernelUpdate(const reg_t soundObj) = 0;
-	virtual reg_t kernelGlobalReverb(const int argc, const reg_t *const argv) = 0;
+	virtual reg_t kernelGlobalReverb(const int argc, const reg_t *const argv) {
+		error("Wrong SCI version for kernelGlobalReverb");
+	}
 
 protected:
 	struct Kernel {
@@ -275,7 +297,7 @@ public:
 	virtual void debugPrintPlaylist(Console &con) const = 0;
 	virtual void debugPrintSound(Console &con, const uint index) const = 0;
 	virtual void debugPrintChannelMap(Console &con) const = 0;
-	virtual void debugPrintDriverState(Console &con) const = 0;
+	void debugPrintDriverState(Console &con) const;
 	virtual void debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive) = 0;
 	virtual void debugStopAll() = 0;
 };

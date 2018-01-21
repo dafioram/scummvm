@@ -602,6 +602,75 @@ void DataStack::saveLoadWithSerializer(Common::Serializer &s) {
 
 #pragma mark -
 
+void Sci0SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
+	Common::StackLock lock(_mutex);
+
+	if (s.isLoading()) {
+		reset();
+		_numServerSuspensions = 1;
+	}
+
+	if (s.isLoading() && s.getVersion() < VER(45)) {
+		legacyRestore(s);
+	} else {
+		uint16 numSounds = _sounds.size();
+		s.syncAsUint16LE(numSounds);
+		if (s.isLoading()) {
+			_sounds.resize(numSounds);
+		}
+		for (uint i = 0; i < numSounds; ++i) {
+			_sounds[i].saveLoadWithSerializer(s);
+		}
+	}
+}
+
+void Sci0SoundManager::legacyRestore(Common::Serializer &s) {
+	if (s.getVersion() >= VER(15)) {
+		s.skip(3);
+	}
+
+	uint numSounds;
+	s.syncAsUint32LE(numSounds);
+
+	Sci0Sound prototype;
+	for (uint i = 0; i < numSounds; ++i) {
+		syncWithSerializer(s, prototype.soundObj);
+		s.syncAsUint16LE(prototype.resourceNo);
+		s.skip(4);
+		s.syncAsSint16LE(prototype.signal, VER(17));
+		s.syncAsByte(prototype.priority, VER(0), VER(30));
+		s.syncAsSint16LE(prototype.priority, VER(31));
+		s.syncAsSint16LE(prototype.numLoops, VER(17));
+		s.syncAsByte(prototype.volume);
+		s.skip(1, VER(17));
+		s.skip(11);
+		prototype.strategy = kStrategyAsync;
+		s.syncAsByte(prototype.state);
+		s.skip(1, VER(32));
+		s.skip(1, VER(33));
+
+		if (!prototype.resourceNo) {
+			warning("Culling empty sound object for %04x:%04x", PRINT_REG(prototype.soundObj));
+		} else {
+			_sounds.push_back(prototype);
+		}
+	}
+}
+
+void Sci0Sound::saveLoadWithSerializer(Common::Serializer &s) {
+	syncWithSerializer(s, soundObj);
+	s.syncAsUint16LE(resourceNo);
+	s.syncAsUint16LE(numLoops);
+	s.syncAsUint16LE(position);
+	s.syncAsSint16LE(priority);
+	s.syncAsByte(strategy);
+	s.syncAsUint16LE(chain);
+	s.syncAsByte(state);
+	s.syncAsSint16LE(signal);
+	s.syncAsSint16LE(volume);
+	s.syncAsUint16LE(effect);
+}
+
 void Sci1SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
 	Common::StackLock lock(_mutex);
 
@@ -631,7 +700,6 @@ void Sci1SoundManager::serializeSounds(Common::Serializer &s) {
 	}
 
 	uint16 numSounds = _sounds.size();
-	assert(numSounds <= 0xffff);
 	s.syncAsUint16LE(numSounds);
 
 	if (s.isLoading()) {

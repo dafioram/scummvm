@@ -666,7 +666,7 @@ reg_t kDoSoundMute(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundStop(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundStopAll(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv);
-reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv);
+reg_t kDoSoundRestoreAll(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundMasterVolume(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundUpdate(EngineState *s, int argc, reg_t *argv);
 reg_t kDoSoundFade(EngineState *s, int argc, reg_t *argv);

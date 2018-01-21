@@ -2057,10 +2057,6 @@ void Sci1SoundManager::kernelStop(const reg_t soundObj) {
 	writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
 }
 
-int16 Sci1SoundManager::kernelPause(const reg_t soundObj) {
-	error("Attempt to call SCI0 kernel pause on Sci1SoundManager");
-}
-
 void Sci1SoundManager::kernelPause(const reg_t soundObj, const int16 numPauses, const bool pauseDac) {
 	Common::StackLock lock(_mutex);
 
@@ -2104,10 +2100,6 @@ void Sci1SoundManager::kernelPause(const reg_t soundObj, const int16 numPauses, 
 				}
 		}
 	}
-}
-
-void Sci1SoundManager::kernelFade(const reg_t soundObj) {
-	error("Attempt to call SCI0 kernel pause on Sci1SoundManager");
 }
 
 void Sci1SoundManager::kernelFade(const reg_t soundObj, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade) {
@@ -2450,11 +2442,6 @@ void Sci1SoundManager::debugPrintSound(Console &con, const Sci1Sound &sound) con
 void Sci1SoundManager::debugPrintChannelMap(Console &con) const {
 	Common::StackLock lock(_mutex);
 	debugPrintChannelMap(con, _hardwareChannels);
-}
-
-void Sci1SoundManager::debugPrintDriverState(Console &con) const {
-	Common::StackLock lock(_mutex);
-	_driver->debugPrintState(con);
 }
 
 void Sci1SoundManager::debugStopAll() {

@@ -366,7 +366,7 @@ Common::Error SciEngine::run() {
 	// that ScummVM is hanged, and pumping the event loop requires GfxCursor to
 	// be initialized
 	if (getSciVersion() <= SCI_VERSION_01) {
-		error("TODO: SCI0");
+		_sound.reset(new Sci0SoundManager(*_resMan, *_gamestate->_segMan, *_features, *_guestAdditions));
 	} else {
 		_sound.reset(new Sci1SoundManager(*_resMan, *_gamestate->_segMan, *_features, *_guestAdditions));
 	}
