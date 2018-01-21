@@ -1441,7 +1441,9 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	if (ser.getVersion() >= 30 && voc)
 		voc->saveLoadWithSerializer(ser);
 
-	g_sci->_sound->reconstructPlaylist();
+	if (getSciVersion() > SCI_VERSION_01) {
+		g_sci->_sound->reconstructPlaylist();
+	}
 
 	// Message state:
 	delete s->_msgState;

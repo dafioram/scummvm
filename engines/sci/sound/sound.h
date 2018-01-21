@@ -163,6 +163,10 @@ protected:
 	GuestAdditions &_guestAdditions;
 	Common::Mutex _mutex;
 
+	/**
+	 * Initialises the sound driver for the given music type/platform.
+	 * This must be called from the constructor.
+	 */
 	void initDriver(MusicType musicType, Common::Platform platform);
 
 	/**
@@ -190,17 +194,30 @@ protected:
 #pragma mark -
 #pragma mark Save management
 public:
+	/**
+	 * Reconstucts the playlist and restores sound playback after all other
+	 * parts of the save game have been restored.
+	 */
 	virtual void reconstructPlaylist() = 0;
 
 #pragma mark -
-#pragma mark Sound server
+#pragma mark MIDI server
 public:
 	/**
-	 * Enables and disables the sound server. This method uses a counter.
+	 * Enables and disables the sound server.
 	 */
-	virtual void enableSoundServer(const bool enable) = 0;
+	void enableSoundServer(const bool enable);
 
+	/**
+	 * Pauses or unpauses all sounds.
+	 */
 	virtual void pauseAll(const bool pause) = 0;
+
+protected:
+	/**
+	 * The number of times the sound server has been suspended.
+	 */
+	int _numServerSuspensions;
 
 #pragma mark -
 #pragma mark Effects

@@ -569,12 +569,6 @@ private:
 
 #pragma mark -
 #pragma mark MIDI server
-public:
-	/**
-	 * Enables and disables the sound server. This method uses a counter.
-	 */
-	virtual void enableSoundServer(const bool enable) override;
-
 private:
 	static inline void soundServerCallback(void *soundManager) {
 		static_cast<Sci1SoundManager *>(soundManager)->soundServer();
@@ -590,11 +584,6 @@ private:
 	 * Processes one fade step for the given sound.
 	 */
 	void processFade(Sci1Sound &sound);
-
-	/**
-	 * The number of times the sound server has been suspended.
-	 */
-	int _numServerSuspensions;
 
 #pragma mark -
 #pragma mark Channel remapping

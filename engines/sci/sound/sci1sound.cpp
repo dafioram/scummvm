@@ -61,7 +61,6 @@ Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	SoundManager(resMan, segMan, features, guestAdditions),
 	_useWindowsMidi(false),
 	_restoringSound(false),
-	_numServerSuspensions(0),
 	_needsRemap(false),
 	_nextVolumeChangeChannel(0),
 	_defaultReverbMode(0),
@@ -104,6 +103,10 @@ Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, 
 
 	initDriver(musicType, platform);
 
+	if (!_driver) {
+		return;
+	}
+
 	if (features.useAltWinGMSound()) {
 		if (musicType != MT_GM) {
 			warning("A Windows CD version with an alternate MIDI soundtrack has been chosen, "
@@ -129,6 +132,10 @@ Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, 
 }
 
 Sci1SoundManager::~Sci1SoundManager() {
+	if (!_driver) {
+		return;
+	}
+
 	g_system->getTimerManager()->removeTimerProc(soundServerCallback);
 
 	// Don't allow destruction to finish until after any in-progress sound
@@ -141,9 +148,7 @@ Sci1SoundManager::~Sci1SoundManager() {
 
 	// In SSCI, this is in STerminate; since we do not implement that operation,
 	// we perform its additional termination operations here
-	if (_driver) {
-		_driver->setMasterVolume(kMaxMasterVolume);
-	}
+	_driver->setMasterVolume(kMaxMasterVolume);
 }
 
 GuiResourceId Sci1SoundManager::getSoundResourceId(const uint16 soundNo) const {
@@ -255,20 +260,6 @@ void Sci1SoundManager::restore(Sci1Sound &sound) {
 
 #pragma mark -
 #pragma mark MIDI server
-
-void Sci1SoundManager::enableSoundServer(const bool enable) {
-	Common::StackLock lock(_mutex);
-
-	// In SSCI1early- this function used a boolean instead of a counter, but
-	// games could not access this function at all, so we can just always use
-	// the counter mode
-
-	if (!enable) {
-		++_numServerSuspensions;
-	} else if (_numServerSuspensions) {
-		--_numServerSuspensions;
-	}
-}
 
 void Sci1SoundManager::soundServer() {
 	Common::StackLock lock(_mutex);

@@ -29,45 +29,63 @@ namespace Sci {
 
 enum Sci0PlayStrategy {
 	/**
+	 * No play strategy is defined.
+	 */
+	kStrategyNone = -1,
+
+	/**
 	 * The caller should synchronously invoke `service` on the driver until
 	 * `signal` is kFinished.
 	 */
-	kSync = 0,
+	kStrategySync = 0,
 
 	/**
 	 * The caller should invoke `service` once on the driver and then
 	 * return.
 	 */
-	kAsync = 1,
+	kStrategyAsync = 1,
 
 	/**
 	 * Playback did not begin; the caller should clean up immediately.
 	 */
-	kAbort = 3
+	kStrategyAbort = 3
+};
+
+enum Sci0PlayState {
+	kStateNotReady = 0,
+	kStateReady = 1,
+	kStateBlocked = 2,
+	kStateActive = 3
 };
 
 /**
  * A representation of the current state of a sound in SCI0.
  */
 struct Sci0Sound {
-	// TODO: In SSCI, the first field is a Node, is this relevant?
+	/**
+	 * The VM sound object used to create this sound.
+	 */
+	reg_t soundObj;
 
 	/**
-	 * The sound resource data.
+	 * The Sound resource.
 	 *
 	 * @note In SSCI this is a raw pointer to the resource data.
 	 */
-	Resource *data;
+	Resource *resource;
 
-	int16 numLoops;
+	/**
+	 * The number of times the sound should loop.
+	 */
+	uint16 numLoops;
 
 	/**
 	 * The current position of playback in the sound resource, in bytes.
 	 */
-	int16 position;
+	uint16 position;
 
 	/**
-	 * The priority of the sound. See `SciSound::priority`.
+	 * The priority of the sound. See `Sci1Sound::priority`.
 	 */
 	int16 priority;
 
@@ -76,7 +94,7 @@ struct Sci0Sound {
 	 */
 	Sci0PlayStrategy strategy;
 
-	// uint16 chain; // TODO: May be unused, replaced by priority
+	uint16 chain; // TODO: May be unused, replaced by priority
 
 	int16 state;
 
@@ -87,11 +105,82 @@ struct Sci0Sound {
 	 */
 	int16 volume;
 
-	// uint16 effect; // TODO: Not a clue what this is
+	uint16 effect; // TODO: Not a clue what this is
+
+	Sci0Sound(const reg_t soundObj_) :
+		soundObj(soundObj_),
+		resource(nullptr),
+		numLoops(0),
+		position(0),
+		priority(0),
+		strategy(kStrategySync),
+		chain(0),
+		state(0),
+		signal(0),
+		volume(0),
+		effect(0) {}
 };
 
 class Sci0SoundManager final : public SoundManager {
+public:
+	Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions);
+	~Sci0SoundManager();
 
+private:
+	typedef Common::Array<Sci0Sound> SoundsList;
+
+	/**
+	 * The list of currently playing & queued sounds.
+	 */
+	SoundsList _sounds;
+
+#pragma mark -
+#pragma mark Save management
+public:
+
+#pragma mark -
+#pragma mark MIDI server
+private:
+	static inline void soundServerCallback(void *soundManager) {
+		static_cast<Sci0SoundManager *>(soundManager)->soundServer();
+	}
+
+	/**
+	 * Advances the state of the sound server. Must be called once per tick in
+	 * SCI0 for correct sound processing.
+	 */
+	void soundServer();
+
+#pragma mark -
+#pragma mark Kernel
+public:
+	void kernelInit(const reg_t soundObj) override;
+
+private:
+	class SoundByRegT {
+		reg_t _key;
+	public:
+		inline SoundByRegT(const reg_t key) : _key(key) {}
+		inline bool operator()(const Sci0Sound &sound) const {
+			return sound.soundObj == _key;
+		}
+	};
+
+	inline const Sci0Sound *findSoundByRegT(const reg_t key) const {
+		SoundsList::const_iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+		if (it == _sounds.end()) {
+			return nullptr;
+		}
+		return &*it;
+	}
+
+	inline Sci0Sound *findSoundByRegT(const reg_t key) {
+		SoundsList::iterator it = Common::find_if(_sounds.begin(), _sounds.end(), SoundByRegT(key));
+		if (it == _sounds.end()) {
+			return nullptr;
+		}
+		return &*it;
+	}
 };
 
 } // End of namespace Sci

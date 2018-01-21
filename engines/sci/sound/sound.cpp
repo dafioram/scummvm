@@ -36,13 +36,37 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 	_segMan(&segMan),
 	_guestAdditions(guestAdditions),
 	_driverEnabledState(true),
-	_soundVersion(features.detectDoSoundType()) {
+	_soundVersion(features.detectDoSoundType()),
+	_numServerSuspensions(0) {
 	_preferSampledSounds = _soundVersion >= SCI_VERSION_2 ||
 		g_sci->getGameId() == GID_GK1DEMO ||
 		ConfMan.getBool("prefer_digitalsfx");
+}
+
+void SoundManager::systemSuspend(const bool pause) {
+	Common::StackLock lock(_mutex);
+
+	enableSoundServer(!pause);
+	if (pause) {
+		_driverEnabledState = _driver->isEnabled();
+		_driver->enable(false);
+	} else {
+		_driver->enable(_driverEnabledState);
 	}
+}
 
 void SoundManager::initDriver(MusicType musicType, Common::Platform platform) {
+	// HACK: The Fun Seeker's Guide demo doesn't have patch 3 and the
+	// version of the Adlib driver (adl.drv) that it includes is
+	// unsupported. That demo doesn't have any sound anyway, so this
+	// shouldn't be fatal.
+	// The GK2 demo has a similar issue, it has no audio drivers at all but
+	// plays no MIDI so it is not fatal for it to have no driver.
+	if (g_sci->getGameId() == GID_FUNSEEKER ||
+		(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
+		return;
+	}
+
 	switch (musicType) {
 	case MT_ADLIB:
 		// FIXME: There's no Amiga sound option, so we hook it up to AdLib
@@ -85,30 +109,24 @@ void SoundManager::initDriver(MusicType musicType, Common::Platform platform) {
 	}
 
 	if (!_driver) {
-		// HACK: The Fun Seeker's Guide demo doesn't have patch 3 and the
-		// version of the Adlib driver (adl.drv) that it includes is
-		// unsupported. That demo doesn't have any sound anyway, so this
-		// shouldn't be fatal.
-		// The GK2 demo has a similar issue, it has no audio drivers at all but
-		// plays no MIDI so it is not fatal for it to have no driver.
-		if (g_sci->getGameId() == GID_FUNSEEKER ||
-			(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
-			return;
-		}
-
 		error("Failed to initialize sound driver");
 	}
 }
 
-void SoundManager::systemSuspend(const bool pause) {
+#pragma mark -
+#pragma mark MIDI server
+
+void SoundManager::enableSoundServer(const bool enable) {
 	Common::StackLock lock(_mutex);
 
-	enableSoundServer(!pause);
-	if (pause) {
-		_driverEnabledState = _driver->isEnabled();
-		_driver->enable(false);
-	} else {
-		_driver->enable(_driverEnabledState);
+	// In SSCI1early- this function used a boolean instead of a counter, but
+	// games could not access this function at all, so we can just always use
+	// the counter mode
+
+	if (!enable) {
+		++_numServerSuspensions;
+	} else if (_numServerSuspensions) {
+		--_numServerSuspensions;
 	}
 }
 

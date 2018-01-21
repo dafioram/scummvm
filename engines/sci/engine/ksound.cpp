@@ -117,6 +117,11 @@ reg_t kDoSoundPause(EngineState *s, int argc, reg_t *argv) {
 	}
 }
 
+reg_t kDoSoundRestore(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->reconstructPlaylist();
+	return s->r_acc;
+}
+
 reg_t kDoSoundFade(EngineState *s, int argc, reg_t *argv) {
 	if (getSciVersion() <= SCI_VERSION_01) {
 		g_sci->_sound->kernelFade(argv[0]);
