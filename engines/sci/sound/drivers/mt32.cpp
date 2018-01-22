@@ -125,7 +125,7 @@ Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	SysEx extraData = patchData->subspan(492 + numTimbres * kTimbreDataSize);
 	uint16 flag = 0;
 	if (extraData.size() > 2) {
-		extraData.getUint16BEAt(0);
+		flag = extraData.getUint16BEAt(0);
 		extraData += 2;
 	}
 
