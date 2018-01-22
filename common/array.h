@@ -159,21 +159,21 @@ public:
 	}
 
 
-	void insert_at(size_type idx, const T &element) {
+	iterator insert_at(size_type idx, const T &element) {
 		assert(idx <= _size);
-		insert_aux(_storage + idx, &element, &element + 1);
+		return insert_aux(_storage + idx, &element, &element + 1);
 	}
 
-	void insert_at(size_type idx, const Array<T> &array) {
+	iterator insert_at(size_type idx, const Array<T> &array) {
 		assert(idx <= _size);
-		insert_aux(_storage + idx, array.begin(), array.end());
+		return insert_aux(_storage + idx, array.begin(), array.end());
 	}
 
 	/**
 	 * Inserts element before pos.
 	 */
-	void insert(iterator pos, const T &element) {
-		insert_aux(pos, &element, &element + 1);
+	iterator insert(iterator pos, const T &element) {
+		return insert_aux(pos, &element, &element + 1);
 	}
 
 	T remove_at(size_type idx) {
@@ -347,14 +347,16 @@ protected:
 				// storage to avoid conflicts.
 				allocCapacity(roundUpCapacity(_size + n));
 
+				pos = _storage + idx;
+
 				// Copy the data from the old storage till the position where
 				// we insert new data
 				uninitialized_copy(oldStorage, oldStorage + idx, _storage);
 				// Copy the data we insert
-				uninitialized_copy(first, last, _storage + idx);
+				uninitialized_copy(first, last, pos);
 				// Afterwards copy the old data from the position where we
 				// insert.
-				uninitialized_copy(oldStorage + idx, oldStorage + _size, _storage + idx + n);
+				uninitialized_copy(oldStorage + idx, oldStorage + _size, pos + n);
 
 				freeStorage(oldStorage, _size);
 			} else if (idx + n <= _size) {
