@@ -580,6 +580,7 @@ void Sci0SoundManager::kernelInit(const reg_t soundObj) {
 	sound->volume = isSoundEnabled() ? getMasterVolume() : 0;
 	sound->strategy = kStrategyNone;
 	sound->state = kStateReady;
+	writeSelector(_segMan, soundObj, SELECTOR(handle), soundObj);
 	writeSelectorValue(_segMan, soundObj, SELECTOR(state), kStateReady);
 }
 
