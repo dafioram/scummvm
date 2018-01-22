@@ -561,6 +561,9 @@ void Sci0SoundManager::kernelInit(const reg_t soundObj) {
 		SoundsList::iterator it = findSoundIterator<ByLowerPriority>(priority);
 		sound = &*_sounds.insert(it, Sci0Sound(soundObj));
 		_numServerSuspensions = 0;
+	} else if (sound->resource) {
+		_resMan.unlockResource(sound->resource);
+		sound->resource = nullptr;
 	}
 
 	sound->resourceNo = id.getNumber();
@@ -620,6 +623,7 @@ void Sci0SoundManager::kernelStop(const reg_t soundObj) {
 	if (isActiveSound) {
 		stop(*sound);
 		_resMan.unlockResource(sound->resource);
+		sound->resource = nullptr;
 		Sci0Sound *nextSound = findSoundByState<kStateBlocked>();
 		if (nextSound) {
 			if (nextSound->strategy == kStrategyNone) {
