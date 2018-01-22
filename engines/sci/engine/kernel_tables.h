@@ -114,7 +114,7 @@ static const SciKernelMapSubEntry kDoSound_subops[] = {
 	{ SIG_SOUNDSCI0,       9, MAP_CALL(DoSoundUpdate),             "o",                    NULL },
 	{ SIG_SOUNDSCI0,      10, MAP_CALL(DoSoundFade),               "o",                    NULL },
 	{ SIG_SOUNDSCI0,      11, MAP_CALL(DoSoundGetPolyphony),       "",                     NULL },
-	{ SIG_SOUNDSCI0,      12, MAP_DUMMY(DoSoundRestore),           "",                     NULL },
+	{ SIG_SOUNDSCI0,      12, MAP_CALL(DoSoundPlayNext),           "",                     NULL },
 
 	{ SIG_SOUNDSCI1EARLY,  0, MAP_CALL(DoSoundMasterVolume),       "(i)",                  NULL },
 	{ SIG_SOUNDSCI1EARLY,  1, MAP_CALL(DoSoundMute),               "(i)",                  NULL },

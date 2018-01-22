@@ -73,6 +73,11 @@ reg_t kDoSoundGetPolyphony(EngineState *s, int argc, reg_t *argv) {
 	return make_reg(0, g_sci->_sound->getNumVoices());
 }
 
+reg_t kDoSoundPlayNext(EngineState *s, int argc, reg_t *argv) {
+	g_sci->_sound->kernelPlayNext();
+	return s->r_acc;
+}
+
 reg_t kDoSoundGetAudioCapability(EngineState *s, int argc, reg_t *argv) {
 	return make_reg(0, g_sci->_sound->getNumDacs());
 }

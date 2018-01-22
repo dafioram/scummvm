@@ -339,6 +339,9 @@ public:
 	virtual reg_t kernelGlobalReverb(const int argc, const reg_t *const argv) {
 		error("Wrong SCI version for kernelGlobalReverb");
 	}
+	virtual void kernelPlayNext() {
+		error("Wrong SCI version for kernelPlayNext");
+	}
 
 protected:
 	struct Kernel {
