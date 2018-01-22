@@ -25,6 +25,7 @@
 
 #include "audio/audiostream.h"
 #include "audio/mididrv.h"
+#include "audio/mixer.h"
 #include "common/array.h"
 #include "common/list.h"
 #include "common/mutex.h"
@@ -35,8 +36,6 @@
 #include "sci/resource.h"
 #include "sci/sound/drivers/driver.h"
 #include "sci/util.h"
-
-namespace Audio { class Mixer; }
 
 namespace Sci {
 class Console;
@@ -72,37 +71,6 @@ enum MidiMessage {
 	 * A message indicating that the end of the track has been reached.
 	 */
 	kEndOfTrack = 0xfc
-};
-
-// TODO: All of these are standard MIDI status messages and could go into
-// common code
-enum MidiMessageType {
-	kNoteOff = 0x80,
-	kNoteOn = 0x90,
-	kKeyPressure = 0xa0,
-	kControllerChange = 0xb0,
-	kProgramChange = 0xc0,
-	kChannelPressure = 0xd0,
-	kPitchBend = 0xe0,
-	kSysEx = 0xf0
-};
-
-// TODO: Many of these controllers are standard MIDI controllers and could go
-// into common code
-enum MidiController {
-	kModulationController = 1,
-	kVolumeController = 7,
-	kPanController = 10,
-	kDamperPedalController = 64,
-	kMaxVoicesController = 75,
-	// TODO: This controller also receives the current note when channels
-	// are remapped, figure out what this means.
-	kMuteController = 78,
-	kReverbModeController = 80,
-	kHoldPointController = 82,
-	kCueController = 96,
-	kAllNotesOffController = 123,
-	kProgramChangeController = 127
 };
 
 #pragma mark -
@@ -240,6 +208,60 @@ public:
 	 * idempotent.
 	 */
 	void setSoundOn(const bool enable);
+
+#pragma mark -
+#pragma mark Digital sample playback
+protected:
+	// In SSCI, sample playback was handled by individual drivers; we instead
+	// always play back digital audio tracks within the player itself, for
+	// simplicity and to allow combinations of digital + MIDI which were not
+	// always possible in the original engine.
+	class SamplePlayer : public Audio::AudioStream {
+	public:
+		enum Status {
+			/** The sample is finished. */
+			kFinished = 0,
+			/** The sample has looped. */
+			kLooped = 1,
+			/** The sample is playing. */
+			kPlaying = 2
+		};
+
+		SamplePlayer(SoundManager &manager, Audio::Mixer &mixer);
+		~SamplePlayer();
+
+		void load(SciSpan<const byte> data, const uint8 volume, const bool loop);
+
+		// In SSCI this received pointer to sample data and used AL and AH to
+		// communicate status
+		Status advance(const bool loop);
+
+		// In SSCI this received pointer to sample data
+		void unload();
+
+		virtual int readBuffer(int16 *buffer, int numSamples) override;
+
+		virtual bool isStereo() const override { return false; }
+
+		virtual int getRate() const override { return _sampleRate; }
+
+		virtual bool endOfData() const override { return false; }
+
+	private:
+		SoundManager &_manager;
+		Audio::Mixer &_mixer;
+		Audio::SoundHandle _handle;
+		bool _loop;
+		bool _playing;
+		uint16 _pos;
+		uint16 _sampleRate;
+		uint16 _size;
+		uint16 _loopStart;
+		uint16 _loopEnd;
+		SciSpan<const byte> _data;
+	};
+
+	SamplePlayer _samplePlayer;
 
 #pragma mark -
 #pragma mark Kernel

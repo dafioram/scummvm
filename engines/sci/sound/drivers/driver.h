@@ -28,6 +28,42 @@
 
 namespace Sci {
 
+enum {
+	kUseDefaultReverb = 127,
+	kPercussionChannel = 9,
+	kMaxMasterVolume = 15
+};
+
+// TODO: All of these are standard MIDI status messages and could go into
+// common code
+enum MidiMessageType {
+	kNoteOff = 0x80,
+	kNoteOn = 0x90,
+	kKeyPressure = 0xa0,
+	kControllerChange = 0xb0,
+	kProgramChange = 0xc0,
+	kChannelPressure = 0xd0,
+	kPitchBend = 0xe0,
+	kSysEx = 0xf0
+};
+
+enum MidiController {
+	kModulationController = 1,
+	kVolumeController = 7,
+	kPanController = 10,
+	kDamperPedalController = 64,
+	kMaxVoicesController = 75,
+	kResetPositionOnPauseController = 76,
+	// TODO: This controller also receives the current note when channels
+	// are remapped, figure out what this means.
+	kMuteController = 78,
+	kReverbModeController = 80,
+	kHoldPointController = 82,
+	kCueController = 96,
+	kAllNotesOffController = 123,
+	kProgramChangeController = 127
+};
+
 /**
  * Common Sound driver interface for all SCI revisions.
  */
@@ -79,9 +115,15 @@ public:
 	virtual int getNumVoices() const = 0;
 
 	/**
-	 * Returns the device ID used to find the correct data in a Sound file.
+	 * Returns the device ID used to find the correct data in a SCI1 Sound file.
 	 */
 	virtual DeviceId getDeviceId() const = 0;
+
+	/**
+	 * Returns the bit masks used to select the correct channels to play in a
+	 * SCI0 Sound file.
+	 */
+	virtual void getChannelMasks(uint8 &instrumentMask, uint8 &percussionMask) const = 0;
 
 	/**
 	 * Returns the channel range which can be used for dynamically remapped

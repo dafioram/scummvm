@@ -28,7 +28,6 @@
 #include "common/debug.h"
 #include "common/ptr.h"
 #include "sci/sound/drivers/driver.h"
-#include "sci/sound/sound.h"
 
 namespace Sci {
 
@@ -45,7 +44,15 @@ public:
 
 	virtual DeviceId getDeviceId() const override { return _deviceId; }
 
-	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = kMinChannel; high = kPercussionChannel - 1; }
+	virtual void getChannelMasks(uint8 &instrumentMask, uint8 &percussionMask) const override {
+		instrumentMask = 1;
+		percussionMask = 0x80;
+	}
+
+	virtual void getRemapRange(uint8 &low, uint8 &high) const override {
+		low = kMinChannel;
+		high = kPercussionChannel - 1;
+	}
 
 	virtual void service() override {
 		// no-op
@@ -108,12 +115,8 @@ private:
 		kDisableCm32PAddress = 0x52000a
 	};
 
-	// TODO: These values are common to at least GM and MT-32 so should probably
-	// go somewhere common
 	enum {
-		kPercussionChannel = 9,
-		kUnmapped = 0xff,
-		kMaxMasterVolume = 15
+		kUnmapped = 0xff
 	};
 
 	Common::ScopedPtr<MidiDriver> _device;
@@ -192,6 +195,9 @@ private:
 
 	/** The last reverb mode passed to the driver. */
 	uint8 _reverbMode;
+
+	/** The default reverb mode from the driver patch data. */
+	uint8 _defaultReverbMode;
 
 	/** The current master volume. */
 	uint8 _masterVolume;

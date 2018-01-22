@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/system.h"
 #include "sci/sound/drivers/genmidi.h"
 #include "sci/sound/drivers/mt32.h"
 
@@ -52,6 +53,7 @@ static bool isGeneralMidiPatch(Resource &patchData) {
 
 Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	SoundDriver(resMan, version),
+	_deviceId(12),
 	_reverbMode(0xff),
 	_masterVolume(15) {
 
@@ -75,15 +77,8 @@ Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 
 	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
 	if (!patchData) {
+		// TODO: Read from MT32.DRV for the very early games
 		error("Could not find MT-32 patch data");
-	}
-
-	if (isGeneralMidiPatch(*patchData)) {
-		error("Patch data indicates that the GM driver should have been used");
-	} else if (version >= SCI_VERSION_1_EGA_ONLY) {
-		_deviceId = 12;
-	} else {
-		error("Unimplemented SCI sound version %d", version);
 	}
 
 	// MT-32 patch contents:
@@ -103,6 +98,10 @@ Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	// - n+386-n+387 flag (0xdcba)
 	// - n+388-n+643 rhythm key map
 	// - n+644-n+652 partial reserve
+
+	if (_version <= SCI_VERSION_01) {
+		_defaultReverbMode = patchData->getUint8At(62);
+	}
 
 	patchData->subspan(40, _goodbyeSysEx.size()).unsafeCopyDataTo(_goodbyeSysEx.data());
 
@@ -124,15 +123,20 @@ Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	sendTimbres(numTimbres, patchData->subspan(492, numTimbres * kTimbreDataSize));
 
 	SysEx extraData = patchData->subspan(492 + numTimbres * kTimbreDataSize);
-	uint16 flag = extraData.getUint16BEAt(0);
-	extraData += 2;
+	uint16 flag = 0;
+	if (extraData.size() > 2) {
+		extraData.getUint16BEAt(0);
+		extraData += 2;
+	}
 
 	if (flag == 0xabcd) {
 		// Patches 49-96
 		sendPatches(patchAddress, extraData.subspan(0, kPatchDataSize));
 		extraData += kPatchDataSize;
-		flag = extraData.getUint16BEAt(0);
-		extraData += 2;
+		if (extraData.size() > 2) {
+			flag = extraData.getUint16BEAt(0);
+			extraData += 2;
+		}
 	}
 
 	if (flag == 0xdcba) {
@@ -203,6 +207,11 @@ void Mt32Driver::controllerChange(const uint8 channelNo, const uint8 controllerN
 		}
 		channel.enabled = false;
 		break;
+	case kReverbModeController:
+		if (_version <= SCI_VERSION_01) {
+			setReverbMode(value);
+		}
+		return;
 	default:
 		return;
 	}
@@ -231,7 +240,11 @@ void Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	channel.hw->pitchBend(bend - 0x2000);
 }
 
-void Mt32Driver::setReverbMode(const uint8 modeNo) {
+void Mt32Driver::setReverbMode(uint8 modeNo) {
+	if (_version <= SCI_VERSION_01 && modeNo == kUseDefaultReverb) {
+		modeNo = _defaultReverbMode;
+	}
+
 	if (modeNo == _reverbMode) {
 		return;
 	}
@@ -358,17 +371,13 @@ void Mt32Driver::sendMasterVolume(uint8 volume) {
 }
 
 SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version) {
-	if (version <= SCI_VERSION_01) {
-		error("TODO: SCI0 MT-32");
-	} else {
-		Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
-		if (getSciVersion() >= SCI_VERSION_2 ||
-			(patchData && isGeneralMidiPatch(*patchData))) {
-			return makeGeneralMidiDriver(resMan, version, true);
-		}
-
-		return new Mt32Driver(resMan, version);
+	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+	if (version >= SCI_VERSION_2 ||
+		(patchData && isGeneralMidiPatch(*patchData))) {
+		return makeGeneralMidiDriver(resMan, version, true);
 	}
+
+	return new Mt32Driver(resMan, version);
 }
 
 } // End of namespace Sci

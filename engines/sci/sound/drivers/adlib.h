@@ -53,15 +53,11 @@ public:
 
 	virtual int getNumVoices() const override { return 9; }
 
-	virtual DeviceId getDeviceId() const override {
-		switch (_version) {
-		case SCI_VERSION_0_EARLY:
-			return 1;
-		case SCI_VERSION_0_LATE:
-			return 4;
-		default:
-			return 0;
-		}
+	virtual DeviceId getDeviceId() const override { return 0; }
+
+	virtual void getChannelMasks(uint8 &instrumentMask, uint8 &percussionMask) const override {
+		instrumentMask = (_version == SCI_VERSION_0_EARLY) ? 1 : 4;
+		percussionMask = 0;
 	}
 
 	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }

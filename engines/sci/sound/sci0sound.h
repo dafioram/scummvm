@@ -155,6 +155,8 @@ private:
 #pragma mark -
 #pragma mark MIDI server
 private:
+	enum { kHeaderSize = 0x22 };
+
 	static inline void soundServerCallback(void *soundManager) {
 		static_cast<Sci0SoundManager *>(soundManager)->soundServer();
 	}
@@ -165,7 +167,72 @@ private:
 	 */
 	void soundServer();
 
-	void finishActivation(Sci0Sound &sound);
+	void advancePlayback(Sci0Sound &sound);
+
+	Sci0PlayStrategy initSound(Sci0Sound &sound);
+
+	struct PlayState {
+		uint16 rest;
+		Sci0PlayState state;
+		uint8 currentFadeVolume;
+		uint8 fadeTicksLeftInStep;
+		uint8 fadeTicksPerStep;
+		bool resetPositionOnPause;
+		uint16 loopPosition;
+		uint16 cue;
+
+		PlayState() :
+			rest(0),
+			state(kStateBlocked),
+			currentFadeVolume(0),
+			fadeTicksLeftInStep(8),
+			fadeTicksPerStep(0),
+			resetPositionOnPause(false),
+			loopPosition(kHeaderSize),
+			cue(127) {}
+	};
+
+	PlayState _playState;
+
+#pragma mark -
+#pragma mark Channel remapping
+private:
+	enum {
+		kNumHardwareChannels = 16
+	};
+
+	/**
+	 * A physical output channel.
+	 */
+	struct HardwareChannel {
+		enum {
+			/**
+			 * Special `channelNo` value for an unmapped hardware channel.
+			 */
+			kUnmapped = 0xff
+		};
+
+		/**
+		 * The the logical channel currently mapped to this hardware channel.
+		 */
+		uint8 channelNo;
+
+		/**
+		 * The number of voices used by this channel.
+		 * TODO: was ChVoice
+		 */
+		uint8 numVoices;
+
+		HardwareChannel() :
+			channelNo(kUnmapped),
+			numVoices(0) {}
+
+		inline bool isMapped() const { return channelNo != kUnmapped; }
+	};
+
+	typedef Common::FixedArray<HardwareChannel, kNumHardwareChannels> HardwareChannels;
+
+	HardwareChannels _hardwareChannels;
 
 #pragma mark -
 #pragma mark Effects
@@ -184,11 +251,13 @@ private:
 	void stopAllSounds();
 
 	void play(Sci0Sound &sound);
-	void activate(Sci0Sound &sound);
 	void pause(Sci0Sound &sound);
 	void restore(Sci0Sound &sound);
 	void stop(Sci0Sound &sound);
 	void fade(Sci0Sound &sound);
+
+	Sci0Sound &activate(Sci0Sound &sound);
+	Sci0Sound &finishActivation(Sci0Sound &sound);
 
 	/**
 	 * The value of `_numServerSuspensions` the last time that sounds were

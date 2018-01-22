@@ -28,6 +28,7 @@ namespace Sci {
 
 Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	SoundManager(resMan, segMan, features, guestAdditions),
+	_hardwareChannels(),
 	_lastNumServerSuspensions(0) {
 
 	uint32 deviceFlags = MDT_PCSPK | MDT_PCJR | MDT_ADLIB | MDT_MIDI | MDT_CMS;
@@ -100,7 +101,43 @@ void Sci0SoundManager::soundServer() {
 		return;
 	}
 
-	error("TODO");
+	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
+		if (sound->state != kStateActive) {
+			continue;
+		}
+
+		if (sound->strategy == kStrategyAsync) {
+			advancePlayback(*sound);
+		}
+
+		if (sound->signal == Kernel::kNoSignal) {
+			continue;
+		}
+
+		const int16 signal = sound->signal;
+		sound->signal = Kernel::kNoSignal;
+
+		// TODO: Technically these writes to objects are a thread safety
+		// violation, so put them in a queue which is processed by run_vm
+		// instead
+		if (signal == Kernel::kFinished) {
+			if (sound->numLoops > 0) {
+				--sound->numLoops;
+			}
+			writeSelectorValue(_segMan, sound->soundObj, SELECTOR(loop), sound->numLoops);
+			if (sound->numLoops) {
+				advancePlayback(*sound);
+			} else {
+				kernelStop(sound->soundObj);
+			}
+		} else {
+			writeSelectorValue(_segMan, sound->soundObj, SELECTOR(signal), signal);
+		}
+	}
+}
+
+void Sci0SoundManager::advancePlayback(Sci0Sound &sound) {
+
 }
 
 #pragma mark -
@@ -122,33 +159,103 @@ void Sci0SoundManager::setSoundVolumes(const uint8 volume) {
 	}
 }
 
+Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
+	_hardwareChannels = {};
+	_playState = {};
+
+	enum {
+		kMidi = 0,
+		kSignedSample = 1,
+		kUnsignedSample = 2
+	};
+
+	assert(sound.resource);
+	SciSpan<const byte> data = *sound.resource;
+
+	if (data[0] == kSignedSample || data[0] == kUnsignedSample) {
+		uint16 sampleOffset = data.getUint16BEAt(0x1f);
+		if (!sampleOffset) {
+			sampleOffset = kHeaderSize;
+		}
+
+		// Technically this is not fully accurate; in SSCI, if there is an
+		// offset, then it uses that offset directly without scanning past
+		// markers
+		--sampleOffset;
+
+		_samplePlayer.load(data.subspan(sampleOffset), sound.volume, sound.numLoops);
+		return kStrategyAsync;
+	}
+
+	if (data[0] != kMidi) {
+		return kStrategyAbort;
+	}
+
+	sound.position = kHeaderSize;
+	sound.signal = Kernel::kNoSignal;
+
+	uint8 instrumentMask, percussionMask;
+	_driver->getChannelMasks(instrumentMask, percussionMask);
+
+	++data;
+	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
+		if (_soundVersion == SCI_VERSION_0_EARLY) {
+			if (!instrumentMask || (data[i] & instrumentMask)) {
+				_hardwareChannels[i].channelNo = i;
+				_hardwareChannels[i].numVoices = data[i] >> 4;
+			}
+		} else {
+			bool isValid;
+			if (i == kPercussionChannel) {
+				isValid = (!percussionMask || (data[i] & percussionMask));
+			} else {
+				isValid = (!instrumentMask || (data[i + 1] & instrumentMask));
+			}
+
+			if (isValid) {
+				_hardwareChannels[i].channelNo = i;
+				_hardwareChannels[i].numVoices = data[i] & 0x7f;
+			}
+		}
+	}
+
+	if (((data[kHeaderSize] & 0xf0) != kControllerChange ||
+		data[kHeaderSize + 1] != kReverbModeController)) {
+		_driver->setReverbMode(kUseDefaultReverb);
+	}
+
+	// TODO: This probably screws up master volume management since in SSCI the
+	// master volume was held separately on the interpreter side and currently
+	// we are reading the master volume from the driver
+	_driver->setMasterVolume(sound.volume);
+
+	return kStrategyAsync;
+}
+
 void Sci0SoundManager::play(Sci0Sound &sound) {
-	activate(sound);
-
-	// TODO: driver code goes here
-	debug("TODO: play");
-	sound.strategy = kStrategyAsync;
-
-	switch (sound.strategy) {
+	Sci0Sound &activeSound = activate(sound);
+	activeSound.strategy = initSound(activeSound);
+	switch (activeSound.strategy) {
 	case kStrategySync:
 		// TODO: Only implement sync strategy if it is actually needed
 		error("Sync strategy not implemented");
 	case kStrategyAsync:
-		soundServer();
+		advancePlayback(activeSound);
 		break;
 	case kStrategyAbort:
-		_resMan.unlockResource(sound.resource);
-		sound.resource = nullptr;
+		_resMan.unlockResource(activeSound.resource);
+		activeSound.resource = nullptr;
 		break;
 	default:
 		break;
 	}
 }
 
-void Sci0SoundManager::activate(Sci0Sound &sound) {
+Sci0Sound &Sci0SoundManager::activate(Sci0Sound &sound) {
 	assert(!sound.resource);
 	sound.resource = _resMan.findResource(ResourceId(kResourceTypeSound, sound.resourceNo), true);
-	finishActivation(sound);
+	assert(sound.resource);
+	return finishActivation(sound);
 }
 
 void Sci0SoundManager::pause(Sci0Sound &sound) {
@@ -182,7 +289,7 @@ void Sci0SoundManager::fade(Sci0Sound &sound) {
 	debug("TODO: fade");
 }
 
-void Sci0SoundManager::finishActivation(Sci0Sound &sound) {
+Sci0Sound &Sci0SoundManager::finishActivation(Sci0Sound &sound) {
 	sound.state = kStateActive;
 	writeSelectorValue(_segMan, sound.soundObj, SELECTOR(state), kStateActive);
 
@@ -193,6 +300,7 @@ void Sci0SoundManager::finishActivation(Sci0Sound &sound) {
 		_sounds.erase(it);
 		_sounds.insert_at(0, copy);
 	}
+	return _sounds.front();
 }
 
 #pragma mark -
@@ -222,9 +330,8 @@ void Sci0SoundManager::kernelInit(const reg_t soundObj) {
 	Sci0Sound *sound = findSound<ByRegT>(soundObj);
 	const int16 priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 	if (!sound) {
-		SoundsList::iterator it = findSound<ByLowerPriority>(priority);
-		_sounds.insert(it, Sci0Sound(soundObj));
-		sound = &*it;
+		SoundsList::iterator it = findSoundIterator<ByLowerPriority>(priority);
+		sound = &*_sounds.insert(it, Sci0Sound(soundObj));
 		_numServerSuspensions = 0;
 	}
 
@@ -355,7 +462,15 @@ void Sci0SoundManager::debugPrintSound(Console &con, const uint index) const {
 }
 
 void Sci0SoundManager::debugPrintChannelMap(Console &con) const {
-	con.debugPrintf("TODO: SCI0 channel output information\n");
+	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
+		const HardwareChannel &hwChannel = _hardwareChannels[i];
+		con.debugPrintf("%2d: ", i);
+		if (hwChannel.isMapped()) {
+			con.debugPrintf("ch %2d vo %2d\n", hwChannel.channelNo, hwChannel.numVoices);
+		} else {
+			con.debugPrintf("unmapped\n");
+		}
+	}
 }
 
 void Sci0SoundManager::debugPlaySound(Console &con, const GuiResourceId resourceNo, const bool exclusive) {

@@ -66,7 +66,6 @@ Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	_defaultReverbMode(0),
 	_playlist(),
 	_sampleList(),
-	_samplePlayer(*this, *g_system->getMixer()),
 	_nextObjectId(0) {
 	Common::fill(_newChannelVolumes.begin(), _newChannelVolumes.end(), kNoVolumeChange);
 
@@ -1767,9 +1766,11 @@ void Sci1SoundManager::advanceSamplePlayback() {
 
 		if (!(sound.sampleTrackNo & kSampleLoadedFlag)) {
 			sound.sampleTrackNo |= kSampleLoadedFlag;
-			_samplePlayer.load(sound);
+			const uint8 trackNo = sound.sampleTrackNo & 0xf;
+			SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
+			_samplePlayer.load(data, sound.volume, sound.loop);
 		} else {
-			const SamplePlayer::Status status = _samplePlayer.advance(sound);
+			const SamplePlayer::Status status = _samplePlayer.advance(sound.loop);
 			if (status & SamplePlayer::kLooped) {
 				sound.ticksElapsed = 0;
 			}
@@ -1781,75 +1782,6 @@ void Sci1SoundManager::advanceSamplePlayback() {
 			}
 		}
 	}
-}
-
-Sci1SoundManager::SamplePlayer::SamplePlayer(SoundManager &manager, Audio::Mixer &mixer) :
-	_manager(manager),
-	_mixer(mixer),
-	_playing(false) {}
-
-Sci1SoundManager::SamplePlayer::~SamplePlayer() {
-	_mixer.stopHandle(_handle);
-}
-
-void Sci1SoundManager::SamplePlayer::load(const Sci1Sound &sound) {
-	if (sound.volume == 0 || _manager.getMasterVolume() == 0 || !_manager.isSoundEnabled()) {
-		return;
-	}
-
-	const uint8 trackNo = sound.sampleTrackNo & 0xf;
-	SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
-
-	enum { kSampleMarker = Sci1Sound::Track::kSampleTrack };
-	while (*data++ == kSampleMarker);
-
-	_mixer.stopHandle(_handle);
-	_loop = sound.loop;
-	_playing = false;
-	_pos = 8;
-	_sampleRate = data.getUint16LEAt(0);
-	_size = data.getUint16LEAt(2);
-	_loopStart = data.getUint16LEAt(4);
-	_loopEnd = data.getUint16LEAt(6);
-	_data = data.subspan(0, _size);
-	_mixer.playStream(Audio::Mixer::kSFXSoundType, &_handle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
-}
-
-Sci1SoundManager::SamplePlayer::Status Sci1SoundManager::SamplePlayer::advance(const Sci1Sound &sound) {
-	_loop = sound.loop;
-	_playing = true;
-
-	if (!_loop && _pos == _size) {
-		_mixer.stopHandle(_handle);
-		_playing = false;
-		return kFinished;
-	}
-
-	return kPlaying;
-}
-
-void Sci1SoundManager::SamplePlayer::unload() {
-	_mixer.stopHandle(_handle);
-	_playing = false;
-}
-
-int Sci1SoundManager::SamplePlayer::readBuffer(int16 *buffer, const int numSamples) {
-	if (!_playing) {
-		return 0;
-	}
-
-	int samplesRead = 0;
-	for (samplesRead = 0; samplesRead < numSamples; ++samplesRead) {
-		if (_loop && _pos == _loopEnd) {
-			_pos = _loopStart;
-		}
-		if (_pos == _size) {
-			break;
-		}
-
-		*buffer++ = (_data[_pos++] << 8) ^ 0x8000;
-	}
-	return samplesRead;
 }
 
 #pragma mark -

@@ -794,9 +794,6 @@ private:
 
 private:
 	enum {
-		/** Use whatever reverb mode is given in `_defaultReverbMode`. */
-		kUseDefaultReverb = 127,
-
 		/** No pending volume change. */
 		kNoVolumeChange = 0xff
 	};
@@ -1118,56 +1115,6 @@ private:
 private:
 	enum { kSampleLoadedFlag = 0x80 };
 
-	// In SSCI, sample playback was handled by individual drivers; we instead
-	// always play back digital audio tracks within the player itself, for
-	// simplicity and to allow combinations of digital + MIDI which were not
-	// always possible in the original engine.
-	class SamplePlayer : public Audio::AudioStream {
-	public:
-		enum Status {
-			/** The sample is finished. */
-			kFinished = 0,
-			/** The sample has looped. */
-			kLooped = 1,
-			/** The sample is playing. */
-			kPlaying = 2
-		};
-
-		SamplePlayer(SoundManager &manager, Audio::Mixer &mixer);
-		~SamplePlayer();
-
-		// In SSCI this received pointer to sample data, volume, and loop
-		void load(const Sci1Sound &sound);
-
-		// In SSCI this received pointer to sample data and used AL and AH to
-		// communicate status
-		Status advance(const Sci1Sound &sound);
-
-		// In SSCI this received pointer to sample data
-		void unload();
-
-		virtual int readBuffer(int16 *buffer, int numSamples) override;
-
-		virtual bool isStereo() const override { return false; }
-
-		virtual int getRate() const override { return _sampleRate; }
-
-		virtual bool endOfData() const override { return false; }
-
-	private:
-		SoundManager &_manager;
-		Audio::Mixer &_mixer;
-		Audio::SoundHandle _handle;
-		bool _loop;
-		bool _playing;
-		uint16 _pos;
-		uint16 _sampleRate;
-		uint16 _size;
-		uint16 _loopStart;
-		uint16 _loopEnd;
-		SciSpan<const byte> _data;
-	};
-
 	/**
 	 * Validates that a sample is playing for the given sound, and removes the
 	 * sound from the playlist if it is not.
@@ -1180,8 +1127,6 @@ private:
 	 * TODO: was DoSamples
 	 */
 	void advanceSamplePlayback();
-
-	SamplePlayer _samplePlayer;
 
 	/**
 	 * The list of sampled sounds which are currently playing.

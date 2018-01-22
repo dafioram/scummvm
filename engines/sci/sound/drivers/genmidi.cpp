@@ -21,6 +21,7 @@
  */
 
 #include "audio/mididrv.h"
+#include "common/system.h"
 #include "sci/sound/drivers/genmidi.h"
 
 namespace Sci {

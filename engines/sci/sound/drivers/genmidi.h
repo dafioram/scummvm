@@ -28,7 +28,6 @@
 #include "common/debug.h"
 #include "common/ptr.h"
 #include "sci/sound/drivers/driver.h"
-#include "sci/sound/sound.h"
 
 namespace Sci {
 static const byte defaultSci32GMPatchMidiData[] = {
@@ -57,7 +56,14 @@ public:
 
 	virtual DeviceId getDeviceId() const override { return _deviceId; }
 
-	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = kMinChannel; high = kPercussionChannel - 1; }
+	virtual void getChannelMasks(uint8 &instrumentMask, uint8 &percussionMask) const override {
+		error("GM driver does not support SCI0");
+	}
+
+	virtual void getRemapRange(uint8 &low, uint8 &high) const override {
+		low = kMinChannel;
+		high = kPercussionChannel - 1;
+	}
 
 	virtual void service() override {
 		// no-op
