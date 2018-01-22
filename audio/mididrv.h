@@ -274,6 +274,8 @@ public:
 	virtual void noteOn(byte note, byte velocity) = 0;
 	virtual void programChange(byte program) = 0;
 	virtual void pitchBend(int16 bend) = 0; // -0x2000 to +0x1FFF
+	virtual void channelPressure(byte pressure) {}
+	virtual void keyPressure(byte note, byte pressure) {}
 
 	// Control Change messages
 	virtual void controlChange(byte control, byte value) = 0;

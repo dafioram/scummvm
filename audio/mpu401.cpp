@@ -64,6 +64,14 @@ void MidiChannel_MPU401::pitchBend(int16 bend) {
 	_owner->send((((bend + 0x2000) >> 7) & 0x7F) << 16 | ((bend + 0x2000) & 0x7F) << 8 | 0xE0 | _channel);
 }
 
+void MidiChannel_MPU401::channelPressure(byte pressure) {
+	_owner->send(pressure << 8 | 0xD0 | _channel);
+}
+
+void MidiChannel_MPU401::keyPressure(byte note, byte pressure) {
+	_owner->send(pressure << 16 | note << 8 | 0xA0 | _channel);
+}
+
 void MidiChannel_MPU401::controlChange(byte control, byte value) {
 	_owner->send(value << 16 | control << 8 | 0xB0 | _channel);
 }
