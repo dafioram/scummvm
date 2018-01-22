@@ -196,7 +196,7 @@ public:
 
 	// TODO: was MasterVol, one function
 	uint8 getMasterVolume() const;
-	virtual void setMasterVolume(const uint8 volume);
+	void setMasterVolume(const uint8 volume);
 
 	/**
 	 * Returns whether sound reproduction is enabled in the driver.
@@ -208,6 +208,10 @@ public:
 	 * idempotent.
 	 */
 	void setSoundOn(const bool enable);
+
+protected:
+	virtual uint8 getMasterVolumeImpl() const = 0;
+	virtual void setMasterVolumeImpl(const uint8 volume) = 0;
 
 #pragma mark -
 #pragma mark Data processing

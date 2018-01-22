@@ -145,7 +145,7 @@ uint8 SoundManager::getMasterVolume() const {
 		return (ConfMan.getInt("music_volume") + 1) * kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
 	}
 
-	return _driver->getMasterVolume();
+	return getMasterVolumeImpl();
 }
 
 void SoundManager::setMasterVolume(uint8 volume) {
@@ -153,7 +153,7 @@ void SoundManager::setMasterVolume(uint8 volume) {
 	if (volume > kMaxMasterVolume) {
 		volume = kMaxMasterVolume;
 	}
-	_driver->setMasterVolume(volume);
+	setMasterVolumeImpl(volume);
 }
 
 bool SoundManager::isSoundEnabled() const {

@@ -768,6 +768,15 @@ public:
 	}
 	uint8 setReverbMode(const uint8 reverbMode);
 
+protected:
+	virtual uint8 getMasterVolumeImpl() const override {
+		return _driver->getMasterVolume();
+	}
+
+	virtual void setMasterVolumeImpl(const uint8 volume) override {
+		_driver->setMasterVolume(volume);
+	}
+
 private:
 	/**
 	 * Immediately sets the volume of the given sound.

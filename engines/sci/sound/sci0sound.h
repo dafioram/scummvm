@@ -263,11 +263,14 @@ private:
 
 #pragma mark -
 #pragma mark Effects
-public:
-	virtual void setMasterVolume(const uint8 volume) override;
+protected:
+	virtual uint8 getMasterVolumeImpl() const override { return _masterVolume; }
+	virtual void setMasterVolumeImpl(const uint8 volume) override;
 
 private:
 	void setSoundVolumes(const uint8 volume);
+
+	uint8 _masterVolume;
 
 #pragma mark -
 #pragma mark Playback management

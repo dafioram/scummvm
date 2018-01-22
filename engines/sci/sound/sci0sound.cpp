@@ -30,6 +30,7 @@ Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	SoundManager(resMan, segMan, features, guestAdditions),
 	_state(),
 	_hardwareChannels(),
+	_masterVolume(12),
 	_lastNumServerSuspensions(0) {
 
 	uint32 deviceFlags = MDT_PCSPK | MDT_PCJR | MDT_ADLIB | MDT_MIDI | MDT_CMS;
@@ -48,10 +49,6 @@ Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	if (!_driver) {
 		return;
 	}
-
-	// This value normally comes from the static data in the data segment
-	// of the interpreter executable
-	_driver->setMasterVolume(12);
 
 	g_system->getTimerManager()->installTimerProc(soundServerCallback, 1000000 / 60, this, "SCI MIDI");
 }
@@ -323,19 +320,17 @@ void Sci0SoundManager::processFade(Sci0Sound &sound) {
 #pragma mark -
 #pragma mark Effects
 
-void Sci0SoundManager::setMasterVolume(const uint8 volume) {
-	Common::StackLock lock(_mutex);
-	SoundManager::setMasterVolume(volume);
+void Sci0SoundManager::setMasterVolumeImpl(const uint8 volume) {
+	_masterVolume = volume;
 	setSoundVolumes(volume);
 }
 
 void Sci0SoundManager::setSoundVolumes(const uint8 volume) {
 	for (SoundsList::iterator sound = _sounds.begin(); sound != _sounds.end(); ++sound) {
 		sound->volume = volume;
-		// TODO: SSCI called sound driver to set volume on the active sound,
-		// passing the sound object, but this seems unnecessary since master
-		// volume is already held by the driver instead of the interpreter in
-		// this implementation
+		if (sound->state == kStateActive) {
+			_driver->setMasterVolume(volume);
+		}
 	}
 }
 
@@ -407,9 +402,6 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 		_driver->setReverbMode(kUseDefaultReverb);
 	}
 
-	// TODO: This probably screws up master volume management since in SSCI the
-	// master volume was held separately on the interpreter side and currently
-	// we are reading the master volume from the driver
 	_driver->setMasterVolume(sound.volume);
 
 	return kStrategyAsync;
