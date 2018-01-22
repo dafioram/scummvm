@@ -556,8 +556,8 @@ void Sci0SoundManager::pauseAll(const bool pause) {
 #pragma mark Kernel
 
 void Sci0SoundManager::kernelInit(const reg_t soundObj) {
-	const ResourceId id(kResourceTypeSound, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
-	if (!_resMan.testResource(id)) {
+	const GuiResourceId resourceNo = readSelectorValue(_segMan, soundObj, SELECTOR(number));
+	if (!_resMan.testResource(ResourceId(kResourceTypeSound, resourceNo))) {
 		return;
 	}
 
@@ -574,7 +574,7 @@ void Sci0SoundManager::kernelInit(const reg_t soundObj) {
 		sound->resource = nullptr;
 	}
 
-	sound->resourceNo = id.getNumber();
+	sound->resourceNo = resourceNo;
 	sound->numLoops = readSelectorValue(_segMan, soundObj, SELECTOR(loop));
 	sound->priority = readSelectorValue(_segMan, soundObj, SELECTOR(priority));
 	sound->volume = isSoundEnabled() ? getMasterVolume() : 0;
