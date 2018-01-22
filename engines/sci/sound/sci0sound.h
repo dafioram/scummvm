@@ -157,20 +157,6 @@ private:
 private:
 	enum { kHeaderSize = 0x22 };
 
-	static inline void soundServerCallback(void *soundManager) {
-		static_cast<Sci0SoundManager *>(soundManager)->soundServer();
-	}
-
-	/**
-	 * Advances the state of the sound server. Must be called once per tick in
-	 * SCI0 for correct sound processing.
-	 */
-	void soundServer();
-
-	void advancePlayback(Sci0Sound &sound);
-
-	Sci0PlayStrategy initSound(Sci0Sound &sound);
-
 	struct PlayState {
 		uint16 rest;
 		Sci0PlayState state;
@@ -181,6 +167,9 @@ private:
 		uint16 loopPosition;
 		uint16 cue;
 
+		MidiMessageType lastCommand;
+		uint8 lastChannel;
+
 		PlayState() :
 			rest(0),
 			state(kStateBlocked),
@@ -189,10 +178,39 @@ private:
 			fadeTicksPerStep(0),
 			resetPositionOnPause(false),
 			loopPosition(kHeaderSize),
-			cue(127) {}
+			cue(127),
+			lastCommand(MidiMessageType(0)),
+			lastChannel(0) {}
 	};
 
-	PlayState _playState;
+	static inline void soundServerCallback(void *soundManager) {
+		static_cast<Sci0SoundManager *>(soundManager)->soundServer();
+	}
+
+	/**
+	 * Advances the state of the sound server. Must be called once per tick in
+	 * SCI0 for correct sound processing.
+	 */
+	void soundServer();
+
+	void advancePlayback(Sci0Sound &sound, const bool restoring);
+
+	void processControlChannel(Sci0Sound &sound, const uint8 value);
+
+	void processFade(Sci0Sound &sound);
+
+	Sci0PlayStrategy initSound(Sci0Sound &sound);
+
+	void processEndOfTrack(Sci0Sound &sound);
+
+	void processReverbMode(Sci0Sound &sound, uint16 &position);
+	void processResetPositionOnPause(Sci0Sound &sound, uint16 &position);
+	void processCue(Sci0Sound &sound, uint16 &position);
+	void skipSysEx(Sci0Sound &sound, uint16 &position);
+
+	void sendMessage(Sci0Sound &sound, uint16 &position, const uint8 numBytes);
+
+	PlayState _state;
 
 #pragma mark -
 #pragma mark Channel remapping
@@ -249,6 +267,8 @@ public:
 
 private:
 	void stopAllSounds();
+
+	void stopAllChannels(const bool pauseOnly);
 
 	void play(Sci0Sound &sound);
 	void pause(Sci0Sound &sound);

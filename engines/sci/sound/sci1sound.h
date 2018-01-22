@@ -961,30 +961,6 @@ private:
 #pragma mark -
 #pragma mark Data processing
 private:
-	enum {
-		/**
-		 * The number of the channel in the Sound which contains control data
-		 * instead of instrument data.
-		 */
-		kControlChannel = 15,
-
-		/**
-		 * A special flag used to indicate that the current rest is a fixed
-		 * duration rest.
-		 */
-		kFixedRestFlag = 0x8000,
-
-		/**
-		 * The time, in ticks, that a fixed rest should rest.
-		 */
-		kFixedRestAmount = 240,
-
-		/**
-		 * The rest value used for new fixed rests in `Sci1Sound::rest`.
-		 */
-		kFixedRestValue = kFixedRestFlag | kFixedRestAmount
-	};
-
 	/**
 	 * Finds the offset table for the given device ID. Returns a null span no
 	 * offset table exists for the given device ID.

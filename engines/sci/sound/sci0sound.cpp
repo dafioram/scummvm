@@ -28,6 +28,7 @@ namespace Sci {
 
 Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	SoundManager(resMan, segMan, features, guestAdditions),
+	_state(),
 	_hardwareChannels(),
 	_lastNumServerSuspensions(0) {
 
@@ -107,7 +108,7 @@ void Sci0SoundManager::soundServer() {
 		}
 
 		if (sound->strategy == kStrategyAsync) {
-			advancePlayback(*sound);
+			advancePlayback(*sound, false);
 		}
 
 		if (sound->signal == Kernel::kNoSignal) {
@@ -126,7 +127,7 @@ void Sci0SoundManager::soundServer() {
 			}
 			writeSelectorValue(_segMan, sound->soundObj, SELECTOR(loop), sound->numLoops);
 			if (sound->numLoops) {
-				advancePlayback(*sound);
+				advancePlayback(*sound, false);
 			} else {
 				kernelStop(sound->soundObj);
 			}
@@ -136,7 +137,172 @@ void Sci0SoundManager::soundServer() {
 	}
 }
 
-void Sci0SoundManager::advancePlayback(Sci0Sound &sound) {
+void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
+	if (_state.rest) {
+		if (restoring) {
+			_state.rest = 0;
+		} else {
+			--_state.rest;
+			if (_state.currentFadeVolume) {
+				processFade(sound);
+			}
+		}
+		return;
+	}
+
+	uint16 position = sound.position;
+	for (;;) {
+		if (_state.state == kStateReady) {
+			const uint8 message = sound.resource->getUint8At(position++);
+			if (message == kEndOfTrack) {
+				debug("keot");
+				processEndOfTrack(sound);
+				return;
+			} else if (message == kFixedRest) {
+				debug("kfixedrest");
+				_state.rest = kFixedRestAmount;
+				_state.state = kStateReady;
+				if (restoring) {
+					continue;
+				} else {
+					break;
+				}
+			} else {
+				debug("rest for %d", message);
+				_state.state = kStateBlocked;
+				_state.rest += message;
+				if (_state.rest) {
+					if (restoring) {
+						_state.rest = 0;
+					} else {
+						--_state.rest;
+						if (_state.currentFadeVolume) {
+							processFade(sound);
+						}
+					}
+					break;
+				}
+			}
+		}
+
+		// notReady
+		_state.state = kStateBlocked;
+		uint8 value = sound.resource->getUint8At(position++);
+		if (value & kStartOfMessageFlag) {
+			_state.lastChannel = value & 0xf;
+			_state.lastCommand = MidiMessageType(value & 0xf0);
+			value = sound.resource->getUint8At(position++);
+		}
+
+		debug("not ready %x %x %d", _state.lastChannel, _state.lastCommand, value);
+
+		switch (_state.lastCommand) {
+		case kProgramChange:
+			if (_state.lastChannel == kControlChannel) {
+				processControlChannel(sound, value);
+				continue;
+			} else {
+				sendMessage(sound, position, 1);
+			}
+			break;
+		case kControllerChange:
+			switch (value) {
+			case kReverbModeController:
+				processReverbMode(sound, position);
+				break;
+			case kResetPositionOnPauseController:
+				processResetPositionOnPause(sound, position);
+				break;
+			case kCueController:
+				processCue(sound, position);
+				break;
+			case kMaxVoicesController:
+				// TODO: This does not exist in SSCI but should update our
+				// number of voices data on the hardware channels?
+				break;
+			}
+			break;
+		case kChannelPressure:
+			sendMessage(sound, position, 1);
+			break;
+		case kSysEx:
+			if ((_state.lastChannel | _state.lastCommand) == kEndOfTrack) {
+				debug("EOT");
+				processEndOfTrack(sound);
+				return;
+			}
+			skipSysEx(sound, position);
+			continue;
+		default:
+			debug("def");
+			if (restoring && (_state.lastCommand == kNoteOn || _state.lastCommand == kNoteOff)) {
+				position += 2;
+			} else {
+				sendMessage(sound, position, 2);
+			}
+		}
+
+		_state.state = kStateReady;
+	}
+
+	sound.position = position;
+}
+
+void Sci0SoundManager::processCue(Sci0Sound &sound, uint16 &position) {
+	position++;
+}
+
+void Sci0SoundManager::processReverbMode(Sci0Sound &sound, uint16 &position) {
+	position++;
+}
+
+void Sci0SoundManager::processControlChannel(Sci0Sound &sound, const uint8 value) {
+
+}
+
+void Sci0SoundManager::processResetPositionOnPause(Sci0Sound &sound, uint16 &position) {
+	position++;
+}
+
+void Sci0SoundManager::skipSysEx(Sci0Sound &sound, uint16 &position) {
+	while (sound.resource->getUint8At(position++) != kEndOfSysEx);
+}
+
+void Sci0SoundManager::sendMessage(Sci0Sound &sound, uint16 &position, const uint8 numBytes) {
+	if (!_hardwareChannels[_state.lastChannel].isMapped()) {
+		return;
+	}
+
+	const uint8 value = sound.resource->getUint8At(position++);
+
+	switch (_state.lastCommand) {
+	case kProgramChange:
+		_driver->programChange(_state.lastChannel, value);
+		break;
+	case kNoteOn:
+		_driver->noteOn(_state.lastChannel, value, sound.resource->getUint8At(position++));
+		break;
+	case kNoteOff:
+		_driver->noteOff(_state.lastChannel, value, sound.resource->getUint8At(position++));
+		break;
+	case kControllerChange:
+		_driver->controllerChange(_state.lastChannel, value, sound.resource->getUint8At(position++));
+		break;
+	case kPitchBend:
+		_driver->pitchBend(_state.lastChannel, value | sound.resource->getUint8At(position++));
+		break;
+	case kChannelPressure:
+		_driver->channelPressure(_state.lastChannel, value);
+		break;
+	case kKeyPressure:
+		_driver->keyPressure(_state.lastChannel, value, sound.resource->getUint8At(position++));
+		break;
+	default:
+		error("Invalid status type %02x", _state.lastCommand);
+	}
+}
+
+void Sci0SoundManager::processFade(Sci0Sound &sound) {
 
 }
 
@@ -161,7 +327,7 @@ void Sci0SoundManager::setSoundVolumes(const uint8 volume) {
 
 Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	_hardwareChannels = {};
-	_playState = {};
+	_state = {};
 
 	enum {
 		kMidi = 0,
@@ -232,6 +398,13 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	return kStrategyAsync;
 }
 
+void Sci0SoundManager::processEndOfTrack(Sci0Sound &sound) {
+	sound.signal = Kernel::kFinished;
+	sound.position = _state.loopPosition;
+	_state.rest = 0;
+	_state.state = kStateBlocked;
+}
+
 void Sci0SoundManager::play(Sci0Sound &sound) {
 	Sci0Sound &activeSound = activate(sound);
 	activeSound.strategy = initSound(activeSound);
@@ -240,7 +413,7 @@ void Sci0SoundManager::play(Sci0Sound &sound) {
 		// TODO: Only implement sync strategy if it is actually needed
 		error("Sync strategy not implemented");
 	case kStrategyAsync:
-		advancePlayback(activeSound);
+		advancePlayback(activeSound, false);
 		break;
 	case kStrategyAbort:
 		_resMan.unlockResource(activeSound.resource);
@@ -260,8 +433,12 @@ Sci0Sound &Sci0SoundManager::activate(Sci0Sound &sound) {
 
 void Sci0SoundManager::pause(Sci0Sound &sound) {
 	if (sound.state == kStateActive) {
-		// TODO: driver pause code goes here
-		debug("TODO: pause");
+		stopAllChannels(true);
+		if (_state.resetPositionOnPause) {
+			sound.position = _state.loopPosition;
+			_state.rest = 0;
+			_state.state = kStateBlocked;
+		}
 		_resMan.unlockResource(sound.resource);
 		sound.resource = nullptr;
 	}
@@ -271,22 +448,56 @@ void Sci0SoundManager::pause(Sci0Sound &sound) {
 }
 
 void Sci0SoundManager::stop(Sci0Sound &sound) {
-	// TODO: driver stop code goes here
-	debug("TODO: stop");
+	stopAllChannels(false);
+	processEndOfTrack(sound);
+}
+
+void Sci0SoundManager::stopAllChannels(const bool pauseOnly) {
+	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
+		if (!_hardwareChannels[i].isMapped()) {
+			continue;
+		}
+
+		_driver->controllerChange(i, kAllNotesOffController, 0);
+		_driver->controllerChange(i, kDamperPedalController, 0);
+		_driver->controllerChange(i, kModulationController, 0);
+
+		if (!pauseOnly) {
+			_driver->pitchBend(i, 0x2000);
+		}
+	}
 }
 
 void Sci0SoundManager::restore(Sci0Sound &sound) {
 	assert(!sound.resource);
 	sound.resource = _resMan.findResource(ResourceId(kResourceTypeSound, sound.resourceNo), true);
-	// TODO: driver restore code goes here
-	debug("TODO: restore");
+
+	uint16 position = sound.position;
+	if (initSound(sound) != kStrategyAsync) {
+		return;
+	}
+	do {
+		advancePlayback(sound, true);
+		if (_state.resetPositionOnPause && _state.loopPosition != kHeaderSize) {
+			_state.rest = 0;
+			_state.state = kStateBlocked;
+			position = _state.loopPosition;
+		}
+		if (sound.signal == Kernel::kNoSignal) {
+			position = sound.position;
+		}
+	} while (sound.position < position);
+
 	finishActivation(sound);
 	_numServerSuspensions = 0;
 }
 
 void Sci0SoundManager::fade(Sci0Sound &sound) {
-	// TODO: driver fade code goes here
-	debug("TODO: fade");
+	_state.currentFadeVolume = sound.volume;
+	if (sound.volume == 0) {
+		sound.numLoops = 0;
+		stop(sound);
+	}
 }
 
 Sci0Sound &Sci0SoundManager::finishActivation(Sci0Sound &sound) {
