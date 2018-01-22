@@ -213,7 +213,9 @@ void Mt32Driver::controllerChange(const uint8 channelNo, const uint8 controllerN
 		}
 		return;
 	default:
-		return;
+		if (_version > SCI_VERSION_01) {
+			return;
+		}
 	}
 
 	debugC(kDebugLevelSound, "CC  %2d n %3d v %3d", channelNo, controllerNo, value);
@@ -238,6 +240,24 @@ void Mt32Driver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	channel.pitchBend = bend;
 	debugC(kDebugLevelSound, "PB  %2d p %04x", channelNo, bend);
 	channel.hw->pitchBend(bend - 0x2000);
+}
+
+void Mt32Driver::keyPressure(const uint8 channelNo, const uint8 note, const uint8 pressure) {
+	if (_version > SCI_VERSION_01) {
+		return;
+	}
+
+	debugC(kDebugLevelSound, "KP  %2d n %3d p %d", channelNo, note, pressure);
+	_channels[channelNo].hw->keyPressure(note, pressure);
+}
+
+void Mt32Driver::channelPressure(const uint8 channelNo, const uint8 pressure) {
+	if (_version > SCI_VERSION_01) {
+		return;
+	}
+
+	debugC(kDebugLevelSound, "CP  %2d p %d", channelNo, pressure);
+	_channels[channelNo].hw->channelPressure(pressure);
 }
 
 void Mt32Driver::setReverbMode(uint8 modeNo) {

@@ -68,13 +68,9 @@ public:
 
 	virtual void pitchBend(const uint8 channelNo, const uint16 bend) override;
 
-	virtual void keyPressure(const uint8 channelNo, const uint8 note, const uint8 pressure) override {
-		// no-op
-	}
+	virtual void keyPressure(const uint8 channelNo, const uint8 note, const uint8 pressure) override;
 
-	virtual void channelPressure(const uint8 channelNo, const uint8 pressure) override {
-		// no-op
-	}
+	virtual void channelPressure(const uint8 channelNo, const uint8 pressure) override;
 
 	virtual uint8 getReverbMode() const override { return _reverbMode; }
 

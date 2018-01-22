@@ -125,6 +125,22 @@ struct Sci0Sound : public Common::Serializable {
 		volume(0),
 		effect(0) {}
 
+	uint8 peek(const uint8 extra = 0) {
+		return resource->getUint8At(position + extra);
+	}
+
+	uint8 consume() {
+		assert(resource);
+		const uint8 value = peek();
+		advance();
+		return value;
+	}
+
+	void advance() {
+		assert(position < resource->size());
+		++position;
+	}
+
 	virtual void saveLoadWithSerializer(Common::Serializer &s) override;
 };
 
@@ -167,8 +183,7 @@ private:
 		uint16 loopPosition;
 		uint16 cue;
 
-		MidiMessageType lastCommand;
-		uint8 lastChannel;
+		uint8 lastCommand;
 
 		PlayState() :
 			rest(0),
@@ -179,8 +194,7 @@ private:
 			resetPositionOnPause(false),
 			loopPosition(kHeaderSize),
 			cue(127),
-			lastCommand(MidiMessageType(0)),
-			lastChannel(0) {}
+			lastCommand(0) {}
 	};
 
 	static inline void soundServerCallback(void *soundManager) {
@@ -195,7 +209,7 @@ private:
 
 	void advancePlayback(Sci0Sound &sound, const bool restoring);
 
-	void processControlChannel(Sci0Sound &sound, const uint8 value);
+	void processControlChannel(Sci0Sound &sound);
 
 	void processFade(Sci0Sound &sound);
 
@@ -203,12 +217,7 @@ private:
 
 	void processEndOfTrack(Sci0Sound &sound);
 
-	void processReverbMode(Sci0Sound &sound, uint16 &position);
-	void processResetPositionOnPause(Sci0Sound &sound, uint16 &position);
-	void processCue(Sci0Sound &sound, uint16 &position);
-	void skipSysEx(Sci0Sound &sound, uint16 &position);
-
-	void sendMessage(Sci0Sound &sound, uint16 &position, const uint8 numBytes);
+	void sendMessage(Sci0Sound &sound, const uint8 message, const bool restoring);
 
 	PlayState _state;
 

@@ -236,6 +236,10 @@ protected:
 		kFixedRestValue = kFixedRestFlag | kFixedRestAmount
 	};
 
+	inline uint16 convert7To16(const byte lsb, const byte msb) const {
+		return (msb << 7) | lsb;
+	}
+
 #pragma mark -
 #pragma mark Digital sample playback
 protected:

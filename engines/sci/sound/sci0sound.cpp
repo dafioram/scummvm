@@ -150,25 +150,21 @@ void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
 		return;
 	}
 
-	uint16 position = sound.position;
 	for (;;) {
 		if (_state.state == kStateReady) {
-			const uint8 message = sound.resource->getUint8At(position++);
+			const uint8 message = sound.consume();
 			if (message == kEndOfTrack) {
-				debug("keot");
 				processEndOfTrack(sound);
 				return;
 			} else if (message == kFixedRest) {
-				debug("kfixedrest");
 				_state.rest = kFixedRestAmount;
 				_state.state = kStateReady;
 				if (restoring) {
 					continue;
 				} else {
-					break;
+					return;
 				}
 			} else {
-				debug("rest for %d", message);
 				_state.state = kStateBlocked;
 				_state.rest += message;
 				if (_state.rest) {
@@ -180,130 +176,151 @@ void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
 							processFade(sound);
 						}
 					}
-					break;
+					return;
 				}
 			}
 		}
 
 		// notReady
 		_state.state = kStateBlocked;
-		uint8 value = sound.resource->getUint8At(position++);
+
+		uint8 message;
+		uint8 value = sound.peek();
 		if (value & kStartOfMessageFlag) {
-			_state.lastChannel = value & 0xf;
-			_state.lastCommand = MidiMessageType(value & 0xf0);
-			value = sound.resource->getUint8At(position++);
+			sound.advance();
+			message = value;
+			_state.lastCommand = message;
+			value = sound.peek();
+		} else {
+			message = _state.lastCommand;
 		}
 
-		debug("not ready %x %x %d", _state.lastChannel, _state.lastCommand, value);
+		if (message == kEndOfTrack) {
+			processEndOfTrack(sound);
+			return;
+		}
 
-		switch (_state.lastCommand) {
-		case kProgramChange:
-			if (_state.lastChannel == kControlChannel) {
-				processControlChannel(sound, value);
-				continue;
-			} else {
-				sendMessage(sound, position, 1);
-			}
-			break;
-		case kControllerChange:
-			switch (value) {
-			case kReverbModeController:
-				processReverbMode(sound, position);
-				break;
-			case kResetPositionOnPauseController:
-				processResetPositionOnPause(sound, position);
-				break;
-			case kCueController:
-				processCue(sound, position);
-				break;
-			case kMaxVoicesController:
-				// TODO: This does not exist in SSCI but should update our
-				// number of voices data on the hardware channels?
-				break;
-			}
-			break;
-		case kChannelPressure:
-			sendMessage(sound, position, 1);
-			break;
-		case kSysEx:
-			if ((_state.lastChannel | _state.lastCommand) == kEndOfTrack) {
-				debug("EOT");
-				processEndOfTrack(sound);
-				return;
-			}
-			skipSysEx(sound, position);
-			continue;
-		default:
-			debug("def");
-			if (restoring && (_state.lastCommand == kNoteOn || _state.lastCommand == kNoteOff)) {
-				position += 2;
-			} else {
-				sendMessage(sound, position, 2);
-			}
+		const uint8 channel = message & 0xf;
+		const uint8 command = message & 0xf0;
+
+		if (command == kProgramChange && channel == kControlChannel) {
+			processControlChannel(sound);
+		} else {
+			sendMessage(sound, message, restoring);
 		}
 
 		_state.state = kStateReady;
 	}
-
-	sound.position = position;
 }
 
-void Sci0SoundManager::processCue(Sci0Sound &sound, uint16 &position) {
-	position++;
-}
-
-void Sci0SoundManager::processReverbMode(Sci0Sound &sound, uint16 &position) {
-	position++;
-}
-
-void Sci0SoundManager::processControlChannel(Sci0Sound &sound, const uint8 value) {
-
-}
-
-void Sci0SoundManager::processResetPositionOnPause(Sci0Sound &sound, uint16 &position) {
-	position++;
-}
-
-void Sci0SoundManager::skipSysEx(Sci0Sound &sound, uint16 &position) {
-	while (sound.resource->getUint8At(position++) != kEndOfSysEx);
-}
-
-void Sci0SoundManager::sendMessage(Sci0Sound &sound, uint16 &position, const uint8 numBytes) {
-	if (!_hardwareChannels[_state.lastChannel].isMapped()) {
-		return;
+void Sci0SoundManager::processControlChannel(Sci0Sound &sound) {
+	const uint8 programNo = sound.consume();
+	if (programNo == kSetLoop) {
+		_state.loopPosition = sound.position - 2;
+	} else {
+		_state.cue = programNo;
 	}
+}
 
-	const uint8 value = sound.resource->getUint8At(position++);
+void Sci0SoundManager::sendMessage(Sci0Sound &sound, const uint8 message, const bool restoring) {
+	const uint8 channelNo = message & 0xf;
+	const MidiMessageType command = MidiMessageType(message & 0xf0);
+	const bool isMapped = _hardwareChannels[channelNo].isMapped();
 
-	switch (_state.lastCommand) {
-	case kProgramChange:
-		_driver->programChange(_state.lastChannel, value);
+	switch (command) {
+	case kProgramChange: {
+		const uint8 programNo = sound.consume();
+		if (isMapped) {
+			_driver->programChange(channelNo, programNo);
+		}
 		break;
-	case kNoteOn:
-		_driver->noteOn(_state.lastChannel, value, sound.resource->getUint8At(position++));
+	}
+	case kNoteOn: {
+		const uint8 note = sound.consume();
+		const uint8 velocity = sound.consume();
+		if (isMapped && !restoring) {
+			if (velocity == 0) {
+				_driver->noteOff(channelNo, note, velocity);
+			} else {
+				_driver->noteOn(channelNo, note, velocity);
+			}
+		}
 		break;
-	case kNoteOff:
-		_driver->noteOff(_state.lastChannel, value, sound.resource->getUint8At(position++));
+	}
+	case kNoteOff: {
+		const uint8 note = sound.consume();
+		const uint8 velocity = sound.consume();
+		if (isMapped && !restoring) {
+			_driver->noteOff(channelNo, note, velocity);
+		}
 		break;
-	case kControllerChange:
-		_driver->controllerChange(_state.lastChannel, value, sound.resource->getUint8At(position++));
+	}
+	case kControllerChange: {
+		const uint8 controllerNo = sound.consume();
+		const uint8 value = sound.consume();
+
+		switch (controllerNo) {
+		case kReverbModeController:
+			_driver->setReverbMode(value);
+			return;
+		case kResetPositionOnPauseController:
+			_state.resetPositionOnPause = (value != 0);
+			return;
+		case kCueController:
+			_state.cue += value;
+			sound.signal = _state.cue;
+			return;
+		}
+
+		if (isMapped) {
+			_driver->controllerChange(channelNo, controllerNo, value);
+		}
 		break;
-	case kPitchBend:
-		_driver->pitchBend(_state.lastChannel, value | sound.resource->getUint8At(position++));
+	}
+	case kPitchBend: {
+		const uint8 lsb = sound.consume();
+		const uint8 msb = sound.consume();
+		if (isMapped) {
+			_driver->pitchBend(channelNo, convert7To16(lsb, msb));
+		}
 		break;
-	case kChannelPressure:
-		_driver->channelPressure(_state.lastChannel, value);
+	}
+	case kChannelPressure: {
+		const uint8 pressure = sound.consume();
+		if (isMapped) {
+			_driver->channelPressure(channelNo, pressure);
+		}
 		break;
-	case kKeyPressure:
-		_driver->keyPressure(_state.lastChannel, value, sound.resource->getUint8At(position++));
+	}
+	case kKeyPressure: {
+		const uint8 note = sound.consume();
+		const uint8 pressure = sound.consume();
+		if (isMapped) {
+			_driver->keyPressure(channelNo, note, pressure);
+		}
 		break;
-	default:
-		error("Invalid status type %02x", _state.lastCommand);
+	}
+	case kSysEx:
+		while (sound.consume() != kEndOfSysEx);
+		break;
 	}
 }
 
 void Sci0SoundManager::processFade(Sci0Sound &sound) {
+	--_state.fadeTicksLeftInStep;
+	if (_state.fadeTicksLeftInStep > 0) {
+		return;
+	}
 
+	--_state.currentFadeVolume;
+	if (_state.currentFadeVolume) {
+		_driver->setMasterVolume(_state.currentFadeVolume);
+		_state.fadeTicksLeftInStep = 8 + _state.fadeTicksPerStep;
+		_state.fadeTicksPerStep += 2;
+	} else {
+		sound.numLoops = 0;
+		stop(sound);
+	}
 }
 
 #pragma mark -
@@ -363,25 +380,28 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	uint8 instrumentMask, percussionMask;
 	_driver->getChannelMasks(instrumentMask, percussionMask);
 
-	++data;
+	SciSpan<const byte> channelTable = data.subspan(1, _hardwareChannels.size() * (_soundVersion == SCI_VERSION_0_EARLY ? 1 : 2));
 	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
 		if (_soundVersion == SCI_VERSION_0_EARLY) {
-			if (!instrumentMask || (data[i] & instrumentMask)) {
+			if (!instrumentMask || (*channelTable & instrumentMask)) {
 				_hardwareChannels[i].channelNo = i;
-				_hardwareChannels[i].numVoices = data[i] >> 4;
+				_hardwareChannels[i].numVoices = *channelTable >> 4;
 			}
+			++channelTable;
 		} else {
 			bool isValid;
 			if (i == kPercussionChannel) {
-				isValid = (!percussionMask || (data[i] & percussionMask));
+				isValid = (!percussionMask || (channelTable[0] & percussionMask));
 			} else {
-				isValid = (!instrumentMask || (data[i + 1] & instrumentMask));
+				isValid = (!instrumentMask || (channelTable[1] & instrumentMask));
 			}
 
 			if (isValid) {
 				_hardwareChannels[i].channelNo = i;
-				_hardwareChannels[i].numVoices = data[i] & 0x7f;
+				_hardwareChannels[i].numVoices = channelTable[0] & 0x7f;
 			}
+
+			channelTable += 2;
 		}
 	}
 

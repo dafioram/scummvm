@@ -53,10 +53,6 @@ namespace Sci {
 		else break; \
 	}
 
-static inline uint16 convert7To16(byte lsb, byte msb) {
-	return (msb << 7) | lsb;
-}
-
 Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	SoundManager(resMan, segMan, features, guestAdditions),
 	_useWindowsMidi(false),
