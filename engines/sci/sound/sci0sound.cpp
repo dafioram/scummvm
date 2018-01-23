@@ -518,14 +518,12 @@ void Sci0SoundManager::resume(Sci0Sound &sound) {
 	do {
 		advancePlayback(sound, true);
 		if (_state.resetPositionOnPause && _state.loopPosition != kHeaderSize) {
+			// TODO: MT32 set rest/state and SNDBLAST did not
 			_state.rest = 0;
 			_state.state = kStateBlocked;
 			position = _state.loopPosition;
 		}
-		if (sound.signal == Kernel::kNoSignal) {
-			position = sound.position;
-		}
-	} while (sound.position < position);
+	} while (sound.signal != Kernel::kFinished && sound.position < position);
 
 	finishActivation(sound);
 	_numServerSuspensions = 0;
