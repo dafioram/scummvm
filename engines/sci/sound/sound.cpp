@@ -187,6 +187,7 @@ void SoundManager::SamplePlayer::load(const Sample &sample) {
 	_mixer.stopHandle(_handle);
 	// TODO: reordering barrier or atomic on sample here
 	_sample = sample;
+	_numTimesLooped = 0;
 	_pos = sample.startPosition;
 
 	// TODO: SB always played samples at full volume, is this the case for all
@@ -206,8 +207,7 @@ SoundManager::SamplePlayer::Status SoundManager::SamplePlayer::advance(const uin
 
 	// TODO: SSCI1 SB driver did not ever send this status, although there was
 	// code in the interpreter to handle it; does it matter?
-	if (_looped) {
-		_looped = false;
+	if (_numTimesLooped) {
 		return kLooped;
 	}
 
@@ -228,7 +228,7 @@ int SoundManager::SamplePlayer::readBuffer(int16 *buffer, const int numSamples) 
 	for (samplesRead = 0; samplesRead < numSamples; ++samplesRead) {
 		if (_sample.numLoops && _pos > _sample.loopEnd) {
 			_pos = _sample.loopStart;
-			_looped = true;
+			++_numTimesLooped;
 			if (_sample.numLoops != 0xffff) {
 				--_sample.numLoops;
 			}

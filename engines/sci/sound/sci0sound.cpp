@@ -137,11 +137,8 @@ void Sci0SoundManager::soundServer() {
 void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
 	if (_state.isSample) {
 		SamplePlayer::Status status = _samplePlayer.advance(sound.numLoops);
-		// TODO: Fix this to work correctly if multiple loops happen in one
-		// tick
-		if (status == SamplePlayer::kLooped) {
-			--sound.numLoops;
-		} else if (status == SamplePlayer::kFinished) {
+		sound.numLoops -= _samplePlayer.consumeLoops();
+		if (status == SamplePlayer::kFinished) {
 			_samplePlayer.unload();
 			sound.signal = Kernel::kFinished;
 		}

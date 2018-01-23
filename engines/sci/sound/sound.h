@@ -299,13 +299,19 @@ protected:
 
 		virtual bool endOfData() const override { return false; }
 
+		uint16 consumeLoops() {
+			const uint16 numLoops = _numTimesLooped;
+			_numTimesLooped = 0;
+			return numLoops;
+		}
+
 	private:
 		SoundManager &_manager;
 		Audio::Mixer &_mixer;
 		Audio::SoundHandle _handle;
 		Sample _sample;
 		bool _playing;
-		bool _looped;
+		uint16 _numTimesLooped;
 		uint16 _pos;
 	};
 
