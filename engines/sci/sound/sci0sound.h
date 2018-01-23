@@ -101,8 +101,14 @@ struct Sci0Sound : public Common::Serializable {
 
 	uint16 chain; // TODO: May be unused, replaced by priority
 
+	/**
+	 * The current play state of the sound.
+	 */
 	Sci0PlayState state;
 
+	/**
+	 * The current sound signal.
+	 */
 	int16 signal;
 
 	/**
@@ -182,8 +188,8 @@ private:
 		bool resetPositionOnPause;
 		uint16 loopPosition;
 		uint16 cue;
-
 		uint8 lastCommand;
+		bool isSample;
 
 		PlayState() :
 			rest(0),
@@ -194,7 +200,8 @@ private:
 			resetPositionOnPause(false),
 			loopPosition(kHeaderSize),
 			cue(127),
-			lastCommand(0) {}
+			lastCommand(0),
+			isSample(false) {}
 	};
 
 	static inline void soundServerCallback(void *soundManager) {

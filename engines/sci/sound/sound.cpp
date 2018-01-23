@@ -179,35 +179,36 @@ SoundManager::SamplePlayer::~SamplePlayer() {
 	_mixer.stopHandle(_handle);
 }
 
-void SoundManager::SamplePlayer::load(SciSpan<const byte> data, const uint8 volume, const bool loop) {
-	if (volume == 0 || _manager.getMasterVolume() == 0 || !_manager.isSoundEnabled()) {
+void SoundManager::SamplePlayer::load(const Sample &sample) {
+	if (sample.volume == 0 || _manager.getMasterVolume() == 0 || !_manager.isSoundEnabled()) {
 		return;
 	}
 
-	// TODO: Move sample marker somewhere else
-	enum { kSampleMarker = 0xfe };
-	while (*data++ == kSampleMarker);
-
 	_mixer.stopHandle(_handle);
-	_loop = loop;
-	_playing = false;
-	_pos = 8;
-	_sampleRate = data.getUint16LEAt(0);
-	_size = data.getUint16LEAt(2);
-	_loopStart = data.getUint16LEAt(4);
-	_loopEnd = data.getUint16LEAt(6);
-	_data = data.subspan(0, _size);
+	// TODO: reordering barrier or atomic on sample here
+	_sample = sample;
+	_pos = sample.startPosition;
+
+	// TODO: SB always played samples at full volume, is this the case for all
+	// systems?
 	_mixer.playStream(Audio::Mixer::kSFXSoundType, &_handle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO);
 }
 
-SoundManager::SamplePlayer::Status SoundManager::SamplePlayer::advance(const bool loop) {
-	_loop = loop;
+SoundManager::SamplePlayer::Status SoundManager::SamplePlayer::advance(const uint16 numLoops) {
+	_sample.numLoops = numLoops;
 	_playing = true;
 
-	if (!_loop && _pos == _size) {
+	if (!_sample.numLoops && _pos == _sample.size) {
 		_mixer.stopHandle(_handle);
 		_playing = false;
 		return kFinished;
+	}
+
+	// TODO: SSCI1 SB driver did not ever send this status, although there was
+	// code in the interpreter to handle it; does it matter?
+	if (_looped) {
+		_looped = false;
+		return kLooped;
 	}
 
 	return kPlaying;
@@ -225,14 +226,18 @@ int SoundManager::SamplePlayer::readBuffer(int16 *buffer, const int numSamples) 
 
 	int samplesRead = 0;
 	for (samplesRead = 0; samplesRead < numSamples; ++samplesRead) {
-		if (_loop && _pos == _loopEnd) {
-			_pos = _loopStart;
+		if (_sample.numLoops && _pos > _sample.loopEnd) {
+			_pos = _sample.loopStart;
+			_looped = true;
+			if (_sample.numLoops != 0xffff) {
+				--_sample.numLoops;
+			}
 		}
-		if (_pos == _size) {
+		if (_pos == _sample.size) {
 			break;
 		}
 
-		*buffer++ = (_data[_pos++] << 8) ^ 0x8000;
+		*buffer++ = (_sample.data[_pos++] << 8) ^ 0x8000;
 	}
 	return samplesRead;
 }

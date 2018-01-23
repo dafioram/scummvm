@@ -135,6 +135,19 @@ void Sci0SoundManager::soundServer() {
 }
 
 void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
+	if (_state.isSample) {
+		SamplePlayer::Status status = _samplePlayer.advance(sound.numLoops);
+		// TODO: Fix this to work correctly if multiple loops happen in one
+		// tick
+		if (status == SamplePlayer::kLooped) {
+			--sound.numLoops;
+		} else if (status == SamplePlayer::kFinished) {
+			_samplePlayer.unload();
+			sound.signal = Kernel::kFinished;
+		}
+		return;
+	}
+
 	if (_state.rest) {
 		if (restoring) {
 			_state.rest = 0;
@@ -345,20 +358,36 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	};
 
 	assert(sound.resource);
-	SciSpan<const byte> data = *sound.resource;
+	const SciSpan<const byte> data = *sound.resource;
 
 	if (data[0] == kSignedSample || data[0] == kUnsignedSample) {
+		SciSpan<const byte> sampleData;
 		uint16 sampleOffset = data.getUint16BEAt(0x1f);
-		if (!sampleOffset) {
-			sampleOffset = kHeaderSize;
+		if (sampleOffset) {
+			sampleData = data.subspan(sampleOffset);
+		} else {
+			sampleData = data.subspan(kHeaderSize);
+			enum { kSampleMarker = 0xfc };
+			while (*sampleData++ != kSampleMarker);
+			if (*sampleData == kSampleMarker) {
+				++sampleData;
+			}
 		}
 
-		// Technically this is not fully accurate; in SSCI, if there is an
-		// offset, then it uses that offset directly without scanning past
-		// markers
-		--sampleOffset;
+		enum { kSampleHeaderSize = 44 };
 
-		_samplePlayer.load(data.subspan(sampleOffset), sound.volume, sound.numLoops);
+		SamplePlayer::Sample sample;
+		sample.size = sampleData.getUint16LEAt(32);
+		sample.data = sampleData.subspan(0, sample.size);
+		sample.rate = sampleData.getUint16LEAt(14);
+		sample.startPosition = kSampleHeaderSize;
+		sample.loopStart = kSampleHeaderSize;
+		sample.loopEnd = kSampleHeaderSize + sample.size - 1;
+		sample.numLoops = sound.numLoops;
+		sample.volume = sound.volume;
+
+		_samplePlayer.load(sample);
+		_state.isSample = true;
 		return kStrategyAsync;
 	}
 
@@ -442,11 +471,15 @@ Sci0Sound &Sci0SoundManager::activate(Sci0Sound &sound) {
 
 void Sci0SoundManager::pause(Sci0Sound &sound) {
 	if (sound.state == kStateActive) {
-		stopAllChannels(true);
-		if (_state.resetPositionOnPause) {
-			sound.position = _state.loopPosition;
-			_state.rest = 0;
-			_state.state = kStateBlocked;
+		if (_state.isSample) {
+			_samplePlayer.pause();
+		} else {
+			stopAllChannels(true);
+			if (_state.resetPositionOnPause) {
+				sound.position = _state.loopPosition;
+				_state.rest = 0;
+				_state.state = kStateBlocked;
+			}
 		}
 		_resMan.unlockResource(sound.resource);
 		sound.resource = nullptr;

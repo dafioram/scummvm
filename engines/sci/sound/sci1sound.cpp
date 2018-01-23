@@ -1763,10 +1763,24 @@ void Sci1SoundManager::advanceSamplePlayback() {
 		if (!(sound.sampleTrackNo & kSampleLoadedFlag)) {
 			sound.sampleTrackNo |= kSampleLoadedFlag;
 			const uint8 trackNo = sound.sampleTrackNo & 0xf;
+
 			SciSpan<const byte> data = sound.resource->subspan(sound.tracks[trackNo].offset + 1);
-			_samplePlayer.load(data, sound.volume, sound.loop);
+			enum { kSampleMarker = 0xfe };
+			while (*data++ == kSampleMarker);
+
+			SamplePlayer::Sample sample;
+			sample.numLoops = sound.loop ? SamplePlayer::Sample::kLoopForever : 0;
+			sample.volume = sound.volume;
+			sample.startPosition = 8;
+			sample.rate = data.getUint16LEAt(0);
+			sample.size = data.getUint16LEAt(2);
+			sample.loopStart = data.getUint16LEAt(4);
+			sample.loopEnd = data.getUint16LEAt(6);
+			sample.data = data.subspan(0, sample.size);
+
+			_samplePlayer.load(sample);
 		} else {
-			const SamplePlayer::Status status = _samplePlayer.advance(sound.loop);
+			const SamplePlayer::Status status = _samplePlayer.advance(sound.loop ? SamplePlayer::Sample::kLoopForever : 0);
 			if (status & SamplePlayer::kLooped) {
 				sound.ticksElapsed = 0;
 			}

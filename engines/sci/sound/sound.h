@@ -265,11 +265,28 @@ protected:
 		SamplePlayer(SoundManager &manager, Audio::Mixer &mixer);
 		~SamplePlayer();
 
-		void load(SciSpan<const byte> data, const uint8 volume, const bool loop);
+		struct Sample {
+			enum {
+				kLoopForever = 0xffff
+			};
+
+			SciSpan<const byte> data;
+			uint16 numLoops;
+			uint16 startPosition;
+			uint16 rate;
+			uint16 size;
+			uint16 loopStart;
+			uint16 loopEnd;
+			uint8 volume;
+		};
+
+		void load(const Sample &sample);
 
 		// In SSCI this received pointer to sample data and used AL and AH to
 		// communicate status
-		Status advance(const bool loop);
+		Status advance(const uint16 numLoops);
+
+		void pause() { _playing = false; }
 
 		// In SSCI this received pointer to sample data
 		void unload();
@@ -278,7 +295,7 @@ protected:
 
 		virtual bool isStereo() const override { return false; }
 
-		virtual int getRate() const override { return _sampleRate; }
+		virtual int getRate() const override { return _sample.rate; }
 
 		virtual bool endOfData() const override { return false; }
 
@@ -286,14 +303,10 @@ protected:
 		SoundManager &_manager;
 		Audio::Mixer &_mixer;
 		Audio::SoundHandle _handle;
-		bool _loop;
+		Sample _sample;
 		bool _playing;
+		bool _looped;
 		uint16 _pos;
-		uint16 _sampleRate;
-		uint16 _size;
-		uint16 _loopStart;
-		uint16 _loopEnd;
-		SciSpan<const byte> _data;
 	};
 
 	SamplePlayer _samplePlayer;
