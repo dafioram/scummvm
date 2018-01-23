@@ -136,7 +136,7 @@ void Sci0SoundManager::soundServer() {
 
 void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
 	if (_state.isSample) {
-		SamplePlayer::Status status = _samplePlayer.advance(sound.numLoops);
+		SamplePlayer::Status status = _samplePlayer.advance(sound.numLoops - 1);
 		sound.numLoops -= _samplePlayer.consumeLoops();
 		if (status == SamplePlayer::kFinished) {
 			_samplePlayer.unload();
