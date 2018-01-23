@@ -357,7 +357,41 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	assert(sound.resource);
 	const SciSpan<const byte> data = *sound.resource;
 
-	if (data[0] == kSignedSample || data[0] == kUnsignedSample) {
+	uint8 instrumentMask, percussionMask;
+	_driver->getChannelMasks(instrumentMask, percussionMask);
+
+	bool hasMidiChannel = false;
+
+	SciSpan<const byte> channelTable = data.subspan(1, _hardwareChannels.size() * (_soundVersion == SCI_VERSION_0_EARLY ? 1 : 2));
+	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
+		if (_soundVersion == SCI_VERSION_0_EARLY) {
+			if (!instrumentMask || (*channelTable & instrumentMask) != 0) {
+				_hardwareChannels[i].channelNo = i;
+				_hardwareChannels[i].numVoices = *channelTable >> 4;
+				hasMidiChannel = true;
+			}
+			++channelTable;
+		} else {
+			bool isValid;
+			if (i == kPercussionChannel) {
+				isValid = (!percussionMask || (channelTable[0] & percussionMask));
+			} else {
+				isValid = (!instrumentMask || (channelTable[1] & instrumentMask));
+			}
+
+			if (isValid) {
+				_hardwareChannels[i].channelNo = i;
+				_hardwareChannels[i].numVoices = channelTable[0] & 0x7f;
+				hasMidiChannel = true;
+			}
+
+			channelTable += 2;
+		}
+	}
+
+	if ((_preferSampledSounds || !hasMidiChannel) &&
+		(data[0] == kSignedSample || data[0] == kUnsignedSample)) {
+
 		SciSpan<const byte> sampleData;
 		uint16 sampleOffset = data.getUint16BEAt(0x1f);
 		if (sampleOffset) {
@@ -388,40 +422,12 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 		return kStrategyAsync;
 	}
 
-	if (data[0] != kMidi) {
+	if (data[0] != kMidi && data[0] != kSignedSample && data[0] != kUnsignedSample) {
 		return kStrategyAbort;
 	}
 
 	sound.position = kHeaderSize;
 	sound.signal = Kernel::kNoSignal;
-
-	uint8 instrumentMask, percussionMask;
-	_driver->getChannelMasks(instrumentMask, percussionMask);
-
-	SciSpan<const byte> channelTable = data.subspan(1, _hardwareChannels.size() * (_soundVersion == SCI_VERSION_0_EARLY ? 1 : 2));
-	for (uint i = 0; i < _hardwareChannels.size(); ++i) {
-		if (_soundVersion == SCI_VERSION_0_EARLY) {
-			if (!instrumentMask || (*channelTable & instrumentMask)) {
-				_hardwareChannels[i].channelNo = i;
-				_hardwareChannels[i].numVoices = *channelTable >> 4;
-			}
-			++channelTable;
-		} else {
-			bool isValid;
-			if (i == kPercussionChannel) {
-				isValid = (!percussionMask || (channelTable[0] & percussionMask));
-			} else {
-				isValid = (!instrumentMask || (channelTable[1] & instrumentMask));
-			}
-
-			if (isValid) {
-				_hardwareChannels[i].channelNo = i;
-				_hardwareChannels[i].numVoices = channelTable[0] & 0x7f;
-			}
-
-			channelTable += 2;
-		}
-	}
 
 	if (((data[kHeaderSize] & 0xf0) != kControllerChange ||
 		data[kHeaderSize + 1] != kReverbModeController)) {
