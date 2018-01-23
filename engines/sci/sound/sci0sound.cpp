@@ -31,8 +31,7 @@ Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	_state(),
 	_hardwareChannels(),
 	_masterVolume(12),
-	_lastNumServerSuspensions(0),
-	_hasBlockedSound(false) {
+	_lastNumServerSuspensions(0) {
 
 	uint32 deviceFlags = MDT_PCSPK | MDT_PCJR | MDT_ADLIB | MDT_MIDI | MDT_CMS;
 
@@ -85,7 +84,7 @@ void Sci0SoundManager::reconstructPlaylist() {
 		sound = findSoundByState<kStateBlocked>();
 	}
 	if (sound) {
-		restore(*sound);
+		resume(*sound);
 	}
 
 	setSoundVolumes(isSoundEnabled() ? getMasterVolume() : 0);
@@ -434,21 +433,6 @@ void Sci0SoundManager::play(Sci0Sound &sound) {
 	}
 }
 
-void Sci0SoundManager::playNext(Sci0Sound *sound) {
-	if (!sound) {
-		sound = findSound<ByState>(kStateBlocked);
-		assert(sound);
-	}
-
-	if (sound->strategy == kStrategyNone) {
-		play(*sound);
-	} else {
-		restore(*sound);
-	}
-
-	_hasBlockedSound = false;
-}
-
 Sci0Sound &Sci0SoundManager::activate(Sci0Sound &sound) {
 	assert(!sound.resource);
 	sound.resource = _resMan.findResource(ResourceId(kResourceTypeSound, sound.resourceNo), true);
@@ -493,7 +477,7 @@ void Sci0SoundManager::stopAllChannels(const bool pauseOnly) {
 	}
 }
 
-void Sci0SoundManager::restore(Sci0Sound &sound) {
+void Sci0SoundManager::resume(Sci0Sound &sound) {
 	assert(!sound.resource);
 	sound.resource = _resMan.findResource(ResourceId(kResourceTypeSound, sound.resourceNo), true);
 
@@ -635,8 +619,17 @@ void Sci0SoundManager::kernelStop(const reg_t soundObj) {
 		sound->resource = nullptr;
 		Sci0Sound *nextSound = findSoundByState<kStateBlocked>();
 		if (nextSound) {
-			_hasBlockedSound = true;
-			playNext(nextSound);
+			// In SSCI0late/SQ3, if an attempt to load the sound resource
+			// failed, the engine would skip playing the sound and set a flag,
+			// and the game scripts would follow up later on trying to play the
+			// sound with an unconditional call to kDoSoundRetry.
+			// Since we have no recoverable resource load failures, this
+			// functionality is superfluous so is omitted.
+			if (nextSound->strategy == kStrategyNone) {
+				play(*nextSound);
+			} else {
+				resume(*nextSound);
+			}
 		}
 	}
 	_numServerSuspensions = 0;
@@ -680,14 +673,6 @@ void Sci0SoundManager::kernelFade(const reg_t soundObj) {
 	if (sound->state == kStateActive) {
 		fade(*sound);
 	}
-}
-
-void Sci0SoundManager::kernelPlayNext() {
-	Common::StackLock lock(_mutex);
-	if (_hasBlockedSound) {
-		playNext();
-	}
-	_hasBlockedSound = false;
 }
 
 #pragma mark -

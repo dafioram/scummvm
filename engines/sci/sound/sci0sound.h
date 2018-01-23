@@ -283,9 +283,8 @@ private:
 	void stopAllChannels(const bool pauseOnly);
 
 	void play(Sci0Sound &sound);
-	void playNext(Sci0Sound *sound = nullptr);
 	void pause(Sci0Sound &sound);
-	void restore(Sci0Sound &sound);
+	void resume(Sci0Sound &sound);
 	void stop(Sci0Sound &sound);
 	void fade(Sci0Sound &sound);
 
@@ -298,8 +297,6 @@ private:
 	 */
 	int _lastNumServerSuspensions;
 
-	bool _hasBlockedSound;
-
 #pragma mark -
 #pragma mark Kernel
 public:
@@ -310,7 +307,6 @@ public:
 	bool kernelPause(const bool pause) override;
 	void kernelUpdate(const reg_t soundObj) override;
 	void kernelFade(const reg_t soundObj) override;
-	void kernelPlayNext() override;
 
 private:
 	class ByLowerPriority {
