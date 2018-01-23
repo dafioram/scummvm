@@ -1769,6 +1769,7 @@ void Sci1SoundManager::advanceSamplePlayback() {
 			while (*data++ == kSampleMarker);
 
 			SamplePlayer::Sample sample;
+			sample.isSigned = false;
 			sample.numLoops = sound.loop ? SamplePlayer::Sample::kLoopForever : 0;
 			sample.volume = sound.volume;
 			sample.startPosition = 8;

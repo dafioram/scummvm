@@ -408,6 +408,7 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 		enum { kSampleHeaderSize = 44 };
 
 		SamplePlayer::Sample sample;
+		sample.isSigned = (data[0] == kSignedSample);
 		sample.size = sampleData.getUint16LEAt(32);
 		sample.data = sampleData.subspan(0, sample.size);
 		sample.rate = sampleData.getUint16LEAt(14);

@@ -271,6 +271,7 @@ protected:
 			};
 
 			SciSpan<const byte> data;
+			bool isSigned;
 			uint16 numLoops;
 			uint16 startPosition;
 			uint16 rate;

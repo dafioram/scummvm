@@ -237,7 +237,7 @@ int SoundManager::SamplePlayer::readBuffer(int16 *buffer, const int numSamples) 
 			break;
 		}
 
-		*buffer++ = (_sample.data[_pos++] << 8) ^ 0x8000;
+		*buffer++ = (_sample.data[_pos++] << 8) ^ (_sample.isSigned ? 0 : 0x8000);
 	}
 	return samplesRead;
 }
