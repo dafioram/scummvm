@@ -86,6 +86,7 @@ public:
 
 private:
 	enum {
+		kNumPrograms = 128,
 		kNumChannels = 16,
 		kNumPatchesPerBank = 48,
 		kPatchSize = 8,
@@ -154,6 +155,22 @@ private:
 	typedef SciSpan<const byte> SysEx;
 
 	/**
+	 * Initialises the driver using patch data from the standard MT-32 patch
+	 * file.
+	 */
+	bool initFromPatchFile(ResourceManager &resMan);
+
+	/**
+	 * Initialises the driver using patch data from an MT-32 driver file.
+	 */
+	bool initFromDriverFile();
+
+	/**
+	 * Reads the first part of a standard patch file.
+	 */
+	void readStartOfPatch(const SciSpan <const byte> &patchData);
+
+	/**
 	 * Send a DT1 SysEx to the given address.
 	 */
 	void sendSysEx(const uint32 address, const SysEx &data, const bool skipDelays);
@@ -197,6 +214,9 @@ private:
 
 	/** The current master volume. */
 	uint8 _masterVolume;
+
+	/** The program map. */
+	Common::FixedArray<byte, kNumPrograms> _programMap;
 
 	/** The message written to the MT-32 display on shutdown. */
 	Common::FixedArray<byte, 20> _goodbyeSysEx;

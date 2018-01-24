@@ -28,7 +28,7 @@ namespace Sci {
 
 Sci0SoundManager::Sci0SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeatures &features, GuestAdditions &guestAdditions) :
 	SoundManager(resMan, segMan, features, guestAdditions),
-	_state(),
+	_state(0),
 	_hardwareChannels(),
 	_masterVolume(12),
 	_lastNumServerSuspensions(0) {
@@ -346,7 +346,9 @@ void Sci0SoundManager::setSoundVolumes(const uint8 volume) {
 
 Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 	_hardwareChannels = {};
-	_state = {};
+
+	const uint8 headerSize = getHeaderSize();
+	_state = PlayState(headerSize);
 
 	enum {
 		kMidi = 0,
@@ -397,7 +399,7 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 		if (sampleOffset) {
 			sampleData = data.subspan(sampleOffset);
 		} else {
-			sampleData = data.subspan(kHeaderSize);
+			sampleData = data.subspan(headerSize);
 			enum { kSampleMarker = 0xfc };
 			while (*sampleData++ != kSampleMarker);
 			if (*sampleData == kSampleMarker) {
@@ -427,11 +429,11 @@ Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
 		return kStrategyAbort;
 	}
 
-	sound.position = kHeaderSize;
+	sound.position = headerSize;
 	sound.signal = Kernel::kNoSignal;
 
-	if (((data[kHeaderSize] & 0xf0) != kControllerChange ||
-		data[kHeaderSize + 1] != kReverbModeController)) {
+	if (((data[headerSize] & 0xf0) != kControllerChange ||
+		data[headerSize + 1] != kReverbModeController)) {
 		_driver->setReverbMode(kUseDefaultReverb);
 	}
 
@@ -524,7 +526,7 @@ void Sci0SoundManager::resume(Sci0Sound &sound) {
 	}
 	do {
 		advancePlayback(sound, true);
-		if (_state.resetPositionOnPause && _state.loopPosition != kHeaderSize) {
+		if (_state.resetPositionOnPause && _state.loopPosition != getHeaderSize()) {
 			// TODO: MT32 set rest/state and SNDBLAST did not
 			_state.rest = 0;
 			_state.state = kStateBlocked;

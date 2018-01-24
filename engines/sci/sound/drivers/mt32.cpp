@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/file.h"
 #include "common/system.h"
 #include "sci/sound/drivers/genmidi.h"
 #include "sci/sound/drivers/mt32.h"
@@ -51,6 +52,63 @@ static bool isGeneralMidiPatch(Resource &patchData) {
 	return false;
 }
 
+static const byte reverbSysEx[] = { 0xf0, 0x41, 0x10, 0x16, 0x12, 0x10, 0x00, 0x01 };
+
+/**
+ * Tests whether the data at the current position in `file` matches the data
+ * given in `data`.
+ */
+static bool testFileData(Common::File &file, const SciSpan<const byte> &data) {
+	for (uint i = 0; i < data.size(); ++i) {
+		if (file.readByte() != data[i]) {
+			file.seek(-i, SEEK_CUR);
+			return false;
+		}
+	}
+	file.seek(-data.size(), SEEK_CUR);
+	return true;
+}
+
+/**
+ * Detects the LSL2early driver. The passed file should point to the start
+ * of driver data, immediately after the driver header.
+ */
+static bool detectLsl2Driver(Common::File &f) {
+	const uint32 originalPosition = f.pos();
+
+	// LSL2 format is very close to standard MT-32 patch; detect this by looking
+	// for the reverb mode SysEx
+	f.seek(63, SEEK_CUR);
+	if (!testFileData(f, SciSpan<const byte>(reverbSysEx, sizeof(reverbSysEx)))) {
+		f.seek(originalPosition, SEEK_SET);
+		return false;
+	}
+
+	// It also has some patch data at the end of the file right before a final
+	// patch request function, so verify that function exists
+	f.seek(-4, SEEK_END);
+	const byte patchReq[] = { 0xb8, 0xff, 0xff, 0xc3 };
+	const bool isLsl2Driver = testFileData(f, SciSpan<const byte>(patchReq, sizeof(patchReq)));
+
+	f.seek(originalPosition, SEEK_SET);
+	return isLsl2Driver;
+}
+
+/**
+ * Seeks the given file to the position of the reverb mode SysEx.
+ * @returns true if the file position is at the reverb mode SysEx.
+ */
+static bool seekToReverbSysExPosition(Common::File &f) {
+	const SciSpan<const byte> rev(reverbSysEx, sizeof(reverbSysEx));
+	while (!f.eos()) {
+		if (testFileData(f, rev)) {
+			return true;
+		}
+		f.seek(1, SEEK_CUR);
+	}
+	return !f.eos();
+}
+
 Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	SoundDriver(resMan, version),
 	_deviceId(12),
@@ -75,84 +133,9 @@ Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 
 	_isEmulated = (MidiDriver::getDeviceString(dev, MidiDriver::kDriverId) == "mt32");
 
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
-	if (!patchData) {
-		// TODO: Read from MT32.DRV for the very early games
+	if (!initFromPatchFile(resMan) && !initFromDriverFile()) {
 		error("Could not find MT-32 patch data");
 	}
-
-	// MT-32 patch contents:
-	// - 0-19        after-SysEx message
-	// - 20-39       before-SysEx message
-	// - 40-59       goodbye SysEx message
-	// - 60-61       volume
-	// - 62          reverb
-	// - 63-73       reverb Sysex message
-	// - 74-106      [3 * 11] reverb data
-	// - 107-490     [256 + 128] patches 1-48
-	// --> total: 491 bytes
-	// - 491         number of timbres (64 max)
-	// - 492..n      [246 * number of timbres] timbre data
-	// - n-n+1       flag (0xabcd)
-	// - n+2-n+385   [256 + 128] patches 49-96
-	// - n+386-n+387 flag (0xdcba)
-	// - n+388-n+643 rhythm key map
-	// - n+644-n+652 partial reserve
-
-	if (_version <= SCI_VERSION_01) {
-		_defaultReverbMode = patchData->getUint8At(62);
-	}
-
-	patchData->subspan(40, _goodbyeSysEx.size()).unsafeCopyDataTo(_goodbyeSysEx.data());
-
-	for (uint j = 0; j < _reverbModes[0].size(); ++j) {
-		for (uint i = 0; i < _reverbModes.size(); ++i) {
-			_reverbModes[i][j] = patchData->getUint8At(74 + j * _reverbModes.size() + i);
-		}
-	}
-
-	// Message displayed at start of SysEx transfer
-	sendSysEx(kDisplayAddress, patchData->subspan(20, 20), _isEmulated);
-
-	// Patches 1-48
-	uint32 patchAddress = kPatchAddress;
-	sendPatches(patchAddress, patchData->subspan(107, kPatchDataSize));
-
-	const uint8 numTimbres = patchData->getUint8At(491);
-	assert(numTimbres <= 64);
-	sendTimbres(numTimbres, patchData->subspan(492, numTimbres * kTimbreDataSize));
-
-	SysEx extraData = patchData->subspan(492 + numTimbres * kTimbreDataSize);
-	uint16 flag = 0;
-	if (extraData.size() > 2) {
-		flag = extraData.getUint16BEAt(0);
-		extraData += 2;
-	}
-
-	if (flag == 0xabcd) {
-		// Patches 49-96
-		sendPatches(patchAddress, extraData.subspan(0, kPatchDataSize));
-		extraData += kPatchDataSize;
-		if (extraData.size() > 2) {
-			flag = extraData.getUint16BEAt(0);
-			extraData += 2;
-		}
-	}
-
-	if (flag == 0xdcba) {
-		uint32 address = kRhythmKeyMapAddress;
-		SysEx rhythmData = extraData.subspan(0, kRhythmDataSize + kPartialReserveSize);
-		for (int i = 0; i < kNumRhythmPatches; ++i) {
-			sendCountingSysEx(address, rhythmData, kRhythmPatchSize);
-		}
-		sendSysEx(kPartialReserveAddress, rhythmData.subspan(0, kPartialReserveSize), _isEmulated);
-	}
-
-	// Message displayed at game startup
-	sendSysEx(kDisplayAddress, patchData->subspan(0, 20), _isEmulated);
-
-	const byte disableCm32P[] = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 };
-	sendSysEx(kDisableCm32PAddress, SysEx(disableCm32P, sizeof(disableCm32P)), _isEmulated);
 
 	setMasterVolume(12);
 }
@@ -222,7 +205,11 @@ void Mt32Driver::controllerChange(const uint8 channelNo, const uint8 controllerN
 	channel.hw->controlChange(controllerNo, value);
 }
 
-void Mt32Driver::programChange(const uint8 channelNo, const uint8 programNo) {
+void Mt32Driver::programChange(const uint8 channelNo, uint8 programNo) {
+	if (getSciVersion() == SCI_VERSION_0_EARLY) {
+		programNo = _programMap[programNo];
+	}
+
 	Channel &channel = _channels[channelNo];
 	if (channel.program == programNo) {
 		return;
@@ -307,6 +294,185 @@ void Mt32Driver::debugPrintState(Console &con) const {
 			con.debugPrintf("%2d: unmapped\n", i);
 		}
 	}
+}
+
+bool Mt32Driver::initFromPatchFile(ResourceManager &resMan) {
+	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+	if (!patchData) {
+		return false;
+	}
+
+	// MT-32 patch contents:
+	// - 0-19        after-SysEx message
+	// - 20-39       before-SysEx message
+	// - 40-59       goodbye SysEx message
+	// - 60-61       volume
+	// - 62          reverb
+	// - 63-73       reverb Sysex message
+	// - 74-106      [3 * 11] reverb data
+	// - 107-490     [256 + 128] patches 1-48
+	// --> total: 491 bytes
+	// - 491         number of timbres (64 max)
+	// - 492..n      [246 * number of timbres] timbre data
+	// - n-n+1       flag (0xabcd)
+	// - n+2-n+385   [256 + 128] patches 49-96
+	// - n+386-n+387 flag (0xdcba)
+	// - n+388-n+643 rhythm key map
+	// - n+644-n+652 partial reserve
+
+	readStartOfPatch(*patchData);
+
+	// Patches 1-48
+	uint32 patchAddress = kPatchAddress;
+	sendPatches(patchAddress, patchData->subspan(107, kPatchDataSize));
+
+	const uint8 numTimbres = patchData->getUint8At(491);
+	assert(numTimbres <= 64);
+	sendTimbres(numTimbres, patchData->subspan(492, numTimbres * kTimbreDataSize));
+
+	SysEx extraData = patchData->subspan(492 + numTimbres * kTimbreDataSize);
+	uint16 flag = 0;
+	if (extraData.size() > 2) {
+		flag = extraData.getUint16BEAt(0);
+		extraData += 2;
+	}
+
+	if (flag == 0xabcd) {
+		// Patches 49-96
+		sendPatches(patchAddress, extraData.subspan(0, kPatchDataSize));
+		extraData += kPatchDataSize;
+		if (extraData.size() > 2) {
+			flag = extraData.getUint16BEAt(0);
+			extraData += 2;
+		}
+	}
+
+	if (flag == 0xdcba) {
+		uint32 address = kRhythmKeyMapAddress;
+		SysEx rhythmData = extraData.subspan(0, kRhythmDataSize + kPartialReserveSize);
+		for (int i = 0; i < kNumRhythmPatches; ++i) {
+			sendCountingSysEx(address, rhythmData, kRhythmPatchSize);
+		}
+		sendSysEx(kPartialReserveAddress, rhythmData.subspan(0, kPartialReserveSize), _isEmulated);
+	}
+
+	// Message displayed at game startup
+	sendSysEx(kDisplayAddress, patchData->subspan(0, 20), _isEmulated);
+
+	const byte disableCm32P[] = { 0x16, 0x16, 0x16, 0x16, 0x16, 0x16 };
+	sendSysEx(kDisableCm32PAddress, SysEx(disableCm32P, sizeof(disableCm32P)), _isEmulated);
+	return true;
+}
+
+bool Mt32Driver::initFromDriverFile() {
+	Common::File f;
+
+	if (!f.open("MT32.DRV")) {
+		return false;
+	}
+
+	enum {
+		kDriverMagic = 0x87654321U,
+		kSoundDriver = 1
+	};
+
+	f.seek(4, SEEK_SET); // jmp to interface
+	// driver metadata
+	if (f.readUint32LE() != kDriverMagic || f.readByte() != kSoundDriver) {
+		return false;
+	}
+	f.seek(f.readByte(), SEEK_CUR); // driver name
+	f.seek(f.readByte(), SEEK_CUR); // driver description
+
+	// TODO: Handle max volume multiplication
+
+	byte displayData[20];
+	const SysEx message(displayData, sizeof(displayData));
+
+	if (detectLsl2Driver(f)) {
+		byte patchData[kPatchDataSize];
+		uint32 bytesRead = f.read(patchData, 107);
+		assert(bytesRead == 107);
+		readStartOfPatch(SciSpan<const byte>(patchData, 107));
+
+		memcpy(displayData, patchData, sizeof(displayData));
+
+		f.seek(-4 - kPatchDataSize, SEEK_END);
+		bytesRead = f.read(patchData, kPatchDataSize);
+		assert(bytesRead == kPatchDataSize);
+		uint32 address = kPatchAddress;
+		sendPatches(address, SciSpan<const byte>(patchData, kPatchDataSize));
+
+		// SSCI sent this SysEx whenever a new sound started to play, but for
+		// simplicity's sake we send it at the end of init, just like SCI0late+
+		sendSysEx(kDisplayAddress, message, _isEmulated);
+
+		for (uint i = 0; i < _programMap.size(); ++i) {
+			_programMap[i] = i;
+		}
+
+		return true;
+	}
+
+	const uint32 dataPosition = f.pos();
+	if (seekToReverbSysExPosition(f)) {
+		f.seek(-62, SEEK_CUR);
+		const uint32 programMapSize = f.pos() - dataPosition;
+
+		f.seek(20, SEEK_CUR);
+		f.read(displayData, sizeof(displayData));
+		sendSysEx(kDisplayAddress, message, _isEmulated);
+
+		f.seek(-40, SEEK_CUR);
+		f.read(displayData, sizeof(displayData));
+
+		f.seek(20, SEEK_CUR);
+		f.read(_goodbyeSysEx.data(), _goodbyeSysEx.size());
+
+		f.seek(2, SEEK_CUR); // TODO: max volume
+
+		f.seek(8, SEEK_CUR); // start of reverb SysEx
+
+		_defaultReverbMode = 0;
+		f.read(_reverbModes[0].data(), _reverbModes[0].size());
+		setReverbMode(0);
+
+		if (programMapSize) {
+			f.seek(dataPosition, SEEK_SET);
+			assert(programMapSize <= _programMap.size());
+			f.read(_programMap.data(), _programMap.size());
+		}
+		// SSCI would just read garbage data in this case, we will at least not
+		// send garbage
+		for (uint i = programMapSize; i < _programMap.size(); ++i) {
+			_programMap[i] = i;
+		}
+
+		// SSCI sent this SysEx whenever a new sound started to play, but for
+		// simplicity's sake we send it at the end of init, just like SCI0late+
+		sendSysEx(kDisplayAddress, message, _isEmulated);
+
+		return true;
+	}
+
+	return false;
+}
+
+void Mt32Driver::readStartOfPatch(const SciSpan<const byte> &patchData) {
+	patchData.subspan(40, _goodbyeSysEx.size()).unsafeCopyDataTo(_goodbyeSysEx.data());
+
+	if (_version <= SCI_VERSION_01) {
+		_defaultReverbMode = patchData.getUint8At(62);
+	}
+
+	for (uint j = 0; j < _reverbModes[0].size(); ++j) {
+		for (uint i = 0; i < _reverbModes.size(); ++i) {
+			_reverbModes[i][j] = patchData.getUint8At(74 + j * _reverbModes.size() + i);
+		}
+	}
+
+	// Message displayed at start of SysEx transfer
+	sendSysEx(kDisplayAddress, patchData.subspan(20, 20), _isEmulated);
 }
 
 void Mt32Driver::sendSysEx(uint32 address, const SysEx &data, const bool skipDelays) {

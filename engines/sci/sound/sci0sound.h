@@ -177,8 +177,6 @@ private:
 #pragma mark -
 #pragma mark MIDI server
 private:
-	enum { kHeaderSize = 0x22 };
-
 	struct PlayState {
 		uint16 rest;
 		Sci0PlayState state;
@@ -191,14 +189,14 @@ private:
 		uint8 lastCommand;
 		bool isSample;
 
-		PlayState() :
+		PlayState(const uint8 headerSize) :
 			rest(0),
 			state(kStateBlocked),
 			currentFadeVolume(0),
 			fadeTicksLeftInStep(8),
 			fadeTicksPerStep(0),
 			resetPositionOnPause(false),
-			loopPosition(kHeaderSize),
+			loopPosition(headerSize),
 			cue(127),
 			lastCommand(0),
 			isSample(false) {}
@@ -206,6 +204,10 @@ private:
 
 	static inline void soundServerCallback(void *soundManager) {
 		static_cast<Sci0SoundManager *>(soundManager)->soundServer();
+	}
+
+	inline uint8 getHeaderSize() const {
+		return _soundVersion == SCI_VERSION_0_EARLY ? 0x12 : 0x22;
 	}
 
 	/**
