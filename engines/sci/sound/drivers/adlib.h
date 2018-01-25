@@ -34,22 +34,8 @@ namespace Sci {
 
 class AdLibDriver final : public SoundDriver {
 public:
-	AdLibDriver(ResourceManager &resMan, SciVersion version) :
-		SoundDriver(resMan, version) {
-
-		_opl.reset(OPL::Config::create(OPL::Config::kDualOpl2));
-		if (!_opl) {
-			_opl.reset(OPL::Config::create(OPL::Config::kOpl2));
-		}
-		if (!_opl) {
-			error("Could not create OPL");
-		}
-		if (!_opl->init()) {
-			error("Could not init OPL");
-		}
-
-		_opl->start(nullptr);
-	}
+	AdLibDriver(ResourceManager &resMan, SciVersion version);
+	~AdLibDriver();
 
 	virtual int getNumVoices() const override { return 9; }
 
@@ -62,66 +48,177 @@ public:
 
 	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
 
-	virtual void service() override {
-		static int numServices = 0;
-		if (numServices == 600) {
-			debug("TODO: Serviced 10 seconds");
-			numServices = 0;
-		}
-	}
+	virtual void service() override;
 
-	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) override {
-		debug("TODO: On  channel %u note %03u velocity %03u", channelIndex, note, velocity);
-	}
+	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) override;
 
-	virtual void noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) override {
-		debug("TODO: Off channel %u note %03u velocity %03u", channelIndex, note, velocity);
-	}
+	virtual void noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) override;
 
-	virtual void controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) override {
-		debug("TODO: Channel %u controller %u value %u", channelIndex, controllerNo, value);
-	}
+	virtual void controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) override;
 
-	virtual void programChange(const uint8 channelIndex, const uint8 programNo) override {
-		debug("TODO: Channel %u program %u", channelIndex, programNo);
-	}
+	virtual void programChange(const uint8 channelIndex, const uint8 programNo) override;
 
-	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) override {
-		debug("TODO: Channel %u pitch %u", channelIndex, bend);
-	}
+	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) override;
 
 	virtual void keyPressure(const uint8 channelIndex, const uint8 note, const uint8 pressure) override {
-		debug("TODO: Channel %u note %u pressure %u", channelIndex, note, pressure);
+		// no-op
 	}
 
 	virtual void channelPressure(const uint8 channelIndex, const uint8 pressure) override {
-		debug("TODO: Channel %u pressure %u", channelIndex, pressure);
+		// no-op
 	}
 
-	virtual uint8 getReverbMode() const override {
-		debug("TODO: Get reverb mode");
-		return 0;
-	}
+	virtual void setMasterVolume(const uint8 volume) override;
 
-	virtual void setReverbMode(const uint8 mode) override {
-		debug("TODO: Set reverb mode to %u", mode);
-	}
+	virtual void enable(const bool enable) override;
 
-	virtual uint8 getMasterVolume() const override {
-		debug("TODO: Get master volume");
-		return 15;
-	}
+private:
+	enum {
+		kNumVoices = 9,
+		kNumPrograms = 190,
+		kRhythmMapSize = 62,
+		kNumOperators = kNumVoices * 2,
+		kMaxVolume = 63,
+		kMaxPan = 127
+	};
 
-	virtual void setMasterVolume(const uint8 volume) override {
-		debug("TODO: Set master volume to %u", volume);
-	}
-protected:
+	enum OplRegister {
+		kWaveformSelectEnableRegister = 1,
+		kKeySplitRegister = 8,
+		kSavekRegister = 0x20,
+		kKeyScaleOutputLevelRegister = 0x40,
+		kAttackDecayRegister = 0x60,
+		kSustainReleaseRegister = 0x80,
+		kLowFrequencyNumberRegister = 0xa0,
+		kHighFrequencyNumberRegister = 0xb0,
+		kPercussonRegister = 0xbd,
+		kSpeakerEnableRegisterLow = 0xc0,
+		kSpeakerEnableRegisterHigh = 0xc8,
+		kWaveformSelectRegister = 0xe0
+	};
+
+	struct Channel {
+		/** Whether or not the damper pedal is on for this channel. */
+		bool damperPedalOn;
+		/** The pitch bend for this channel. */
+		uint16 pitchBend;
+		/** The program for the channel. */
+		uint8 program;
+		/** The volume for this channel. */
+		uint8 volume;
+		/** The stereo pan for this channel. */
+		uint8 pan;
+		/** The number of voices reserved for this channel. TODO: Rename to 'unusable' or 'unused'? This is the number of requested voices still remaining unassigned after all voices have been assigned. */
+		uint8 numReservedVoices;
+		/** The number of voices assigned to this channel. */
+		uint8 numAssignedVoices;
+		/** The number of active voices for this channel. */
+		uint8 numActiveVoices;
+
+		Channel() :
+			damperPedalOn(false),
+			pitchBend(0x2000),
+			program(0),
+			volume(63),
+			pan(64),
+			numReservedVoices(0),
+			numAssignedVoices(0),
+			numActiveVoices(0) {}
+	};
+
+	Common::FixedArray<Channel, kNumChannels> _channels;
+
+	struct Voice {
+		/** Whether or not the damper pedal is on for this voice. */
+		bool damperPedalOn;
+		/** If true, this voice uses additive synthesis instead of FM synthesis. TODO: Should be two ops? Seems to be more about having information for a second operator, from the patch reading side of things. */
+		bool isAdditive;
+		/** The current operator states for this voice. */
+		struct {
+			/** The operator's key scale attenuation level. */
+			uint16 keyScaleLevel;
+			/** The operator's output attenuation level. */
+			uint16 outputLevel;
+		} operators[2];
+		/** The originally assigned channel for this voice. */
+		uint8 originalChannel;
+		/** The currently assigned channel for this voice. */
+		uint8 currentChannel;
+		/** The current note for this voice. */
+		uint8 note;
+		/** The current velocity for this voice. */
+		uint8 velocity;
+		/** The current program for this voice. */
+		uint8 program;
+
+		Voice() :
+			damperPedalOn(false),
+			isAdditive(false),
+			operators(),
+			originalChannel(kUnmapped),
+			note(kUnmapped),
+			velocity(0),
+			program(kUnmapped),
+			currentChannel(kUnmapped) {}
+	};
+
+	struct Operator {
+		uint8 keyScaleLevel;
+		uint8 frequencyMultiplicationFactor;
+		uint8 feedbackFactor;
+		uint8 attackRate;
+		uint8 sustainLevel;
+		bool sustainOn;
+		uint8 decayRate;
+		uint8 releaseRate;
+		uint8 outputLevel;
+		bool tremoloOn;
+		bool vibratoOn;
+		bool envelopeScalingOn;
+		bool isFrequencyModulation;
+		uint8 waveform;
+	};
+
+	typedef Common::FixedArray<Operator, 2> Program;
+
+	static Operator _defaultProgram[2];
+
+	void voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity);
+	void voiceOff(const uint8 voiceNo);
+	uint8 findFreeVoice(const uint8 channelNo);
+	void setChannelNumVoices(const uint8 channelIndex, const uint8 numVoices);
+
+	void assignVoices(const uint8 channelIndex, const uint8 numVoices);
+	void releaseVoices(const uint8 channelIndex, const uint8 numVoices);
+
+	void sendNote(const uint8 voiceNo, const bool noteOn);
+
+	void sendToHardware(const uint8 registerNo, const uint8 value);
+	void sendLeft(const uint8 registerNo, const uint8 value);
+	void sendRight(const uint8 registerNo, const uint8 value);
+	void resetOpl();
+
+	void setVoiceProgram(const uint8 voiceNo, const uint8 programNo);
+
+	void updateLru(const uint8 voiceNo);
+
+	void sendOperator(const uint8 opNo, const Operator &op);
+	void sendVolume(const uint8 voiceNo, const uint8 volume);
+
+	Common::FixedArray<Voice, kNumVoices> _voices;
+
+	Common::FixedArray<uint8, kNumVoices> _lruVoice;
+
+	Common::FixedArray<Operator, kNumOperators> _operators;
+	Common::FixedArray<Program, kNumPrograms> _programs;
+	Common::FixedArray<uint8, kRhythmMapSize> _rhythmMap;
+
 	Common::ScopedPtr<OPL::OPL> _opl;
+
+	bool _isStereo;
 };
 
-SoundDriver *makeAdLibDriver(ResourceManager &resMan, SciVersion version) {
-	return new AdLibDriver(resMan, version);
-}
+SoundDriver *makeAdLibDriver(ResourceManager &resMan, SciVersion version);
 
 } // End of namespace Sci
 
