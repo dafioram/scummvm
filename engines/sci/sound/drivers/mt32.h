@@ -72,11 +72,7 @@ public:
 
 	virtual void channelPressure(const uint8 channelNo, const uint8 pressure) override;
 
-	virtual uint8 getReverbMode() const override { return _reverbMode; }
-
 	virtual void setReverbMode(const uint8 mode) override;
-
-	virtual uint8 getMasterVolume() const override { return _masterVolume; }
 
 	virtual void setMasterVolume(const uint8 volume) override;
 
@@ -87,7 +83,6 @@ public:
 private:
 	enum {
 		kNumPrograms = 128,
-		kNumChannels = 16,
 		kNumPatchesPerBank = 48,
 		kPatchSize = 8,
 		kNumRhythmPatches = 64,
@@ -206,14 +201,8 @@ private:
 	/** Whether or not the MT-32 device is a softsynth. */
 	bool _isEmulated;
 
-	/** The last reverb mode passed to the driver. */
-	uint8 _reverbMode;
-
 	/** The default reverb mode from the driver patch data. */
 	uint8 _defaultReverbMode;
-
-	/** The current master volume. */
-	uint8 _masterVolume;
 
 	/** The program map. */
 	Common::FixedArray<byte, kNumPrograms> _programMap;

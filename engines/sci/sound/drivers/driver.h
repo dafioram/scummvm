@@ -105,7 +105,9 @@ public:
 
 	SoundDriver(ResourceManager &resMan, SciVersion version) :
 		_version(version),
-		_isEnabled(true) {}
+		_isEnabled(true),
+		_reverbMode(0),
+		_masterVolume(15) {}
 
 	virtual ~SoundDriver() {}
 
@@ -190,12 +192,12 @@ public:
 	/**
 	 * Gets the currently active reverb mode for the driver.
 	 */
-	virtual uint8 getReverbMode() const = 0;
+	virtual uint8 getReverbMode() const { return _reverbMode; }
 
 	/**
 	 * Sets a new reverb mode for the driver and returns the previous mode.
 	 */
-	virtual void setReverbMode(const uint8 mode) = 0;
+	virtual void setReverbMode(const uint8 mode) { _reverbMode = mode; }
 
 	// In SSCI, these two functions were one MasterVol function, where sending
 	// volume 0xFF would return the current volume without changing anything.
@@ -205,12 +207,12 @@ public:
 	/**
 	 * Gets the master volume (0-15).
 	 */
-	virtual uint8 getMasterVolume() const = 0;
+	virtual uint8 getMasterVolume() const { return _masterVolume; }
 
 	/**
 	 * Sets the master volume and returns the previous volume.
 	 */
-	virtual void setMasterVolume(const uint8 volume) = 0;
+	virtual void setMasterVolume(const uint8 volume) { _masterVolume = volume; }
 
 	// In SSCI, these two functions were one SoundOn function, where sending
 	// 0xFF would return the current state without changing anything.
@@ -233,6 +235,11 @@ public:
 	}
 
 protected:
+	enum {
+		kUnmapped = 0xff,
+		kNumChannels = 16
+	};
+
 	/**
 	 * The SCI version which should be emulated by the driver.
 	 */
@@ -242,6 +249,16 @@ protected:
 	 * Whether or not sound playback is enabled.
 	 */
 	bool _isEnabled;
+
+	/**
+	 * The last reverb mode passed to the driver.
+	 */
+	uint8 _reverbMode;
+
+	/**
+	 * The current master volume.
+	 */
+	uint8 _masterVolume;
 };
 
 } // End of namespace Sci

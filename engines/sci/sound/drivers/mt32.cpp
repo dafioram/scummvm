@@ -111,9 +111,8 @@ static bool seekToReverbSysExPosition(Common::File &f) {
 
 Mt32Driver::Mt32Driver(ResourceManager &resMan, const SciVersion version) :
 	SoundDriver(resMan, version),
-	_deviceId(12),
-	_reverbMode(0xff),
-	_masterVolume(15) {
+	_deviceId(12) {
+	_reverbMode = 0xff;
 
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI | MDT_PREFER_MT32);
 	_device.reset(MidiDriver::createMidi(dev));
@@ -256,14 +255,14 @@ void Mt32Driver::setReverbMode(uint8 modeNo) {
 		return;
 	}
 
-	_reverbMode = modeNo;
+	SoundDriver::setReverbMode(modeNo);
 
 	const byte *data = _reverbModes[modeNo].data();
 	sendSysEx(kReverbModeAddress, SysEx(data, _reverbModes[modeNo].size()), true);
 }
 
 void Mt32Driver::setMasterVolume(const uint8 volume) {
-	_masterVolume = volume;
+	SoundDriver::setMasterVolume(volume);
 	sendMasterVolume(volume);
 }
 
