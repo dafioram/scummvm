@@ -657,6 +657,23 @@ void AdLibDriver::debugPrintState(Console &con) const {
 						voice.operators[1].keyScaleLevel,
 						voice.operators[1].outputLevel);
 	}
+
+	con.debugPrintf("\nChannels:\n");
+	for (uint i = 0; i < _channels.size(); ++i) {
+		const Channel &channel = _channels[i];
+
+		if (!channel.program) {
+			con.debugPrintf("%2d: unmapped\n", i);
+			continue;
+		}
+
+		con.debugPrintf("%2d: pr %3d v %2d p %2d pb %04x dp %d\n",
+						i, channel.program, channel.volume, channel.pan,
+						channel.pitchBend, channel.damperPedalOn);
+		con.debugPrintf("    res.v %d ass.v %d act.v %d\n",
+						channel.numReservedVoices, channel.numAssignedVoices,
+						channel.numActiveVoices);
+	}
 }
 
 
