@@ -143,46 +143,46 @@ public:
 	 * Programmatically starts playback of a note. For MIDI devices, this is
 	 * equivalent to a MIDI Note On message.
 	 */
-	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) = 0;
+	virtual void noteOn(const uint8 channelNo, const uint8 note, const uint8 velocity) = 0;
 
 	/**
 	 * Programmatically stops playback of a note. For MIDI devices, this is
 	 * equivalent to a MIDI Note Off message.
 	 */
-	virtual void noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) = 0;
+	virtual void noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) = 0;
 
 	/**
 	 * Sets the value of a MIDI controller to the given value. For MIDI devices,
 	 * this is equivalent to a MIDI Control Change message.
 	 */
-	virtual void controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) = 0;
+	virtual void controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) = 0;
 
 	/**
 	 * Programmatically sets the program (patch/instrument) for the given
 	 * channel to the given program number. For MIDI devices, this is equivalent
 	 * to a MIDI Program Change message.
 	 */
-	virtual void programChange(const uint8 channelIndex, const uint8 programNo) = 0;
+	virtual void programChange(const uint8 channelNo, const uint8 programNo) = 0;
 
 	/**
 	 * Programmatically sets the pitch bend for all notes in a channel. For MIDI
 	 * devices, this is equivalent to a MIDI Pitch Bend Change message.
 	 */
-	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) = 0;
+	virtual void pitchBend(const uint8 channelNo, const uint16 bend) = 0;
 
 	/**
 	 * Sets the aftertouch key pressure for a single note. For MIDI devices,
 	 * this is equivalent to a MIDI Polyphonic Key Pressure message.
 	 * TODO: was polyAfterTch
 	 */
-	virtual void keyPressure(const uint8 channelIndex, const uint8 note, const uint8 pressure) = 0;
+	virtual void keyPressure(const uint8 channelNo, const uint8 note, const uint8 pressure) = 0;
 
 	/**
 	 * Programmatically sets the aftertouch pressure for all notes in a channel.
 	 * For MIDI devices, this is equivalent to a MIDI Channel Pressure message.
 	 * TODO: was chnlAfterTch
 	 */
-	virtual void channelPressure(const uint8 channelIndex, const uint8 pressure) = 0;
+	virtual void channelPressure(const uint8 channelNo, const uint8 pressure) = 0;
 
 	// In SSCI, these two functions were one SetReverb function, where sending
 	// mode 0xFF would return the current reverb mode without changing anything.

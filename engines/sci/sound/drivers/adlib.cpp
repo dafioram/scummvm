@@ -136,7 +136,7 @@ void AdLibDriver::service() {
 	// no-op in SCI32
 }
 
-void AdLibDriver::noteOn(const uint8 channelIndex, const uint8 note, uint8 velocity) {
+void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity) {
 	if (note < 12 || note > 107) {
 		return;
 	}
@@ -145,24 +145,24 @@ void AdLibDriver::noteOn(const uint8 channelIndex, const uint8 note, uint8 veloc
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelIndex && voice.note == note) {
+		if (voice.currentChannel == channelNo && voice.note == note) {
 			voiceOff(i);
 			voiceOn(i, note, velocity);
 			return;
 		}
 	}
 
-	uint8 voiceNo = findFreeVoice(channelIndex);
+	uint8 voiceNo = findFreeVoice(channelNo);
 	if (voiceNo != kUnmapped) {
 		voiceOn(voiceNo, note, velocity);
 	}
 }
 
-void AdLibDriver::noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) {
+void AdLibDriver::noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) {
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.originalChannel == channelIndex && voice.note == note) {
-			if (_channels[channelIndex].damperPedalOn) {
+		if (voice.originalChannel == channelNo && voice.note == note) {
+			if (_channels[channelNo].damperPedalOn) {
 				voice.damperPedalOn = true;
 			} else {
 				voiceOff(i);
@@ -171,8 +171,8 @@ void AdLibDriver::noteOff(const uint8 channelIndex, const uint8 note, const uint
 	}
 }
 
-void AdLibDriver::controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) {
-	Channel &channel = _channels[channelIndex];
+void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) {
+	Channel &channel = _channels[channelNo];
 
 	bool voiceOn;
 
@@ -182,7 +182,7 @@ void AdLibDriver::controllerChange(const uint8 channelIndex, const uint8 control
 		if (!value) {
 			for (uint i = 0; i < _voices.size(); ++i) {
 				Voice &voice = _voices[i];
-				if (voice.originalChannel == channelIndex && voice.damperPedalOn) {
+				if (voice.originalChannel == channelNo && voice.damperPedalOn) {
 					voiceOff(i);
 				}
 			}
@@ -190,7 +190,7 @@ void AdLibDriver::controllerChange(const uint8 channelIndex, const uint8 control
 		return;
 
 	case kMaxVoicesController:
-		setChannelNumVoices(channelIndex, value);
+		setChannelNumVoices(channelNo, value);
 		return;
 
 	default:
@@ -213,7 +213,7 @@ void AdLibDriver::controllerChange(const uint8 channelIndex, const uint8 control
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.originalChannel == channelIndex && voice.note != kUnmapped) {
+		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
 			if (voiceOn) {
 				sendNote(i, true);
 			} else {
@@ -223,33 +223,33 @@ void AdLibDriver::controllerChange(const uint8 channelIndex, const uint8 control
 	}
 }
 
-void AdLibDriver::setChannelNumVoices(const uint8 channelIndex, const uint8 numVoices) {
+void AdLibDriver::setChannelNumVoices(const uint8 channelNo, const uint8 numVoices) {
 	uint8 numActiveVoices = 0;
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelIndex) {
+		if (voice.currentChannel == channelNo) {
 			++numActiveVoices;
 		}
 	}
 
-	numActiveVoices += _channels[channelIndex].numReservedVoices;
+	numActiveVoices += _channels[channelNo].numReservedVoices;
 	if (numActiveVoices > numVoices) {
-		releaseVoices(channelIndex, numActiveVoices - numVoices);
+		releaseVoices(channelNo, numActiveVoices - numVoices);
 	} else if (numActiveVoices < numVoices) {
-		assignVoices(channelIndex, numVoices - numActiveVoices);
+		assignVoices(channelNo, numVoices - numActiveVoices);
 	}
 }
 
-void AdLibDriver::programChange(const uint8 channelIndex, const uint8 programNo) {
-	_channels[channelIndex].program = programNo;
+void AdLibDriver::programChange(const uint8 channelNo, const uint8 programNo) {
+	_channels[channelNo].program = programNo;
 }
 
-void AdLibDriver::pitchBend(const uint8 channelIndex, const uint16 bend) {
-	_channels[channelIndex].pitchBend = bend;
+void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
+	_channels[channelNo].pitchBend = bend;
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.originalChannel == channelIndex && voice.note != kUnmapped) {
+		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
 			sendNote(i, true);
 		}
 	}
@@ -325,15 +325,15 @@ void AdLibDriver::resetOpl() {
 	}
 }
 
-void AdLibDriver::assignVoices(const uint8 channelIndex, uint8 numVoices) {
-	Channel &channel = _channels[channelIndex];
+void AdLibDriver::assignVoices(const uint8 channelNo, uint8 numVoices) {
+	Channel &channel = _channels[channelNo];
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
 		if (voice.currentChannel == kUnmapped) {
 			if (voice.note != kUnmapped) {
 				voiceOff(i);
 			}
-			voice.currentChannel = channelIndex;
+			voice.currentChannel = channelNo;
 			++channel.numAssignedVoices;
 			--numVoices;
 		}
@@ -341,8 +341,8 @@ void AdLibDriver::assignVoices(const uint8 channelIndex, uint8 numVoices) {
 	channel.numReservedVoices += numVoices;
 }
 
-void AdLibDriver::releaseVoices(const uint8 channelIndex, uint8 numVoices) {
-	Channel &channel = _channels[channelIndex];
+void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
+	Channel &channel = _channels[channelNo];
 	if (channel.numReservedVoices >= numVoices) {
 		channel.numReservedVoices -= numVoices;
 		return;
@@ -353,7 +353,7 @@ void AdLibDriver::releaseVoices(const uint8 channelIndex, uint8 numVoices) {
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelIndex && voice.note == kUnmapped) {
+		if (voice.currentChannel == channelNo && voice.note == kUnmapped) {
 			voice.currentChannel = kUnmapped;
 			--channel.numAssignedVoices;
 			--numVoices;
@@ -362,7 +362,7 @@ void AdLibDriver::releaseVoices(const uint8 channelIndex, uint8 numVoices) {
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelIndex) {
+		if (voice.currentChannel == channelNo) {
 			voiceOff(i);
 			voice.currentChannel = kUnmapped;
 			--channel.numAssignedVoices;

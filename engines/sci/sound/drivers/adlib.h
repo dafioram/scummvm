@@ -50,21 +50,21 @@ public:
 
 	virtual void service() override;
 
-	virtual void noteOn(const uint8 channelIndex, const uint8 note, const uint8 velocity) override;
+	virtual void noteOn(const uint8 channelNo, const uint8 note, const uint8 velocity) override;
 
-	virtual void noteOff(const uint8 channelIndex, const uint8 note, const uint8 velocity) override;
+	virtual void noteOff(const uint8 channelNo, const uint8 note, const uint8 velocity) override;
 
-	virtual void controllerChange(const uint8 channelIndex, const uint8 controllerNo, const uint8 value) override;
+	virtual void controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) override;
 
-	virtual void programChange(const uint8 channelIndex, const uint8 programNo) override;
+	virtual void programChange(const uint8 channelNo, const uint8 programNo) override;
 
-	virtual void pitchBend(const uint8 channelIndex, const uint16 bend) override;
+	virtual void pitchBend(const uint8 channelNo, const uint16 bend) override;
 
-	virtual void keyPressure(const uint8 channelIndex, const uint8 note, const uint8 pressure) override {
+	virtual void keyPressure(const uint8 channelNo, const uint8 note, const uint8 pressure) override {
 		// no-op
 	}
 
-	virtual void channelPressure(const uint8 channelIndex, const uint8 pressure) override {
+	virtual void channelPressure(const uint8 channelNo, const uint8 pressure) override {
 		// no-op
 	}
 
@@ -188,10 +188,10 @@ private:
 	void voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity);
 	void voiceOff(const uint8 voiceNo);
 	uint8 findFreeVoice(const uint8 channelNo);
-	void setChannelNumVoices(const uint8 channelIndex, const uint8 numVoices);
+	void setChannelNumVoices(const uint8 channelNo, const uint8 numVoices);
 
-	void assignVoices(const uint8 channelIndex, const uint8 numVoices);
-	void releaseVoices(const uint8 channelIndex, const uint8 numVoices);
+	void assignVoices(const uint8 channelNo, const uint8 numVoices);
+	void releaseVoices(const uint8 channelNo, const uint8 numVoices);
 
 	void sendNote(const uint8 voiceNo, const bool noteOn);
 
