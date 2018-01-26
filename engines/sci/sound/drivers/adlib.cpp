@@ -64,9 +64,9 @@ static const uint8 panToOutputLevelMap[] = {
 	59, 59, 59, 60, 60, 60, 61, 61, 61, 62, 62, 62, 62, 63, 63, 63
 };
 
-AdLibDriver::Operator AdLibDriver::_defaultProgram[2] = {
-	{ 1, 1, 3, 15, 5, 0, 1, 3, 15, 0, 0, 0, 1, 0 },
-	{ 0, 1, 1, 15, 7, 0, 2, 4,  0, 0, 0, 1, 0, 0 }
+const AdLibDriver::Operator AdLibDriver::_defaultOperators[2] = {
+	{ 1, 1, 3, 15, 5, false, 1, 3, 15, false, false, false,  true, 0 },
+	{ 0, 1, 1, 15, 7, false, 2, 4,  0, false, false,  true, false, 0 }
 };
 
 AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
@@ -91,22 +91,22 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 		Program &program = _programs[i];
 		for (uint j = 0; j < program.size(); ++j) {
 			Operator &op = program[j];
-			op.keyScaleLevel = *data++;
-			op.frequencyMultiplicationFactor = *data++;
-			op.feedbackFactor = *data++;
-			op.attackRate = *data++;
-			op.sustainLevel = *data++;
+			op.keyScaleLevel = *data++ & 0x3;
+			op.frequencyMultiplicationFactor = *data++ & 0xf;
+			op.feedbackFactor = *data++ & 0x7;
+			op.attackRate = *data++ & 0xf;
+			op.sustainLevel = *data++ & 0xf;
 			op.sustainOn = *data++;
-			op.decayRate = *data++;
-			op.releaseRate = *data++;
-			op.outputLevel = *data++;
+			op.decayRate = *data++ & 0xf;
+			op.releaseRate = *data++ & 0xf;
+			op.outputLevel = *data++ & 0x3f;
 			op.tremoloOn = *data++;
 			op.vibratoOn = *data++;
 			op.envelopeScalingOn = *data++;
 			op.isFrequencyModulation = *data++;
 		}
-		program[0].waveform = *data++;
-		program[1].waveform = *data++;
+		program[0].waveform = *data++ & 0x3;
+		program[1].waveform = *data++ & 0x3;
 	}
 	data.subspan(0, _rhythmMap.size()).unsafeCopyDataTo(_rhythmMap.data());
 
@@ -276,15 +276,16 @@ void AdLibDriver::setMasterVolume(const uint8 volume) {
 }
 
 void AdLibDriver::sendToHardware(const uint8 registerNo, const uint8 value) {
-	sendRight(registerNo, value);
-	sendLeft(registerNo, value);
+	if (!_isStereo) {
+		_opl->write(0x388, registerNo);
+		_opl->write(0x389, value);
+	} else {
+		sendRight(registerNo, value);
+		sendLeft(registerNo, value);
+	}
 }
 
 void AdLibDriver::sendLeft(const uint8 registerNo, uint8 value) {
-	if (!_isStereo) {
-		return;
-	}
-
 	if (registerNo >= kSpeakerEnableRegisterLow && registerNo <= kSpeakerEnableRegisterHigh) {
 		enum { kEnableLeftSpeaker = 0x10 };
 		value |= kEnableLeftSpeaker;
@@ -307,6 +308,9 @@ void AdLibDriver::sendRight(const uint8 registerNo, uint8 value) {
 void AdLibDriver::resetOpl() {
 	enum { kMaxRegister = 0xf5 };
 	for (uint reg = 0; reg <= kMaxRegister; ++reg) {
+		// SSCI just wrote over the entire register range up to kMaxRegister,
+		// but since at least the MAME softsynth complains about invalid
+		// register writes we skip the registers which are not valid
 		if (reg == 0 || reg == 5 || reg == 6 || reg == 7 || (reg >= 9 && reg <= 0x1f)) {
 			continue;
 		}
@@ -317,7 +321,7 @@ void AdLibDriver::resetOpl() {
 	sendToHardware(kWaveformSelectEnableRegister, kEnable);
 
 	for (uint op = 0; op < kNumOperators; ++op) {
-		sendOperator(op, _defaultProgram[op % 6 / 3]);
+		sendOperator(op, _defaultOperators[op % 6 / 3]);
 	}
 }
 
@@ -398,32 +402,21 @@ void AdLibDriver::sendOperator(const uint8 opNo, const Operator &op) {
 	const uint8 voiceNo = operatorToVoiceMap[opNo];
 	const uint8 registerNo = operatorToRegisterMap[opNo];
 
-	uint8 value = op.keyScaleLevel << 6 | (op.outputLevel & 0x3f);
+	uint8 value = op.keyScaleLevel << 6 | op.outputLevel;
 	sendToHardware(kKeyScaleOutputLevelRegister + registerNo, value);
 
-	value = (op.feedbackFactor << 1 | (op.isFrequencyModulation ? 0 : 1)) & 0xf;
-	sendToHardware(kSpeakerEnableRegisterLow + voiceNo, value);
+	if ((opNo % 6 / 3) == 0) {
+		value = op.feedbackFactor << 1 | !op.isFrequencyModulation;
+		sendToHardware(kSpeakerEnableRegisterLow + voiceNo, value);
+	}
 
-	value = op.attackRate << 4 | (op.decayRate & 0xf);
+	value = op.attackRate << 4 | op.decayRate;
 	sendToHardware(kAttackDecayRegister + registerNo, value);
 
-	value = op.sustainLevel << 4 | (op.releaseRate & 0xf);
+	value = op.sustainLevel << 4 | op.releaseRate;
 	sendToHardware(kSustainReleaseRegister + registerNo, value);
 
-	value = 0;
-	if (op.tremoloOn) {
-		value |= 0x80;
-	}
-	if (op.vibratoOn) {
-		value |= 0x40;
-	}
-	if (op.sustainOn) {
-		value |= 0x20;
-	}
-	if (op.envelopeScalingOn) {
-		value |= 0x10;
-	}
-	value |= op.frequencyMultiplicationFactor & 0xf;
+	value = op.tremoloOn << 7 | op.vibratoOn << 6 | op.sustainOn << 5 | op.envelopeScalingOn << 4 | op.frequencyMultiplicationFactor;
 	sendToHardware(kSavekRegister + registerNo, value);
 
 	sendToHardware(kWaveformSelectRegister + registerNo, op.waveform);
@@ -534,26 +527,28 @@ void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 
 	if (voice.isAdditive) {
 		voice.operators[0].keyScaleLevel = program[0].keyScaleLevel;
-		voice.operators[0].outputLevel = 63 - program[0].outputLevel;
+		voice.operators[0].outputLevel = kMaxVolume - program[0].outputLevel;
 	}
 
 	voice.operators[1].keyScaleLevel = program[1].keyScaleLevel;
-	voice.operators[1].outputLevel = 63 - program[1].outputLevel;
+	voice.operators[1].outputLevel = kMaxVolume - program[1].outputLevel;
 
-	// SSCI used an extra indirection here because of the way data in the patch
-	// file is arranged; we preprocess the patch data so can call sendOperator
-	// directly
+	// SSCI had some extra indirection here, where patch data was processed and
+	// assigned to a separate array of operators on every program change; we
+	// preprocess the patch data and pass the program data as an argument so can
+	// bypass this indirection
 	sendOperator(voiceToOperatorMap[voiceNo][0], program[0]);
 	sendOperator(voiceToOperatorMap[voiceNo][1], program[1]);
 }
 
 void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	Voice &voice = _voices[voiceNo];
+	Channel &channel = _channels[voice.originalChannel];
+
 	// SSCI assigned the note at the start of this function; we do it in the
 	// caller instead since almost every caller was just sending the note which
 	// was already assigned to the voice
 	uint8 note;
-	Channel &channel = _channels[voice.originalChannel];
 	if (voice.program >= 128) {
 		note = _rhythmMap[CLIP<uint8>(voice.note, 27, 88) - 27];
 	} else {
@@ -570,18 +565,12 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 		--fBlockNumber;
 	}
 	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
+	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
 
 	assert(voice.velocity < ARRAYSIZE(velocityToOutputLevelMap));
-	sendVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) / (kMaxVolume + 1) * _masterVolume / kMaxMasterVolume);
+	sendVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) * (_masterVolume + 1) / ((kMaxVolume + 1) * (kMaxMasterVolume + 1)));
 
-	uint8 value = fBlockNumber << 2; // block number
-	value |= (frequencyNumber >> 8); // frequency number high bits
-	if (noteOn) {
-		enum { kNoteOn = 0x20 };
-		value |= kNoteOn;
-	}
-
-	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
+	const uint8 value = (noteOn << 5) | (fBlockNumber << 2) | (frequencyNumber >> 8);
 	sendToHardware(kHighFrequencyNumberRegister + voiceNo, value);
 }
 
@@ -608,9 +597,11 @@ void AdLibDriver::sendVolume(const uint8 voiceNo, uint8 volume) {
 
 		uint8 operatorVolume = kMaxVolume - pannedVolume * voice.operators[1].outputLevel / kMaxVolume;
 		uint8 value = voice.operators[1].keyScaleLevel << 6 | operatorVolume;
-		uint8 reg = kKeyScaleOutputLevelRegister + voiceToOperatorMap[voiceNo][1];
+		uint8 reg = kKeyScaleOutputLevelRegister + operatorToRegisterMap[voiceToOperatorMap[voiceNo][1]];
 
-		if (stereoChannel == 0) {
+		if (!_isStereo) {
+			sendToHardware(reg, value);
+		} else if (stereoChannel == 0) {
 			sendRight(reg, value);
 		} else {
 			sendLeft(reg, value);
@@ -619,8 +610,10 @@ void AdLibDriver::sendVolume(const uint8 voiceNo, uint8 volume) {
 		if (voice.isAdditive) {
 			operatorVolume = kMaxVolume - pannedVolume * voice.operators[0].outputLevel / kMaxVolume;
 			value = voice.operators[0].keyScaleLevel << 6 | operatorVolume;
-			reg = kKeyScaleOutputLevelRegister + voiceToOperatorMap[voiceNo][0];
-			if (stereoChannel == 0) {
+			reg = kKeyScaleOutputLevelRegister + operatorToRegisterMap[voiceToOperatorMap[voiceNo][0]];
+			if (!_isStereo) {
+				sendToHardware(reg, value);
+			} else if (stereoChannel == 0) {
 				sendRight(reg, value);
 			} else {
 				sendLeft(reg, value);
@@ -645,17 +638,26 @@ void AdLibDriver::debugPrintState(Console &con) const {
 						voice.program, voice.velocity, voice.note,
 						voice.damperPedalOn);
 
-		if (voice.isAdditive) {
-			con.debugPrintf("   op 1: ksl %d ol %d\n",
-							voice.operators[0].keyScaleLevel,
-							voice.operators[0].outputLevel);
-		} else {
-			con.debugPrintf("   op 1: N/A\n");
+		for (uint j = 0; j < 2; ++j) {
+			if (j == 0 && !voice.isAdditive) {
+				con.debugPrintf("   op 1: N/A\n");
+				continue;
+			}
+			const Operator &op = _programs[voice.program][j];
+			con.debugPrintf("   op %d: wf %d ksl %d ol %d adsr %d %d %d %d\n",
+							j + 1,
+							op.waveform,
+							op.keyScaleLevel,
+							op.outputLevel,
+							op.attackRate,
+							op.decayRate,
+							op.sustainLevel,
+							op.releaseRate);
+			con.debugPrintf("         v %d t %d s %d es %d ff %d fmf %d\n",
+							op.vibratoOn, op.tremoloOn, op.sustainOn,
+							op.envelopeScalingOn, op.feedbackFactor,
+							op.frequencyMultiplicationFactor);
 		}
-
-		con.debugPrintf("   op 2: ksl %d ol %d\n",
-						voice.operators[1].keyScaleLevel,
-						voice.operators[1].outputLevel);
 	}
 
 	con.debugPrintf("\nChannels:\n");

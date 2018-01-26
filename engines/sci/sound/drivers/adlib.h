@@ -183,7 +183,7 @@ private:
 
 	typedef Common::FixedArray<Operator, 2> Program;
 
-	static Operator _defaultProgram[2];
+	static const Operator _defaultOperators[2];
 
 	void voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity);
 	void voiceOff(const uint8 voiceNo);
@@ -211,7 +211,6 @@ private:
 
 	Common::FixedArray<uint8, kNumVoices> _lruVoice;
 
-	Common::FixedArray<Operator, kNumOperators> _operators;
 	Common::FixedArray<Program, kNumPrograms> _programs;
 	Common::FixedArray<uint8, kRhythmMapSize> _rhythmMap;
 
