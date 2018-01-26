@@ -72,6 +72,8 @@ public:
 
 	virtual void enable(const bool enable) override;
 
+	virtual void debugPrintState(Console &con) const override;
+
 private:
 	enum {
 		kNumVoices = 9,
