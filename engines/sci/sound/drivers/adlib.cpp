@@ -87,28 +87,30 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 
 	// TODO: Earlier, smaller patches
 	SciSpan<const byte> data(*patchData);
-	for (uint i = 0; i < _programs.size(); ++i) {
-		Program &program = _programs[i];
-		for (uint j = 0; j < program.size(); ++j) {
-			Operator &op = program[j];
-			op.keyScaleLevel = *data++ & 0x3;
-			op.frequencyMultiplicationFactor = *data++ & 0xf;
-			op.feedbackFactor = *data++ & 0x7;
-			op.attackRate = *data++ & 0xf;
-			op.sustainLevel = *data++ & 0xf;
-			op.sustainOn = *data++;
-			op.decayRate = *data++ & 0xf;
-			op.releaseRate = *data++ & 0xf;
-			op.outputLevel = *data++ & 0x3f;
-			op.tremoloOn = *data++;
-			op.vibratoOn = *data++;
-			op.envelopeScalingOn = *data++;
-			op.isFrequencyModulation = *data++;
+	if (data.size() > 2690) {
+		// TODO: The different patch sizes change not only the patch data, but
+		// also the behaviour of the driver itself, even though this is not tied
+		// to any particular sound version (e.g. SQ4 uses "SCI1late" type driver
+		// even though the rest of its sound system is SCI1.1)
+		for (uint i = 0; i < _programs.size(); ++i) {
+			readProgramFromPatch(data, _programs[i]);
 		}
-		program[0].waveform = *data++ & 0x3;
-		program[1].waveform = *data++ & 0x3;
+		data.subspan(0, _rhythmMap.size()).unsafeCopyDataTo(_rhythmMap.data());
+	} else {
+		uint i = 0;
+		for (; i < 48; ++i) {
+			readProgramFromPatch(data, _programs[i]);
+		}
+		if (data.size() > 2 && data.getUint16BEAt(0) == 0xabcd) {
+			data += 2;
+			for (; i < 96; ++i) {
+				readProgramFromPatch(data, _programs[i]);
+			}
+		}
+		for (; i < _programs.size(); ++i) {
+			_programs[i] = {};
+		}
 	}
-	data.subspan(0, _rhythmMap.size()).unsafeCopyDataTo(_rhythmMap.data());
 
 	_opl.reset(OPL::Config::create(OPL::Config::kDualOpl2));
 	if (!_opl) {
@@ -133,7 +135,7 @@ AdLibDriver::~AdLibDriver() {
 }
 
 void AdLibDriver::service() {
-	// no-op in SCI32
+	// no-op in SCI1.1/SCI32
 }
 
 void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity) {
@@ -313,6 +315,27 @@ void AdLibDriver::debugPrintState(Console &con) const {
 	}
 }
 
+void AdLibDriver::readProgramFromPatch(SciSpan<const byte> &data, Program &program) {
+	for (uint i = 0; i < program.size(); ++i) {
+		Operator &op = program[i];
+		op.keyScaleLevel = *data++ & 0x3;
+		op.frequencyMultiplicationFactor = *data++ & 0xf;
+		op.feedbackFactor = *data++ & 0x7;
+		op.attackRate = *data++ & 0xf;
+		op.sustainLevel = *data++ & 0xf;
+		op.sustainOn = *data++;
+		op.decayRate = *data++ & 0xf;
+		op.releaseRate = *data++ & 0xf;
+		op.outputLevel = *data++ & 0x3f;
+		op.tremoloOn = *data++;
+		op.vibratoOn = *data++;
+		op.envelopeScalingOn = *data++;
+		op.isFrequencyModulation = *data++;
+	}
+	program[0].waveform = *data++ & 0x3;
+	program[1].waveform = *data++ & 0x3;
+}
+
 void AdLibDriver::setChannelExtraVoices(const uint8 channelNo, const uint8 numVoices) {
 	uint8 numActiveVoices = 0;
 
@@ -325,9 +348,9 @@ void AdLibDriver::setChannelExtraVoices(const uint8 channelNo, const uint8 numVo
 
 	numActiveVoices += _channels[channelNo].numInactiveExtraVoices;
 	if (numActiveVoices > numVoices) {
-		releaseVoices(channelNo, numActiveVoices - numVoices);
+		releaseExtraVoices(channelNo, numActiveVoices - numVoices);
 	} else if (numActiveVoices < numVoices) {
-		assignVoices(channelNo, numVoices - numActiveVoices);
+		assignExtraVoices(channelNo, numVoices - numActiveVoices);
 	}
 }
 
@@ -429,7 +452,7 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 	return kUnmapped;
 }
 
-void AdLibDriver::assignVoices(const uint8 channelNo, uint8 numVoices) {
+void AdLibDriver::assignExtraVoices(const uint8 channelNo, uint8 numVoices) {
 	Channel &channel = _channels[channelNo];
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
@@ -445,7 +468,7 @@ void AdLibDriver::assignVoices(const uint8 channelNo, uint8 numVoices) {
 	channel.numInactiveExtraVoices += numVoices;
 }
 
-void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
+void AdLibDriver::releaseExtraVoices(const uint8 channelNo, uint8 numVoices) {
 	Channel &channel = _channels[channelNo];
 	if (channel.numInactiveExtraVoices >= numVoices) {
 		channel.numInactiveExtraVoices -= numVoices;
@@ -489,12 +512,12 @@ void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
 		if (newChannel.numInactiveExtraVoices) {
 			if (newChannel.numInactiveExtraVoices >= numVoices) {
 				newChannel.numInactiveExtraVoices -= numVoices;
-				assignVoices(i, numVoices);
+				assignExtraVoices(i, numVoices);
 			} else {
 				const uint8 voicesToAssign = newChannel.numInactiveExtraVoices;
 				numVoices -= voicesToAssign;
 				newChannel.numInactiveExtraVoices = 0;
-				assignVoices(i, voicesToAssign);
+				assignExtraVoices(i, voicesToAssign);
 			}
 		}
 	}

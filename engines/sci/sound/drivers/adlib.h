@@ -264,6 +264,12 @@ private:
 	static const Operator _defaultOperators[2];
 
 	/**
+	 * Reads a program from the patch data and advances the data to point to the
+	 * next program or end of program data.
+	 */
+	void readProgramFromPatch(SciSpan<const byte> &data, Program &program);
+
+	/**
 	 * Changes the number of voices assigned to the given channel.
 	 */
 	void setChannelExtraVoices(const uint8 channelNo, const uint8 numVoices);
@@ -293,12 +299,12 @@ private:
 	/**
 	 * Tries to assign up to `numVoices` extra voices to the given channel.
 	 */
-	void assignVoices(const uint8 channelNo, const uint8 numVoices);
+	void assignExtraVoices(const uint8 channelNo, const uint8 numVoices);
 
 	/**
 	 * Releases up to `numVoices` extra voices from the given channel.
 	 */
-	void releaseVoices(const uint8 channelNo, const uint8 numVoices);
+	void releaseExtraVoices(const uint8 channelNo, const uint8 numVoices);
 
 	/**
 	 * Sets the program for a voice.
