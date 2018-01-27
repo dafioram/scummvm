@@ -88,15 +88,19 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 	// TODO: Earlier, smaller patches
 	SciSpan<const byte> data(*patchData);
 	if (data.size() > 2690) {
-		// TODO: The different patch sizes change not only the patch data, but
-		// also the behaviour of the driver itself, even though this is not tied
-		// to any particular sound version (e.g. SQ4 uses "SCI1late" type driver
-		// even though the rest of its sound system is SCI1.1)
 		for (uint i = 0; i < _programs.size(); ++i) {
 			readProgramFromPatch(data, _programs[i]);
 		}
 		data.subspan(0, _rhythmMap.size()).unsafeCopyDataTo(_rhythmMap.data());
 	} else {
+		// The different patch sizes change not only the patch data, but also
+		// the behaviour of the driver itself, even though this is not tied to
+		// any particular sound version (e.g. SQ4 uses "SCI1late" type driver
+		// even though the rest of its sound system is SCI1.1)
+		if (_version > SCI_VERSION_1_LATE) {
+			_version = SCI_VERSION_1_LATE;
+		}
+
 		uint i = 0;
 		for (; i < 48; ++i) {
 			readProgramFromPatch(data, _programs[i]);
@@ -135,7 +139,10 @@ AdLibDriver::~AdLibDriver() {
 }
 
 void AdLibDriver::service() {
-	// no-op in SCI1.1/SCI32
+	// no-op
+
+	// In SCI1late- this counted ticks, but the LRU from SCI1.1 does effectively
+	// the same thing with less effort so the LRU is used for all versions
 }
 
 void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity) {
@@ -148,6 +155,9 @@ void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
 		if (voice.originalChannel == channelNo && voice.note == note) {
+			if (_version < SCI_VERSION_1_1) {
+				voice.damperPedalOn = false;
+			}
 			voiceOff(i);
 			voiceOn(i, note, velocity);
 			return;
@@ -185,6 +195,9 @@ void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controller
 			for (uint i = 0; i < _voices.size(); ++i) {
 				Voice &voice = _voices[i];
 				if (voice.originalChannel == channelNo && voice.damperPedalOn) {
+					if (_version < SCI_VERSION_1_1) {
+						voice.damperPedalOn = false;
+					}
 					voiceOff(i);
 				}
 			}
@@ -233,6 +246,8 @@ void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
 	_channels[channelNo].pitchBend = bend;
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
+		// SSCI1late- did not check for unmapped note, but would just end up
+		// aborting in sendNote since kUnmapped is above the maximum note range
 		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
 			sendNote(i, true);
 		}
@@ -250,12 +265,14 @@ void AdLibDriver::setMasterVolume(const uint8 volume) {
 
 void AdLibDriver::enable(const bool enable) {
 	SoundDriver::enable(enable);
-	const uint8 masterVolume = _masterVolume;
-	if (enable) {
-		setMasterVolume(masterVolume);
-	} else {
-		setMasterVolume(0);
-		_masterVolume = masterVolume;
+	if (_version >= SCI_VERSION_1_1) {
+		const uint8 masterVolume = _masterVolume;
+		if (enable) {
+			setMasterVolume(masterVolume);
+		} else {
+			setMasterVolume(0);
+			_masterVolume = masterVolume;
+		}
 	}
 }
 
@@ -361,7 +378,7 @@ void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 vel
 	updateLru(voiceNo);
 
 	uint8 programNo;
-	if (voice.originalChannel == kPercussionChannel) {
+	if (_version >= SCI_VERSION_1_1 && voice.originalChannel == kPercussionChannel) {
 		programNo = CLIP<uint8>(note, 27, 88) + 101;
 	} else {
 		programNo = channel.program;
@@ -379,7 +396,11 @@ void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 vel
 
 void AdLibDriver::voiceOff(const uint8 voiceNo) {
 	Voice &voice = _voices[voiceNo];
-	voice.damperPedalOn = false;
+	if (_version >= SCI_VERSION_1_1) {
+		voice.damperPedalOn = false;
+	} else if (voice.damperPedalOn) {
+		return;
+	}
 	sendNote(voiceNo, false);
 	voice.note = kUnmapped;
 	updateLru(voiceNo);
@@ -443,6 +464,9 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 		const uint8 voiceNo = _lruVoice[i];
 		Voice &voice = _voices[voiceNo];
 		if (voice.originalChannel == bestChannelNo) {
+			if (_version < SCI_VERSION_1_1) {
+				voice.damperPedalOn = false;
+			}
 			voiceOff(voiceNo);
 			voice.originalChannel = channelNo;
 			return voiceNo;
@@ -490,6 +514,9 @@ void AdLibDriver::releaseExtraVoices(const uint8 channelNo, uint8 numVoices) {
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
 		if (voice.extraChannel == channelNo) {
+			if (_version < SCI_VERSION_1_1) {
+				voice.damperPedalOn = false;
+			}
 			voiceOff(i);
 			voice.extraChannel = kUnmapped;
 			--channel.numActiveExtraVoices;
@@ -601,16 +628,23 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	// caller instead since almost every caller was just sending the note which
 	// was already assigned to the voice
 	uint8 note;
-	if (voice.program >= 128) {
+	if (_version >= SCI_VERSION_1_1 && voice.program >= 128) {
 		note = _rhythmMap[CLIP<uint8>(voice.note, 27, 88) - 27];
 	} else {
 		note = voice.note;
 	}
 
-	// SSCI called a separate function and then checked for a return value of
-	// 0xffff, but no such value could ever be generated by that function and
-	// it was only ever called once, so its calculation is inlined here
-	const uint16 frequency = MIN(508, note * 4 + (channel.pitchBend - 0x2000) / 171);
+	// SSCI called a separate function, but it was only ever called once, so its
+	// calculation is inlined here
+	uint16 frequency = note * 4 + (channel.pitchBend - 0x2000) / 171;
+	if (frequency >= 508) {
+		if (_version >= SCI_VERSION_1_1) {
+			frequency = 508;
+		} else {
+			return;
+		}
+	}
+
 	const uint8 fNumberIndex = frequency % ARRAYSIZE(frequencyNumbers);
 	uint8 fBlockNumber = frequency / ARRAYSIZE(frequencyNumbers);
 	if (fBlockNumber) {

@@ -46,7 +46,10 @@ public:
 		percussionMask = 0;
 	}
 
-	virtual void getRemapRange(uint8 &low, uint8 &high) const override { low = 0; high = 8; }
+	virtual void getRemapRange(uint8 &low, uint8 &high) const override {
+		low = 0;
+		high = _version >= SCI_VERSION_1_1 ? 8 : 15;
+	}
 
 	virtual void service() override;
 
@@ -359,7 +362,9 @@ private:
 	/** List of program patch data. */
 	Common::FixedArray<Program, kNumPrograms> _programs;
 
-	/** A note-to-note map for voices assigned to percussion. */
+	/**
+	 * A note-to-note map for voices assigned to percussion. Used by SCI1.1+.
+	 */
 	Common::FixedArray<uint8, kRhythmMapSize> _rhythmMap;
 
 	/** The output OPL device. */
