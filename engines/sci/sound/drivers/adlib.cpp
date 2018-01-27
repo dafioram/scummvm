@@ -145,7 +145,7 @@ void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelNo && voice.note == note) {
+		if (voice.originalChannel == channelNo && voice.note == note) {
 			voiceOff(i);
 			voiceOn(i, note, velocity);
 			return;
@@ -190,7 +190,7 @@ void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controller
 		return;
 
 	case kMaxVoicesController:
-		setChannelNumVoices(channelNo, value);
+		setChannelExtraVoices(channelNo, value);
 		return;
 
 	default:
@@ -262,19 +262,19 @@ void AdLibDriver::debugPrintState(Console &con) const {
 	for (uint i = 0; i < _voices.size(); ++i) {
 		const Voice &voice = _voices[i];
 
-		if (voice.originalChannel == kUnmapped && voice.currentChannel == kUnmapped) {
+		if (voice.originalChannel == kUnmapped && voice.extraChannel == kUnmapped) {
 			con.debugPrintf("%d: unmapped\n", i);
 			continue;
 		}
 
 		con.debugPrintf("%d: ch %2d / %2d pr %3d v %2d n %3d dp %d\n",
 						i,
-						voice.originalChannel, voice.currentChannel,
+						voice.originalChannel, voice.extraChannel,
 						voice.program, voice.velocity, voice.note,
 						voice.damperPedalOn);
 
 		for (uint j = 0; j < 2; ++j) {
-			if (j == 0 && !voice.isAdditive) {
+			if (j == 0 && !voice.isAM) {
 				con.debugPrintf("   op 1: N/A\n");
 				continue;
 			}
@@ -308,22 +308,22 @@ void AdLibDriver::debugPrintState(Console &con) const {
 						i, channel.program, channel.volume, channel.pan,
 						channel.pitchBend, channel.damperPedalOn);
 		con.debugPrintf("    res.v %d ass.v %d act.v %d\n",
-						channel.numReservedVoices, channel.numAssignedVoices,
+						channel.numInactiveExtraVoices, channel.numActiveExtraVoices,
 						channel.numActiveVoices);
 	}
 }
 
-void AdLibDriver::setChannelNumVoices(const uint8 channelNo, const uint8 numVoices) {
+void AdLibDriver::setChannelExtraVoices(const uint8 channelNo, const uint8 numVoices) {
 	uint8 numActiveVoices = 0;
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelNo) {
+		if (voice.extraChannel == channelNo) {
 			++numActiveVoices;
 		}
 	}
 
-	numActiveVoices += _channels[channelNo].numReservedVoices;
+	numActiveVoices += _channels[channelNo].numInactiveExtraVoices;
 	if (numActiveVoices > numVoices) {
 		releaseVoices(channelNo, numActiveVoices - numVoices);
 	} else if (numActiveVoices < numVoices) {
@@ -403,8 +403,8 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 	for (uint i = 0; i < _channels.size(); ++i) {
 		Channel &channel = _channels[i];
 		uint8 numActiveVoices = channel.numActiveVoices;
-		if (numActiveVoices > channel.numAssignedVoices) {
-			numActiveVoices -= channel.numAssignedVoices;
+		if (numActiveVoices > channel.numActiveExtraVoices) {
+			numActiveVoices -= channel.numActiveExtraVoices;
 			if (bestVoicesDelta < numActiveVoices) {
 				bestVoicesDelta = numActiveVoices;
 				bestChannelNo = i;
@@ -433,66 +433,67 @@ void AdLibDriver::assignVoices(const uint8 channelNo, uint8 numVoices) {
 	Channel &channel = _channels[channelNo];
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == kUnmapped) {
+		if (voice.extraChannel == kUnmapped) {
 			if (voice.note != kUnmapped) {
 				voiceOff(i);
 			}
-			voice.currentChannel = channelNo;
-			++channel.numAssignedVoices;
+			voice.extraChannel = channelNo;
+			++channel.numActiveExtraVoices;
 			--numVoices;
 		}
 	}
-	channel.numReservedVoices += numVoices;
+	channel.numInactiveExtraVoices += numVoices;
 }
 
 void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
 	Channel &channel = _channels[channelNo];
-	if (channel.numReservedVoices >= numVoices) {
-		channel.numReservedVoices -= numVoices;
+	if (channel.numInactiveExtraVoices >= numVoices) {
+		channel.numInactiveExtraVoices -= numVoices;
 		return;
 	}
 
-	numVoices -= channel.numReservedVoices;
-	channel.numReservedVoices = 0;
+	numVoices -= channel.numInactiveExtraVoices;
+	channel.numInactiveExtraVoices = 0;
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelNo && voice.note == kUnmapped) {
-			voice.currentChannel = kUnmapped;
-			--channel.numAssignedVoices;
+		if (voice.extraChannel == channelNo && voice.note == kUnmapped) {
+			voice.extraChannel = kUnmapped;
+			--channel.numActiveExtraVoices;
 			--numVoices;
 		}
 	}
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == channelNo) {
+		if (voice.extraChannel == channelNo) {
 			voiceOff(i);
-			voice.currentChannel = kUnmapped;
-			--channel.numAssignedVoices;
+			voice.extraChannel = kUnmapped;
+			--channel.numActiveExtraVoices;
 			--numVoices;
 		}
 	}
 
-	// This is DistributeVoices
+	// In SSCI this code was in a separate function; since it was only invoked
+	// once from the same place, we just merge them both together
 	numVoices = 0;
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.currentChannel == kUnmapped) {
+		if (voice.extraChannel == kUnmapped) {
 			++numVoices;
 		}
 	}
 
 	for (uint i = 0; i < _channels.size(); ++i) {
 		Channel &newChannel = _channels[i];
-		if (newChannel.numReservedVoices) {
-			if (newChannel.numReservedVoices >= numVoices) {
-				newChannel.numReservedVoices -= numVoices;
+		if (newChannel.numInactiveExtraVoices) {
+			if (newChannel.numInactiveExtraVoices >= numVoices) {
+				newChannel.numInactiveExtraVoices -= numVoices;
 				assignVoices(i, numVoices);
 			} else {
-				const uint8 voicesToAssign = newChannel.numReservedVoices;
+				const uint8 voicesToAssign = newChannel.numInactiveExtraVoices;
 				numVoices -= voicesToAssign;
-				newChannel.numReservedVoices = 0;
+				newChannel.numInactiveExtraVoices = 0;
 				assignVoices(i, voicesToAssign);
 			}
 		}
@@ -502,9 +503,9 @@ void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
 void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 	Voice &voice = _voices[voiceNo];
 	Program &program = _programs[programNo];
-	voice.isAdditive = !program[0].isFrequencyModulation;
+	voice.isAM = !program[0].isFrequencyModulation;
 
-	if (voice.isAdditive) {
+	if (voice.isAM) {
 		voice.operators[0].keyScaleLevel = program[0].keyScaleLevel;
 		voice.operators[0].outputLevel = kMaxVolume - program[0].outputLevel;
 	}
@@ -512,10 +513,11 @@ void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 	voice.operators[1].keyScaleLevel = program[1].keyScaleLevel;
 	voice.operators[1].outputLevel = kMaxVolume - program[1].outputLevel;
 
-	// SSCI had some extra indirection here, where patch data was processed and
+	// SSCI did some extra work here, where patch data was processed and
 	// assigned to a separate array of operators on every program change; we
-	// preprocess the patch data and pass the program data as an argument so can
-	// bypass this indirection
+	// skip that unnecessary extra work entirely by preprocessing the patch data
+	// at driver startup so we can just send the program's operator parameters
+	// directly to the hardware
 	sendOperator(voiceToOperatorMap[voiceNo][0], program[0]);
 	sendOperator(voiceToOperatorMap[voiceNo][1], program[1]);
 }
@@ -553,7 +555,7 @@ void AdLibDriver::setVoiceVolume(const uint8 voiceNo, uint8 volume) {
 			sendLeft(reg, value);
 		}
 
-		if (voice.isAdditive) {
+		if (voice.isAM) {
 			operatorVolume = kMaxVolume - pannedVolume * voice.operators[0].outputLevel / kMaxVolume;
 			value = voice.operators[0].keyScaleLevel << 6 | operatorVolume;
 			reg = kKeyScaleOutputLevelRegister + operatorToRegisterMap[voiceToOperatorMap[voiceNo][0]];
@@ -594,6 +596,9 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
 	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
 
+	// TODO: Output level is not always accurate, there seems to be a rounding
+	// difference somewhere so occasionally we are sending an output level value
+	// one bit lower than SSCI
 	assert(voice.velocity < ARRAYSIZE(velocityToOutputLevelMap));
 	setVoiceVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) * (_masterVolume + 1) / ((kMaxVolume + 1) * (kMaxMasterVolume + 1)));
 

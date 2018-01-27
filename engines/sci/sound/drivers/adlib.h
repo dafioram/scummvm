@@ -157,6 +157,7 @@ private:
 		kWaveformSelectRegister = 0xe0
 	};
 
+	/** Sound resource channel state. */
 	struct Channel {
 		/** Whether or not the damper pedal is on for this channel. */
 		bool damperPedalOn;
@@ -168,11 +169,11 @@ private:
 		uint8 volume;
 		/** The stereo pan for this channel. */
 		uint8 pan;
-		/** The number of voices reserved for this channel. TODO: Rename to 'unusable' or 'unused'? This is the number of requested voices still remaining unassigned after all voices have been assigned. */
-		uint8 numReservedVoices;
-		/** The number of voices assigned to this channel. */
-		uint8 numAssignedVoices;
-		/** The number of active voices for this channel. */
+		/** The number of inactive extra voices for this channel. */
+		uint8 numInactiveExtraVoices;
+		/** The number of active extra voices assigned to this channel. */
+		uint8 numActiveExtraVoices;
+		/** The number of non-extra active voices for this channel. */
 		uint8 numActiveVoices;
 
 		Channel() :
@@ -181,16 +182,19 @@ private:
 			program(0),
 			volume(63),
 			pan(64),
-			numReservedVoices(0),
-			numAssignedVoices(0),
+			numInactiveExtraVoices(0),
+			numActiveExtraVoices(0),
 			numActiveVoices(0) {}
 	};
 
+	/** OPL voice state. SCI always uses 2-op voices. */
 	struct Voice {
 		/** Whether or not the damper pedal is on for this voice. */
 		bool damperPedalOn;
-		/** If true, this voice uses additive synthesis instead of FM synthesis. TODO: Should be two ops? Seems to be more about having information for a second operator, from the patch reading side of things. */
-		bool isAdditive;
+
+		/** If true, this voice uses AM synthesis instead of FM synthesis. */
+		bool isAM;
+
 		/** The current operator states for this voice. */
 		struct {
 			/** The operator's key scale attenuation level. */
@@ -198,31 +202,43 @@ private:
 			/** The operator's output attenuation level. */
 			uint16 outputLevel;
 		} operators[2];
-		/** The originally assigned channel for this voice. */
-		uint8 originalChannel;
+
 		/**
-		 * The currently assigned channel for this voice, if the voice is being
-		 * used to provide optional additional polyphony for a channel.
+		 * The explicitly assigned channel for this voice, or `kUnmapped` if
+		 * there is no explicitly assigned channel.
 		 */
-		uint8 currentChannel;
-		/** The current note for this voice. */
+		uint8 originalChannel;
+
+		/**
+		 * The extra channel assigned to this voice, or `kUnmapped` if no extra
+		 * channel is assigned.
+		 */
+		uint8 extraChannel;
+
+		/**
+		 * The current note for this voice, or `kUnmapped` if no note is
+		 * playing.
+		 */
 		uint8 note;
+
 		/** The current velocity for this voice. */
 		uint8 velocity;
+
 		/** The current program for this voice. */
 		uint8 program;
 
 		Voice() :
 			damperPedalOn(false),
-			isAdditive(false),
+			isAM(false),
 			operators(),
 			originalChannel(kUnmapped),
 			note(kUnmapped),
 			velocity(0),
 			program(kUnmapped),
-			currentChannel(kUnmapped) {}
+			extraChannel(kUnmapped) {}
 	};
 
+	/** OPL operator parameters. */
 	struct Operator {
 		uint8 keyScaleLevel;
 		uint8 frequencyMultiplicationFactor;
@@ -240,6 +256,7 @@ private:
 		uint8 waveform;
 	};
 
+	/** 2-op OPL program. */
 	typedef Common::FixedArray<Operator, 2> Program;
 
 	// TODO: Get rid of these if all SSCI versions always set operators from
@@ -249,7 +266,7 @@ private:
 	/**
 	 * Changes the number of voices assigned to the given channel.
 	 */
-	void setChannelNumVoices(const uint8 channelNo, const uint8 numVoices);
+	void setChannelExtraVoices(const uint8 channelNo, const uint8 numVoices);
 
 	/**
 	 * Turns on a note for the given voice. This will not retrigger
