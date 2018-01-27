@@ -85,17 +85,75 @@ private:
 	};
 
 	enum OplRegister {
+		/**
+		 * This register globally enables waveform selection for operators
+		 * through the Waveform Select register.
+		 */
 		kWaveformSelectEnableRegister = 1,
+
+		/**
+		 * This register globally sets the bit used from the frequency number
+		 * when determining which note in an octave is the split point for the
+		 * octave.
+		 */
 		kKeySplitRegister = 8,
+
+		/**
+		 * This register enables tremolo, vibrato, sustain, & envelope scaling
+		 * for an operator, and controls the frequency multiplication factor for
+		 * the frequency number given in the frequency number register for the
+		 * associated voice.
+		 */
 		kSavekRegister = 0x20,
+
+		/**
+		 * This register controls the attenuation of an operator (Output
+		 * Level) as well as additional attenuation applied to every octave (Key
+		 * Scale).
+		 */
 		kKeyScaleOutputLevelRegister = 0x40,
+
+		/**
+		 * This register controls the attack and decay rates for an operator's
+		 * ADSR envelope.
+		 */
 		kAttackDecayRegister = 0x60,
+
+		/**
+		 * This register controls the sustain and release rates for an
+		 * operator's ADSR envelope.
+		 */
 		kSustainReleaseRegister = 0x80,
+
+		/**
+		 * This register controls the frequency of a voice. It receives the low
+		 * 8 bits of the frequency number.
+		 */
 		kLowFrequencyNumberRegister = 0xa0,
+
+		/**
+		 * This register controls the frequency of a voice and whether or not
+		 * the voice is playing. It receives the high 2 bits of the frequency
+		 * number, the frequency block number, and the playing bit.
+		 */
 		kHighFrequencyNumberRegister = 0xb0,
-		kPercussonRegister = 0xbd,
-		kSpeakerEnableRegisterLow = 0xc0,
-		kSpeakerEnableRegisterHigh = 0xc8,
+
+		/**
+		 * This register globally controls the tremolo and vibrato depth,
+		 * percussion mode, and controls whether or not each of the five
+		 * percussion channels are playing when percussion mode is enabled.
+		 */
+		kPercussionRegister = 0xbd,
+
+		/**
+		 * This register controls the output channel (OPL3 only), synthesis
+		 * type, and feedback level and of a voice.
+		 */
+		kSynthTypeRegister = 0xc0,
+
+		/**
+		 * This register selects the waveform for an operator.
+		 */
 		kWaveformSelectRegister = 0xe0
 	};
 
@@ -128,8 +186,6 @@ private:
 			numActiveVoices(0) {}
 	};
 
-	Common::FixedArray<Channel, kNumChannels> _channels;
-
 	struct Voice {
 		/** Whether or not the damper pedal is on for this voice. */
 		bool damperPedalOn;
@@ -144,7 +200,10 @@ private:
 		} operators[2];
 		/** The originally assigned channel for this voice. */
 		uint8 originalChannel;
-		/** The currently assigned channel for this voice. */
+		/**
+		 * The currently assigned channel for this voice, if the voice is being
+		 * used to provide optional additional polyphony for a channel.
+		 */
 		uint8 currentChannel;
 		/** The current note for this voice. */
 		uint8 note;
@@ -183,39 +242,107 @@ private:
 
 	typedef Common::FixedArray<Operator, 2> Program;
 
+	// TODO: Get rid of these if all SSCI versions always set operators from
+	// patch data
 	static const Operator _defaultOperators[2];
 
-	void voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity);
-	void voiceOff(const uint8 voiceNo);
-	uint8 findFreeVoice(const uint8 channelNo);
+	/**
+	 * Changes the number of voices assigned to the given channel.
+	 */
 	void setChannelNumVoices(const uint8 channelNo, const uint8 numVoices);
 
-	void assignVoices(const uint8 channelNo, const uint8 numVoices);
-	void releaseVoices(const uint8 channelNo, const uint8 numVoices);
+	/**
+	 * Turns on a note for the given voice. This will not retrigger
+	 * already-playing notes.
+	 */
+	void voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity);
 
-	void sendNote(const uint8 voiceNo, const bool noteOn);
+	/**
+	 * Turns off the voice.
+	 */
+	void voiceOff(const uint8 voiceNo);
 
-	void sendToHardware(const uint8 registerNo, const uint8 value);
-	void sendLeft(const uint8 registerNo, const uint8 value);
-	void sendRight(const uint8 registerNo, const uint8 value);
-	void resetOpl();
-
-	void setVoiceProgram(const uint8 voiceNo, const uint8 programNo);
-
+	/**
+	 * Updates the least-recently-used voice list.
+	 */
 	void updateLru(const uint8 voiceNo);
 
-	void sendOperator(const uint8 opNo, const Operator &op);
-	void sendVolume(const uint8 voiceNo, const uint8 volume);
+	/**
+	 * Finds the best free voice for playback of a new note for the given
+	 * channel. If no free voice could be found, kUnmapped is returned.
+	 */
+	uint8 findFreeVoice(const uint8 channelNo);
 
+	/**
+	 * Tries to assign up to `numVoices` extra voices to the given channel.
+	 */
+	void assignVoices(const uint8 channelNo, const uint8 numVoices);
+
+	/**
+	 * Releases up to `numVoices` extra voices from the given channel.
+	 */
+	void releaseVoices(const uint8 channelNo, const uint8 numVoices);
+
+	/**
+	 * Sets the program for a voice.
+	 */
+	void setVoiceProgram(const uint8 voiceNo, const uint8 programNo);
+
+	/**
+	 * Sets the volume of a voice.
+	 */
+	void setVoiceVolume(const uint8 voiceNo, const uint8 volume);
+
+	/**
+	 * Sends a note for the given voice to hardware.
+	 */
+	void sendNote(const uint8 voiceNo, const bool noteOn);
+
+	/**
+	 * Programs the given operator number with the given Operator parameters.
+	 */
+	void sendOperator(const uint8 opNo, const Operator &op);
+
+	/**
+	 * Writes the given register to hardware.
+	 */
+	void sendToHardware(const uint8 registerNo, const uint8 value);
+
+	/**
+	 * Writes the given register to the hardware's right output channel.
+	 */
+	void sendLeft(const uint8 registerNo, const uint8 value);
+
+	/**
+	 * Writes the given register to the hardware's left output channel.
+	 */
+	void sendRight(const uint8 registerNo, const uint8 value);
+
+	/** Resets all OPL registers. */
+	void resetOpl();
+
+	/** Information on input sound channels. */
+	Common::FixedArray<Channel, kNumChannels> _channels;
+
+	/** Information on OPL voices. */
 	Common::FixedArray<Voice, kNumVoices> _voices;
 
+	/**
+	 * List of least recently used voices, where the 0 is the least recently
+	 * used voice.
+	 */
 	Common::FixedArray<uint8, kNumVoices> _lruVoice;
 
+	/** List of program patch data. */
 	Common::FixedArray<Program, kNumPrograms> _programs;
+
+	/** A note-to-note map for voices assigned to percussion. */
 	Common::FixedArray<uint8, kRhythmMapSize> _rhythmMap;
 
+	/** The output OPL device. */
 	Common::ScopedPtr<OPL::OPL> _opl;
 
+	/** Whether or not output should be in stereo. */
 	bool _isStereo;
 };
 

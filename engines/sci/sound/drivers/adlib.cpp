@@ -223,6 +223,96 @@ void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controller
 	}
 }
 
+void AdLibDriver::programChange(const uint8 channelNo, const uint8 programNo) {
+	_channels[channelNo].program = programNo;
+}
+
+void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
+	_channels[channelNo].pitchBend = bend;
+	for (uint i = 0; i < _voices.size(); ++i) {
+		Voice &voice = _voices[i];
+		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
+			sendNote(i, true);
+		}
+	}
+}
+
+void AdLibDriver::setMasterVolume(const uint8 volume) {
+	SoundDriver::setMasterVolume(volume);
+	for (uint i = 0; i < _voices.size(); ++i) {
+		if (_voices[i].note != kUnmapped) {
+			sendNote(i, true);
+		}
+	}
+}
+
+void AdLibDriver::enable(const bool enable) {
+	SoundDriver::enable(enable);
+	const uint8 masterVolume = _masterVolume;
+	if (enable) {
+		setMasterVolume(masterVolume);
+	} else {
+		setMasterVolume(0);
+		_masterVolume = masterVolume;
+	}
+}
+
+void AdLibDriver::debugPrintState(Console &con) const {
+	con.debugPrintf("Voices:\n");
+	for (uint i = 0; i < _voices.size(); ++i) {
+		const Voice &voice = _voices[i];
+
+		if (voice.originalChannel == kUnmapped && voice.currentChannel == kUnmapped) {
+			con.debugPrintf("%d: unmapped\n", i);
+			continue;
+		}
+
+		con.debugPrintf("%d: ch %2d / %2d pr %3d v %2d n %3d dp %d\n",
+						i,
+						voice.originalChannel, voice.currentChannel,
+						voice.program, voice.velocity, voice.note,
+						voice.damperPedalOn);
+
+		for (uint j = 0; j < 2; ++j) {
+			if (j == 0 && !voice.isAdditive) {
+				con.debugPrintf("   op 1: N/A\n");
+				continue;
+			}
+			const Operator &op = _programs[voice.program][j];
+			con.debugPrintf("   op %d: wf %d ksl %d ol %d adsr %d %d %d %d\n",
+							j + 1,
+							op.waveform,
+							op.keyScaleLevel,
+							op.outputLevel,
+							op.attackRate,
+							op.decayRate,
+							op.sustainLevel,
+							op.releaseRate);
+			con.debugPrintf("         v %d t %d s %d es %d ff %d fmf %d\n",
+							op.vibratoOn, op.tremoloOn, op.sustainOn,
+							op.envelopeScalingOn, op.feedbackFactor,
+							op.frequencyMultiplicationFactor);
+		}
+	}
+
+	con.debugPrintf("\nChannels:\n");
+	for (uint i = 0; i < _channels.size(); ++i) {
+		const Channel &channel = _channels[i];
+
+		if (!channel.program) {
+			con.debugPrintf("%2d: unmapped\n", i);
+			continue;
+		}
+
+		con.debugPrintf("%2d: pr %3d v %2d p %2d pb %04x dp %d\n",
+						i, channel.program, channel.volume, channel.pan,
+						channel.pitchBend, channel.damperPedalOn);
+		con.debugPrintf("    res.v %d ass.v %d act.v %d\n",
+						channel.numReservedVoices, channel.numAssignedVoices,
+						channel.numActiveVoices);
+	}
+}
+
 void AdLibDriver::setChannelNumVoices(const uint8 channelNo, const uint8 numVoices) {
 	uint8 numActiveVoices = 0;
 
@@ -241,88 +331,102 @@ void AdLibDriver::setChannelNumVoices(const uint8 channelNo, const uint8 numVoic
 	}
 }
 
-void AdLibDriver::programChange(const uint8 channelNo, const uint8 programNo) {
-	_channels[channelNo].program = programNo;
-}
+void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity) {
+	Voice &voice = _voices[voiceNo];
+	Channel &channel = _channels[voice.originalChannel];
+	++channel.numActiveVoices;
+	updateLru(voiceNo);
 
-void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
-	_channels[channelNo].pitchBend = bend;
-	for (uint i = 0; i < _voices.size(); ++i) {
-		Voice &voice = _voices[i];
-		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
-			sendNote(i, true);
-		}
-	}
-}
-
-void AdLibDriver::enable(const bool enable) {
-	SoundDriver::enable(enable);
-	const uint8 masterVolume = _masterVolume;
-	if (enable) {
-		setMasterVolume(masterVolume);
+	uint8 programNo;
+	if (voice.originalChannel == kPercussionChannel) {
+		programNo = CLIP<uint8>(note, 27, 88) + 101;
 	} else {
-		setMasterVolume(0);
-		_masterVolume = masterVolume;
+		programNo = channel.program;
 	}
+
+	if (voice.program != programNo && isEnabled()) {
+		voice.program = programNo;
+		setVoiceProgram(voiceNo, programNo);
+	}
+
+	voice.velocity = velocity;
+	voice.note = note;
+	sendNote(voiceNo, true);
 }
 
-void AdLibDriver::setMasterVolume(const uint8 volume) {
-	SoundDriver::setMasterVolume(volume);
+void AdLibDriver::voiceOff(const uint8 voiceNo) {
+	Voice &voice = _voices[voiceNo];
+	voice.damperPedalOn = false;
+	sendNote(voiceNo, false);
+	voice.note = kUnmapped;
+	updateLru(voiceNo);
+	--_channels[voice.originalChannel].numActiveVoices;
+}
+
+void AdLibDriver::updateLru(const uint8 voiceNo) {
+	for (uint i = 0; i < _lruVoice.size(); ++i) {
+		if (_lruVoice[i] == voiceNo) {
+			for (; i < _lruVoice.size() - 1; ++i) {
+				_lruVoice[i] = _lruVoice[i + 1];
+			}
+			break;
+		}
+	}
+	_lruVoice.back() = voiceNo;
+}
+
+uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
+	uint8 nextBestVoiceNo = kUnmapped;
 	for (uint i = 0; i < _voices.size(); ++i) {
-		if (_voices[i].note != kUnmapped) {
-			sendNote(i, true);
+		const uint8 voiceNo = _lruVoice[i];
+		Voice &voice = _voices[voiceNo];
+		if (voice.note == kUnmapped) {
+			if (voice.program == _channels[channelNo].program) {
+				voice.originalChannel = channelNo;
+				return voiceNo;
+			// SSCI ran a second loop without the program number check if it did
+			// not find a voice; we just do one loop and store the would-be
+			// result of the second loop at the same time instead
+			} else if (nextBestVoiceNo == kUnmapped) {
+				nextBestVoiceNo = voiceNo;
+			}
 		}
 	}
-}
 
-void AdLibDriver::sendToHardware(const uint8 registerNo, const uint8 value) {
-	if (!_isStereo) {
-		_opl->write(0x388, registerNo);
-		_opl->write(0x389, value);
-	} else {
-		sendRight(registerNo, value);
-		sendLeft(registerNo, value);
-	}
-}
-
-void AdLibDriver::sendLeft(const uint8 registerNo, uint8 value) {
-	if (registerNo >= kSpeakerEnableRegisterLow && registerNo <= kSpeakerEnableRegisterHigh) {
-		enum { kEnableLeftSpeaker = 0x10 };
-		value |= kEnableLeftSpeaker;
+	if (nextBestVoiceNo != kUnmapped) {
+		_voices[nextBestVoiceNo].originalChannel = channelNo;
+		return nextBestVoiceNo;
 	}
 
-	_opl->write(0x222, registerNo);
-	_opl->write(0x223, value);
-}
-
-void AdLibDriver::sendRight(const uint8 registerNo, uint8 value) {
-	if (registerNo >= kSpeakerEnableRegisterLow && registerNo <= kSpeakerEnableRegisterHigh) {
-		enum { kEnableRightSpeaker = 0x20 };
-		value |= kEnableRightSpeaker;
-	}
-
-	_opl->write(0x220, registerNo);
-	_opl->write(0x221, value);
-}
-
-void AdLibDriver::resetOpl() {
-	enum { kMaxRegister = 0xf5 };
-	for (uint reg = 0; reg <= kMaxRegister; ++reg) {
-		// SSCI just wrote over the entire register range up to kMaxRegister,
-		// but since at least the MAME softsynth complains about invalid
-		// register writes we skip the registers which are not valid
-		if (reg == 0 || reg == 5 || reg == 6 || reg == 7 || (reg >= 9 && reg <= 0x1f)) {
-			continue;
+	uint8 bestChannelNo = 0;
+	uint8 bestVoicesDelta = 0;
+	for (uint i = 0; i < _channels.size(); ++i) {
+		Channel &channel = _channels[i];
+		uint8 numActiveVoices = channel.numActiveVoices;
+		if (numActiveVoices > channel.numAssignedVoices) {
+			numActiveVoices -= channel.numAssignedVoices;
+			if (bestVoicesDelta < numActiveVoices) {
+				bestVoicesDelta = numActiveVoices;
+				bestChannelNo = i;
+			}
 		}
-		sendToHardware(reg, 0);
 	}
 
-	enum { kEnable = 0x20 };
-	sendToHardware(kWaveformSelectEnableRegister, kEnable);
-
-	for (uint op = 0; op < kNumOperators; ++op) {
-		sendOperator(op, _defaultOperators[op % 6 / 3]);
+	if (!bestVoicesDelta) {
+		bestChannelNo = channelNo;
 	}
+
+	for (uint i = 0; i < _voices.size(); ++i) {
+		const uint8 voiceNo = _lruVoice[i];
+		Voice &voice = _voices[voiceNo];
+		if (voice.originalChannel == bestChannelNo) {
+			voiceOff(voiceNo);
+			voice.originalChannel = channelNo;
+			return voiceNo;
+		}
+	}
+
+	return kUnmapped;
 }
 
 void AdLibDriver::assignVoices(const uint8 channelNo, uint8 numVoices) {
@@ -395,131 +499,6 @@ void AdLibDriver::releaseVoices(const uint8 channelNo, uint8 numVoices) {
 	}
 }
 
-void AdLibDriver::sendOperator(const uint8 opNo, const Operator &op) {
-	sendToHardware(kPercussonRegister, 0);
-	sendToHardware(kKeySplitRegister, 0);
-
-	const uint8 voiceNo = operatorToVoiceMap[opNo];
-	const uint8 registerNo = operatorToRegisterMap[opNo];
-
-	uint8 value = op.keyScaleLevel << 6 | op.outputLevel;
-	sendToHardware(kKeyScaleOutputLevelRegister + registerNo, value);
-
-	if ((opNo % 6 / 3) == 0) {
-		value = op.feedbackFactor << 1 | !op.isFrequencyModulation;
-		sendToHardware(kSpeakerEnableRegisterLow + voiceNo, value);
-	}
-
-	value = op.attackRate << 4 | op.decayRate;
-	sendToHardware(kAttackDecayRegister + registerNo, value);
-
-	value = op.sustainLevel << 4 | op.releaseRate;
-	sendToHardware(kSustainReleaseRegister + registerNo, value);
-
-	value = op.tremoloOn << 7 | op.vibratoOn << 6 | op.sustainOn << 5 | op.envelopeScalingOn << 4 | op.frequencyMultiplicationFactor;
-	sendToHardware(kSavekRegister + registerNo, value);
-
-	sendToHardware(kWaveformSelectRegister + registerNo, op.waveform);
-}
-
-uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
-	uint8 nextBestVoiceNo = kUnmapped;
-	for (uint i = 0; i < _voices.size(); ++i) {
-		const uint8 voiceNo = _lruVoice[i];
-		Voice &voice = _voices[voiceNo];
-		if (voice.note == kUnmapped) {
-			if (voice.program == _channels[channelNo].program) {
-				voice.originalChannel = channelNo;
-				return voiceNo;
-			// SSCI ran a second loop without the program number check if it did
-			// not find a voice; we just do one loop and store the would-be
-			// result of the second loop at the same time instead
-			} else if (nextBestVoiceNo == kUnmapped) {
-				nextBestVoiceNo = voiceNo;
-			}
-		}
-	}
-
-	if (nextBestVoiceNo != kUnmapped) {
-		_voices[nextBestVoiceNo].originalChannel = channelNo;
-		return nextBestVoiceNo;
-	}
-
-	uint8 bestChannelNo = 0;
-	uint8 bestVoicesDelta = 0;
-	for (uint i = 0; i < _channels.size(); ++i) {
-		Channel &channel = _channels[i];
-		uint8 numActiveVoices = channel.numActiveVoices;
-		if (numActiveVoices > channel.numAssignedVoices) {
-			numActiveVoices -= channel.numAssignedVoices;
-			if (bestVoicesDelta < numActiveVoices) {
-				bestVoicesDelta = numActiveVoices;
-				bestChannelNo = i;
-			}
-		}
-	}
-
-	if (!bestVoicesDelta) {
-		bestChannelNo = channelNo;
-	}
-
-	for (uint i = 0; i < _voices.size(); ++i) {
-		const uint8 voiceNo = _lruVoice[i];
-		Voice &voice = _voices[voiceNo];
-		if (voice.originalChannel == bestChannelNo) {
-			voiceOff(voiceNo);
-			voice.originalChannel = channelNo;
-			return voiceNo;
-		}
-	}
-
-	return kUnmapped;
-}
-
-void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 velocity) {
-	Voice &voice = _voices[voiceNo];
-	Channel &channel = _channels[voice.originalChannel];
-	++channel.numActiveVoices;
-	updateLru(voiceNo);
-
-	uint8 programNo;
-	if (voice.originalChannel == kPercussionChannel) {
-		programNo = CLIP<uint8>(note, 27, 88) + 101;
-	} else {
-		programNo = channel.program;
-	}
-
-	if (voice.program != programNo && isEnabled()) {
-		voice.program = programNo;
-		setVoiceProgram(voiceNo, programNo);
-	}
-
-	voice.velocity = velocity;
-	voice.note = note;
-	sendNote(voiceNo, true);
-}
-
-void AdLibDriver::voiceOff(const uint8 voiceNo) {
-	Voice &voice = _voices[voiceNo];
-	voice.damperPedalOn = false;
-	sendNote(voiceNo, false);
-	voice.note = kUnmapped;
-	updateLru(voiceNo);
-	--_channels[voice.originalChannel].numActiveVoices;
-}
-
-void AdLibDriver::updateLru(const uint8 voiceNo) {
-	for (uint i = 0; i < _lruVoice.size(); ++i) {
-		if (_lruVoice[i] == voiceNo) {
-			for (; i < _lruVoice.size() - 1; ++i) {
-				_lruVoice[i] = _lruVoice[i + 1];
-			}
-			break;
-		}
-	}
-	_lruVoice.back() = voiceNo;
-}
-
 void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 	Voice &voice = _voices[voiceNo];
 	Program &program = _programs[programNo];
@@ -541,40 +520,7 @@ void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 	sendOperator(voiceToOperatorMap[voiceNo][1], program[1]);
 }
 
-void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
-	Voice &voice = _voices[voiceNo];
-	Channel &channel = _channels[voice.originalChannel];
-
-	// SSCI assigned the note at the start of this function; we do it in the
-	// caller instead since almost every caller was just sending the note which
-	// was already assigned to the voice
-	uint8 note;
-	if (voice.program >= 128) {
-		note = _rhythmMap[CLIP<uint8>(voice.note, 27, 88) - 27];
-	} else {
-		note = voice.note;
-	}
-
-	// SSCI called a separate function and then checked for a return value of
-	// 0xffff, but no such value could ever be generated by that function and
-	// it was only ever called once, so its calculation is inlined here
-	const uint16 frequency = MIN(508, note * 4 + (channel.pitchBend - 0x2000) / 171);
-	const uint8 fNumberIndex = frequency % ARRAYSIZE(frequencyNumbers);
-	uint8 fBlockNumber = frequency / ARRAYSIZE(frequencyNumbers);
-	if (fBlockNumber) {
-		--fBlockNumber;
-	}
-	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
-	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
-
-	assert(voice.velocity < ARRAYSIZE(velocityToOutputLevelMap));
-	sendVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) * (_masterVolume + 1) / ((kMaxVolume + 1) * (kMaxMasterVolume + 1)));
-
-	const uint8 value = (noteOn << 5) | (fBlockNumber << 2) | (frequencyNumber >> 8);
-	sendToHardware(kHighFrequencyNumberRegister + voiceNo, value);
-}
-
-void AdLibDriver::sendVolume(const uint8 voiceNo, uint8 volume) {
+void AdLibDriver::setVoiceVolume(const uint8 voiceNo, uint8 volume) {
 	if (volume > kMaxVolume) {
 		volume = kMaxVolume;
 	}
@@ -622,62 +568,115 @@ void AdLibDriver::sendVolume(const uint8 voiceNo, uint8 volume) {
 	}
 }
 
-void AdLibDriver::debugPrintState(Console &con) const {
-	con.debugPrintf("Voices:\n");
-	for (uint i = 0; i < _voices.size(); ++i) {
-		const Voice &voice = _voices[i];
+void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
+	Voice &voice = _voices[voiceNo];
+	Channel &channel = _channels[voice.originalChannel];
 
-		if (voice.originalChannel == kUnmapped && voice.currentChannel == kUnmapped) {
-			con.debugPrintf("%d: unmapped\n", i);
-			continue;
-		}
-
-		con.debugPrintf("%d: ch %2d / %2d pr %3d v %2d n %3d dp %d\n",
-						i,
-						voice.originalChannel, voice.currentChannel,
-						voice.program, voice.velocity, voice.note,
-						voice.damperPedalOn);
-
-		for (uint j = 0; j < 2; ++j) {
-			if (j == 0 && !voice.isAdditive) {
-				con.debugPrintf("   op 1: N/A\n");
-				continue;
-			}
-			const Operator &op = _programs[voice.program][j];
-			con.debugPrintf("   op %d: wf %d ksl %d ol %d adsr %d %d %d %d\n",
-							j + 1,
-							op.waveform,
-							op.keyScaleLevel,
-							op.outputLevel,
-							op.attackRate,
-							op.decayRate,
-							op.sustainLevel,
-							op.releaseRate);
-			con.debugPrintf("         v %d t %d s %d es %d ff %d fmf %d\n",
-							op.vibratoOn, op.tremoloOn, op.sustainOn,
-							op.envelopeScalingOn, op.feedbackFactor,
-							op.frequencyMultiplicationFactor);
-		}
+	// SSCI assigned the note at the start of this function; we do it in the
+	// caller instead since almost every caller was just sending the note which
+	// was already assigned to the voice
+	uint8 note;
+	if (voice.program >= 128) {
+		note = _rhythmMap[CLIP<uint8>(voice.note, 27, 88) - 27];
+	} else {
+		note = voice.note;
 	}
 
-	con.debugPrintf("\nChannels:\n");
-	for (uint i = 0; i < _channels.size(); ++i) {
-		const Channel &channel = _channels[i];
+	// SSCI called a separate function and then checked for a return value of
+	// 0xffff, but no such value could ever be generated by that function and
+	// it was only ever called once, so its calculation is inlined here
+	const uint16 frequency = MIN(508, note * 4 + (channel.pitchBend - 0x2000) / 171);
+	const uint8 fNumberIndex = frequency % ARRAYSIZE(frequencyNumbers);
+	uint8 fBlockNumber = frequency / ARRAYSIZE(frequencyNumbers);
+	if (fBlockNumber) {
+		--fBlockNumber;
+	}
+	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
+	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
 
-		if (!channel.program) {
-			con.debugPrintf("%2d: unmapped\n", i);
-			continue;
-		}
+	assert(voice.velocity < ARRAYSIZE(velocityToOutputLevelMap));
+	setVoiceVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) * (_masterVolume + 1) / ((kMaxVolume + 1) * (kMaxMasterVolume + 1)));
 
-		con.debugPrintf("%2d: pr %3d v %2d p %2d pb %04x dp %d\n",
-						i, channel.program, channel.volume, channel.pan,
-						channel.pitchBend, channel.damperPedalOn);
-		con.debugPrintf("    res.v %d ass.v %d act.v %d\n",
-						channel.numReservedVoices, channel.numAssignedVoices,
-						channel.numActiveVoices);
+	const uint8 value = (noteOn << 5) | (fBlockNumber << 2) | (frequencyNumber >> 8);
+	sendToHardware(kHighFrequencyNumberRegister + voiceNo, value);
+}
+
+void AdLibDriver::sendOperator(const uint8 opNo, const Operator &op) {
+	sendToHardware(kPercussionRegister, 0);
+	sendToHardware(kKeySplitRegister, 0);
+
+	const uint8 voiceNo = operatorToVoiceMap[opNo];
+	const uint8 registerNo = operatorToRegisterMap[opNo];
+
+	uint8 value = op.keyScaleLevel << 6 | op.outputLevel;
+	sendToHardware(kKeyScaleOutputLevelRegister + registerNo, value);
+
+	if ((opNo % 6 / 3) == 0) {
+		value = op.feedbackFactor << 1 | !op.isFrequencyModulation;
+		sendToHardware(kSynthTypeRegister + voiceNo, value);
+	}
+
+	value = op.attackRate << 4 | op.decayRate;
+	sendToHardware(kAttackDecayRegister + registerNo, value);
+
+	value = op.sustainLevel << 4 | op.releaseRate;
+	sendToHardware(kSustainReleaseRegister + registerNo, value);
+
+	value = op.tremoloOn << 7 | op.vibratoOn << 6 | op.sustainOn << 5 | op.envelopeScalingOn << 4 | op.frequencyMultiplicationFactor;
+	sendToHardware(kSavekRegister + registerNo, value);
+
+	sendToHardware(kWaveformSelectRegister + registerNo, op.waveform);
+}
+
+void AdLibDriver::sendToHardware(const uint8 registerNo, const uint8 value) {
+	if (!_isStereo) {
+		_opl->write(0x388, registerNo);
+		_opl->write(0x389, value);
+	} else {
+		sendRight(registerNo, value);
+		sendLeft(registerNo, value);
 	}
 }
 
+void AdLibDriver::sendLeft(const uint8 registerNo, uint8 value) {
+	if (registerNo >= kSynthTypeRegister && registerNo <= kSynthTypeRegister + _voices.size() - 1) {
+		enum { kEnableLeftSpeaker = 0x10 };
+		value |= kEnableLeftSpeaker;
+	}
+
+	_opl->write(0x222, registerNo);
+	_opl->write(0x223, value);
+}
+
+void AdLibDriver::sendRight(const uint8 registerNo, uint8 value) {
+	if (registerNo >= kSynthTypeRegister && registerNo <= kSynthTypeRegister + _voices.size() - 1) {
+		enum { kEnableRightSpeaker = 0x20 };
+		value |= kEnableRightSpeaker;
+	}
+
+	_opl->write(0x220, registerNo);
+	_opl->write(0x221, value);
+}
+
+void AdLibDriver::resetOpl() {
+	enum { kMaxRegister = 0xf5 };
+	for (uint reg = 0; reg <= kMaxRegister; ++reg) {
+		// SSCI just wrote over the entire register range up to kMaxRegister,
+		// but since at least the MAME softsynth complains about invalid
+		// register writes we skip the registers which are not valid
+		if (reg == 0 || reg == 5 || reg == 6 || reg == 7 || (reg >= 9 && reg <= 0x1f)) {
+			continue;
+		}
+		sendToHardware(reg, 0);
+	}
+
+	enum { kEnable = 0x20 };
+	sendToHardware(kWaveformSelectEnableRegister, kEnable);
+
+	for (uint op = 0; op < kNumOperators; ++op) {
+		sendOperator(op, _defaultOperators[op % 6 / 3]);
+	}
+}
 
 SoundDriver *makeAdLibDriver(ResourceManager &resMan, SciVersion version) {
 	return new AdLibDriver(resMan, version);
