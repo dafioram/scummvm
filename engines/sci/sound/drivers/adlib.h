@@ -178,6 +178,8 @@ private:
 		uint8 numActiveExtraVoices;
 		/** The number of non-extra active voices for this channel. */
 		uint8 numActiveVoices;
+		/** The last voice found for this channel. Used by SCI1late-. */
+		uint8 lastVoice;
 
 		Channel() :
 			damperPedalOn(false),
@@ -187,7 +189,8 @@ private:
 			pan(64),
 			numInactiveExtraVoices(0),
 			numActiveExtraVoices(0),
-			numActiveVoices(0) {}
+			numActiveVoices(0),
+			lastVoice(0) {}
 	};
 
 	/** OPL voice state. SCI always uses 2-op voices. */
@@ -299,6 +302,18 @@ private:
 	 */
 	uint8 findFreeVoice(const uint8 channelNo);
 
+	uint8 findLruIndex(const uint8 voiceNo) const {
+		return Common::find(_lruVoice.begin(), _lruVoice.end(), voiceNo) - _lruVoice.begin();
+	}
+
+	uint8 &voiceExtraChannel(Voice &voice) const {
+		if (_version >= SCI_VERSION_1_1) {
+			return voice.extraChannel;
+		} else {
+			return voice.originalChannel;
+		}
+	}
+
 	/**
 	 * Tries to assign up to `numVoices` extra voices to the given channel.
 	 */
@@ -317,7 +332,7 @@ private:
 	/**
 	 * Sets the volume of a voice.
 	 */
-	void setVoiceVolume(const uint8 voiceNo, const uint8 volume);
+	void setVoiceVolume(const uint8 voiceNo);
 
 	/**
 	 * Sends a note for the given voice to hardware.

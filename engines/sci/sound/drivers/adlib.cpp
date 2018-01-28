@@ -292,6 +292,10 @@ void AdLibDriver::debugPrintState(Console &con) const {
 						voice.program, voice.velocity, voice.note,
 						voice.damperPedalOn);
 
+		if (voice.program >= _programs.size()) {
+			continue;
+		}
+
 		for (uint j = 0; j < 2; ++j) {
 			if (j == 0 && !voice.isAM) {
 				con.debugPrintf("   op 1: N/A\n");
@@ -358,7 +362,7 @@ void AdLibDriver::setChannelExtraVoices(const uint8 channelNo, const uint8 numVo
 
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.extraChannel == channelNo) {
+		if (voiceExtraChannel(voice) == channelNo) {
 			++numActiveVoices;
 		}
 	}
@@ -389,7 +393,7 @@ void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 vel
 		setVoiceProgram(voiceNo, programNo);
 	}
 
-	voice.velocity = velocity;
+	voice.velocity = velocity & kMaxVolume;
 	voice.note = note;
 	sendNote(voiceNo, true);
 }
@@ -420,56 +424,93 @@ void AdLibDriver::updateLru(const uint8 voiceNo) {
 }
 
 uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
-	uint8 nextBestVoiceNo = kUnmapped;
-	for (uint i = 0; i < _voices.size(); ++i) {
-		const uint8 voiceNo = _lruVoice[i];
-		Voice &voice = _voices[voiceNo];
-		if (voice.note == kUnmapped) {
-			if (voice.program == _channels[channelNo].program) {
+	if (_version < SCI_VERSION_1_1) {
+		Channel &channel = _channels[channelNo];
+		uint8 candidateVoiceNo = channel.lastVoice;
+		uint8 foundVoiceNo = kUnmapped;
+		uint8 foundVoiceAge = _lruVoice.size();
+		for (bool found = false; !found; ) {
+			++candidateVoiceNo;
+			if (candidateVoiceNo == _voices.size()) {
+				candidateVoiceNo = 0;
+			}
+
+			Voice &voice = _voices[candidateVoiceNo];
+
+			if (candidateVoiceNo == channel.lastVoice) {
+				found = true;
+			}
+
+			if (voice.originalChannel == channelNo) {
+				if (voice.note == kUnmapped) {
+					channel.lastVoice = candidateVoiceNo;
+					return candidateVoiceNo;
+				} else {
+					const uint8 candidateAge = findLruIndex(candidateVoiceNo);
+					if (candidateAge < foundVoiceAge) {
+						foundVoiceAge = candidateAge;
+						foundVoiceNo = candidateVoiceNo;
+					}
+				}
+			}
+		}
+
+		if (foundVoiceAge != _lruVoice.size()) {
+			_voices[foundVoiceNo].damperPedalOn = false;
+			voiceOff(foundVoiceNo);
+			channel.lastVoice = foundVoiceNo;
+		}
+
+		return foundVoiceNo;
+	} else {
+		uint8 nextBestVoiceNo = kUnmapped;
+		for (uint i = 0; i < _voices.size(); ++i) {
+			const uint8 voiceNo = _lruVoice[i];
+			Voice &voice = _voices[voiceNo];
+			if (voice.note == kUnmapped) {
+				if (voice.program == _channels[channelNo].program) {
+					voice.originalChannel = channelNo;
+					return voiceNo;
+				// SSCI ran a second loop without the program number check if it did
+				// not find a voice; we just do one loop and store the would-be
+				// result of the second loop at the same time instead
+				} else if (nextBestVoiceNo == kUnmapped) {
+					nextBestVoiceNo = voiceNo;
+				}
+			}
+		}
+
+		if (nextBestVoiceNo != kUnmapped) {
+			_voices[nextBestVoiceNo].originalChannel = channelNo;
+			return nextBestVoiceNo;
+		}
+
+		uint8 bestChannelNo = 0;
+		uint8 bestVoicesDelta = 0;
+		for (uint i = 0; i < _channels.size(); ++i) {
+			Channel &channel = _channels[i];
+			uint8 numActiveVoices = channel.numActiveVoices;
+			if (numActiveVoices > channel.numActiveExtraVoices) {
+				numActiveVoices -= channel.numActiveExtraVoices;
+				if (bestVoicesDelta < numActiveVoices) {
+					bestVoicesDelta = numActiveVoices;
+					bestChannelNo = i;
+				}
+			}
+		}
+
+		if (!bestVoicesDelta) {
+			bestChannelNo = channelNo;
+		}
+
+		for (uint i = 0; i < _voices.size(); ++i) {
+			const uint8 voiceNo = _lruVoice[i];
+			Voice &voice = _voices[voiceNo];
+			if (voice.originalChannel == bestChannelNo) {
+				voiceOff(voiceNo);
 				voice.originalChannel = channelNo;
 				return voiceNo;
-			// SSCI ran a second loop without the program number check if it did
-			// not find a voice; we just do one loop and store the would-be
-			// result of the second loop at the same time instead
-			} else if (nextBestVoiceNo == kUnmapped) {
-				nextBestVoiceNo = voiceNo;
 			}
-		}
-	}
-
-	if (nextBestVoiceNo != kUnmapped) {
-		_voices[nextBestVoiceNo].originalChannel = channelNo;
-		return nextBestVoiceNo;
-	}
-
-	uint8 bestChannelNo = 0;
-	uint8 bestVoicesDelta = 0;
-	for (uint i = 0; i < _channels.size(); ++i) {
-		Channel &channel = _channels[i];
-		uint8 numActiveVoices = channel.numActiveVoices;
-		if (numActiveVoices > channel.numActiveExtraVoices) {
-			numActiveVoices -= channel.numActiveExtraVoices;
-			if (bestVoicesDelta < numActiveVoices) {
-				bestVoicesDelta = numActiveVoices;
-				bestChannelNo = i;
-			}
-		}
-	}
-
-	if (!bestVoicesDelta) {
-		bestChannelNo = channelNo;
-	}
-
-	for (uint i = 0; i < _voices.size(); ++i) {
-		const uint8 voiceNo = _lruVoice[i];
-		Voice &voice = _voices[voiceNo];
-		if (voice.originalChannel == bestChannelNo) {
-			if (_version < SCI_VERSION_1_1) {
-				voice.damperPedalOn = false;
-			}
-			voiceOff(voiceNo);
-			voice.originalChannel = channelNo;
-			return voiceNo;
 		}
 	}
 
@@ -480,11 +521,11 @@ void AdLibDriver::assignExtraVoices(const uint8 channelNo, uint8 numVoices) {
 	Channel &channel = _channels[channelNo];
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.extraChannel == kUnmapped) {
+		if (voiceExtraChannel(voice) == kUnmapped) {
 			if (voice.note != kUnmapped) {
 				voiceOff(i);
 			}
-			voice.extraChannel = channelNo;
+			voiceExtraChannel(voice) = channelNo;
 			++channel.numActiveExtraVoices;
 			--numVoices;
 		}
@@ -504,8 +545,8 @@ void AdLibDriver::releaseExtraVoices(const uint8 channelNo, uint8 numVoices) {
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.extraChannel == channelNo && voice.note == kUnmapped) {
-			voice.extraChannel = kUnmapped;
+		if (voiceExtraChannel(voice) == channelNo && voice.note == kUnmapped) {
+			voiceExtraChannel(voice) = kUnmapped;
 			--channel.numActiveExtraVoices;
 			--numVoices;
 		}
@@ -513,12 +554,12 @@ void AdLibDriver::releaseExtraVoices(const uint8 channelNo, uint8 numVoices) {
 
 	for (uint i = 0; i < _voices.size() && numVoices; ++i) {
 		Voice &voice = _voices[i];
-		if (voice.extraChannel == channelNo) {
+		if (voiceExtraChannel(voice) == channelNo) {
 			if (_version < SCI_VERSION_1_1) {
 				voice.damperPedalOn = false;
 			}
 			voiceOff(i);
-			voice.extraChannel = kUnmapped;
+			voiceExtraChannel(voice) = kUnmapped;
 			--channel.numActiveExtraVoices;
 			--numVoices;
 		}
@@ -529,7 +570,7 @@ void AdLibDriver::releaseExtraVoices(const uint8 channelNo, uint8 numVoices) {
 	numVoices = 0;
 	for (uint i = 0; i < _voices.size(); ++i) {
 		Voice &voice = _voices[i];
-		if (voice.extraChannel == kUnmapped) {
+		if (voiceExtraChannel(voice) == kUnmapped) {
 			++numVoices;
 		}
 	}
@@ -572,13 +613,16 @@ void AdLibDriver::setVoiceProgram(const uint8 voiceNo, const uint8 programNo) {
 	sendOperator(voiceToOperatorMap[voiceNo][1], program[1]);
 }
 
-void AdLibDriver::setVoiceVolume(const uint8 voiceNo, uint8 volume) {
-	if (volume > kMaxVolume) {
-		volume = kMaxVolume;
-	}
-
+void AdLibDriver::setVoiceVolume(const uint8 voiceNo) {
 	Voice &voice = _voices[voiceNo];
 	Channel &channel = _channels[voice.originalChannel];
+
+	uint8 volume;
+	if (isEnabled()) {
+		volume = ((channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) / (kMaxVolume + 1) - 1) * (_masterVolume + 1) / (kMaxMasterVolume + 1);
+	} else {
+		volume = 0;
+	}
 
 	for (uint stereoChannel = 0; stereoChannel < 1 + _isStereo; ++stereoChannel) {
 		uint8 panVolume;
@@ -589,9 +633,8 @@ void AdLibDriver::setVoiceVolume(const uint8 voiceNo, uint8 volume) {
 		} else {
 			panVolume = (kMaxPan - channel.pan) / 2;
 		}
-		panVolume = MIN<uint8>(panVolume, kMaxVolume);
 
-		const uint8 pannedVolume = panToOutputLevelMap[MIN<uint8>(volume - (volume * (kMaxVolume - panToOutputLevelMap[panVolume]) / kMaxVolume), kMaxVolume)];
+		const uint8 pannedVolume = panToOutputLevelMap[volume - volume * (kMaxVolume - panToOutputLevelMap[panVolume]) / kMaxVolume];
 
 		uint8 operatorVolume = kMaxVolume - pannedVolume * voice.operators[1].outputLevel / kMaxVolume;
 		uint8 value = voice.operators[1].keyScaleLevel << 6 | operatorVolume;
@@ -609,6 +652,7 @@ void AdLibDriver::setVoiceVolume(const uint8 voiceNo, uint8 volume) {
 			operatorVolume = kMaxVolume - pannedVolume * voice.operators[0].outputLevel / kMaxVolume;
 			value = voice.operators[0].keyScaleLevel << 6 | operatorVolume;
 			reg = kKeyScaleOutputLevelRegister + operatorToRegisterMap[voiceToOperatorMap[voiceNo][0]];
+
 			if (!_isStereo) {
 				sendToHardware(reg, value);
 			} else if (stereoChannel == 0) {
@@ -650,14 +694,11 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	if (fBlockNumber) {
 		--fBlockNumber;
 	}
+
+	setVoiceVolume(voiceNo);
+
 	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
 	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
-
-	// TODO: Output level is not always accurate, there seems to be a rounding
-	// difference somewhere so occasionally we are sending an output level value
-	// one bit lower than SSCI
-	assert(voice.velocity < ARRAYSIZE(velocityToOutputLevelMap));
-	setVoiceVolume(voiceNo, (channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) * (_masterVolume + 1) / ((kMaxVolume + 1) * (kMaxMasterVolume + 1)));
 
 	const uint8 value = (noteOn << 5) | (fBlockNumber << 2) | (frequencyNumber >> 8);
 	sendToHardware(kHighFrequencyNumberRegister + voiceNo, value);
