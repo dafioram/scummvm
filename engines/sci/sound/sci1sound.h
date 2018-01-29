@@ -1055,6 +1055,14 @@ private:
 	 */
 	void skipCommand(Sci1Sound &sound, const uint8 trackNo, const MidiMessageType command);
 
+	inline uint8 scaleVolume(const uint8 a, const uint8 b) const {
+		uint8 volume = ((a + 1) * (b + 1) / (Sci1Sound::kMaxVolume + 1)) & ~1;
+		if (volume) {
+			--volume;
+		}
+		return volume;
+	}
+
 #pragma mark -
 #pragma mark Playlist management
 private:

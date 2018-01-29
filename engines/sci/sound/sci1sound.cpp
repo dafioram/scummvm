@@ -688,7 +688,7 @@ void Sci1SoundManager::sendChannelToDriver(const Sci1Sound &sound, const Sci1Sou
 	driver.programChange(hwChannelNo, channel.program);
 
 	_newChannelVolumes[hwChannelNo] = kNoVolumeChange;
-	driver.controllerChange(hwChannelNo, kVolumeController, channel.volume * sound.volume / Sci1Sound::kMaxVolume);
+	driver.controllerChange(hwChannelNo, kVolumeController, scaleVolume(channel.volume, sound.volume));
 
 	driver.controllerChange(hwChannelNo, kPanController, channel.pan);
 	driver.controllerChange(hwChannelNo, kModulationController, channel.modulation);
@@ -815,7 +815,7 @@ void Sci1SoundManager::processVolumeChange(Sci1Sound &sound, const uint8 volume,
 }
 
 void Sci1SoundManager::changeChannelVolume(const Sci1Sound &sound, const uint8 channelNo, const uint8 hwChannelNo, const bool enqueue) {
-	const uint8 channelVolume = sound.channels[channelNo].volume * sound.volume / Sci1Sound::kMaxVolume;
+	const uint8 channelVolume = scaleVolume(sound.channels[channelNo].volume, sound.volume);
 	uint8 &newVolume = _newChannelVolumes[hwChannelNo];
 	if (enqueue) {
 		newVolume = channelVolume;
@@ -1164,7 +1164,7 @@ void Sci1SoundManager::setController(Sci1Sound &sound, const uint8 channelNo, co
 	switch (controllerNo) {
 	case kVolumeController:
 		channel.volume = value;
-		value = channel.volume * sound.volume / Sci1Sound::kMaxVolume;
+		value = scaleVolume(channel.volume, sound.volume);
 		break;
 	case kPanController:
 		channel.pan = value;
@@ -1597,7 +1597,7 @@ void Sci1SoundManager::processControllerChange(Sci1Sound &sound, const uint8 tra
 		_newChannelVolumes[inRangeChannelNo] = kNoVolumeChange;
 
 		channel.volume = value;
-		value = value * sound.volume / Sci1Sound::kMaxVolume;
+		value = scaleVolume(value, sound.volume);
 
 		break;
 	case kPanController:
