@@ -94,6 +94,8 @@ private:
 		 */
 		kWaveformSelectEnableRegister = 1,
 
+		kEnableOpl3Register = 5,
+
 		/**
 		 * This register globally sets the bit used from the frequency number
 		 * when determining which note in an octave is the split point for the
@@ -233,6 +235,9 @@ private:
 		/** The current program for this voice. */
 		uint8 program;
 
+		/** The active duration of the voice. Used by SCI1late-. */
+		uint16 numActiveTicks;
+
 		Voice() :
 			damperPedalOn(false),
 			isAM(false),
@@ -241,7 +246,8 @@ private:
 			note(kUnmapped),
 			velocity(0),
 			program(kUnmapped),
-			extraChannel(kUnmapped) {}
+			extraChannel(kUnmapped),
+			numActiveTicks(0) {}
 	};
 
 	/** OPL operator parameters. */
@@ -302,10 +308,10 @@ private:
 	 */
 	uint8 findFreeVoice(const uint8 channelNo);
 
-	uint8 findLruIndex(const uint8 voiceNo) const {
-		return Common::find(_lruVoice.begin(), _lruVoice.end(), voiceNo) - _lruVoice.begin();
-	}
-
+	/**
+	 * Returns a reference to the correct property to use when assigning voices
+	 * to a channel from a `kMaxVoicesController` controller change.
+	 */
 	uint8 &voiceExtraChannel(Voice &voice) const {
 		if (_version >= SCI_VERSION_1_1) {
 			return voice.extraChannel;

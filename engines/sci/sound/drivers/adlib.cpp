@@ -50,14 +50,14 @@ static const uint16 frequencyNumbers[] = {
 	577, 585, 594, 602, 611, 620, 629, 638, 647, 656, 666, 676
 };
 
-static const uint8 velocityToOutputLevelMap[] = {
+static const uint8 velocityMap1[] = {
 	 0, 12, 13, 14, 15, 17, 18, 19, 20, 22, 23, 24, 26, 27, 28, 29,
 	31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 45, 45, 46,
 	47, 48, 49, 50, 50, 51, 52, 52, 53, 54, 54, 55, 56, 56, 57, 58,
 	59, 59, 59, 60, 60, 60, 61, 61, 61, 62, 62, 62, 62, 63, 63, 63
 };
 
-static const uint8 panToOutputLevelMap[] = {
+static const uint8 velocityMap2[] = {
 	 0, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 33,
 	34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 47, 48,
 	49, 50, 50, 51, 52, 52, 53, 54, 54, 55, 56, 56, 57, 57, 58, 58,
@@ -73,7 +73,7 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 	SoundDriver(resMan, version),
 	_channels(),
 	_voices(),
-	_isStereo(true) {
+	_isStereo(false) {
 
 	for (uint i = 0; i < _lruVoice.size(); ++i) {
 		_lruVoice[i] = i;
@@ -85,7 +85,6 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 		error("Could not find AdLib patch data");
 	}
 
-	// TODO: Earlier, smaller patches
 	SciSpan<const byte> data(*patchData);
 	if (data.size() > 2690) {
 		for (uint i = 0; i < _programs.size(); ++i) {
@@ -116,9 +115,26 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 		}
 	}
 
-	_opl.reset(OPL::Config::create(OPL::Config::kDualOpl2));
+	if (_version <= SCI_VERSION_01) {
+		for (uint i = 0; i < _channels.size(); ++i) {
+			_channels[i].program = 13;
+		}
+	}
+
+	// TODO: This is a clumsy way of sending OPL resets in the same way that
+	// they are sent in SSCI
+	bool isStereo = false;
+
+	// TODO: It might be better to just always use dual-OPL2 since pre-SCI1.1
+	// did not support OPL3 (or dual-OPL2) at all, so the
+	// not-quite-OPL2-compatible mode might not be the best choice if we decide
+	// to allow stereo support in these older games
+	if (_version >= SCI_VERSION_1_EARLY) {
+		_opl.reset(OPL::Config::create(OPL::Config::kOpl3));
+		isStereo = true;
+	}
+
 	if (!_opl) {
-		_isStereo = false;
 		_opl.reset(OPL::Config::create(OPL::Config::kOpl2));
 	}
 	if (!_opl) {
@@ -131,6 +147,13 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 	_opl->start(nullptr);
 
 	resetOpl();
+
+	if (isStereo) {
+		_isStereo = true;
+		sendLeft(kEnableOpl3Register, 1);
+	}
+
+	setMasterVolume(15);
 }
 
 AdLibDriver::~AdLibDriver() {
@@ -141,8 +164,12 @@ AdLibDriver::~AdLibDriver() {
 void AdLibDriver::service() {
 	// no-op
 
-	// In SCI1late- this counted ticks, but the LRU from SCI1.1 does effectively
-	// the same thing with less effort so the LRU is used for all versions
+	for (uint i = 0; i < _voices.size(); ++i) {
+		Voice &voice = _voices[i];
+		if (voice.note != kUnmapped) {
+			++voice.numActiveTicks;
+		}
+	}
 }
 
 void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity) {
@@ -166,7 +193,10 @@ void AdLibDriver::noteOn(const uint8 channelNo, const uint8 note, uint8 velocity
 
 	uint8 voiceNo = findFreeVoice(channelNo);
 	if (voiceNo != kUnmapped) {
+		debugC(kDebugLevelSound, "On  %2d -> %d n %3d v %3d", channelNo, voiceNo, note, velocity);
 		voiceOn(voiceNo, note, velocity);
+	} else {
+		debugC(kDebugLevelSound, "OX  %2d      n %3d v %3d", channelNo, note, velocity);
 	}
 }
 
@@ -177,6 +207,7 @@ void AdLibDriver::noteOff(const uint8 channelNo, const uint8 note, const uint8 v
 			if (_channels[channelNo].damperPedalOn) {
 				voice.damperPedalOn = true;
 			} else {
+				debugC(kDebugLevelSound, "Off %2d -> %d n %3d v %3d", channelNo, i, note, velocity);
 				voiceOff(i);
 			}
 		}
@@ -185,6 +216,7 @@ void AdLibDriver::noteOff(const uint8 channelNo, const uint8 note, const uint8 v
 
 void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controllerNo, const uint8 value) {
 	Channel &channel = _channels[channelNo];
+	debugC(kDebugLevelSound, "CC %2d %3d %3d", channelNo, controllerNo, value);
 
 	bool voiceOn;
 
@@ -240,6 +272,17 @@ void AdLibDriver::controllerChange(const uint8 channelNo, const uint8 controller
 
 void AdLibDriver::programChange(const uint8 channelNo, const uint8 programNo) {
 	_channels[channelNo].program = programNo;
+	debugC(kDebugLevelSound, "PC %2d %3d", channelNo, programNo);
+
+	if (_version <= SCI_VERSION_01) {
+		for (uint i = 0; i < _voices.size(); ++i) {
+			Voice &voice = _voices[i];
+			if (voice.originalChannel != kUnmapped) {
+				setVoiceProgram(i, programNo);
+				setVoiceVolume(i);
+			}
+		}
+	}
 }
 
 void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
@@ -250,11 +293,13 @@ void AdLibDriver::pitchBend(const uint8 channelNo, const uint16 bend) {
 		// aborting in sendNote since kUnmapped is above the maximum note range
 		if (voice.originalChannel == channelNo && voice.note != kUnmapped) {
 			sendNote(i, true);
+			debugC(kDebugLevelSound, "PB %2d -> %d %04x", channelNo, i, bend);
 		}
 	}
 }
 
 void AdLibDriver::setMasterVolume(const uint8 volume) {
+	debugC(kDebugLevelSound, "MV %2d", volume);
 	SoundDriver::setMasterVolume(volume);
 	for (uint i = 0; i < _voices.size(); ++i) {
 		if (_voices[i].note != kUnmapped) {
@@ -263,11 +308,12 @@ void AdLibDriver::setMasterVolume(const uint8 volume) {
 	}
 }
 
-void AdLibDriver::enable(const bool enable) {
-	SoundDriver::enable(enable);
+void AdLibDriver::enable(const bool enabled) {
+	debugC(kDebugLevelSound, "EN %d", enabled);
+	SoundDriver::enable(enabled);
 	if (_version >= SCI_VERSION_1_1) {
 		const uint8 masterVolume = _masterVolume;
-		if (enable) {
+		if (enabled) {
 			setMasterVolume(masterVolume);
 		} else {
 			setMasterVolume(0);
@@ -393,7 +439,7 @@ void AdLibDriver::voiceOn(const uint8 voiceNo, const uint8 note, const uint8 vel
 		setVoiceProgram(voiceNo, programNo);
 	}
 
-	voice.velocity = velocity & kMaxVolume;
+	voice.velocity = velocity;
 	voice.note = note;
 	sendNote(voiceNo, true);
 }
@@ -412,15 +458,19 @@ void AdLibDriver::voiceOff(const uint8 voiceNo) {
 }
 
 void AdLibDriver::updateLru(const uint8 voiceNo) {
-	for (uint i = 0; i < _lruVoice.size(); ++i) {
-		if (_lruVoice[i] == voiceNo) {
-			for (; i < _lruVoice.size() - 1; ++i) {
-				_lruVoice[i] = _lruVoice[i + 1];
+	if (_version < SCI_VERSION_1_1) {
+		_voices[voiceNo].numActiveTicks = 0;
+	} else {
+		for (uint i = 0; i < _lruVoice.size(); ++i) {
+			if (_lruVoice[i] == voiceNo) {
+				for (; i < _lruVoice.size() - 1; ++i) {
+					_lruVoice[i] = _lruVoice[i + 1];
+				}
+				break;
 			}
-			break;
 		}
+		_lruVoice.back() = voiceNo;
 	}
-	_lruVoice.back() = voiceNo;
 }
 
 uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
@@ -428,7 +478,7 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 		Channel &channel = _channels[channelNo];
 		uint8 candidateVoiceNo = channel.lastVoice;
 		uint8 foundVoiceNo = kUnmapped;
-		uint8 foundVoiceAge = _lruVoice.size();
+		uint8 foundVoiceAge = 0;
 		for (bool found = false; !found; ) {
 			++candidateVoiceNo;
 			if (candidateVoiceNo == _voices.size()) {
@@ -446,8 +496,8 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 					channel.lastVoice = candidateVoiceNo;
 					return candidateVoiceNo;
 				} else {
-					const uint8 candidateAge = findLruIndex(candidateVoiceNo);
-					if (candidateAge < foundVoiceAge) {
+					const uint8 candidateAge = voice.numActiveTicks;
+					if (candidateAge >= foundVoiceAge) {
 						foundVoiceAge = candidateAge;
 						foundVoiceNo = candidateVoiceNo;
 					}
@@ -455,7 +505,7 @@ uint8 AdLibDriver::findFreeVoice(const uint8 channelNo) {
 			}
 		}
 
-		if (foundVoiceAge != _lruVoice.size()) {
+		if (foundVoiceAge != 0) {
 			_voices[foundVoiceNo].damperPedalOn = false;
 			voiceOff(foundVoiceNo);
 			channel.lastVoice = foundVoiceNo;
@@ -619,7 +669,13 @@ void AdLibDriver::setVoiceVolume(const uint8 voiceNo) {
 
 	uint8 volume;
 	if (isEnabled()) {
-		volume = ((channel.volume + 1) * (velocityToOutputLevelMap[voice.velocity] + 1) / (kMaxVolume + 1) - 1) * (_masterVolume + 1) / (kMaxMasterVolume + 1);
+		volume = (channel.volume + 1) * (velocityMap1[voice.velocity] + 1) / (kMaxVolume + 1);
+		if (_version < SCI_VERSION_1_1) {
+			--volume;
+		} else if (volume > 63) {
+			volume = 63;
+		}
+		volume = volume * (_masterVolume + 1) / (kMaxMasterVolume + 1);
 	} else {
 		volume = 0;
 	}
@@ -634,7 +690,7 @@ void AdLibDriver::setVoiceVolume(const uint8 voiceNo) {
 			panVolume = (kMaxPan - channel.pan) / 2;
 		}
 
-		const uint8 pannedVolume = panToOutputLevelMap[volume - volume * (kMaxVolume - panToOutputLevelMap[panVolume]) / kMaxVolume];
+		const uint8 pannedVolume = velocityMap2[CLIP<int>(volume - volume * (kMaxVolume - velocityMap2[panVolume]) / kMaxVolume, 0, kMaxVolume)];
 
 		uint8 operatorVolume = kMaxVolume - pannedVolume * voice.operators[1].outputLevel / kMaxVolume;
 		uint8 value = voice.operators[1].keyScaleLevel << 6 | operatorVolume;
@@ -681,6 +737,7 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	// SSCI called a separate function, but it was only ever called once, so its
 	// calculation is inlined here
 	uint16 frequency = note * 4 + (channel.pitchBend - 0x2000) / 171;
+
 	if (frequency >= 508) {
 		if (_version >= SCI_VERSION_1_1) {
 			frequency = 508;
@@ -694,11 +751,13 @@ void AdLibDriver::sendNote(const uint8 voiceNo, const bool noteOn) {
 	if (fBlockNumber) {
 		--fBlockNumber;
 	}
-
-	setVoiceVolume(voiceNo);
+	assert(fBlockNumber < 8);
 
 	const uint16 frequencyNumber = frequencyNumbers[fNumberIndex];
+	assert(frequencyNumber < 0x400);
 	sendToHardware(kLowFrequencyNumberRegister + voiceNo, frequencyNumber);
+
+	setVoiceVolume(voiceNo);
 
 	const uint8 value = (noteOn << 5) | (fBlockNumber << 2) | (frequencyNumber >> 8);
 	sendToHardware(kHighFrequencyNumberRegister + voiceNo, value);
