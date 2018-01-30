@@ -792,6 +792,8 @@ void AdLibDriver::sendOperator(const uint8 opNo, const Operator &op) {
 
 void AdLibDriver::sendToHardware(const uint8 registerNo, const uint8 value) {
 	if (!_isStereo) {
+		debug("OPL %x %x", registerNo, value);
+		debug("OPL %x %x", registerNo, value);
 		_opl->write(0x388, registerNo);
 		_opl->write(0x389, value);
 	} else {
@@ -806,6 +808,7 @@ void AdLibDriver::sendLeft(const uint8 registerNo, uint8 value) {
 		value |= kEnableLeftSpeaker;
 	}
 
+	debug("OPL %x %x", 0x100 + registerNo, value);
 	_opl->write(0x222, registerNo);
 	_opl->write(0x223, value);
 }
@@ -816,6 +819,7 @@ void AdLibDriver::sendRight(const uint8 registerNo, uint8 value) {
 		value |= kEnableRightSpeaker;
 	}
 
+	debug("OPL %x %x", registerNo, value);
 	_opl->write(0x220, registerNo);
 	_opl->write(0x221, value);
 }
