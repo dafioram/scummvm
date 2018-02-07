@@ -274,7 +274,6 @@ static const OldNewIdTableEntry s_oldNewTable[] = {
 	{ "mg",			"mothergoose",		SCI_VERSION_NONE     },
 	{ "twisty",		"pepper",			SCI_VERSION_NONE     },
 	{ "scary",      "phantasmagoria",   SCI_VERSION_NONE     },
-	// TODO: distinguish the full version of Phantasmagoria from the demo
 	{ "pq1",		"pq1sci",			SCI_VERSION_NONE     },
 	{ "pq",			"pq2",				SCI_VERSION_NONE     },
 	// pq3 is the same
@@ -284,7 +283,6 @@ static const OldNewIdTableEntry s_oldNewTable[] = {
 	{ "trial",		"qfg2",				SCI_VERSION_NONE     },
 	{ "hq2demo",	"qfg2",				SCI_VERSION_NONE     },
 	// rama is the same
-	// TODO: distinguish the full version of rama from the demo
 	{ "thegame",	"slater",			SCI_VERSION_NONE     },
 	{ "sq1demo",	"sq1sci",			SCI_VERSION_NONE     },
 	{ "sq1",		"sq1sci",			SCI_VERSION_NONE     },
@@ -292,12 +290,6 @@ static const OldNewIdTableEntry s_oldNewTable[] = {
 	// sq4 is the same
 	// sq5 is the same
 	// sq6 is the same
-	// TODO: distinguish the full version of SQ6 from the demo
-	// torin is the same
-
-
-	// TODO: SCI3 IDs
-
 	{ "", "", SCI_VERSION_NONE }
 };
 
