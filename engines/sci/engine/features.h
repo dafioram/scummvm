@@ -251,7 +251,11 @@ public:
 	 */
 	PseudoMouseAbilityType detectPseudoMouseAbility();
 
+	bool detectFontExtended() const;
+
 private:
+	bool detectEarlySound() const;
+
 	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1) const;
 
 	bool autoDetectLofsType(Common::String gameSuperClassName, int methodNum);

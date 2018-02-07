@@ -1816,54 +1816,6 @@ void ResourceManager::detectSciVersion() {
 	}
 }
 
-bool ResourceManager::detectFontExtended() {
-
-	Resource *res = findResource(ResourceId(kResourceTypeFont, 0), 0);
-	if (res) {
-		if (res->size() >= 4) {
-			uint16 numChars = READ_LE_UINT16(res->data() + 2);
-			if (numChars > 0x80)
-				return true;
-		}
-	}
-	return false;
-}
-
-// detects, if SCI1.1 game uses palette merging or copying - this is supposed to only get used on SCI1.1 games
-bool ResourceManager::detectPaletteMergingSci11() {
-	// Load palette 999 (default palette)
-	Resource *res = findResource(ResourceId(kResourceTypePalette, 999), false);
-
-	if (res && res->size() > 30) {
-		// Old palette format used in palette resource? -> it's merging
-		if ((res->getUint8At(0) == 0 && res->getUint8At(1) == 1) ||
-			(res->getUint8At(0) == 0 && res->getUint8At(1) == 0 && res->getUint16LEAt(29) == 0)) {
-			return true;
-		}
-
-		// Hardcoded: Laura Bow 2 floppy uses new palette resource, but still palette merging + 16 bit color matching
-		if (g_sci->getGameId() == GID_LAURABOW2 && !g_sci->isCD() && !g_sci->isDemo()) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// is called on SCI0EARLY games to make sure that sound resources are in fact also SCI0EARLY
-bool ResourceManager::detectEarlySound() {
-	Resource *res = findResource(ResourceId(kResourceTypeSound, 1), false);
-	if (res &&
-		res->size() >= 0x22 &&
-		res->getUint16LEAt(0x1f) == 0 && // channel 15 voice count + play mask is 0 in SCI0LATE
-		res->getUint8At(0x21) == 0) { // last byte right before actual data is 0 as well
-
-		return false;
-	}
-
-	return true;
-}
-
 // Functions below are based on PD code by Brian Provinciano (SCI Studio)
 bool ResourceManager::hasOldScriptHeader() {
 	Resource *res = findResource(ResourceId(kResourceTypeScript, 0), false);

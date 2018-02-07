@@ -94,13 +94,6 @@ public:
 #pragma mark -
 #pragma mark Detection
 public:
-	// Detects, if standard font of current game includes extended characters (>0x80)
-	bool detectFontExtended();
-	// Detects, if SCI1.1 game uses palette merging
-	bool detectPaletteMergingSci11();
-	// Detects, if SCI0EARLY game also has SCI0EARLY sound resources
-	bool detectEarlySound();
-
 	/**
 	 * Finds the location of the game object from script 0.
 	 * @param addSci11ScriptOffset	Adjust the return value for SCI1.1 and newer

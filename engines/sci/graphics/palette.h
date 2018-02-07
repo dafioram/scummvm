@@ -126,6 +126,9 @@ protected:
 
 	void loadMacIconBarPalette();
 	byte *_macClut;
+
+private:
+	bool detectPaletteMergingSci11() const;
 };
 
 } // End of namespace Sci

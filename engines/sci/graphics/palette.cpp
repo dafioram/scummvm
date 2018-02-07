@@ -69,17 +69,13 @@ GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen)
 	if (getSciVersion() < SCI_VERSION_1_1) {
 		_useMerging = true;
 		_use16bitColorMatch = true;
-	} else if (getSciVersion() == SCI_VERSION_1_1) {
+	} else {
 		// there are some games that use inbetween SCI1.1 interpreter, so we have
 		// to detect if the current game is merging or copying
-		_useMerging = _resMan->detectPaletteMergingSci11();
+		_useMerging = detectPaletteMergingSci11();
 		_use16bitColorMatch = _useMerging;
 		// Note: Laura Bow 2 floppy uses the new palette format and is detected
 		//        as 8 bit color matching because of that.
-	} else {
-	    // SCI32
-		_useMerging = false;
-		_use16bitColorMatch = false; // not verified that SCI32 uses 8-bit color matching
 	}
 
 	palVaryInit();
@@ -996,6 +992,26 @@ void GfxPalette::loadMacIconBarPalette() {
 
 bool GfxPalette::colorIsFromMacClut(byte index) {
 	return index != 0 && _macClut && (_macClut[index * 3] != 0 || _macClut[index * 3 + 1] != 0 || _macClut[index * 3 + 2] != 0);
+}
+
+bool GfxPalette::detectPaletteMergingSci11() const {
+	// Load palette 999 (default palette)
+	Resource *res = _resMan->findResource(ResourceId(kResourceTypePalette, 999), false);
+
+	if (res && res->size() > 30) {
+		// Old palette format used in palette resource? -> it's merging
+		if ((res->getUint8At(0) == 0 && res->getUint8At(1) == 1) ||
+			(res->getUint8At(0) == 0 && res->getUint8At(1) == 0 && res->getUint16LEAt(29) == 0)) {
+			return true;
+		}
+
+		// Hardcoded: Laura Bow 2 floppy uses new palette resource, but still palette merging + 16 bit color matching
+		if (g_sci->getGameId() == GID_LAURABOW2 && !g_sci->isCD() && !g_sci->isDemo()) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 } // End of namespace Sci

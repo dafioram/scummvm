@@ -48,6 +48,19 @@ GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan)
 	_pseudoMouseAbility = kPseudoMouseAbilityUninitialized;
 }
 
+bool GameFeatures::detectEarlySound() const {
+	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeSound, 1), false);
+	if (res &&
+		res->size() >= 0x22 &&
+		res->getUint16LEAt(0x1f) == 0 && // channel 15 voice count + play mask is 0 in SCI0LATE
+		res->getUint8At(0x21) == 0) { // last byte right before actual data is 0 as well
+
+		return false;
+	}
+
+	return true;
+}
+
 reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc, int methodNum) const {
 	// Get address of target object
 	reg_t objAddr = _segMan->findObjectByName(objName, 0);
@@ -141,7 +154,7 @@ SciVersion GameFeatures::detectDoSoundType() {
 		if (getSciVersion() == SCI_VERSION_0_EARLY) {
 			// Almost all of the SCI0EARLY games use different sound resources than
 			//  SCI0LATE. Although the last SCI0EARLY game (lsl2) uses SCI0LATE resources
-			_doSoundType = g_sci->getResMan()->detectEarlySound() ? SCI_VERSION_0_EARLY : SCI_VERSION_0_LATE;
+			_doSoundType = detectEarlySound() ? SCI_VERSION_0_EARLY : SCI_VERSION_0_LATE;
 #ifdef ENABLE_SCI32
 		} else if (getSciVersion() == SCI_VERSION_3) {
 			_doSoundType = SCI_VERSION_3;
@@ -745,6 +758,15 @@ PseudoMouseAbilityType GameFeatures::detectPseudoMouseAbility() {
 		}
 	}
 	return _pseudoMouseAbility;
+}
+
+bool GameFeatures::detectFontExtended() const {
+	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeFont, 0), false);
+	if (res && res->size() >= 4) {
+		uint16 numChars = res->getUint16LEAt(2);
+		return (numChars > 0x80);
+	}
+	return false;
 }
 
 } // End of namespace Sci
