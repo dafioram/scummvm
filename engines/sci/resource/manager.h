@@ -195,30 +195,27 @@ private:
 	 */
 	void scanNewSources();
 
-	bool addAudioSources();
+	void addAudioSources();
 	void addScriptChunkSources();
 	void freeResourceSources();
 
 	/**
 	 * Reads the SCI0 resource.map file from a local directory.
 	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
 	 */
-	int readResourceMapSCI0(ResourceSource *map);
+	ResourceErrorCode readResourceMapSCI0(ResourceSource *map);
 
 	/**
 	 * Reads the SCI1 resource.map file from a local directory.
 	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
 	 */
-	int readResourceMapSCI1(ResourceSource *map);
+	ResourceErrorCode readResourceMapSCI1(ResourceSource *map);
 
 	/**
 	 * Reads SCI1.1 audio map resources.
 	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
 	 */
-	int readAudioMapSCI11(IntMapResourceSource *map);
+	ResourceErrorCode readAudioMapSCI11(IntMapResourceSource *map);
 
 	/**
 	 * Reads SCI1 audio map files.
@@ -226,7 +223,7 @@ private:
 	 * @param unload Unload the map instead of loading it
 	 * @return 0 on success, an SCI_ERROR_* code otherwise
 	 */
-	int readAudioMapSCI1(ResourceSource *map, bool unload = false);
+	ResourceErrorCode readAudioMapSCI1(ResourceSource *map, bool unload = false);
 
 	/**
 	 * Reads patch files from a local directory.
@@ -246,6 +243,9 @@ private:
 	 */
 	bool shouldFindSci0Patches() const;
 
+	/**
+	 * The ownership of `source` is transferred into this function.
+	 */
 	void processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0);
 
 	/**
