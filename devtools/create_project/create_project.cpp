@@ -851,38 +851,28 @@ bool isSubEngine(const std::string &name, const EngineDescList &engines) {
 }
 
 bool setEngineBuildState(const std::string &name, EngineDescList &engines, bool enable) {
-	if (enable && isSubEngine(name, engines)) {
-		// When we enable a sub engine, we need to assure that the parent is also enabled,
-		// thus we enable both sub engine and parent over here.
-		EngineDescList::iterator engine = std::find(engines.begin(), engines.end(), name);
-		if (engine != engines.end()) {
-			engine->enable = enable;
+	EngineDescList::iterator engine = std::find(engines.begin(), engines.end(), name);
+	if (engine != engines.end()) {
+		engine->enable = enable;
 
-			for (engine = engines.begin(); engine != engines.end(); ++engine) {
-				if (std::find(engine->subEngines.begin(), engine->subEngines.end(), name) != engine->subEngines.end()) {
-					engine->enable = true;
+		if (enable) {
+			// When we enable an engine, we need to assure that all parents are
+			// also enabled
+			for (EngineDescList::iterator parent = engines.begin(); parent != engines.end(); ++parent) {
+				if (std::find(parent->subEngines.begin(), parent->subEngines.end(), name) != parent->subEngines.end()) {
+					setEngineBuildState(parent->name, engines, true);
 					break;
 				}
 			}
-
-			return true;
-		}
-	} else {
-		EngineDescList::iterator engine = std::find(engines.begin(), engines.end(), name);
-		if (engine != engines.end()) {
-			engine->enable = enable;
-
-			// When we disable an engine, we also need to disable all the sub engines.
-			if (!enable && !engine->subEngines.empty()) {
-				for (StringList::const_iterator j = engine->subEngines.begin(); j != engine->subEngines.end(); ++j) {
-					EngineDescList::iterator subEngine = std::find(engines.begin(), engines.end(), *j);
-					if (subEngine != engines.end())
-						subEngine->enable = false;
-				}
+		} else {
+			// When we disable an engine we need to ensure that all child
+			// engines are also disabled
+			for (StringList::const_iterator subEngine = engine->subEngines.begin(); subEngine != engine->subEngines.end(); ++subEngine) {
+				setEngineBuildState(*subEngine, engines, false);
 			}
-
-			return true;
 		}
+
+		return true;
 	}
 
 	return false;

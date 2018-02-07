@@ -598,6 +598,20 @@ get_engine_subengines() {
 	get_var _engine_$1_subengines
 }
 
+# Get all subengines, including the passed engine and nested subengines
+get_engine_all_subengines() {
+	for subeng in `get_engine_subengines $1`; do
+		get_engine_all_subengines_recursive $subeng
+	done
+}
+
+get_engine_all_subengines_recursive() {
+	echo $1
+	for subeng in `get_engine_subengines $1`; do
+		get_engine_all_subengines_recursive $subeng
+	done
+}
+
 # Get the dependencies
 get_engine_dependencies() {
 	get_var _engine_$1_deps
@@ -648,27 +662,33 @@ engine_enable() {
 	fi
 	engine=`echo $eng | sed 's/-/_/g'`
 
-	# Filter the parameter for the subengines
-	if test "`get_engine_sub ${engine}`" != "no" ; then
-		if test "$opt" != "yes" ; then
-			subengine_option_error ${engine}
-			return
-		fi
-		parent=`get_subengine_parent ${engine}`
-		if test `get_engine_build ${parent}` = "no" ; then
-			set_var _engine_${parent}_build "yes"
-		fi
-	fi
-
-	if test "$opt" = "static" -o "$opt" = "dynamic" -o "$opt" = "yes" ; then
-		if test "`get_engine_name ${engine}`" != "" ; then
-			set_var _engine_${engine}_build "$opt"
+	while test -n "${engine}"; do
+		# Filter the parameter for the subengines
+		if test "`get_engine_sub ${engine}`" != "no" ; then
+			if test "$opt" != "yes" ; then
+				subengine_option_error ${engine}
+				return
+			fi
+			parent=`get_subengine_parent ${engine}`
+			if test `get_engine_build ${parent}` = "no" ; then
+				set_var _engine_${parent}_build "yes"
+			fi
 		else
-			engine_option_error ${engine}
+			parent=
 		fi
-	else
-		option_error
-	fi
+
+		if test "$opt" = "static" -o "$opt" = "dynamic" -o "$opt" = "yes" ; then
+			if test "`get_engine_name ${engine}`" != "" ; then
+				set_var _engine_${engine}_build "$opt"
+			else
+				engine_option_error ${engine}
+			fi
+		else
+			option_error
+		fi
+
+		engine=${parent}
+	done
 }
 
 # Disable the given engine
@@ -724,6 +744,9 @@ show_subengine_help() {
 	name=`get_engine_name $1`
 	parent=`get_engine_name $2`
 	option_help "${1}" "${name} in ${parent} engine" "  "
+	for sub in `get_engine_subengines $1`; do
+		show_subengine_help $sub $1
+	done
 }
 
 # Prepare the strings about the engines to build
@@ -772,7 +795,7 @@ get_engine_build_string() {
 	else
 		# Test for disabled sub-engines
 		if test $request_status = no ; then
-			for subeng in `get_engine_subengines $engine` ; do
+			for subeng in `get_engine_all_subengines $engine` ; do
 				if test `get_engine_build $subeng` = no ; then
 					# In this case we to display _disabled_ subengines
 					subengine_filter=no
@@ -782,7 +805,7 @@ get_engine_build_string() {
 		fi
 		# Test for enabled wip sub-engines
 		if test $request_status = wip ; then
-			for subeng in `get_engine_subengines $engine` ; do
+			for subeng in `get_engine_all_subengines $engine` ; do
 				if test `get_engine_build $subeng` != no -a `get_engine_build_default $subeng` = no ; then
 					show=yes
 				fi
@@ -821,7 +844,7 @@ get_subengines_build_string() {
 
 	all=yes
 	# If there are no subengines, never display "[all games]" (for brevity).
-	if test -z "`get_engine_subengines $parent_engine`"; then
+	if test -z "`get_engine_all_subengines $parent_engine`"; then
 		all=no
 	fi
 	# If the base engine does not fit the category we're displaying here
@@ -838,11 +861,11 @@ get_subengines_build_string() {
 
 
 	# In the static/dynamic categories, also display the engine's base games.
-	if test -n "`get_engine_subengines $parent_engine`" -a $request_status != no -a $request_status != wip; then
+	if test -n "`get_engine_all_subengines $parent_engine`" -a $request_status != no -a $request_status != wip; then
 		subengine_string="[`get_engine_base $parent_engine`]"
 	fi
 
-	for subeng in `get_engine_subengines $parent_engine` ; do
+	for subeng in `get_engine_all_subengines $parent_engine` ; do
 		subengine_build=`get_engine_build $subeng`
 		subengine_build_default=`get_engine_build_default $subeng`
 
@@ -5392,6 +5415,19 @@ cat > engines/engines.mk << EOF
 # This file is being included by "Makefile.common"
 EOF
 
+write_engine_defines() {
+	for subeng in `get_engine_subengines $1` ; do
+		k=`echo $subeng | tr '[:lower:]' '[:upper:]'`
+		cat >> engines/engines.mk << EOF
+
+ifdef ENABLE_$k
+DEFINES += -DENABLE_$k
+EOF
+		write_engine_defines $subeng
+		echo "endif" >> engines/engines.mk
+	done
+}
+
 for engine in $_sorted_engines; do
 	j=`echo $engine | tr '[:lower:]' '[:upper:]'`
 	if test "`get_engine_sub $engine`" = "no" ; then
@@ -5399,23 +5435,11 @@ for engine in $_sorted_engines; do
 		cat >> engines/engines.mk << EOF
 
 ifdef ENABLE_$j
-DEFINES += -DENABLE_$j=\$(ENABLE_$j)
+DEFINES += -DENABLE_$j
 MODULES += engines/$engine
 EOF
-
-	for subeng in `get_engine_subengines $engine` ; do
-		k=`echo $subeng | tr '[:lower:]' '[:upper:]'`
-		cat >> engines/engines.mk << EOF
-
-ifdef ENABLE_$k
-DEFINES += -DENABLE_$k
-endif
-EOF
-	done
-
-	cat >> engines/engines.mk << EOF
-endif
-EOF
+		write_engine_defines $engine
+		echo "endif" >> engines/engines.mk
 	fi
 done
 
