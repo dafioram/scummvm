@@ -43,6 +43,7 @@ namespace Sci {
 // 0 - NULL
 // . - any
 // ! - invalid reference/offset
+// u - uninitialized value
 
 struct SciKernelMapSubEntry {
 	SciVersion fromVersion;
@@ -966,7 +967,7 @@ static SciKernelMapEntry s_kernelMap[] = {
 	// stub in the original interpreters, but it gets called by the game scripts.
 	// Usually, it gets called with a string (which is the output format) and a
 	// variable number of parameters
-	{ MAP_CALL(PrintDebug),        SIG_SCI32, SIGFOR_ALL,    "r(.*)",                 NULL,            NULL },
+	{ MAP_CALL(PrintDebug),        SIG_SCI32, SIGFOR_ALL,    "r([.u]*)",              NULL,            NULL },
 
 	// SetWindowsOption is used to set Windows specific options, like for example the title bar visibility of
 	// the game window in Phantasmagoria 2. We ignore these settings completely.

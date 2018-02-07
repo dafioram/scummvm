@@ -239,6 +239,7 @@ static uint16 *parseKernelSignature(const char *kernelName, const char *writtenS
 		case 'l':
 		case 'n':
 		case '.':
+		case 'u':
 		case '!':
 			if ((hadOptional) & (!optional))
 				error("signature for k%s: non-optional type may not follow optional type", kernelName);
@@ -291,6 +292,7 @@ static uint16 *parseKernelSignature(const char *kernelName, const char *writtenS
 			case 'n':
 			case '.':
 			case '!':
+			case 'u':
 				// and we also got some signature pending?
 				if (signature) {
 					if (!(signature & SIG_MAYBE_ANY))
@@ -360,6 +362,11 @@ static uint16 *parseKernelSignature(const char *kernelName, const char *writtenS
 			if (signature & SIG_IS_INVALID)
 				error("signature for k%s: invalid ('!') specified more than once", kernelName);
 			signature |= SIG_IS_INVALID;
+			break;
+		case 'u':
+			if (signature & SIG_TYPE_UNINITIALIZED)
+				error("signature for k%s: uninitialized ('u') specified more than once", kernelName);
+			signature |= SIG_TYPE_UNINITIALIZED;
 			break;
 		case '*': // accepts more of the same parameter
 			signature |= SIG_MORE_MAY_FOLLOW;
