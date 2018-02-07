@@ -2092,7 +2092,9 @@ void Sci1SoundManager::kernelSetVolume(const reg_t soundObj, const int16 volume)
 	if (sound->volume != volume) {
 		setVolume(*sound, volume);
 		writeSelectorValue(_segMan, soundObj, SELECTOR(vol), volume);
+#ifdef ENABLE_SCI32
 		_guestAdditions.kDoSoundSetVolumeHook(soundObj, volume);
+#endif
 	}
 }
 
