@@ -270,6 +270,12 @@ public:
 	 * Resolve a relocation in an SCI3 script
 	 * @param offset        The offset to relocate from
 	 */
+	static int relocateOffsetSci3(const SciSpan<const byte> &buf, const uint32 offset, const bool isBE);
+
+	/**
+	 * Resolve a relocation in an SCI3 script
+	 * @param offset        The offset to relocate from
+	 */
 	int relocateOffsetSci3(uint32 offset) const;
 #endif
 

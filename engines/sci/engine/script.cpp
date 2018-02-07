@@ -682,19 +682,28 @@ bool relocateBlock(Common::Array<reg_t> &block, int block_location, SegmentId se
 }
 
 #ifdef ENABLE_SCI32
-int Script::relocateOffsetSci3(uint32 offset) const {
-	int relocStart = _buf->getUint32LEAt(8);
-	int relocCount = _buf->getUint16LEAt(18);
-	SciSpan<const byte> seeker = _buf->subspan(relocStart);
+int Script::relocateOffsetSci3(const SciSpan<const byte> &buf, const uint32 offset, const bool isBE) {
+	int relocStart = buf.getUint32LEAt(8);
+	int relocCount = buf.getUint16LEAt(18);
+	SciSpan<const byte>::const_iterator seeker = buf.cbegin() + relocStart;
 
 	for (int i = 0; i < relocCount; ++i) {
-		if (seeker.getUint32SEAt(0) == offset) {
-			return _buf->getUint16SEAt(offset) + seeker.getUint32SEAt(4);
+		const uint32 candidateOffset = isBE ? seeker.getUint32BE() : seeker.getUint32LE();
+		if (candidateOffset == offset) {
+			if (isBE) {
+				return buf.getUint16BEAt(offset) + (seeker + 4).getUint32BE();
+			} else {
+				return buf.getUint16LEAt(offset) + (seeker + 4).getUint32LE();
+			}
 		}
 		seeker += 10;
 	}
 
 	return -1;
+}
+
+int Script::relocateOffsetSci3(uint32 offset) const {
+	return relocateOffsetSci3(*_buf, offset, g_sci->getPlatform() == Common::kPlatformMacintosh);
 }
 #endif
 

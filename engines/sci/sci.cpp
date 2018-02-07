@@ -25,6 +25,7 @@
 #include "common/config-manager.h"
 #include "common/debug-channels.h"
 #include "common/translation.h"
+#include "common/savefile.h"
 
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
@@ -35,6 +36,7 @@
 #include "sci/debug.h"
 #include "sci/console.h"
 #include "sci/event.h"
+#include "sci/engine/savegame.h"
 
 #include "sci/engine/features.h"
 #include "sci/engine/guest_additions.h"
@@ -987,4 +989,69 @@ uint32 SciEngine::getTickCount() {
 void SciEngine::setTickCount(const uint32 ticks) {
 	return g_engine->setTotalPlayTime(ticks * 1000 / 60);
 }
+
+bool SciEngine::hasFeature(EngineFeature f) const {
+	return
+		(f == kSupportsRTL) ||
+		(f == kSupportsLoadingDuringRuntime); // ||
+		//(f == kSupportsSavingDuringRuntime);
+		// We can't allow saving through ScummVM menu, because
+		//  a) lots of games don't like saving everywhere (e.g. castle of dr. brain)
+		//  b) some games even dont allow saving in certain rooms (e.g. lsl6)
+		//  c) somehow some games even get mad when doing this (execstackbase was 1 all of a sudden in lsl3)
+		//  d) for sci0/sci01 games we should at least wait till status bar got drawn, although this may not be enough
+		// we can't make sure that the scripts are fine with us saving at a specific location, doing so may work sometimes
+		//  and some other times it won't work.
+}
+
+Common::Error SciEngine::loadGameState(int slot) {
+	_gamestate->_delayedRestoreGameId = slot;
+	return Common::kNoError;
+}
+
+Common::Error SciEngine::saveGameState(int slot, const Common::String &desc) {
+	Common::String fileName = Common::String::format("%s.%03d", _targetName.c_str(), slot);
+	Common::SaveFileManager *saveFileMan = g_engine->getSaveFileManager();
+	Common::OutSaveFile *out = saveFileMan->openForSaving(fileName);
+	const char *version = "";
+	if (!out) {
+		warning("Opening savegame \"%s\" for writing failed", fileName.c_str());
+		return Common::kWritingFailed;
+	}
+
+	if (!gamestate_save(_gamestate, out, desc, version)) {
+		warning("Saving the game state to '%s' failed", fileName.c_str());
+		return Common::kWritingFailed;
+	} else {
+		out->finalize();
+		if (out->err()) {
+			warning("Writing the savegame failed");
+			return Common::kWritingFailed;
+		}
+		delete out;
+	}
+
+	return Common::kNoError;
+}
+
+bool SciEngine::canLoadGameStateCurrently() {
+#ifdef ENABLE_SCI32
+	const Common::String &guiOptions = ConfMan.get("guioptions");
+	if (getSciVersion() >= SCI_VERSION_2) {
+		if (ConfMan.getBool("originalsaveload") ||
+			Common::checkGameGUIOption(GUIO_NOLAUNCHLOAD, guiOptions)) {
+
+			return false;
+		}
+	}
+#endif
+
+	return !_gamestate->executionStackBase;
+}
+
+bool SciEngine::canSaveGameStateCurrently() {
+	// see comment about kSupportsSavingDuringRuntime in SciEngine::hasFeature
+	return false;
+}
+
 } // End of namespace Sci

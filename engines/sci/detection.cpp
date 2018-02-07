@@ -554,6 +554,12 @@ public:
 	virtual int getMaximumSaveSlot() const;
 	virtual void removeSaveState(const char *target, int slot) const;
 	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+
+private:
+	/**
+	 * Finds the internal Sierra ID of the current game from script 0.
+	 */
+	Common::String findSierraGameId(ResourceManager &resMan, const bool isBE) const;
 };
 
 Common::Language charToScummVMLanguage(const char c) {
@@ -660,7 +666,7 @@ const ADGameDescription *SciMetaEngine::fallbackDetect(const FileMap &allFiles, 
 		s_fallbackDesc.platform = Common::kPlatformAmiga;
 
 	// Determine the game id
-	Common::String sierraGameId = resMan.findSierraGameId(s_fallbackDesc.platform == Common::kPlatformMacintosh);
+	Common::String sierraGameId = findSierraGameId(resMan, s_fallbackDesc.platform == Common::kPlatformMacintosh);
 
 	// If we don't have a game id, the game is not SCI
 	if (sierraGameId.empty())
@@ -762,20 +768,6 @@ bool SciMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSavesSupportThumbnail) ||
 		(f == kSavesSupportCreationDate) ||
 		(f == kSavesSupportPlayTime);
-}
-
-bool SciEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL) ||
-		(f == kSupportsLoadingDuringRuntime); // ||
-		//(f == kSupportsSavingDuringRuntime);
-		// We can't allow saving through ScummVM menu, because
-		//  a) lots of games don't like saving everywhere (e.g. castle of dr. brain)
-		//  b) some games even dont allow saving in certain rooms (e.g. lsl6)
-		//  c) somehow some games even get mad when doing this (execstackbase was 1 all of a sudden in lsl3)
-		//  d) for sci0/sci01 games we should at least wait till status bar got drawn, although this may not be enough
-		// we can't make sure that the scripts are fine with us saving at a specific location, doing so may work sometimes
-		//  and some other times it won't work.
 }
 
 SaveStateList SciMetaEngine::listSaves(const char *target) const {
@@ -891,54 +883,63 @@ void SciMetaEngine::removeSaveState(const char *target, int slot) const {
 	g_system->getSavefileManager()->removeSavefile(fileName);
 }
 
-Common::Error SciEngine::loadGameState(int slot) {
-	_gamestate->_delayedRestoreGameId = slot;
-	return Common::kNoError;
-}
+Common::String SciMetaEngine::findSierraGameId(ResourceManager &resMan, const bool isBE) const {
+	// In SCI0-SCI1, the heap is embedded in the script. In SCI1.1 - SCI2.1,
+	// it's in a separate heap resource
+	Resource *heap = nullptr;
+	int nameSelector = -1;
 
-Common::Error SciEngine::saveGameState(int slot, const Common::String &desc) {
-	Common::String fileName = Common::String::format("%s.%03d", _targetName.c_str(), slot);
-	Common::SaveFileManager *saveFileMan = g_engine->getSaveFileManager();
-	Common::OutSaveFile *out = saveFileMan->openForSaving(fileName);
-	const char *version = "";
-	if (!out) {
-		warning("Opening savegame \"%s\" for writing failed", fileName.c_str());
-		return Common::kWritingFailed;
+	if (getSciVersion() < SCI_VERSION_1_1) {
+		heap = resMan.findResource(ResourceId(kResourceTypeScript, 0), false);
+		nameSelector = 3;
+	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
+		heap = resMan.findResource(ResourceId(kResourceTypeHeap, 0), false);
+		nameSelector = 8;
+	} else if (getSciVersion() == SCI_VERSION_3) {
+		heap = resMan.findResource(ResourceId(kResourceTypeScript, 0), false);
+
+		Resource *vocab = resMan.findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SELECTORS), false);
+		if (!vocab)
+			return "";
+
+		const uint16 numSelectors = isBE ? vocab->getUint16BEAt(0) : vocab->getUint16LEAt(0);
+		for (uint16 i = 0; i < numSelectors; ++i) {
+			uint16 selectorOffset;
+			uint16 selectorSize;
+			if (isBE) {
+				selectorOffset = vocab->getUint16BEAt((i + 1) * sizeof(uint16));
+				selectorSize = vocab->getUint16BEAt(selectorOffset);
+			} else {
+				selectorOffset = vocab->getUint16LEAt((i + 1) * sizeof(uint16));
+				selectorSize = vocab->getUint16LEAt(selectorOffset);
+			}
+
+			Common::String selectorName = Common::String((const char *)vocab->getUnsafeDataAt(selectorOffset + 2, selectorSize), selectorSize);
+			if (selectorName == "name") {
+				nameSelector = i;
+				break;
+			}
+		}
 	}
 
-	if (!gamestate_save(_gamestate, out, desc, version)) {
-		warning("Saving the game state to '%s' failed", fileName.c_str());
-		return Common::kWritingFailed;
+	if (!heap || nameSelector == -1)
+		return "";
+
+	int16 gameObjectOffset = resMan.findGameObject(false, isBE).getOffset();
+
+	if (!gameObjectOffset)
+		return "";
+
+	int32 offset;
+	if (getSciVersion() == SCI_VERSION_3) {
+		offset = Script::relocateOffsetSci3(*heap, gameObjectOffset + /* base selector offset */ 0x110 + nameSelector * sizeof(uint16), isBE);
 	} else {
-		out->finalize();
-		if (out->err()) {
-			warning("Writing the savegame failed");
-			return Common::kWritingFailed;
-		}
-		delete out;
+		// Seek to the name selector of the first export
+		SciSpan<const byte>::const_iterator offsetPtr = heap->cbegin() + gameObjectOffset + nameSelector * sizeof(uint16);
+		offset = !resMan.isSci11Mac() ? offsetPtr.getUint16LE() : offsetPtr.getUint16BE();
 	}
 
-	return Common::kNoError;
-}
-
-bool SciEngine::canLoadGameStateCurrently() {
-#ifdef ENABLE_SCI32
-	const Common::String &guiOptions = ConfMan.get("guioptions");
-	if (getSciVersion() >= SCI_VERSION_2) {
-		if (ConfMan.getBool("originalsaveload") ||
-			Common::checkGameGUIOption(GUIO_NOLAUNCHLOAD, guiOptions)) {
-
-			return false;
-		}
-	}
-#endif
-
-	return !_gamestate->executionStackBase;
-}
-
-bool SciEngine::canSaveGameStateCurrently() {
-	// see comment about kSupportsSavingDuringRuntime in SciEngine::hasFeature
-	return false;
+	return heap->getStringAt(offset);
 }
 
 } // End of namespace Sci
