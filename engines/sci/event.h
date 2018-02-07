@@ -151,7 +151,6 @@ struct SciEvent {
 class EventManager {
 public:
 	EventManager(bool fontIsExtended);
-	~EventManager();
 
 	void updateScreen();
 	SciEvent getSciEvent(SciEventType mask);

@@ -115,9 +115,6 @@ EventManager::EventManager(bool fontIsExtended) :
 #endif
 	{}
 
-EventManager::~EventManager() {
-}
-
 /**
  * Calculates the IBM keyboard alt-key scancode of a printable character.
  */
