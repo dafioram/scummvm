@@ -21,7 +21,7 @@
  */
 
 #include "sci/sci.h"
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/script.h"
 #include "sci/engine/state.h"

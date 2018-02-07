@@ -20,7 +20,7 @@
  *
  */
 
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/sound/audio.h"

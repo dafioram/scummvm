@@ -27,6 +27,7 @@
 
 #include "gui/debugger.h"
 #include "sci/engine/vm.h"
+#include "sci/resource/manager.h"
 
 namespace Sci {
 

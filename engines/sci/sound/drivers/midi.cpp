@@ -29,7 +29,7 @@
 
 #include "audio/mididrv.h"
 
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 #include "sci/engine/features.h"
 #include "sci/sound/drivers/gm_names.h"
 #include "sci/sound/drivers/mididriver.h"

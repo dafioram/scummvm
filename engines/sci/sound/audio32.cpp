@@ -34,13 +34,13 @@
 #include "common/system.h"          // for OSystem, g_system
 #include "common/textconsole.h"     // for warning
 #include "common/types.h"           // for Flag::NO
-#include "engine.h"                 // for Engine, g_engine
+#include "engines/engine.h"         // for Engine, g_engine
 #include "sci/console.h"            // for Console
 #include "sci/engine/features.h"    // for GameFeatures
 #include "sci/engine/guest_additions.h" // for GuestAdditions
 #include "sci/engine/state.h"       // for EngineState
 #include "sci/engine/vm_types.h"    // for reg_t, make_reg, NULL_REG
-#include "sci/resource.h"           // for ResourceId, ResourceType::kResour...
+#include "sci/resource/manager.h"           // for ResourceId, ResourceType::kResour...
 #include "sci/sci.h"                // for SciEngine, g_sci, getSciVersion
 #include "sci/sound/decoders/sol.h" // for makeSOLStream
 

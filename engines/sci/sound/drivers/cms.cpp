@@ -28,7 +28,7 @@
 
 #include "common/system.h"
 
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 #include "sci/util.h"
 
 namespace Sci {

@@ -22,7 +22,7 @@
 
 #include "audio/softsynth/emumidi.h"
 #include "sci/sound/drivers/mididriver.h"
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 
 #include "common/debug-channels.h"
 #include "common/file.h"

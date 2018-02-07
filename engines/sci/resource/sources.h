@@ -20,16 +20,19 @@
  *
  */
 
-#ifndef SCI_RESOURCE_INTERN_H
-#define SCI_RESOURCE_INTERN_H
+#ifndef SCI_RESOURCE_SOURCES_H
+#define SCI_RESOURCE_SOURCES_H
 
-#include "sci/resource.h"
+#include "common/str.h"
 
 namespace Common {
-class MacResManager;
+class FSNode;
+class SeekableReadStream;
 }
 
 namespace Sci {
+class ResourceManager;
+class Resource;
 
 enum ResSourceType {
 	kSourceDirectory = 0,	///< Directories containing game resources/patches
@@ -44,7 +47,6 @@ enum ResSourceType {
 	kSourceChunk,			///< Script chunk resources (*.chk)
 	kSourceScummVM			///< Built-in resource patcher
 };
-
 
 class ResourceSource {
 protected:
@@ -240,4 +242,4 @@ protected:
 
 } // End of namespace Sci
 
-#endif // SCI_RESOURCE_INTERN_H
+#endif

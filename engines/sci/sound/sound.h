@@ -33,7 +33,7 @@
 #include "common/serializer.h"
 #include "common/scummsys.h"
 #include "sci/engine/vm_types.h"
-#include "sci/resource.h"
+#include "sci/resource/manager.h"
 #include "sci/sound/drivers/driver.h"
 #include "sci/util.h"
 

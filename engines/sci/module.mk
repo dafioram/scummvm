@@ -5,9 +5,10 @@ MODULE_OBJS := \
 	decompressor.o \
 	detection.o \
 	event.o \
-	resource.o \
-	resource_audio.o \
-	resource_patcher.o \
+	resource/resource.o \
+	resource/manager.o \
+	resource/patcher.o \
+	resource/sources.o \
 	sci.o \
 	util.o \
 	engine/features.o \

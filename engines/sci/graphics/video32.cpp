@@ -28,7 +28,7 @@
 #endif
 #include "common/util.h"                 // for ARRAYSIZE
 #include "common/system.h"               // for g_system
-#include "engine.h"                      // for Engine, g_engine
+#include "engines/engine.h"              // for Engine, g_engine
 #include "graphics/colormasks.h"         // for createPixelFormat
 #include "graphics/palette.h"            // for PaletteManager
 #include "graphics/transparent_surface.h" // for TransparentSurface
@@ -44,7 +44,7 @@
 #include "sci/graphics/palette32.h"      // for GfxPalette32
 #include "sci/graphics/plane32.h"        // for Plane, PlanePictureCodes::kP...
 #include "sci/graphics/screen_item32.h"  // for ScaleInfo, ScreenItem, Scale...
-#include "sci/resource.h"                // for ResourceManager, ResourceId,...
+#include "sci/resource/manager.h"                // for ResourceManager, ResourceId,...
 #include "sci/sci.h"                     // for SciEngine, g_sci, getSciVersion
 #include "sci/sound/audio32.h"           // for Audio32
 #include "sci/video/seq_decoder.h"       // for SEQDecoder

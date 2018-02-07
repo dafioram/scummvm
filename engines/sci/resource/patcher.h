@@ -25,8 +25,8 @@
 
 #include "common/language.h"
 #include "sci/sci.h"
-#include "sci/resource.h"
-#include "sci/resource_intern.h"
+#include "sci/resource/manager.h"
+#include "sci/resource/sources.h"
 
 namespace Sci {
 

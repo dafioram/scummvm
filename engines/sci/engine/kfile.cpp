@@ -38,6 +38,7 @@
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/savegame.h"
+#include "sci/resource/manager.h"
 #include "sci/sound/audio.h"
 #include "sci/sound/sound.h"
 #include "sci/console.h"
@@ -45,7 +46,6 @@
 #include "graphics/thumbnail.h"
 #include "sci/engine/guest_additions.h"
 #include "sci/engine/message.h"
-#include "sci/resource.h"
 #endif
 
 namespace Sci {
