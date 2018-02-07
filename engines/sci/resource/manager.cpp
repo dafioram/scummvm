@@ -2562,7 +2562,7 @@ void ResourceManager::setAudioLanguage(int language) {
 		_sources.remove(_audioMapSCI1);
 		delete _audioMapSCI1;
 
-		_audioMapSCI1 = NULL;
+		_audioMapSCI1 = nullptr;
 	}
 
 	Common::String filename = Common::String::format("AUDIO%03d", language);
@@ -2619,6 +2619,7 @@ void ResourceManager::addAudioSources() {
 	return;
 }
 
+#ifdef ENABLE_SCI32
 void ResourceManager::changeAudioDirectory(Common::String path) {
 	if (!path.empty()) {
 		path += "/";
@@ -2710,5 +2711,6 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 
 	scanNewSources();
 }
+#endif
 
 } // End of namespace Sci

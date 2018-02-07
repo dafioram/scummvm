@@ -350,9 +350,24 @@ private:
 #pragma mark -
 #pragma mark Language settings
 public:
+	/**
+	 * Sets the language used when looking up audio resources, Where `language`
+	 * is a SCI1 audio volume file number. Used by SCI1.
+	 */
 	void setAudioLanguage(int language);
+
+	/**
+	 * Gets the audio map currently in use. Used by SCI1.
+	 */
 	int getAudioLanguage() const;
+
+#ifdef ENABLE_SCI32
+	/**
+	 * Changes the directory used when looking up audio resources. Used by
+	 * SCI2.1 (MGDX).
+	 */
 	void changeAudioDirectory(Common::String path);
+#endif
 
 #ifdef ENABLE_SCI32
 #pragma mark -

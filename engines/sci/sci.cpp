@@ -939,13 +939,13 @@ void SciEngine::setLauncherLanguage() {
 		switch (chosenLanguage) {
 		case Common::EN_ANY:
 			// and English was selected as language
-			languageToSet = K_LANG_ENGLISH;
+			languageToSet = kLangEnglish;
 			break;
 		case Common::JA_JPN: {
 			// Set Japanese for FM-Towns games
 			// KQ5 on FM-Towns has no initial language set
 			if (g_sci->getPlatform() == Common::kPlatformFMTowns) {
-				languageToSet = K_LANG_JAPANESE;
+				languageToSet = kLangJapanese;
 			}
 		}
 		default:

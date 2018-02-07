@@ -174,28 +174,28 @@ void EngineState::shrinkStackToBase() {
 	}
 }
 
-static kLanguage charToLanguage(const char c) {
+static SciLanguage charToLanguage(const char c) {
 	switch (c) {
 	case 'F':
-		return K_LANG_FRENCH;
+		return kLangFrench;
 	case 'S':
-		return K_LANG_SPANISH;
+		return kLangSpanish;
 	case 'I':
-		return K_LANG_ITALIAN;
+		return kLangItalian;
 	case 'G':
-		return K_LANG_GERMAN;
+		return kLangGerman;
 	case 'J':
 	case 'j':
-		return K_LANG_JAPANESE;
+		return kLangJapanese;
 	case 'P':
-		return K_LANG_PORTUGUESE;
+		return kLangPortuguese;
 	default:
-		return K_LANG_NONE;
+		return kLangNone;
 	}
 }
 
-Common::String SciEngine::getSciLanguageString(const Common::String &str, kLanguage requestedLanguage, kLanguage *secondaryLanguage, uint16 *languageSplitter) const {
-	kLanguage foundLanguage = K_LANG_NONE;
+Common::String SciEngine::getSciLanguageString(const Common::String &str, SciLanguage requestedLanguage, SciLanguage *secondaryLanguage, uint16 *languageSplitter) const {
+	SciLanguage foundLanguage = kLangNone;
 	const byte *textPtr = (const byte *)str.c_str();
 	byte curChar = 0;
 	byte curChar2 = 0;
@@ -209,7 +209,7 @@ Common::String SciEngine::getSciLanguageString(const Common::String &str, kLangu
 			curChar2 = *(textPtr + 1);
 			foundLanguage = charToLanguage(curChar2);
 
-			if (foundLanguage != K_LANG_NONE) {
+			if (foundLanguage != kLangNone) {
 				// Return language splitter
 				if (languageSplitter)
 					*languageSplitter = curChar | ( curChar2 << 8 );
@@ -284,17 +284,17 @@ Common::String SciEngine::getSciLanguageString(const Common::String &str, kLangu
 	return str;
 }
 
-kLanguage SciEngine::getSciLanguage() {
-	kLanguage lang = (kLanguage)_resMan->getAudioLanguage();
-	if (lang != K_LANG_NONE)
+SciLanguage SciEngine::getSciLanguage() {
+	SciLanguage lang = SciLanguage(_resMan->getAudioLanguage());
+	if (lang != kLangNone)
 		return lang;
 
-	lang = K_LANG_ENGLISH;
+	lang = kLangEnglish;
 
 	if (SELECTOR(printLang) != -1) {
-		lang = (kLanguage)readSelectorValue(_gamestate->_segMan, _gameObjectAddress, SELECTOR(printLang));
+		lang = (SciLanguage)readSelectorValue(_gamestate->_segMan, _gameObjectAddress, SELECTOR(printLang));
 
-		if ((getSciVersion() >= SCI_VERSION_1_1) || (lang == K_LANG_NONE)) {
+		if (getSciVersion() >= SCI_VERSION_1_1 || lang == kLangNone) {
 			// If language is set to none, we use the language from the game detector.
 			// SSCI reads this from resource.cfg (early games do not have a language
 			// setting in resource.cfg, but instead have the secondary language number
@@ -305,25 +305,25 @@ kLanguage SciEngine::getSciLanguage() {
 			// so far, so this information may not be 100% accurate.
 			switch (getLanguage()) {
 			case Common::FR_FRA:
-				lang = K_LANG_FRENCH;
+				lang = kLangFrench;
 				break;
 			case Common::ES_ESP:
-				lang = K_LANG_SPANISH;
+				lang = kLangSpanish;
 				break;
 			case Common::IT_ITA:
-				lang = K_LANG_ITALIAN;
+				lang = kLangItalian;
 				break;
 			case Common::DE_DEU:
-				lang = K_LANG_GERMAN;
+				lang = kLangGerman;
 				break;
 			case Common::JA_JPN:
-				lang = K_LANG_JAPANESE;
+				lang = kLangJapanese;
 				break;
 			case Common::PT_BRA:
-				lang = K_LANG_PORTUGUESE;
+				lang = kLangPortuguese;
 				break;
 			default:
-				lang = K_LANG_ENGLISH;
+				lang = kLangEnglish;
 			}
 		}
 	}
@@ -331,7 +331,7 @@ kLanguage SciEngine::getSciLanguage() {
 	return lang;
 }
 
-void SciEngine::setSciLanguage(kLanguage lang) {
+void SciEngine::setSciLanguage(SciLanguage lang) {
 	if (SELECTOR(printLang) != -1)
 		writeSelectorValue(_gamestate->_segMan, _gameObjectAddress, SELECTOR(printLang), lang);
 }
@@ -341,22 +341,22 @@ void SciEngine::setSciLanguage() {
 }
 
 Common::String SciEngine::strSplitLanguage(const char *str, uint16 *languageSplitter, const char *sep) {
-	kLanguage activeLanguage = getSciLanguage();
-	kLanguage subtitleLanguage = K_LANG_NONE;
+	SciLanguage activeLanguage = getSciLanguage();
+	SciLanguage subtitleLanguage = kLangNone;
 
 	if (SELECTOR(subtitleLang) != -1)
-		subtitleLanguage = (kLanguage)readSelectorValue(_gamestate->_segMan, _gameObjectAddress, SELECTOR(subtitleLang));
+		subtitleLanguage = (SciLanguage)readSelectorValue(_gamestate->_segMan, _gameObjectAddress, SELECTOR(subtitleLang));
 
-	kLanguage foundLanguage;
+	SciLanguage foundLanguage;
 	Common::String retval = getSciLanguageString(str, activeLanguage, &foundLanguage, languageSplitter);
 
 	// Don't add subtitle when separator is not set, subtitle language is not set, or
 	// string contains only one language
-	if ((sep == NULL) || (subtitleLanguage == K_LANG_NONE) || (foundLanguage == K_LANG_NONE))
+	if ((sep == NULL) || (subtitleLanguage == kLangNone) || (foundLanguage == kLangNone))
 		return retval;
 
 	// Add subtitle, unless the subtitle language doesn't match the languages in the string
-	if ((subtitleLanguage == K_LANG_ENGLISH) || (subtitleLanguage == foundLanguage)) {
+	if ((subtitleLanguage == kLangEnglish) || (subtitleLanguage == foundLanguage)) {
 		retval += sep;
 		retval += getSciLanguageString(str, subtitleLanguage);
 	}

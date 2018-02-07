@@ -124,7 +124,7 @@ uint findFreeFileHandle(EngineState *s) {
  */
 
 reg_t file_open(EngineState *s, const Common::String &filename, kFileOpenMode mode, bool unwrapFilename) {
-	Common::String englishName = g_sci->getSciLanguageString(filename, K_LANG_ENGLISH);
+	Common::String englishName = g_sci->getSciLanguageString(filename, kLangEnglish);
 	englishName.toLowercase();
 
 	Common::String wrappedName = unwrapFilename ? g_sci->wrapFilename(englishName) : englishName;

@@ -351,7 +351,7 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 			if (language != -1)
 				g_sci->getResMan()->setAudioLanguage(language);
 
-			kLanguage kLang = g_sci->getSciLanguage();
+			SciLanguage kLang = g_sci->getSciLanguage();
 			g_sci->setSciLanguage(kLang);
 
 			return make_reg(0, kLang);
@@ -566,10 +566,12 @@ reg_t kDoAudioPanOff(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kSetLanguage(EngineState *s, int argc, reg_t *argv) {
+#ifdef ENABLE_SCI32
 	// Used by script 90 of MUMG Deluxe from the main menu to toggle between
 	// English and Spanish.
 	const Common::String audioDirectory = s->_segMan->getString(argv[0]);
 	g_sci->getResMan()->changeAudioDirectory(audioDirectory);
+#endif
 	return s->r_acc;
 }
 

@@ -235,15 +235,15 @@ enum SciVersion {
 };
 
 /** Supported languages */
-enum kLanguage {
-	K_LANG_NONE = 0,
-	K_LANG_ENGLISH = 1,
-	K_LANG_FRENCH = 33,
-	K_LANG_SPANISH = 34,
-	K_LANG_ITALIAN = 39,
-	K_LANG_GERMAN = 49,
-	K_LANG_JAPANESE = 81,
-	K_LANG_PORTUGUESE = 351
+enum SciLanguage {
+	kLangNone = 0,
+	kLangEnglish = 1,
+	kLangFrench = 33,
+	kLangSpanish = 34,
+	kLangItalian = 39,
+	kLangGerman = 49,
+	kLangJapanese = 81,
+	kLangPortuguese = 351
 };
 
 void showScummVMDialog(const Common::String &message);
@@ -335,11 +335,11 @@ public:
 		return strSplitLanguage(str, NULL, sep);
 	}
 
-	kLanguage getSciLanguage();
-	void setSciLanguage(kLanguage lang);
+	SciLanguage getSciLanguage();
+	void setSciLanguage(SciLanguage lang);
 	void setSciLanguage();
 
-	Common::String getSciLanguageString(const Common::String &str, kLanguage lang, kLanguage *lang2 = NULL, uint16 *languageSplitter = NULL) const;
+	Common::String getSciLanguageString(const Common::String &str, SciLanguage lang, SciLanguage *lang2 = NULL, uint16 *languageSplitter = NULL) const;
 
 	// Check if vocabulary needs to get switched (in multilingual parser games)
 	void checkVocabularySwitch();

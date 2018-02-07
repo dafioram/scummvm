@@ -957,7 +957,7 @@ SciWorkaroundSolution trackOriginAndFindWorkaround(int index, const SciWorkaroun
 		// Search if there is a workaround for this one
 		const SciWorkaroundEntry *workaround;
 		int16 inheritanceLevel = 0;
-		Common::String searchObjectName = g_sci->getSciLanguageString(curObjectName, K_LANG_ENGLISH);
+		Common::String searchObjectName = g_sci->getSciLanguageString(curObjectName, kLangEnglish);
 		reg_t searchObject = lastCall->sendp;
 		const byte *curScriptPtr = NULL;
 		uint32 curScriptSize = 0;
@@ -974,7 +974,7 @@ SciWorkaroundSolution trackOriginAndFindWorkaround(int index, const SciWorkaroun
 						&& ((workaround->roomNr == -1) || (workaround->roomNr == curRoomNumber))
 						&& ((workaround->inheritanceLevel == -1) || (workaround->inheritanceLevel == inheritanceLevel))
 						&& objectNameMatches
-						&& workaround->methodName == g_sci->getSciLanguageString(curMethodName, K_LANG_ENGLISH)
+						&& workaround->methodName == g_sci->getSciLanguageString(curMethodName, kLangEnglish)
 						&& ((workaround->fromIndex == -1) || ((workaround->fromIndex <= index) && (workaround->toIndex >= index)))) {
 					// Workaround found
 					if ((workaround->localCallSignature) || (curLocalCallOffset >= 0)) {
