@@ -271,9 +271,12 @@ static const OldNewIdTableEntry s_oldNewTable[] = {
 	{ "ll5",		"lsl5",				SCI_VERSION_NONE     },
 	// lsl5 is the same
 	// lsl6 is the same
+	{ "l7",			"larry7",			SCI_VERSION_NONE     },
+	{ "lite",		"lighthouse",		SCI_VERSION_NONE     },
 	{ "mg",			"mothergoose",		SCI_VERSION_NONE     },
 	{ "twisty",		"pepper",			SCI_VERSION_NONE     },
 	{ "scary",      "phantasmagoria",   SCI_VERSION_NONE     },
+	{ "p2",			"phantasmagoria2",	SCI_VERSION_NONE     },
 	{ "pq1",		"pq1sci",			SCI_VERSION_NONE     },
 	{ "pq",			"pq2",				SCI_VERSION_NONE     },
 	// pq3 is the same
@@ -370,15 +373,6 @@ Common::String convertSierraGameId(Common::String sierraId, uint32 *gameFlags, R
 		// Otherwise it's qfg3
 		return "qfg3";
 	}
-
-	if (sierraId == "l7")
-		return "lsl7";
-
-	if (sierraId == "p2")
-		return "phantasmagoria2";
-
-	if (sierraId == "lite")
-		return "lighthouse";
 
 	return sierraId;
 }
