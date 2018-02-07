@@ -51,7 +51,7 @@ class ResourceManager {
 		kResPatVolumeNumber = 100,
 #endif
 
-		MAX_OPENED_VOLUMES = 5 ///< Max number of simultaneously opened volumes
+		kMaxOpenVolumes = 5 ///< Max number of simultaneously opened volumes
 	};
 
 	typedef Common::HashMap<ResourceId, Resource *, ResourceIdHash> ResourceMap;
@@ -85,6 +85,81 @@ public:
 	void init();
 
 	/**
+	 * Converts a map resource type to our type
+	 * @param sciType The type from the map/patch
+	 * @return The ResourceType
+	 */
+	ResourceType convertResType(byte type);
+
+#pragma mark -
+#pragma mark Detection
+public:
+	// Detects, if standard font of current game includes extended characters (>0x80)
+	bool detectFontExtended();
+	// Detects, if SCI1.1 game uses palette merging
+	bool detectPaletteMergingSci11();
+	// Detects, if SCI0EARLY game also has SCI0EARLY sound resources
+	bool detectEarlySound();
+
+	/**
+	 * Finds the location of the game object from script 0.
+	 * @param addSci11ScriptOffset	Adjust the return value for SCI1.1 and newer
+	 *        games. Needs to be false when the heap is accessed directly inside
+	 *        findSierraGameId().
+	 */
+	reg_t findGameObject(const bool addSci11ScriptOffset, const bool isBE);
+
+	bool isSci11Mac() const { return _volVersion == kResVersionSci11Mac; }
+	ViewType getViewType() const { return _viewType; }
+	const char *getMapVersionDesc() const { return versionDescription(_mapVersion); }
+	const char *getVolVersionDesc() const { return versionDescription(_volVersion); }
+	ResVersion getVolVersion() const { return _volVersion; }
+
+private:
+	bool _detectionMode;
+	ViewType _viewType; // Used to determine if the game has EGA or VGA graphics
+	ResVersion _volVersion; ///< resource.0xx version
+	ResVersion _mapVersion; ///< resource.map version
+
+	/**
+	 * Returns a string describing a ResVersion.
+	 * @param version	The resource version
+	 * @return		The description of version
+	 */
+	const char *versionDescription(ResVersion version) const;
+
+	/**--- Resource map decoding functions ---*/
+	ResVersion detectMapVersion();
+	ResVersion detectVolVersion();
+
+	/**
+	 * Applies to all versions before 0.000.395 (i.e. KQ4 old, XMAS 1988 and LSL2).
+	 * Old SCI versions used two word header for script blocks (first word equal
+	 * to 0x82, meaning of the second one unknown). New SCI versions used one
+	 * word header.
+	 * Also, old SCI versions assign 120 degrees to left & right, and 60 to up
+	 * and down. Later versions use an even 90 degree distribution.
+	 */
+	bool hasOldScriptHeader();
+
+	ResourceCompression getViewCompression();
+
+	ViewType detectViewType();
+
+	bool hasSci0Voc999();
+
+	bool hasSci1Voc900();
+
+	bool checkResourceDataForSignature(Resource *resource, const byte *signature);
+
+	bool checkResourceForSignatures(ResourceType resourceType, uint16 resourceNr, const byte *signature1, const byte *signature2);
+
+	void detectSciVersion();
+
+#pragma mark -
+#pragma mark Resource scanning
+public:
+	/**
 	 * Adds all of the resource files for a game
 	 */
 	int addAppropriateSources();
@@ -94,6 +169,110 @@ public:
 	 */
 	int addAppropriateSourcesForDetection(const Common::FSList &fslist);	// TODO: Switch from FSList to Common::Archive?
 
+private:
+	/**
+	 * Add a path to the resource manager's list of sources.
+	 * @return a pointer to the added source structure, or NULL if an error occurred.
+	 */
+	ResourceSource *addPatchDir(const Common::String &path);
+
+	/**
+	 * Adds a source to the resource manager's list of sources.
+	 * @param source	The new source to add
+	 * @return		A pointer to the added source structure, or NULL if an error occurred.
+	 */
+	ResourceSource *addSource(ResourceSource *source);
+
+	/**
+	 * Add an external (i.e., separate file) map resource to the resource
+	 * manager's list of sources.
+	 * @param filename	 The name of the volume to add
+	 * @param volume_nr  The volume number the map starts at, 0 for <SCI2.1
+	 * @return		A pointer to the added source structure, or NULL if an error occurred.
+	 */
+	ResourceSource *addExternalMap(const Common::String &filename, int volume_nr = 0);
+
+	ResourceSource *addExternalMap(const Common::FSNode *mapFile, int volume_nr = 0);
+
+	/**
+	 * Scans newly registered resource sources for resources, earliest addition first.
+	 * @param detected_version Pointer to the detected version number,
+	 *					 used during startup. May be NULL.
+	 * @return One of SCI_ERROR_*.
+	 */
+	void scanNewSources();
+
+	bool addAudioSources();
+	void addScriptChunkSources();
+	void freeResourceSources();
+
+	/**
+	 * Reads the SCI0 resource.map file from a local directory.
+	 * @param map The map
+	 * @return 0 on success, an SCI_ERROR_* code otherwise
+	 */
+	int readResourceMapSCI0(ResourceSource *map);
+
+	/**
+	 * Reads the SCI1 resource.map file from a local directory.
+	 * @param map The map
+	 * @return 0 on success, an SCI_ERROR_* code otherwise
+	 */
+	int readResourceMapSCI1(ResourceSource *map);
+
+	/**
+	 * Reads SCI1.1 audio map resources.
+	 * @param map The map
+	 * @return 0 on success, an SCI_ERROR_* code otherwise
+	 */
+	int readAudioMapSCI11(IntMapResourceSource *map);
+
+	/**
+	 * Reads SCI1 audio map files.
+	 * @param map The map
+	 * @param unload Unload the map instead of loading it
+	 * @return 0 on success, an SCI_ERROR_* code otherwise
+	 */
+	int readAudioMapSCI1(ResourceSource *map, bool unload = false);
+
+	/**
+	 * Reads patch files from a local directory.
+	 */
+	void readResourcePatches();
+	void readResourcePatchesBase36();
+
+	/**
+	 * Determines whether or not a patch file matching the given resource ID
+	 * should be ignored when processing patches.
+	 */
+	bool isBlacklistedPatch(const ResourceId &resId) const;
+
+	/**
+	 * Returns whether or not patches using the SCI0 naming convention should be
+	 * search for when looking for patch files.
+	 */
+	bool shouldFindSci0Patches() const;
+
+	void processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0);
+
+	/**
+	 * Process wave files as patches for Audio resources.
+	 */
+	void readWaveAudioPatches();
+	void processWavePatch(ResourceId resourceId, const Common::String &name);
+
+	typedef Common::List<ResourceSource *> SourcesList;
+	SourcesList _sources;
+
+	// For better or worse, because the patcher is added as a ResourceSource,
+	// its destruction is managed by freeResourceSources.
+	ResourcePatcher *_patcher;
+
+	bool _hasBadResources;
+
+#pragma mark -
+#pragma mark Resource management
+public:
 	/**
 	 * Looks up a resource's data.
 	 * @param id	The resource type to look for
@@ -132,23 +311,40 @@ public:
 	 */
 	Common::List<ResourceId> listResources(ResourceType type, int mapNumber = -1);
 
-	void setAudioLanguage(int language);
-	int getAudioLanguage() const;
-	void changeAudioDirectory(Common::String path);
-
-	bool isSci11Mac() const { return _volVersion == kResVersionSci11Mac; }
-	ViewType getViewType() const { return _viewType; }
-	const char *getMapVersionDesc() const { return versionDescription(_mapVersion); }
-	const char *getVolVersionDesc() const { return versionDescription(_volVersion); }
-	ResVersion getVolVersion() const { return _volVersion; }
-
+private:
 	/**
 	 * Adds the appropriate GM patch from the Sierra MIDI utility as 4.pat, without
 	 * requiring the user to rename the file to 4.pat. Thus, the original Sierra
 	 * archive can be extracted in the extras directory, and the GM patches can be
 	 * applied per game, if applicable.
 	 */
-	void addNewGMPatch(SciGameId gameId);
+	void addNewGMPatch();
+
+	ResourceSource *findVolume(ResourceSource *map, int volume_nr);
+
+	/**
+	 * All calls to getVolumeFile must be followed with a corresponding
+	 * call to disposeVolumeFileStream once the stream is finished being used.
+	 * Do NOT call delete directly on returned streams, as they may be cached.
+	 */
+	Common::SeekableReadStream *getVolumeFile(ResourceSource *source);
+
+	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, ResourceSource *source);
+
+	void loadResource(Resource *res);
+
+	bool validateResource(const ResourceId &resourceId, const Common::String &sourceMapLocation, const Common::String &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const;
+
+	Resource *addResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size = 0, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+
+	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+
+	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+	void removeAudioResource(ResourceId resId);
+
+	ResourceMap _resMap;
+	Common::List<Common::File *> _volumeFiles; ///< list of opened volume files
+	ResourceSource *_audioMapSCI1; ///< Currently loaded audio map for SCI1
 
 #ifdef ENABLE_SCI32
 	/**
@@ -156,6 +352,18 @@ public:
 	 * resource manager.
 	 */
 	void addResourcesFromChunk(uint16 id);
+#endif
+
+#pragma mark -
+#pragma mark Language settings
+public:
+	void setAudioLanguage(int language);
+	int getAudioLanguage() const;
+	void changeAudioDirectory(Common::String path);
+
+#ifdef ENABLE_SCI32
+#pragma mark -
+#pragma mark Multi-disc handling
 
 	/**
 	 * Updates the currently active disc number.
@@ -178,206 +386,25 @@ private:
 	 * audio files for each disc.
 	 */
 	bool _multiDiscAudio;
-
-public:
 #endif
 
-	// Detects, if standard font of current game includes extended characters (>0x80)
-	bool detectFontExtended();
-	// Detects, if SCI1.1 game uses palette merging
-	bool detectPaletteMergingSci11();
-	// Detects, if SCI0EARLY game also has SCI0EARLY sound resources
-	bool detectEarlySound();
-
-	/**
-	 * Finds the internal Sierra ID of the current game from script 0.
-	 */
-	Common::String findSierraGameId(const bool isBE);
-
-	/**
-	 * Finds the location of the game object from script 0.
-	 * @param addSci11ScriptOffset	Adjust the return value for SCI1.1 and newer
-	 *        games. Needs to be false when the heap is accessed directly inside
-	 *        findSierraGameId().
-	 */
-	reg_t findGameObject(const bool addSci11ScriptOffset, const bool isBE);
-
-	/**
-	 * Converts a map resource type to our type
-	 * @param sciType The type from the map/patch
-	 * @return The ResourceType
-	 */
-	ResourceType convertResType(byte type);
-
-protected:
-	bool _detectionMode;
-
+#pragma mark -
+#pragma mark Resource caching
+private:
 	// Maximum number of bytes to allow being allocated for resources
 	// Note: maxMemory will not be interpreted as a hard limit, only as a restriction
 	// for resources which are not explicitly locked. However, a warning will be
 	// issued whenever this limit is exceeded.
 	int _maxMemoryLRU;
 
-	ViewType _viewType; // Used to determine if the game has EGA or VGA graphics
-	typedef Common::List<ResourceSource *> SourcesList;
-	SourcesList _sources;
 	int _memoryLocked;	///< Amount of resource bytes in locked memory
 	int _memoryLRU;		///< Amount of resource bytes under LRU control
 	Common::List<Resource *> _LRU; ///< Last Resource Used list
-	ResourceMap _resMap;
-	Common::List<Common::File *> _volumeFiles; ///< list of opened volume files
-	ResourceSource *_audioMapSCI1; ///< Currently loaded audio map for SCI1
-	ResVersion _volVersion; ///< resource.0xx version
-	ResVersion _mapVersion; ///< resource.map version
-
-	/**
-	 * Add a path to the resource manager's list of sources.
-	 * @return a pointer to the added source structure, or NULL if an error occurred.
-	 */
-	ResourceSource *addPatchDir(const Common::String &path);
-
-	ResourceSource *findVolume(ResourceSource *map, int volume_nr);
-
-	/**
-	 * Adds a source to the resource manager's list of sources.
-	 * @param source	The new source to add
-	 * @return		A pointer to the added source structure, or NULL if an error occurred.
-	 */
-	ResourceSource *addSource(ResourceSource *source);
-
-	/**
-	 * Add an external (i.e., separate file) map resource to the resource
-	 * manager's list of sources.
-	 * @param filename	 The name of the volume to add
-	 * @param volume_nr  The volume number the map starts at, 0 for <SCI2.1
-	 * @return		A pointer to the added source structure, or NULL if an error occurred.
-	 */
-	ResourceSource *addExternalMap(const Common::String &filename, int volume_nr = 0);
-
-	ResourceSource *addExternalMap(const Common::FSNode *mapFile, int volume_nr = 0);
-
-	/**
-	 * Scans newly registered resource sources for resources, earliest addition first.
-	 * @param detected_version Pointer to the detected version number,
-	 *					 used during startup. May be NULL.
-	 * @return One of SCI_ERROR_*.
-	 */
-	void scanNewSources();
-
-	bool addAudioSources();
-	void addScriptChunkSources();
-	void freeResourceSources();
-
-	/**
-	 * Returns a string describing a ResVersion.
-	 * @param version	The resource version
-	 * @return		The description of version
-	 */
-	const char *versionDescription(ResVersion version) const;
-
-	/**
-	 * All calls to getVolumeFile must be followed with a corresponding
-	 * call to disposeVolumeFileStream once the stream is finished being used.
-	 * Do NOT call delete directly on returned streams, as they may be cached.
-	 */
-	Common::SeekableReadStream *getVolumeFile(ResourceSource *source);
-	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, ResourceSource *source);
-	void loadResource(Resource *res);
-	void freeOldResources();
-	bool validateResource(const ResourceId &resourceId, const Common::String &sourceMapLocation, const Common::String &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const;
-	Resource *addResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size = 0, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-	void removeAudioResource(ResourceId resId);
-
-	/**--- Resource map decoding functions ---*/
-	ResVersion detectMapVersion();
-	ResVersion detectVolVersion();
-
-	/**
-	 * Reads the SCI0 resource.map file from a local directory.
-	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
-	 */
-	int readResourceMapSCI0(ResourceSource *map);
-
-	/**
-	 * Reads the SCI1 resource.map file from a local directory.
-	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
-	 */
-	int readResourceMapSCI1(ResourceSource *map);
-
-	/**
-	 * Reads SCI1.1 audio map resources.
-	 * @param map The map
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
-	 */
-	int readAudioMapSCI11(IntMapResourceSource *map);
-
-	/**
-	 * Reads SCI1 audio map files.
-	 * @param map The map
-	 * @param unload Unload the map instead of loading it
-	 * @return 0 on success, an SCI_ERROR_* code otherwise
-	 */
-	int readAudioMapSCI1(ResourceSource *map, bool unload = false);
-
-	/**--- Patch management functions ---*/
-
-	/**
-	 * Reads patch files from a local directory.
-	 */
-	void readResourcePatches();
-	void readResourcePatchesBase36();
-
-	/**
-	 * Determines whether or not a patch file matching the given resource ID
-	 * should be ignored when processing patches.
-	 */
-	bool isBlacklistedPatch(const ResourceId &resId) const;
-
-	/**
-	 * Returns whether or not patches using the SCI0 naming convention should be
-	 * search for when looking for patch files.
-	 */
-	bool shouldFindSci0Patches() const;
-
-	void processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0);
-
-	/**
-	 * Process wave files as patches for Audio resources.
-	 */
-	void readWaveAudioPatches();
-	void processWavePatch(ResourceId resourceId, const Common::String &name);
-
-	/**
-	 * Applies to all versions before 0.000.395 (i.e. KQ4 old, XMAS 1988 and LSL2).
-	 * Old SCI versions used two word header for script blocks (first word equal
-	 * to 0x82, meaning of the second one unknown). New SCI versions used one
-	 * word header.
-	 * Also, old SCI versions assign 120 degrees to left & right, and 60 to up
-	 * and down. Later versions use an even 90 degree distribution.
-	 */
-	bool hasOldScriptHeader();
 
 	void printLRU();
 	void addToLRU(Resource *res);
 	void removeFromLRU(Resource *res);
-
-	ResourceCompression getViewCompression();
-	ViewType detectViewType();
-	bool hasSci0Voc999();
-	bool hasSci1Voc900();
-	bool checkResourceDataForSignature(Resource *resource, const byte *signature);
-	bool checkResourceForSignatures(ResourceType resourceType, uint16 resourceNr, const byte *signature1, const byte *signature2);
-	void detectSciVersion();
-
-private:
-	// For better or worse, because the patcher is added as a ResourceSource,
-	// its destruction is managed by freeResourceSources.
-	ResourcePatcher *_patcher;
-	bool _hasBadResources;
+	void freeOldResources();
 };
 
 } // End of namespace Sci
