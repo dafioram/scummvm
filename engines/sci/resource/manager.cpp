@@ -29,9 +29,6 @@
 
 namespace Sci {
 
-// TODO: Remove
-extern void showScummVMDialog(const Common::String &message);
-
 //////////////////////////////////////////////////////////////////////
 
 static SciVersion s_sciVersion = SCI_VERSION_NONE;	// FIXME: Move this inside a suitable class, e.g. SciEngine

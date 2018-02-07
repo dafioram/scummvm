@@ -246,6 +246,8 @@ enum kLanguage {
 	K_LANG_PORTUGUESE = 351
 };
 
+void showScummVMDialog(const Common::String &message);
+
 class SciEngine : public Engine {
 	friend class Console;
 public:

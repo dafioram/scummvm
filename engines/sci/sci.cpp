@@ -29,6 +29,8 @@
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
 
+#include "gui/message.h"
+
 #include "sci/sci.h"
 #include "sci/debug.h"
 #include "sci/console.h"
@@ -80,6 +82,11 @@
 #endif
 
 namespace Sci {
+
+void showScummVMDialog(const Common::String &message) {
+	GUI::MessageDialog dialog(message, _("OK"));
+	dialog.runModal();
+}
 
 SciEngine *g_sci = 0;
 

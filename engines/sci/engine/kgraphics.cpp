@@ -27,8 +27,6 @@
 #include "graphics/cursorman.h"
 #include "graphics/surface.h"
 
-#include "gui/message.h"
-
 #include "sci/sci.h"
 #include "sci/event.h"
 #include "sci/resource/manager.h"
@@ -68,11 +66,6 @@ static int16 adjustGraphColor(int16 color) {
 		return color & 0x0F;	// 0 - 15
 	else
 		return color;
-}
-
-void showScummVMDialog(const Common::String &message) {
-	GUI::MessageDialog dialog(message, _("OK"));
-	dialog.runModal();
 }
 
 void kDirLoopWorker(reg_t object, uint16 angle, EngineState *s, int argc, reg_t *argv) {
