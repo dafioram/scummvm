@@ -92,7 +92,7 @@ private:
 	GfxPalette *_palette;
 
 	GuiResourceId _resourceId;
-	Resource *_resource;
+	const Resource *_resource;
 
 	Common::Array<LoopInfo> _loop;
 	bool _embeddedPal;

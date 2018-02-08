@@ -201,7 +201,7 @@ void GfxMacIconBar::setInventoryIcon(int16 icon) {
 }
 
 Graphics::Surface *GfxMacIconBar::loadPict(ResourceId id) {
-	Resource *res = g_sci->getResMan()->findResource(id, false);
+	const Resource *res = g_sci->getResMan()->findResource(id, false);
 
 	if (!res || res->size() == 0)
 		return 0;

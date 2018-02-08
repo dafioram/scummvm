@@ -1041,7 +1041,7 @@ CelObjView *CelObjView::duplicate() const {
 }
 
 const SciSpan<const byte> CelObjView::getResPointer() const {
-	Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _info.resourceId), false);
+	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _info.resourceId), false);
 	if (resource == nullptr) {
 		error("Failed to load view %d from resource manager", _info.resourceId);
 	}

@@ -544,7 +544,7 @@ VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFl
 		g_sci->_audio32->stop(kAllChannels);
 	}
 
-	Resource *bundledVmd = g_sci->getResMan()->findResource(ResourceId(kResourceTypeVMD, fileName.asUint64()), true);
+	const Resource *bundledVmd = g_sci->getResMan()->findResource(ResourceId(kResourceTypeVMD, fileName.asUint64()), true);
 
 	if (bundledVmd != nullptr) {
 		Common::SeekableReadStream *stream = bundledVmd->makeStream();

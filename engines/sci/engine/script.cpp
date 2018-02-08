@@ -83,7 +83,7 @@ enum {
 void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptPatcher) {
 	freeScript();
 
-	Resource *script = resMan->findResource(ResourceId(kResourceTypeScript, script_nr), false);
+	const Resource *script = resMan->findResource(ResourceId(kResourceTypeScript, script_nr), false);
 	if (!script)
 		error("Script %d not found", script_nr);
 
@@ -101,7 +101,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		// worked for SCI11, SCI2 and SCI21 games. SCI3 games use a different
 		// script format, and theoretically they can exceed the 64KB boundary
 		// using relocation.
-		Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, script_nr), false);
+		const Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, script_nr), false);
 		bufSize += heap->size();
 
 		// Ensure that the start of the heap resource can be word-aligned.
@@ -139,7 +139,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 	_script = _buf->subspan(0, scriptSize, script->name());
 
 	if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
-		Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, _nr), false);
+		const Resource *heap = resMan->findResource(ResourceId(kResourceTypeHeap, _nr), false);
 		assert(heap);
 
 		SciSpan<byte> outHeap = outBuffer.subspan(scriptSize, heap->size(), heap->name(), 0);

@@ -82,7 +82,7 @@ private:
 	GfxPalette *_palette;
 
 	int16 _resourceId;
-	Resource *_resource;
+	const Resource *_resource;
 	int _resourceType;
 
 	int16 _animationNr;

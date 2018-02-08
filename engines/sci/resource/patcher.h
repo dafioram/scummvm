@@ -26,7 +26,7 @@
 #include "common/language.h"
 #include "sci/sci.h"
 #include "sci/resource/manager.h"
-#include "sci/resource/sources.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
@@ -94,14 +94,14 @@ public:
 	 * is needed since otherwise tests for these resources via `kResCheck`
 	 * would fail, and so they would never actually be loaded.
 	 */
-	virtual void scanSource(ResourceManager *resMan) override;
+	virtual bool scanSource(ResourceManager *resMan) override;
 
 	/**
 	 * Load a resource. Since resources using this source are patched explicitly
 	 * after they get loaded by any other resource source, this method does
 	 * nothing.
 	 */
-	virtual void loadResource(ResourceManager *resMan, Resource *res) override {}
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override {}
 
 private:
 	struct PatchSizes {

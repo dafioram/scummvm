@@ -49,7 +49,7 @@ GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan)
 }
 
 bool GameFeatures::detectEarlySound() const {
-	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeSound, 1), false);
+	const Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeSound, 1), false);
 	if (res &&
 		res->size() >= 0x22 &&
 		res->getUint16LEAt(0x1f) == 0 && // channel 15 voice count + play mask is 0 in SCI0LATE
@@ -467,7 +467,7 @@ SciVersion GameFeatures::detectMessageFunctionType() {
 		return _messageFunctionType;
 	}
 
-	Resource *res = g_sci->getResMan()->findResource(*resources.begin(), false);
+	const Resource *res = g_sci->getResMan()->findResource(*resources.begin(), false);
 	assert(res);
 
 	// Only v2 Message resources use the kGetMessage kernel function.
@@ -761,7 +761,7 @@ PseudoMouseAbilityType GameFeatures::detectPseudoMouseAbility() {
 }
 
 bool GameFeatures::detectFontExtended() const {
-	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeFont, 0), false);
+	const Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeFont, 0), false);
 	if (res && res->size() >= 4) {
 		uint16 numChars = res->getUint16LEAt(2);
 		return (numChars > 0x80);

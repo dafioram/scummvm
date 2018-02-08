@@ -79,7 +79,7 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 		_lruVoice[i] = i;
 	}
 
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 3), false);
+	const Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 3), false);
 	if (!patchData) {
 		// TODO: SCI0early drivers
 		error("Could not find AdLib patch data");

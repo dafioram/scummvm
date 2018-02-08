@@ -119,7 +119,7 @@ bool Kernel::selectorNamesAvailable() {
 }
 
 void Kernel::loadSelectorNames() {
-	Resource *r = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SELECTORS), 0);
+	const Resource *r = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SELECTORS), false);
 	bool oldScriptHeader = (getSciVersion() == SCI_VERSION_0_EARLY);
 
 #ifdef ENABLE_SCI32_MAC
@@ -887,7 +887,7 @@ Common::String Kernel::lookupText(reg_t address, int index) {
 	if (address.getSegment())
 		return _segMan->getString(address);
 
-	Resource *textres = _resMan->findResource(ResourceId(kResourceTypeText, address.getOffset()), false);
+	const Resource *textres = _resMan->findResource(ResourceId(kResourceTypeText, address.getOffset()), false);
 
 	if (!textres) {
 		error("text.%03d not found", address.getOffset());

@@ -77,7 +77,7 @@ struct Sci0Sound : public Common::Serializable {
 	 *
 	 * @note In SSCI this is a raw pointer to the resource data.
 	 */
-	Resource *resource;
+	const Resource *resource;
 
 	/**
 	 * The number of times the sound should loop.

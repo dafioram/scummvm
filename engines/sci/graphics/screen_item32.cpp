@@ -167,7 +167,7 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 		_celInfo.celNo = readSelectorValue(segMan, object, SELECTOR(cel));
 
 		if (_celInfo.resourceId <= kPlanePic) {
-			Resource *view = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _celInfo.resourceId), false);
+			const Resource *view = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _celInfo.resourceId), false);
 			if (!view) {
 				error("Failed to load %s", _celInfo.toString().c_str());
 			}

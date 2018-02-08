@@ -20,42 +20,33 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_VOLUME_H
+#define SCI_RESOURCE_SOURCES_VOLUME_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
-class ResourceManager;
-class SegManager;
-
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
+class VolumeResourceSource : public ResourceSource {
+protected:
+	ResourceSource * const _associatedMap;
 
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, ResSourceType type = kSourceVolume) :
+		ResourceSource(type, name, volNum),
+		_associatedMap(map) {}
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, const Common::FSNode *resFile) :
+		ResourceSource(kSourceVolume, name, volNum, resFile),
+		_associatedMap(map) {}
+
+	bool isVolumeForMap(const ResourceSource *map, int volumeNo) const {
+		return (_associatedMap == map && _volumeNumber == volumeNo);
+	}
 };
 
 } // End of namespace Sci
+
 #endif
+

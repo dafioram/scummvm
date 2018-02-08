@@ -67,7 +67,7 @@ GeneralMidiDriver::GeneralMidiDriver(ResourceManager &resMan, const SciVersion v
 		error("Unimplemented SCI sound version %d", version);
 	}
 
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, isMt32 ? 1 : 4), false);
+	const Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, isMt32 ? 1 : 4), false);
 	SciSpan<const byte> midiData;
 	if (patchData) {
 		patchData->subspan(0, _programMap.size()).unsafeCopyDataTo(_programMap.data());

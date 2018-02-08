@@ -20,42 +20,37 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_CHUNK32_H
+#define SCI_RESOURCE_SOURCES_CHUNK32_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
-class ResourceManager;
-class SegManager;
-
 /**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
+ * Reads resources from SCI2.1+ chunk resources
  */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
+class ChunkResourceSource : public ResourceSource {
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	ChunkResourceSource(const Common::String &name, uint16 number);
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	virtual bool scanSource(ResourceManager *resMan) override;
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+
+	uint16 getNumber() const { return _number; }
+
+protected:
+	uint16 _number;
+
+	struct ResourceEntry {
+		uint32 offset;
+		uint32 length;
+	};
+
+	Common::HashMap<ResourceId, ResourceEntry, ResourceIdHash> _resMap;
 };
 
 } // End of namespace Sci
+
 #endif

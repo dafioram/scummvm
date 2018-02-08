@@ -350,7 +350,7 @@ private:
 	 * instead of being streamed from the filesystem. The resource is owned by
 	 * ResourceManager.
 	 */
-	Resource *_bundledVmd;
+	const Resource *_bundledVmd;
 
 	/**
 	 * For VMDs played with the `kEventFlagToFrame` flag, the target frame for

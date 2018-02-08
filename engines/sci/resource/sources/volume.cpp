@@ -20,42 +20,9 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
-
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/sources/volume.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
-class ResourceManager;
-class SegManager;
-
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
-public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
-
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
-};
-
 } // End of namespace Sci
-#endif
+

@@ -53,7 +53,7 @@ struct AudioChannel {
 	 * The resource loaded into this channel. The resource is owned by
 	 * ResourceManager.
 	 */
-	Resource *resource;
+	const Resource *resource;
 
 	/**
 	 * The audio stream loaded into this channel. Can cast to
@@ -264,7 +264,7 @@ public:
 
 private:
 	typedef Common::Array<ResourceId> LockList;
-	typedef Common::Array<Resource *> UnlockList;
+	typedef Common::Array<const Resource *> UnlockList;
 
 	/**
 	 * The audio channels.

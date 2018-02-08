@@ -20,42 +20,30 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_EXTAUDIOMAP_H
+#define SCI_RESOURCE_SOURCES_EXTAUDIOMAP_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
-class ResourceManager;
-class SegManager;
-
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
+class ExtAudioMapResourceSource : public ResourceSource {
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	ExtAudioMapResourceSource(const Common::String &name, int volNum)
+		: ResourceSource(kSourceExtAudioMap, name, volNum) {
+	}
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	virtual bool scanSource(ResourceManager *resMan) override;
+
+	/**
+	 * Adds or removes all audio resources from a SCI1 audio map file.
+	 * @param map The map
+	 * @param unload Unload the map instead of loading it
+	 */
+	ResourceErrorCode readAudioMapSCI1(ResourceManager *resMan, bool unload) const;
 };
 
 } // End of namespace Sci
+
 #endif

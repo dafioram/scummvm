@@ -412,24 +412,16 @@ bool ResourcePatcher::applyPatch(Resource &resource) const {
 	return false;
 }
 
-void ResourcePatcher::scanSource(ResourceManager *resMan) {
-	PatchList::const_iterator it;
-	for (it = _patches.begin(); it != _patches.end(); ++it) {
+bool ResourcePatcher::scanSource(ResourceManager *resMan) {
+	for (PatchList::const_iterator it = _patches.begin(); it != _patches.end(); ++it) {
 		if (it->isNewResource && !resMan->testResource(it->resourceId)) {
 			// Unlike other resources, ResourcePatcher does not have any files
-			// to open to retrieve its resources, so the resource has to get
-			// created and added manually instead of going through
-			// `ResourceManager::addResource` or else the file validation will
-			// blow up.
-			Resource *res = new Resource(resMan, it->resourceId);
-			res->_status = kResStatusNoMalloc;
-			res->_source = this;
-			res->_headerSize = 0;
-			res->_fileOffset = 0;
-			res->_size = 0;
-			resMan->_resMap.setVal(it->resourceId, res);
+			// to open to retrieve its resources, so the resource cannot be
+			// validated
+			resMan->addResourceWithoutValidation(it->resourceId, 0, 0);
 		}
 	}
+	return true;
 }
 
 void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch &patch) const {

@@ -20,42 +20,44 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_DIRECTORY_H
+#define SCI_RESOURCE_SOURCES_DIRECTORY_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
-class ResourceManager;
-class SegManager;
-
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
+class DirectoryResourceSource : public ResourceSource {
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	DirectoryResourceSource(const Common::String &name) :
+		ResourceSource(kSourceDirectory, name) {}
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	virtual bool scanSource(ResourceManager *resMan) override;
+
+private:
+	/**
+	 * Adds all resources from patch files in the game directory.
+	 */
+	void readResourcePatches(ResourceManager *resMan) const;
+
+	/**
+	 * Adds all audio36/sync36 resources from patch files in the game directory.
+	 */
+	void readResourcePatchesBase36(ResourceManager *resMan) const;
+
+	/**
+	 * Adds all audio resources from standard WAV files in the game directory.
+	 */
+	void readWaveAudioPatches(ResourceManager *resMan) const;
+
+	/**
+	 * Returns whether or not patches using the SCI0 naming convention should be
+	 * searched for when looking for patch files.
+	 */
+	bool shouldFindSci0Patches() const;
 };
 
 } // End of namespace Sci
+
 #endif

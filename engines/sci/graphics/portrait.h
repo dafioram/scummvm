@@ -53,8 +53,8 @@ private:
 	void drawBitmap(uint16 bitmapNr);
 	void bitsShow();
 
-	int16 raveGetTicks(Resource *resource, uint *offset);
-	uint16 raveGetID(Resource *resource, uint *offset);
+	int16 raveGetTicks(const Resource *resource, uint *offset);
+	uint16 raveGetID(const Resource *resource, uint *offset);
 	SciSpan<const byte> raveGetLipSyncData(const uint16 raveID);
 
 	ResourceManager *_resMan;

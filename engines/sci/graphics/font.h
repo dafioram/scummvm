@@ -73,7 +73,7 @@ private:
 	ResourceManager *_resMan;
 	GfxScreen *_screen;
 
-	Resource *_resource;
+	const Resource *_resource;
 	SciSpan<const byte> _resourceData;
 	GuiResourceId _resourceId;
 

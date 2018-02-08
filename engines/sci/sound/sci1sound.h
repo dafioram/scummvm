@@ -303,7 +303,7 @@ struct Sci1Sound : public Common::Serializable {
 	/**
 	 * The Sound's resource.
 	 */
-	Resource *resource;
+	const Resource *resource;
 
 	/**
 	 * The Sound's resource ID. This is stored separately from the resource

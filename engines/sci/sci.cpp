@@ -429,7 +429,7 @@ Common::Error SciEngine::run() {
 		// and is necessary to complete the game without issues.
 		// The patched script is included in Longbow 1.1.
 		// Refer to bug #3036609.
-		Resource *buggyScript = _resMan->findResource(ResourceId(kResourceTypeScript, 180), 0);
+		const Resource *buggyScript = _resMan->findResource(ResourceId(kResourceTypeScript, 180), false);
 
 		if (buggyScript && (buggyScript->size() == 12354 || buggyScript->size() == 12362)) {
 			showScummVMDialog(_("A known buggy game script has been detected, which could "
@@ -548,7 +548,7 @@ bool SciEngine::gameHasFanMadePatch() {
 			break;
 
 		if (patchInfo[curEntry].gameID == getGameId()) {
-			Resource *targetScript = _resMan->findResource(ResourceId(kResourceTypeScript, patchInfo[curEntry].targetScript), 0);
+			const Resource *targetScript = _resMan->findResource(ResourceId(kResourceTypeScript, patchInfo[curEntry].targetScript), false);
 
 			if (targetScript && targetScript->size() + 2 == patchInfo[curEntry].targetSize) {
 				if (patchInfo[curEntry].patchedByteOffset == 0)

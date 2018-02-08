@@ -20,42 +20,25 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_WAVE_H
+#define SCI_RESOURCE_SOURCES_WAVE_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/source.h"
+
+namespace Common { class String; }
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
 class ResourceManager;
-class SegManager;
+class Resource;
 
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
+class WaveResourceSource : public ResourceSource {
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	WaveResourceSource(const Common::String &name) : ResourceSource(kSourceWave, name) {}
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
 };
 
 } // End of namespace Sci
+
 #endif

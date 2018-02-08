@@ -115,12 +115,12 @@ reg_t kLock(EngineState *s, int argc, reg_t *argv) {
 			Common::List<ResourceId> resources = g_sci->getResMan()->listResources(type);
 			Common::List<ResourceId>::iterator itr;
 			for (itr = resources.begin(); itr != resources.end(); ++itr) {
-				Resource *res = g_sci->getResMan()->testResource(*itr);
+				const Resource *res = g_sci->getResMan()->testResource(*itr);
 				if (res->isLocked())
 					g_sci->getResMan()->unlockResource(res);
 			}
 		} else {
-			Resource *which = g_sci->getResMan()->findResource(id, false);
+			const Resource *which = g_sci->getResMan()->findResource(id, false);
 
 			if (which)
 				g_sci->getResMan()->unlockResource(which);
@@ -139,7 +139,7 @@ reg_t kLock(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kResCheck(EngineState *s, int argc, reg_t *argv) {
-	Resource *res = nullptr;
+	const Resource *res = nullptr;
 	ResourceType restype = g_sci->getResMan()->convertResType(argv[0].toUint16());
 
 	if ((restype == kResourceTypeAudio36) || (restype == kResourceTypeSync36)) {

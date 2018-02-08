@@ -496,7 +496,7 @@ bool Console::cmdGetVersion(int argc, const char **argv) {
 
 bool Console::cmdOpcodes(int argc, const char **argv) {
 	// Load the opcode table from vocab.998 if it exists, to obtain the opcode names
-	Resource *r = _engine->getResMan()->findResource(ResourceId(kResourceTypeVocab, 998), 0);
+	const Resource *r = _engine->getResMan()->findResource(ResourceId(kResourceTypeVocab, 998), false);
 
 	// If the resource couldn't be loaded, leave
 	if (!r) {
@@ -743,7 +743,7 @@ bool Console::cmdDiskDump(int argc, const char **argv) {
 void Console::cmdDiskDumpWorker(ResourceType resourceType, int resourceNumber, uint32 resourceTuple) {
 	const char *resourceTypeName = getResourceTypeName(resourceType);
 	ResourceId resourceId;
-	Resource *resource = NULL;
+	const Resource *resource = nullptr;
 	char outFileName[50];
 
 	switch (resourceType) {
@@ -792,7 +792,7 @@ bool Console::cmdHexDump(int argc, const char **argv) {
 	if (res == kResourceTypeInvalid)
 		debugPrintf("Resource type '%s' is not valid\n", argv[1]);
 	else {
-		Resource *resource = _engine->getResMan()->findResource(ResourceId(res, resNum), 0);
+		const Resource *resource = _engine->getResMan()->findResource(ResourceId(res, resNum), false);
 		if (resource) {
 			Common::hexdump(resource->getUnsafeDataAt(0), resource->size(), 16, 0);
 			debugPrintf("Resource %s.%03d has been dumped to standard output\n", argv[1], resNum);
@@ -955,7 +955,7 @@ bool Console::cmdResourceIntegrityDump(int argc, const char **argv) {
 
 				const Common::String resourceName = it->toString();
 
-				Resource *resource = _engine->getResMan()->findResource(*it, false);
+				const Resource *resource = _engine->getResMan()->findResource(*it, false);
 				if (resource) {
 					Common::MemoryReadStream stream = resource->toStream();
 					writeIntegrityDumpLine(statusName, resourceName, outFile, &stream, resource->size(), true);
@@ -1005,7 +1005,7 @@ bool Console::cmdAllocList(int argc, const char **argv) {
 			bool hasAlloc = false;
 			Common::List<ResourceId>::const_iterator it;
 			for (it = resources.begin(); it != resources.end(); ++it) {
-				Resource *resource = resMan->testResource(*it);
+				const Resource *resource = resMan->testResource(*it);
 				if (resource != nullptr && resource->data() != nullptr) {
 					if (hasAlloc) {
 						debugPrintf(", ");
@@ -1067,7 +1067,7 @@ bool Console::cmdResourceInfo(int argc, const char **argv) {
 	if (res == kResourceTypeInvalid)
 		debugPrintf("Resource type '%s' is not valid\n", argv[1]);
 	else {
-		Resource *resource = _engine->getResMan()->findResource(ResourceId(res, resNum), 0);
+		const Resource *resource = _engine->getResMan()->findResource(ResourceId(res, resNum), false);
 		if (resource) {
 			debugPrintf("Resource size: %u\n", resource->size());
 			debugPrintf("Resource location: %s\n", resource->getResourceLocation().c_str());
@@ -1104,7 +1104,7 @@ bool Console::cmdHexgrep(int argc, const char **argv) {
 
 	ResourceType restype = parseResourceType(argv[1]);
 	int resNumber = 0, resMax = 0;
-	Resource *script = NULL;
+	const Resource *script = nullptr;
 
 	if (restype == kResourceTypeInvalid) {
 		debugPrintf("Resource type '%s' is not valid\n", argv[1]);
@@ -1127,7 +1127,7 @@ bool Console::cmdHexgrep(int argc, const char **argv) {
 			return true;
 
 	for (; resNumber <= resMax; resNumber++) {
-		script = _engine->getResMan()->findResource(ResourceId(restype, resNumber), 0);
+		script = _engine->getResMan()->findResource(ResourceId(restype, resNumber), false);
 		if (script) {
 			uint32 seeker = 0, seekerold = 0;
 			uint32 comppos = 0;
@@ -1172,7 +1172,7 @@ bool Console::cmdVerifyScripts(int argc, const char **argv) {
 
 	debugPrintf("%d SCI1.1-SCI3 scripts found, performing sanity checks...\n", resources.size());
 
-	Resource *script, *heap;
+	const Resource *script, *heap;
 	Common::List<ResourceId>::iterator itr;
 	for (itr = resources.begin(); itr != resources.end(); ++itr) {
 		script = _engine->getResMan()->findResource(*itr, false);
@@ -1230,7 +1230,7 @@ bool Console::cmdAudioDump(int argc, const char **argv) {
 		id = ResourceId(kResourceTypeAudio36, atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]));
 	}
 
-	Resource *resource = _engine->_resMan->findResource(id, false);
+	const Resource *resource = _engine->_resMan->findResource(id, false);
 	if (!resource) {
 		debugPrintf("Not found.\n");
 		return true;
@@ -4049,7 +4049,7 @@ bool Console::cmdSfx01Header(int argc, const char **argv) {
 		return true;
 	}
 
-	Resource *song = _engine->getResMan()->findResource(ResourceId(kResourceTypeSound, atoi(argv[1])), false);
+	const Resource *song = _engine->getResMan()->findResource(ResourceId(kResourceTypeSound, atoi(argv[1])), false);
 
 	if (!song) {
 		debugPrintf("Doesn't exist\n");
@@ -4214,7 +4214,7 @@ bool Console::cmdSfx01Track(int argc, const char **argv) {
 		return true;
 	}
 
-	Resource *song = _engine->getResMan()->findResource(ResourceId(kResourceTypeSound, atoi(argv[1])), 0);
+	const Resource *song = _engine->getResMan()->findResource(ResourceId(kResourceTypeSound, atoi(argv[1])), false);
 
 	int offset = atoi(argv[2]);
 
@@ -4244,7 +4244,7 @@ bool Console::cmdMapVocab994(int argc, const char **argv) {
 		return true;
 	}
 
-	Resource *resource = _engine->_resMan->findResource(ResourceId(kResourceTypeVocab, 994), false);
+	const Resource *resource = _engine->_resMan->findResource(ResourceId(kResourceTypeVocab, 994), false);
 	const Object *obj = s->_segMan->getObject(reg);
 	SciSpan<const uint16> data = resource->subspan<const uint16>(0);
 	uint32 first = atoi(argv[2]);

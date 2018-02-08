@@ -389,7 +389,7 @@ static const uint8 gammaTables[GfxPalette32::numGammaTables][256] = {
 }
 
 bool GfxPalette32::loadPalette(const GuiResourceId resourceId) {
-	Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
+	const Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 
 	if (!palResource) {
 		return false;
@@ -549,7 +549,7 @@ void GfxPalette32::updateHardware() {
 }
 
 Palette GfxPalette32::getPaletteFromResource(const GuiResourceId resourceId) const {
-	Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
+	const Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 
 	if (!palResource) {
 		error("Could not load vary palette %d", resourceId);

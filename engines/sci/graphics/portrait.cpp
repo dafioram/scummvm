@@ -202,7 +202,7 @@ void Portrait::doit(Common::Point position, uint16 resourceId, uint16 noun, uint
 	uint32 audioNumber = ((noun & 0xff) << 24) | ((verb & 0xff) << 16) | ((cond & 0xff) << 8) | (seq & 0xff);
 #ifndef DEBUG_PORTRAIT_USE_SYNC_RESOURCES
 	ResourceId raveResourceId = ResourceId(kResourceTypeRave, resourceId, noun, verb, cond, seq);
-	Resource *raveResource = _resMan->findResource(raveResourceId, true);
+	const Resource *raveResource = _resMan->findResource(raveResourceId, true);
 	uint raveOffset = 0;
 #else
 	ResourceId syncResourceId = ResourceId(kResourceTypeSync36, resourceId, noun, verb, cond, seq);
@@ -421,7 +421,7 @@ void Portrait::doit(Common::Point position, uint16 resourceId, uint16 noun, uint
 }
 
 // returns ASCII ticks from lip sync string as uint16
-int16 Portrait::raveGetTicks(Resource *resource, uint *offset) {
+int16 Portrait::raveGetTicks(const Resource *resource, uint *offset) {
 	uint curOffset = *offset;
 	SciSpan<const byte> curData = resource->subspan(curOffset);
 	byte curByte;
@@ -446,7 +446,7 @@ int16 Portrait::raveGetTicks(Resource *resource, uint *offset) {
 }
 
 // returns ASCII ID from lip sync string as uint16
-uint16 Portrait::raveGetID(Resource *resource, uint *offset) {
+uint16 Portrait::raveGetID(const Resource *resource, uint *offset) {
 	uint curOffset = *offset;
 	SciSpan<const byte> curData = resource->subspan(curOffset);
 	byte curByte = 0;

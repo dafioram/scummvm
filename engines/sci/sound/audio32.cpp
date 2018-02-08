@@ -764,7 +764,7 @@ uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool
 	// TODO: This should be fixed to use streaming, which means fixing the
 	// resource manager to allow streaming, which means probably rewriting a
 	// bunch of the resource manager.
-	Resource *resource = _resMan->findResource(resourceId, true);
+	const Resource *resource = _resMan->findResource(resourceId, true);
 	if (resource == nullptr) {
 		warning("[Audio32::play]: %s could not be found", resourceId.toString().c_str());
 		return 0;

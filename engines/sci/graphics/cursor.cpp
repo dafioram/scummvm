@@ -108,7 +108,7 @@ void GfxCursor::purgeCache() {
 }
 
 void GfxCursor::kernelSetShape(GuiResourceId resourceId) {
-	Resource *resource;
+	const Resource *resource;
 	Common::Point hotspot = Common::Point(0, 0);
 	byte colorMapping[4];
 	int16 x, y;
@@ -502,7 +502,7 @@ void GfxCursor::kernelSetMacCursor(GuiResourceId viewNum, int loopNum, int celNu
 	if (g_sci->hasMacIconBar())
 		g_sci->_gfxMacIconBar->setInventoryIcon(viewNum);
 
-	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeCursor, viewNum), false);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeCursor, viewNum), false);
 
 	if (!resource) {
 		// The cursor resources often don't exist, this is normal behavior

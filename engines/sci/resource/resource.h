@@ -26,6 +26,7 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 #include "sci/decompressor.h"
+#include "sci/resource/source.h"
 #include "sci/util.h"
 
 namespace Common {
@@ -102,19 +103,6 @@ enum ResVersion {
 	kResVersionSci11Mac,
 	kResVersionSci2,
 	kResVersionSci3
-};
-
-/** Resource error codes. Should be in sync with s_errorDescriptions */
-enum ResourceErrorCode {
-	SCI_ERROR_NONE = 0,
-	SCI_ERROR_IO_ERROR = 1,
-	SCI_ERROR_EMPTY_RESOURCE = 2,
-	SCI_ERROR_RESMAP_INVALID_ENTRY = 3,	/**< Invalid resource.map entry */
-	SCI_ERROR_RESMAP_NOT_FOUND = 4,
-	SCI_ERROR_NO_RESOURCE_FILES_FOUND = 5,	/**< No resource at all was found */
-	SCI_ERROR_UNKNOWN_COMPRESSION = 6,
-	SCI_ERROR_DECOMPRESSION_ERROR = 7,	/**< sanity checks failed during decompression */
-	SCI_ERROR_RESOURCE_TOO_BIG = 8	/**< Resource size exceeds SCI_MAX_RESOURCE_SIZE */
 };
 
 const char *getResourceErrorDescription(ResourceErrorCode code);
@@ -195,35 +183,10 @@ public:
 };
 
 class ResourceSource;
-class ResourceManager;
 
-/** Class for storing resources in memory */
 class Resource : public SciSpan<const byte> {
-	friend class ResourceManager;
-	friend class ResourcePatcher;
-
-	// FIXME: These 'friend' declarations are meant to be a temporary hack to
-	// ease transition to the ResourceSource class system.
-	friend class ResourceSource;
-	friend class PatchResourceSource;
-	friend class WaveResourceSource;
-	friend class AudioVolumeResourceSource;
-	friend class MacResourceForkResourceSource;
-#ifdef ENABLE_SCI32
-	friend class ChunkResourceSource;
-#endif
-
-protected:
-	/**
-	 * Holds the extra header data from view, pic, and palette patches so that
-	 * these patches can be rewritten to disk as valid patch files by the
-	 * `diskdump` debugger command.
-	 */
-	byte *_header;
-	uint32 _headerSize;
-
 public:
-	Resource(ResourceManager *resMan, ResourceId id);
+	Resource(ResourceId id);
 	~Resource();
 	void unalloc();
 
@@ -231,6 +194,7 @@ public:
 	inline ResourceType getType() const { return _id.getType(); }
 	inline uint16 getNumber() const { return _id.getNumber(); }
 	bool isLocked() const { return _status == kResStatusLocked; }
+
 	/**
 	 * Write the resource to the specified stream.
 	 * This method is used only by the "dump" debugger command.
@@ -250,21 +214,33 @@ public:
 
 	uint16 getNumLockers() const { return _lockers; }
 
-protected:
-	ResourceId _id;	// TODO: _id could almost be made const, only readResourceInfo() modifies it...
-	int32 _fileOffset; /**< Offset in file */
-	ResourceStatus _status;
-	uint16 _lockers; /**< Number of places where this resource was locked */
-	ResourceSource *_source;
-	ResourceManager *_resMan;
+	ResSourceType getSourceType() const {
+		assert(_source);
+		return _source->getSourceType();
+	}
 
-	bool loadPatch(Common::SeekableReadStream *file);
-	bool loadFromPatchFile();
-	bool loadFromWaveFile(Common::SeekableReadStream *file);
-	bool loadFromAudioVolumeSCI1(Common::SeekableReadStream *file);
-	bool loadFromAudioVolumeSCI11(Common::SeekableReadStream *file);
-	ResourceErrorCode decompress(ResVersion volVersion, Common::SeekableReadStream *file);
-	ResourceErrorCode readResourceInfo(ResVersion volVersion, Common::SeekableReadStream *file, uint32 &szPacked, ResourceCompression &compression);
+	/**
+	 * Holds the extra header data from view, pic, and palette patches so that
+	 * these patches can be rewritten to disk as valid patch files by the
+	 * `diskdump` debugger command.
+	 */
+	const byte *_header;
+	uint32 _headerSize;
+
+	/** The ID of the resource. */
+	ResourceId _id;
+
+	/** The offset of the resource within its resource source file. */
+	uint32 _fileOffset;
+
+	/** The allocation status of the resource. */
+	mutable ResourceStatus _status;
+
+	/** The number of times the resource has been locked. */
+	mutable uint16 _lockers;
+
+	/** The resource's source. */
+	const ResourceSource *_source;
 };
 
 struct ResourceIdHash : public Common::UnaryFunction<ResourceId, uint> {

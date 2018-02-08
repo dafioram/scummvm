@@ -517,7 +517,7 @@ void GfxPalette::copySysPaletteToScreen() {
 }
 
 bool GfxPalette::kernelSetFromResource(GuiResourceId resourceId, bool force) {
-	Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
+	const Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 	Palette palette;
 
 	if (palResource) {
@@ -716,7 +716,7 @@ void GfxPalette::palVaryInit() {
 
 bool GfxPalette::palVaryLoadTargetPalette(GuiResourceId resourceId) {
 	_palVaryResourceId = (resourceId != 65535) ? resourceId : -1;
-	Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
+	const Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 	if (palResource) {
 		// Load and initialize destination palette
 		createFromData(*palResource, &_palVaryTargetPalette);
@@ -803,7 +803,7 @@ int16 GfxPalette::kernelPalVaryGetCurrentStep() {
 
 int16 GfxPalette::kernelPalVaryChangeTarget(GuiResourceId resourceId) {
 	if (_palVaryResourceId != -1) {
-		Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
+		const Resource *palResource = _resMan->findResource(ResourceId(kResourceTypePalette, resourceId), false);
 		if (palResource) {
 			Palette insertPalette;
 			createFromData(*palResource, &insertPalette);
@@ -996,7 +996,7 @@ bool GfxPalette::colorIsFromMacClut(byte index) {
 
 bool GfxPalette::detectPaletteMergingSci11() const {
 	// Load palette 999 (default palette)
-	Resource *res = _resMan->findResource(ResourceId(kResourceTypePalette, 999), false);
+	const Resource *res = _resMan->findResource(ResourceId(kResourceTypePalette, 999), false);
 
 	if (res && res->size() > 30) {
 		// Old palette format used in palette resource? -> it's merging

@@ -20,42 +20,40 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
+#ifndef SCI_RESOURCE_SOURCES_MACRESFORK_H
+#define SCI_RESOURCE_SOURCES_MACRESFORK_H
 
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
+
+namespace Common {
+class SeekableReadStream;
+class String;
+}
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
-
-class Resource;
 class ResourceManager;
-class SegManager;
 
 /**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
+ * Reads SCI1.1+ resources from a Mac resource fork.
  */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
+class MacResourceForkResourceSource final : public ResourceSource {
 public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
+	MacResourceForkResourceSource(const Common::String &name, int volNum);
+	~MacResourceForkResourceSource();
 
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
+	virtual bool scanSource(ResourceManager *resMan) override;
+
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+
+private:
+	Common::MacResManager *_macResMan;
+
+	bool isCompressableResource(ResourceType type) const;
+	void decompressResource(Common::SeekableReadStream *stream, Resource *resource) const;
 };
 
 } // End of namespace Sci
+
 #endif

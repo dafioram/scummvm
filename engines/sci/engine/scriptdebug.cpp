@@ -598,7 +598,7 @@ void Kernel::dumpScriptClass(const SciSpan<const byte> &script, SciSpan<const by
 void Kernel::dissectScript(int scriptNumber, Vocabulary *vocab) {
 	int objectctr[11] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	uint32 _seeker = 0;
-	Resource *script = _resMan->findResource(ResourceId(kResourceTypeScript, scriptNumber), false);
+	const Resource *script = _resMan->findResource(ResourceId(kResourceTypeScript, scriptNumber), false);
 
 	if (!script) {
 		warning("dissectScript(): Script not found!\n");

@@ -20,42 +20,30 @@
  *
  */
 
-#ifndef SCI_SOUND_SYNC_H
-#define SCI_SOUND_SYNC_H
-
-#include "sci/engine/selector.h"
-#include "sci/engine/vm_types.h"
+#include "sci/resource/manager.h"
+#include "sci/resource/sources/patch.h"
 
 namespace Sci {
 
-enum AudioSyncCommands {
-	kSciAudioSyncStart = 0,
-	kSciAudioSyncNext = 1,
-	kSciAudioSyncStop = 2
-};
+void PatchResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
+	bool result = loadFromPatchFile(res);
+	if (!result) {
+		// TODO: We used to fallback to the "default" code here if loadFromPatchFile
+		// failed, but I am not sure whether that is really appropriate.
+		// In fact it looks like a bug to me, so I commented this out for now.
+		//ResourceSource::loadResource(res);
+	}
+}
 
-class Resource;
-class ResourceManager;
-class SegManager;
-
-/**
- * Sync class, kDoSync and relevant functions for SCI games.
- * Provides AV synchronization for animations.
- */
-class Sync {
-	SegManager *_segMan;
-	ResourceManager *_resMan;
-	const Resource *_resource;
-	uint _offset;
-
-public:
-	Sync(ResourceManager *resMan, SegManager *segMan);
-	~Sync();
-
-	void start(const ResourceId id, const reg_t syncObjAddr);
-	void next(const reg_t syncObjAddr);
-	void stop();
-};
+bool PatchResourceSource::loadFromPatchFile(Resource *res) const {
+	Common::File file;
+	if (!file.open(getLocationName())) {
+		warning("Failed to open patch file %s", getLocationName().c_str());
+		res->unalloc();
+		return false;
+	}
+	file.seek(0, SEEK_SET);
+	return loadPatch(&file, res);
+}
 
 } // End of namespace Sci
-#endif

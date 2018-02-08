@@ -685,7 +685,7 @@ const ADGameDescription *SciMetaEngine::fallbackDetect(const FileMap &allFiles, 
 	// As far as we know, these games store the messages of each language in separate
 	// resources, and it's not possible to detect that easily
 	// Also look for "%J" which is used in japanese games
-	Resource *text = resMan.findResource(ResourceId(kResourceTypeText, 0), false);
+	const Resource *text = resMan.findResource(ResourceId(kResourceTypeText, 0), false);
 	uint seeker = 0;
 	if (text) {
 		while (seeker < text->size()) {
@@ -885,7 +885,7 @@ void SciMetaEngine::removeSaveState(const char *target, int slot) const {
 Common::String SciMetaEngine::findSierraGameId(ResourceManager &resMan, const bool isBE) const {
 	// In SCI0-SCI1, the heap is embedded in the script. In SCI1.1 - SCI2.1,
 	// it's in a separate heap resource
-	Resource *heap = nullptr;
+	const Resource *heap = nullptr;
 	int nameSelector = -1;
 
 	if (getSciVersion() < SCI_VERSION_1_1) {
@@ -897,7 +897,7 @@ Common::String SciMetaEngine::findSierraGameId(ResourceManager &resMan, const bo
 	} else if (getSciVersion() == SCI_VERSION_3) {
 		heap = resMan.findResource(ResourceId(kResourceTypeScript, 0), false);
 
-		Resource *vocab = resMan.findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SELECTORS), false);
+		const Resource *vocab = resMan.findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_SELECTORS), false);
 		if (!vocab)
 			return "";
 

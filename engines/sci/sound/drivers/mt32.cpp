@@ -27,7 +27,7 @@
 
 namespace Sci {
 
-static bool isGeneralMidiPatch(Resource &patchData) {
+static bool isGeneralMidiPatch(const Resource &patchData) {
 	uint size = patchData.size();
 
 	if (size < 1155) {
@@ -296,7 +296,7 @@ void Mt32Driver::debugPrintState(Console &con) const {
 }
 
 bool Mt32Driver::initFromPatchFile(ResourceManager &resMan) {
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+	const Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
 	if (!patchData) {
 		return false;
 	}
@@ -556,7 +556,7 @@ void Mt32Driver::sendMasterVolume(uint8 volume) {
 }
 
 SoundDriver *makeMt32Driver(ResourceManager &resMan, const SciVersion version) {
-	Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
+	const Resource *patchData = resMan.findResource(ResourceId(kResourceTypePatch, 1), false);
 	if (version >= SCI_VERSION_2 ||
 		(patchData && isGeneralMidiPatch(*patchData))) {
 		return makeGeneralMidiDriver(resMan, version, true);

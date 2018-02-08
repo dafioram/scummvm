@@ -94,7 +94,7 @@ bool Vocabulary::loadParserWords() {
 	int currentWordPos = 0;
 
 	// First try to load the SCI0 vocab resource.
-	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdWords), 0);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdWords), false);
 
 	if (!resource) {
 		warning("Could not find a main vocabulary");
@@ -208,7 +208,7 @@ const char *Vocabulary::getAnyWordFromGroup(int group) {
 
 bool Vocabulary::loadSuffixes() {
 	// Determine if we can find a SCI1 suffix vocabulary first
-	Resource* resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdSuffixes), true);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdSuffixes), true);
 	if (!resource)
 		return false; // No vocabulary found
 
@@ -249,7 +249,7 @@ bool Vocabulary::loadSuffixes() {
 }
 
 void Vocabulary::freeSuffixes() {
-	Resource* resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdSuffixes), false);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdSuffixes), false);
 	if (resource)
 		_resMan->unlockResource(resource);
 
@@ -257,7 +257,7 @@ void Vocabulary::freeSuffixes() {
 }
 
 bool Vocabulary::loadBranches() {
-	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdBranches), 0);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdBranches), false);
 
 	_parserBranches.clear();
 
@@ -291,7 +291,7 @@ bool Vocabulary::loadBranches() {
 }
 
 bool Vocabulary::loadAltInputs() {
-	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_ALT_INPUTS), true);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_ALT_INPUTS), true);
 
 	if (!resource)
 		return true; // it's not a problem if this resource doesn't exist
@@ -335,7 +335,7 @@ bool Vocabulary::loadAltInputs() {
 }
 
 void Vocabulary::freeAltInputs() {
-	Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_ALT_INPUTS), false);
+	const Resource *resource = _resMan->findResource(ResourceId(kResourceTypeVocab, VOCAB_RESOURCE_ALT_INPUTS), false);
 	if (resource)
 		_resMan->unlockResource(resource);
 

@@ -1452,7 +1452,7 @@ reg_t kCheckSaveGame32(EngineState *s, int argc, reg_t *argv) {
 	}
 
 	if (save.gameObjectOffset > 0 && save.script0Size > 0) {
-		Resource *script0 = g_sci->getResMan()->findResource(ResourceId(kResourceTypeScript, 0), false);
+		const Resource *script0 = g_sci->getResMan()->findResource(ResourceId(kResourceTypeScript, 0), false);
 		assert(script0);
 
 		if (save.script0Size != script0->size()) {

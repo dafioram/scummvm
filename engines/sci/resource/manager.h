@@ -47,6 +47,7 @@ enum {
 	kSfxModule = 65535
 };
 
+class ExtAudioMapResourceSource;
 class IntMapResourceSource;
 class ResourcePatcher;
 
@@ -55,28 +56,17 @@ ResourceId convertPatchNameBase36(ResourceType type, const Common::String &filen
 class ResourceManager {
 	enum {
 #ifdef ENABLE_SCI32
-		// Hack to treat RESMAP.PAT/RESSCI.PAT as the highest volume
+		/**
+		 * Hack to treat RESMAP.PAT/RESSCI.PAT specially when scanning volumes
+		 * for resources.
+		 */
 		kResPatVolumeNumber = 100,
 #endif
 
 		kMaxOpenVolumes = 5 ///< Max number of simultaneously opened volumes
 	};
 
-	// FIXME: These 'friend' declarations are meant to be a temporary hack to
-	// ease transition to the ResourceSource class system.
 	friend class ResourceSource;
-	friend class DirectoryResourceSource;
-	friend class PatchResourceSource;
-	friend class ExtMapResourceSource;
-	friend class IntMapResourceSource;
-	friend class AudioVolumeResourceSource;
-	friend class ExtAudioMapResourceSource;
-	friend class WaveResourceSource;
-	friend class MacResourceForkResourceSource;
-	friend class ResourcePatcher;
-#ifdef ENABLE_SCI32
-	friend class ChunkResourceSource;
-#endif
 
 public:
 	/**
@@ -94,7 +84,7 @@ public:
 	 * Converts a resource type byte from a resource file to the correct
 	 * engine resource type.
 	 */
-	ResourceType convertResType(byte type);
+	ResourceType convertResType(byte type) const;
 
 #pragma mark -
 #pragma mark Version detection
@@ -118,6 +108,9 @@ public:
 
 	/** Returns a human-readable name for the resource volume version. */
 	const char *getVolVersionDesc() const { return versionDescription(_volVersion); }
+
+	/** Returns the detected resource map version. */
+	ResVersion getMapVersion() const { return _mapVersion; }
 
 	/** Returns the detected resource volume version. */
 	ResVersion getVolVersion() const { return _volVersion; }
@@ -183,7 +176,7 @@ private:
 	/**
 	 * Checks whether the given signature matches the given resource.
 	 */
-	bool checkResourceDataForSignature(Resource *resource, const byte *signature);
+	bool checkResourceDataForSignature(const Resource *resource, const byte *signature);
 
 	/**
 	 * If true, this resource manager is being used for game detection, not to
@@ -213,6 +206,8 @@ public:
 	 * resource-based version detection.
 	 */
 	void addAppropriateSourcesForDetection(const Common::FSList &fslist);
+
+	void scanMultiDiscAudioMap(const ResourceSource *source, const int mapVolumeNr, const ResourceId resId);
 
 private:
 	/**
@@ -292,21 +287,40 @@ private:
 #pragma mark -
 #pragma mark Resource management
 public:
-	/**
-	 * Looks up a resource's data.
-	 * @param id	The resource type to look for
-	 * @param lock	non-zero iff the resource should be locked
-	 * @return The resource, or NULL if it doesn't exist
-	 * @note Locked resources are guaranteed not to have their contents freed until
-	 *       they are unlocked explicitly (by unlockResource).
-	 */
-	Resource *findResource(ResourceId id, bool lock);
+	struct ResourceHeader {
+		ResourceType type;
+		uint16 resourceNo;
+		ResourceCompression compression;
+		uint32 compressedSize;
+		uint32 uncompressedSize;
+	};
 
 	/**
-	 * Unlocks a previously locked resource.
-	 * @param res	The resource to free
+	 * Gets metadata about a resource by reading the resource's header given in
+	 * `file`. `file` will be advanced to the start of the resource data.
+	 *
+	 * If something other than SCI_ERROR_NONE is returned, the state of
+	 * `outInfo` is undefined.
 	 */
-	void unlockResource(Resource *res);
+	ResourceErrorCode readResourceHeader(Common::SeekableReadStream *file, ResourceHeader &outInfo) const;
+
+	/**
+	 * Gets a resource, ensuring that its data has been loaded into memory.
+	 *
+	 * If the resource is not locked, it is only guaranteed to contain valid
+	 * data until the next call to `findResource`.
+	 *
+	 * If the resource is locked, it is the responsibility of the caller to call
+	 * `unlockResource` to unlock the resource.
+	 *
+	 * @returns The populated resource, or nullptr if it doesn't exist
+	 */
+	const Resource *findResource(ResourceId id, bool lock) const;
+
+	/**
+	 * Unlocks a previously locked resource. This method uses a counter.
+	 */
+	void unlockResource(const Resource *res) const;
 
 	/**
 	 * Tests whether a resource exists.
@@ -319,7 +333,7 @@ public:
 	 * @param id ID of the resource to check
 	 * @return non-NULL if the resource exists, NULL otherwise
 	 */
-	Resource *testResource(ResourceId id);
+	const Resource *testResource(ResourceId id) const;
 
 	/**
 	 * Returns a list of all resources of the specified type.
@@ -329,61 +343,27 @@ public:
 	 */
 	Common::List<ResourceId> listResources(ResourceType type, int mapNumber = -1);
 
-private:
-	typedef Common::HashMap<ResourceId, Resource *, ResourceIdHash> ResourceMap;
-	typedef Common::List<Common::File *> VolumeFiles;
+	// TODO: The next stuff is for resource sources to use, not the engine
+	/**
+	 * Searches all resource sources to find the volume resource source which
+	 * corresponds to the given map resource source + volume number.
+	 * @returns nullptr if no corresponding volume could be found.
+	 */
+	const ResourceSource *findVolumeForMap(const ResourceSource *map, int volumeNo) const;
 
 	/**
-	 * Adds all resources from a SCI0 resource.map file.
-	 * @param map The map
+	 * Gets a possibly-cached pointer to a read stream for the given resource
+	 * source.
+	 *
+	 * @note All calls to `getVolumeFile` must be followed with a corresponding
+	 * call to `disposeVolumeFileStream` once the stream is finished being used.
 	 */
-	ResourceErrorCode readResourceMapSCI0(ResourceSource *map);
+	Common::SeekableReadStream *getVolumeFile(const ResourceSource *source) const;
 
 	/**
-	 * Adds all resources from a SCI1+ resource.map file.
-	 * @param map The map
+	 * Disposes a read stream returned by `getVolumeFile`.
 	 */
-	ResourceErrorCode readResourceMapSCI1(ResourceSource *map);
-
-	/**
-	 * Adds or removes all audio resources from a SCI1 audio map file.
-	 * @param map The map
-	 * @param unload Unload the map instead of loading it
-	 */
-	ResourceErrorCode readAudioMapSCI1(ResourceSource *map, bool unload = false);
-
-	/**
-	 * Adds all audio resources from a SCI1.1 audio map file.
-	 * @param map The map
-	 */
-	ResourceErrorCode readAudioMapSCI11(IntMapResourceSource *map);
-
-	/**
-	 * Adds all resources from patch files in the game directory.
-	 */
-	void readResourcePatches();
-
-	/**
-	 * Adds all audio36/sync36 resources from patch files in the game directory.
-	 */
-	void readResourcePatchesBase36();
-
-	/**
-	 * Adds all audio resources from standard WAV files in the game directory.
-	 */
-	void readWaveAudioPatches();
-
-	/**
-	 * Determines whether or not a patch file matching the given resource ID
-	 * should be ignored when processing patch files.
-	 */
-	bool isBlacklistedPatch(const ResourceId &resId) const;
-
-	/**
-	 * Returns whether or not patches using the SCI0 naming convention should be
-	 * searched for when looking for patch files.
-	 */
-	bool shouldFindSci0Patches() const;
+	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, const ResourceSource *source) const;
 
 	/**
 	 * Processes a patch file into a resource. Ownership of the `source` object
@@ -397,6 +377,55 @@ private:
 	void processWavePatch(const ResourceId &resourceId, const Common::String &name);
 
 	/**
+	 * Adds the given resource to the resource manager if it does not already
+	 * exist.
+	 */
+	Resource *addResource(ResourceId resId, const ResourceSource *src, uint32 offset, uint32 size = 0, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+
+	/**
+	 * Adds the given resource to the resource manager if it does not already
+	 * exist, without validating the resource first.
+	 */
+	Resource *addResourceWithoutValidation(ResourceId resId, const ResourceSource *src, uint32 offset, uint32 size = 0);
+
+	/**
+	 * Adds or updates a resource in the resource manager, maintaining the
+	 * offset to the resource if one is already set.
+	 */
+	Resource *updateResource(ResourceId resId, const ResourceSource *src, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+
+	/**
+	 * Adds or updates a resource in the resource manager.
+	 */
+	Resource *updateResource(ResourceId resId, const ResourceSource *src, uint32 offset, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
+
+	/**
+	 * Removes the given audio resource, if one exists. Used only by SCI1.
+	 */
+	void removeAudioResource(ResourceId resId);
+
+	/**
+	 * Forces a purge of the given resource ID.
+	 */
+	void forcePurge(const ResourceId resId);
+
+private:
+	typedef Common::HashMap<ResourceId, Resource *, ResourceIdHash> ResourceMap;
+	typedef Common::List<Common::File *> VolumeFiles;
+
+	/**
+	 * Adds all audio resources from a SCI1.1 audio map file.
+	 * @param map The map
+	 */
+	ResourceErrorCode readAudioMapSCI11(const IntMapResourceSource *map);
+
+	/**
+	 * Determines whether or not a patch file matching the given resource ID
+	 * should be ignored when processing patch files.
+	 */
+	bool isBlacklistedPatch(const ResourceId &resId) const;
+
+	/**
 	 * Adds the appropriate GM patch from the Sierra MIDI utility as 4.pat,
 	 * without requiring the user to rename the file to 4.pat. Thus, the
 	 * original Sierra archive can be extracted in the extras directory, and the
@@ -405,59 +434,16 @@ private:
 	void addNewGMPatch();
 
 	/**
-	 * Searches all resource sources to find the volume resource source which
-	 * corresponds to the given map resource source + volume number.
-	 * @returns nullptr if no corresponding volume could be found.
-	 */
-	ResourceSource *findVolumeForMap(ResourceSource *map, int volumeNo);
-
-	/**
-	 * Gets a possibly-cached pointer to a read stream for the given resource
-	 * source.
-	 *
-	 * @note All calls to `getVolumeFile` must be followed with a corresponding
-	 * call to `disposeVolumeFileStream` once the stream is finished being used.
-	 */
-	Common::SeekableReadStream *getVolumeFile(ResourceSource *source);
-
-	/**
-	 * Disposes a read stream returned by `getVolumeFile`.
-	 */
-	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, ResourceSource *source);
-
-	/**
 	 * Loads the given resource into memory, applying any patches from the
 	 * built-in patcher.
 	 */
-	void loadResource(Resource *res);
+	void loadResource(Resource *res) const;
 
 	/**
 	 * Performs basic validation of the given resource. Returns true if the
 	 * resource passes validation.
 	 */
 	bool validateResource(const ResourceId &resourceId, const Common::String &sourceMapLocation, const Common::String &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const;
-
-	/**
-	 * Adds the given resource to the resource manager if it does not already
-	 * exist.
-	 */
-	Resource *addResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size = 0, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-
-	/**
-	 * Adds or updates a resource in the resource manager, maintaining the
-	 * offset to the resource if one is already set.
-	 */
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-
-	/**
-	 * Adds or updates a resource in the resource manager.
-	 */
-	Resource *updateResource(ResourceId resId, ResourceSource *src, uint32 offset, uint32 size, const Common::String &sourceMapLocation = Common::String("(no map location)"));
-
-	/**
-	 * Removes the given audio resource, if one exists. Used only by SCI1.
-	 */
-	void removeAudioResource(ResourceId resId);
 
 	/**
 	 * The map of all resources currently available to the resource manager.
@@ -468,7 +454,7 @@ private:
 	 * A cache of open volume files. The most recently used files are on the
 	 * front of the list.
 	 */
-	VolumeFiles _volumeFiles;
+	mutable VolumeFiles _volumeFiles;
 
 #pragma mark -
 #pragma mark Language settings
@@ -496,7 +482,7 @@ private:
 	/**
 	 * The currently loaded audio map. Used by SCI1 only.
 	 */
-	ResourceSource *_audioMapSCI1;
+	ExtAudioMapResourceSource *_audioMapSCI1;
 
 #ifdef ENABLE_SCI32
 #pragma mark -
@@ -528,29 +514,29 @@ private:
 #pragma mark -
 #pragma mark Resource cache
 private:
-	typedef Common::List<Resource *> LRUList;
+	typedef Common::List<const Resource *> LRUList;
 
 	/**
 	 * The maximum amount of memory to allocate for unlocked cached resources,
 	 * in bytes.
 	 */
-	int _maxMemoryLRU;
+	mutable int _maxMemoryLRU;
 
 	/**
 	 * The amount of memory currently allocated to locked resources, in bytes.
 	 */
-	int _memoryLocked;
+	mutable int _memoryLocked;
 
 	/**
 	 * The amount of memory currently allocated to unlocked resources, in bytes.
 	 */
-	int _memoryLRU;
+	mutable int _memoryLRU;
 
 	/**
 	 * The list of most recently used resources. The newest resources are on
 	 * the front of the list.
 	 */
-	LRUList _LRU;
+	mutable LRUList _LRU;
 
 	/**
 	 * Prints statistics about the LRU cache.
@@ -560,17 +546,17 @@ private:
 	/**
 	 * Adds the given resource to the LRU,
 	 */
-	void addToLRU(Resource *res);
+	void addToLRU(const Resource *res) const;
 
 	/**
 	 * Removes the given resource from the LRU.
 	 */
-	void removeFromLRU(Resource *res);
+	void removeFromLRU(const Resource *res) const;
 
 	/**
 	 * Purges items from the LRU until the maximum cache size is reached.
 	 */
-	void freeOldResources();
+	void freeOldResources() const;
 };
 
 } // End of namespace Sci

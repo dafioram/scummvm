@@ -182,7 +182,7 @@ public:
 #endif
 
 bool MessageState::getRecord(CursorStack &stack, bool recurse, MessageRecord &record) {
-	Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeMessage, stack.getModule()), false);
+	const Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeMessage, stack.getModule()), false);
 
 	if (!res) {
 		warning("Failed to open message resource %d", stack.getModule());

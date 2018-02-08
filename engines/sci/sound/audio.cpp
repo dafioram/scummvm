@@ -335,7 +335,7 @@ Audio::RewindableAudioStream *AudioPlayer::getAudioStream(uint32 number, uint32 
 	uint32 size = 0;
 	byte *data = 0;
 	byte flags = 0;
-	Sci::Resource *audioRes;
+	const Resource *audioRes;
 
 	*sampleLen = 0;
 

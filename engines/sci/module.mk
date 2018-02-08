@@ -8,7 +8,16 @@ MODULE_OBJS := \
 	resource/resource.o \
 	resource/manager.o \
 	resource/patcher.o \
-	resource/sources.o \
+	resource/source.o \
+	resource/sources/directory.o \
+	resource/sources/extmap.o \
+	resource/sources/intmap.o \
+	resource/sources/extaudiomap.o \
+	resource/sources/macresfork.o \
+	resource/sources/wave.o \
+	resource/sources/audiovolume.o \
+	resource/sources/volume.o \
+	resource/sources/patch.o \
 	sci.o \
 	util.o \
 	engine/features.o \
@@ -93,6 +102,7 @@ MODULE_OBJS += \
 	graphics/transitions32.o \
 	graphics/video32.o \
 	graphics/cursor32.o \
+	resource/sources/chunk32.o \
 	sound/audio32.o \
 	sound/decoders/sol.o \
 	video/robot_decoder.o

@@ -987,7 +987,7 @@ void SegManager::freeBitmap(const reg_t addr) {
 #endif
 
 void SegManager::createClassTable() {
-	Resource *vocab996 = _resMan->findResource(ResourceId(kResourceTypeVocab, 996), false);
+	const Resource *vocab996 = _resMan->findResource(ResourceId(kResourceTypeVocab, 996), false);
 
 	if (!vocab996)
 		error("SegManager: failed to open vocab 996");
