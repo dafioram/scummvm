@@ -82,6 +82,7 @@ MODULE_OBJS := \
 	sound/sci1sound.o \
 	sound/sync.o \
 	sound/drivers/adlib.o \
+	sound/drivers/amigamac.o \
 	sound/drivers/genmidi.o \
 	sound/drivers/mt32.o \
 	video/seq_decoder.o

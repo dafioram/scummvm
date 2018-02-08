@@ -26,6 +26,7 @@
 #include "sci/engine/features.h"
 #include "sci/sound/sound.h"
 #include "sci/sound/drivers/adlib.h"
+#include "sci/sound/drivers/amigamac.h"
 #include "sci/sound/drivers/genmidi.h"
 #include "sci/sound/drivers/mt32.h"
 
@@ -72,8 +73,7 @@ void SoundManager::initDriver(MusicType musicType, Common::Platform platform) {
 	case MT_ADLIB:
 		// FIXME: There's no Amiga sound option, so we hook it up to AdLib
 		if (platform == Common::kPlatformAmiga || platform == Common::kPlatformMacintosh) {
-			error("TODO AmigaMac");
-//			_driver.reset(makeAmigaMacDriver(resMan, _soundVersion));
+			_driver.reset(makeAmigaMacDriver(_resMan, _soundVersion));
 		} else {
 			_driver.reset(makeAdLibDriver(_resMan, _soundVersion));
 		}
