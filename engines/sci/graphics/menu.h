@@ -48,7 +48,7 @@ struct GuiMenuEntry {
 	GuiMenuEntry(uint16 curId)
 	 : id(curId), textWidth(0) { }
 };
-typedef Common::List<GuiMenuEntry *> GuiMenuList;
+typedef Common::List<GuiMenuEntry> GuiMenuList;
 
 struct GuiMenuItemEntry {
 	uint16 menuId;
@@ -73,7 +73,7 @@ struct GuiMenuItemEntry {
 		textVmPtr = NULL_REG;
 	}
 };
-typedef Common::List<GuiMenuItemEntry *> GuiMenuItemList;
+typedef Common::List<GuiMenuItemEntry> GuiMenuItemList;
 
 /**
  * Menu class, handles game pulldown menu for SCI16 (SCI0-SCI1.1) games
@@ -81,7 +81,6 @@ typedef Common::List<GuiMenuItemEntry *> GuiMenuItemList;
 class GfxMenu {
 public:
 	GfxMenu(EventManager *event, SegManager *segMan, GfxPorts *ports, GfxPaint16 *paint16, GfxText16 *text16, GfxScreen *screen, GfxCursor *cursor);
-	~GfxMenu();
 
 	void reset();
 	void kernelAddEntry(Common::String title, Common::String content, reg_t contentVmPtr);
