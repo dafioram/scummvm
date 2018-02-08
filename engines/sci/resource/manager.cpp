@@ -244,7 +244,8 @@ Common::List<ResourceId> ResourceManager::listResources(ResourceType type, int m
 
 	ResourceMap::iterator itr = _resMap.begin();
 	while (itr != _resMap.end()) {
-		if ((itr->_value->getType() == type) && ((mapNumber == -1) || (itr->_value->getNumber() == mapNumber)))
+		const ResourceId id = itr->_value->getId();
+		if ((id.getType() == type) && ((mapNumber == -1) || (id.getNumber() == mapNumber)))
 			resources.push_back(itr->_value->_id);
 		++itr;
 	}

@@ -191,8 +191,6 @@ public:
 	void unalloc();
 
 	inline ResourceId getId() const { return _id; }
-	inline ResourceType getType() const { return _id.getType(); }
-	inline uint16 getNumber() const { return _id.getNumber(); }
 	bool isLocked() const { return _status == kResStatusLocked; }
 
 	/**

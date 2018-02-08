@@ -83,14 +83,16 @@ void AudioVolumeResourceSource::loadResource(const ResourceManager *resMan, Reso
 	// For compressed audio, using loadFromAudioVolumeSCI1 is a hack to bypass
 	// the resource type checking in loadFromAudioVolumeSCI11 (since
 	// loadFromAudioVolumeSCI1 does nothing more than read raw data)
+	const ResourceType type = res->getId().getType();
 	if (_audioCompressionType != 0 &&
-		(res->getType() == kResourceTypeAudio ||
-		 res->getType() == kResourceTypeAudio36)) {
+		(type == kResourceTypeAudio || type == kResourceTypeAudio36)) {
+
 		loadFromAudioVolumeSCI1(resMan, res, fileStream);
-	} else if (getSciVersion() < SCI_VERSION_1_1)
+	} else if (getSciVersion() < SCI_VERSION_1_1) {
 		loadFromAudioVolumeSCI1(resMan, res, fileStream);
-	else
+	} else {
 		loadFromAudioVolumeSCI11(resMan, res, fileStream);
+	}
 
 	resMan->disposeVolumeFileStream(fileStream, this);
 }
@@ -126,11 +128,12 @@ bool AudioVolumeResourceSource::loadFromAudioVolumeSCI11(const ResourceManager *
 	file->seek(-4, SEEK_CUR);
 
 	// Rave-resources (King's Quest 6) don't have any header at all
-	if (resource->getType() != kResourceTypeRave) {
+	const ResourceType resourceType = resource->getId().getType();
+	if (resourceType != kResourceTypeRave) {
 		ResourceType type = resMan->convertResType(file->readByte());
 
-		if (((resource->getType() == kResourceTypeAudio || resource->getType() == kResourceTypeAudio36) && (type != kResourceTypeAudio))
-			|| ((resource->getType() == kResourceTypeSync || resource->getType() == kResourceTypeSync36) && (type != kResourceTypeSync))) {
+		if (((resourceType == kResourceTypeAudio || resourceType == kResourceTypeAudio36) && (type != kResourceTypeAudio))
+			|| ((resourceType == kResourceTypeSync || resourceType == kResourceTypeSync36) && (type != kResourceTypeSync))) {
 			warning("Resource type mismatch loading %s", resource->name().c_str());
 			resource->unalloc();
 			return false;

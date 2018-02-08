@@ -121,7 +121,7 @@ bool MacResourceForkResourceSource::scanSource(ResourceManager *resMan) {
 }
 
 void MacResourceForkResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
-	ResourceType type = res->getType();
+	ResourceType type = res->getId().getType();
 	Common::SeekableReadStream *stream = 0;
 
 	if (type == kResourceTypeAudio36 || type == kResourceTypeSync36) {
@@ -132,7 +132,7 @@ void MacResourceForkResourceSource::loadResource(const ResourceManager *resMan, 
 		Common::Array<uint32> tagArray = resTypeToMacTags(type);
 
 		for (uint32 i = 0; i < tagArray.size() && !stream; i++)
-			stream = _macResMan.getResource(tagArray[i], res->getNumber());
+			stream = _macResMan.getResource(tagArray[i], res->getId().getNumber());
 	}
 
 	if (stream)

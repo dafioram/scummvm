@@ -1013,7 +1013,7 @@ bool Console::cmdAllocList(int argc, const char **argv) {
 						debugPrintf("%s: ", getResourceTypeName((ResourceType)i));
 					}
 					hasAlloc = true;
-					debugPrintf("%u (%u locks)", resource->getNumber(), resource->getNumLockers());
+					debugPrintf("%u (%u locks)", resource->getId().getNumber(), resource->getNumLockers());
 				}
 			}
 			if (hasAlloc) {

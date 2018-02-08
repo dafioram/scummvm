@@ -167,7 +167,7 @@ ResourceErrorCode ResourceSource::decompress(const ResourceManager *resMan, Reso
 	} else {
 		// At least Lighthouse puts sound effects in RESSCI.00n/RESSCI.PAT
 		// instead of using a RESOURCE.SFX
-		if (res->getType() == kResourceTypeAudio) {
+		if (res->getId().getType() == kResourceTypeAudio) {
 			const uint8 headerSize = res->getUint8At(1);
 			if (headerSize < 11) {
 				error("Unexpected audio header size for %s: should be >= 11, but got %d", res->name().c_str(), headerSize);
