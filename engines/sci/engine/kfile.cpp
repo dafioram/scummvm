@@ -1347,7 +1347,7 @@ reg_t kSaveGame32(EngineState *s, int argc, reg_t *argv) {
 		reg_t autoSaveNameId;
 		SciArray &autoSaveName = *s->_segMan->allocateArray(kArrayTypeString, 0, &autoSaveNameId);
 		MessageTuple autoSaveNameTuple(0, 0, 16, 1);
-		s->_msgState->getMessage(0, autoSaveNameTuple, autoSaveNameId);
+		s->_msgState.getMessage(0, autoSaveNameTuple, autoSaveNameId);
 
 		if (saveDescription == autoSaveName.toString()) {
 			saveNo = kAutoSaveId;

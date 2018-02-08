@@ -468,7 +468,7 @@ enum kMessageFunc {
 reg_t kGetMessage(EngineState *s, int argc, reg_t *argv) {
 	MessageTuple tuple = MessageTuple(argv[0].toUint16(), argv[2].toUint16());
 
-	s->_msgState->getMessage(argv[1].toUint16(), tuple, argv[3]);
+	s->_msgState.getMessage(argv[1].toUint16(), tuple, argv[3]);
 
 	return argv[3];
 }
@@ -521,22 +521,22 @@ reg_t kMessage(EngineState *s, int argc, reg_t *argv) {
 	// in the debugger.
 	if (g_sci->getGameId() == GID_PEPPER && func == 0 && argc >= 6 && module == 894 &&
 		tuple.noun == 26 && tuple.cond == 0 && tuple.seq == 1 &&
-		!s->_msgState->getMessage(module, tuple, NULL_REG))
+		!s->_msgState.getMessage(module, tuple, NULL_REG))
 		tuple.verb = 0;
 
 	switch (func) {
 	case K_MESSAGE_GET:
-		return make_reg(0, s->_msgState->getMessage(module, tuple, (argc == 7 ? argv[6] : NULL_REG)));
+		return make_reg(0, s->_msgState.getMessage(module, tuple, (argc == 7 ? argv[6] : NULL_REG)));
 	case K_MESSAGE_NEXT:
-		return make_reg(0, s->_msgState->nextMessage((argc == 2 ? argv[1] : NULL_REG)));
+		return make_reg(0, s->_msgState.nextMessage((argc == 2 ? argv[1] : NULL_REG)));
 	case K_MESSAGE_SIZE:
-		return make_reg(0, s->_msgState->messageSize(module, tuple));
+		return make_reg(0, s->_msgState.messageSize(module, tuple));
 	case K_MESSAGE_REFCOND:
 	case K_MESSAGE_REFVERB:
 	case K_MESSAGE_REFNOUN: {
 		MessageTuple t;
 
-		if (s->_msgState->messageRef(module, tuple, t)) {
+		if (s->_msgState.messageRef(module, tuple, t)) {
 			switch (func) {
 			case K_MESSAGE_REFCOND:
 				return make_reg(0, t.cond);
@@ -553,7 +553,7 @@ reg_t kMessage(EngineState *s, int argc, reg_t *argv) {
 		MessageTuple msg;
 		int lastModule;
 
-		s->_msgState->lastQuery(lastModule, msg);
+		s->_msgState.lastQuery(lastModule, msg);
 
 		bool ok = false;
 
@@ -587,10 +587,10 @@ reg_t kMessage(EngineState *s, int argc, reg_t *argv) {
 		return NULL_REG;
 	}
 	case K_MESSAGE_PUSH:
-		s->_msgState->pushCursorStack();
+		s->_msgState.pushCursorStack();
 		break;
 	case K_MESSAGE_POP:
-		s->_msgState->popCursorStack();
+		s->_msgState.popCursorStack();
 		break;
 	default:
 		warning("Message: subfunction %i invoked (not implemented)", func);

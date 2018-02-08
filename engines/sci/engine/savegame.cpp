@@ -1512,8 +1512,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	}
 
 	// Message state:
-	delete s->_msgState;
-	s->_msgState = new MessageState(s->_segMan);
+	s->_msgState = MessageState(s->_segMan);
 
 	// System strings:
 	s->_segMan->initSysStrings();

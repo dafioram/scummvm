@@ -35,6 +35,7 @@ class WriteStream;
 
 #include "sci/sci.h"
 #include "sci/engine/file.h"
+#include "sci/engine/message.h"
 #include "sci/engine/seg_manager.h"
 
 #include "sci/parser/vocabulary.h"
@@ -99,7 +100,6 @@ struct SciCallOrigin {
 struct EngineState : public Common::Serializable {
 public:
 	EngineState(SegManager *segMan);
-	virtual ~EngineState();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &ser);
 
@@ -188,7 +188,7 @@ public:
 
 	int gcCountDown; /**< Number of kernel calls until next gc */
 
-	MessageState *_msgState;
+	MessageState _msgState;
 
 	// MemorySegment provides access to a 256-byte block of memory that remains
 	// intact across restarts and restores
