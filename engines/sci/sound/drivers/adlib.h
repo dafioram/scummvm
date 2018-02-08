@@ -24,8 +24,6 @@
 #define SCI_SOUND_DRIVERS_ADLIB_H
 
 #include "audio/fmopl.h"
-#include "audio/rate.h"
-#include "common/debug.h"
 #include "common/ptr.h"
 #include "sci/sound/drivers/driver.h"
 #include "sci/sound/sound.h"
