@@ -254,6 +254,8 @@ public:
 		return _markedAsDeleted;
 	}
 
+	static SciSpan<const byte> findBlockSCI0(SciSpan<const byte> buf, ScriptObjectTypes type, bool findLastBlock = false);
+
 	/**
 	 * Finds the pointer where a block of a specific type starts from,
 	 * in SCI0 - SCI1 games

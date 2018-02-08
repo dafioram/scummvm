@@ -905,12 +905,11 @@ uint32 Script::validateExportFunc(int pubfunct, bool relocSci3) {
 	return offset;
 }
 
-SciSpan<const byte> Script::findBlockSCI0(ScriptObjectTypes type, bool findLastBlock) const {
+SciSpan<const byte> Script::findBlockSCI0(SciSpan<const byte> buf, ScriptObjectTypes type, bool findLastBlock) {
 	SciSpan<const byte> foundBlock;
 
 	bool oldScriptHeader = (getSciVersion() == SCI_VERSION_0_EARLY);
 
-	SciSpan<const byte> buf = *_buf;
 	if (oldScriptHeader)
 		buf += 2;
 
@@ -925,7 +924,7 @@ SciSpan<const byte> Script::findBlockSCI0(ScriptObjectTypes type, bool findLastB
 		assert(blockSize > 0);
 
 		if (blockType == type) {
-			foundBlock = buf.subspan(0, blockSize, Common::String::format("%s, %s block", _buf->name().c_str(), sciObjectTypeNames[type]));
+			foundBlock = buf.subspan(0, blockSize, Common::String::format("%s, %s block", buf.name().c_str(), sciObjectTypeNames[type]));
 
 			if (!findLastBlock) {
 				break;
@@ -936,6 +935,10 @@ SciSpan<const byte> Script::findBlockSCI0(ScriptObjectTypes type, bool findLastB
 	}
 
 	return foundBlock;
+}
+
+SciSpan<const byte> Script::findBlockSCI0(ScriptObjectTypes type, bool findLastBlock) const {
+	return findBlockSCI0(*_buf, type, findLastBlock);
 }
 
 // memory operations

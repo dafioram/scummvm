@@ -1868,62 +1868,35 @@ bool ResourceManager::hasSci1Voc900() {
 	return offset == res->size();
 }
 
-// Same function as Script::findBlockSCI0(). Slight code
-// duplication here, but this has been done to keep the resource
-// manager independent from the rest of the engine
-static SciSpan<const byte>::const_iterator findSci0ExportsBlock(const SciSpan<const byte> &buffer) {
-	SciSpan<const byte>::const_iterator buf = buffer.cbegin();
-	bool oldScriptHeader = (getSciVersion() == SCI_VERSION_0_EARLY);
-
-	if (oldScriptHeader)
-		buf += 2;
-
-	for (;;) {
-		int seekerType = buf.getUint16LE();
-
-		if (seekerType == 0)
-			break;
-		if (seekerType == 7)	// exports
-			return buf;
-
-		int seekerSize = (buf + 2).getUint16LE();
-		assert(seekerSize > 0);
-		buf += seekerSize;
-	}
-
-	return buffer.cend();
-}
-
 reg_t ResourceManager::findGameObject(const bool addSci11ScriptOffset, const bool isBE) {
 	Resource *script = findResource(ResourceId(kResourceTypeScript, 0), false);
 
 	if (!script)
 		return NULL_REG;
 
-	SciSpan<const byte>::const_iterator offsetPtr;
-
 	if (getSciVersion() <= SCI_VERSION_1_LATE) {
 		SciSpan<const byte> buf = (getSciVersion() == SCI_VERSION_0_EARLY) ? script->subspan(2) : *script;
+		SciSpan<const byte> block;
 
 		// Check if the first block is the exports block (in most cases, it is)
-		bool exportsIsFirst = buf.getUint16LEAt(4) == 7;
+		bool exportsIsFirst = buf.getUint16LEAt(4) == SCI_OBJ_EXPORTS;
 		if (exportsIsFirst) {
-			offsetPtr = buf.subspan(4 + 2).cbegin();
+			block = buf.subspan(4 + sizeof(uint16));
 		} else {
-			offsetPtr = findSci0ExportsBlock(*script);
-			if (offsetPtr == buf.cend())
+			block = Script::findBlockSCI0(*script, SCI_OBJ_EXPORTS);
+			if (!block)
 				error("Unable to find exports block from script 0");
-			offsetPtr += 4 + 2;
+			block += 4 + sizeof(uint16);
 		}
 
-		int16 offset = !isSci11Mac() ? offsetPtr.getUint16LE() : offsetPtr.getUint16BE();
+		int16 offset = !isSci11Mac() ? block.getUint16LEAt(0) : block.getUint16BEAt(0);
 		return make_reg(1, offset);
 	} else if (getSciVersion() >= SCI_VERSION_1_1 && getSciVersion() <= SCI_VERSION_2_1_LATE) {
-		offsetPtr = script->cbegin() + 4 + 2 + 2;
+		SciSpan<const byte> block = script->subspan(4 + 2 + 2);
 
 		// In SCI1.1 - SCI2.1, the heap is appended at the end of the script,
 		// so adjust the offset accordingly if requested
-		int16 offset = !isSci11Mac() ? offsetPtr.getUint16LE() : offsetPtr.getUint16BE();
+		int16 offset = !isSci11Mac() ? block.getUint16LEAt(0) : block.getUint16BEAt(0);
 		if (addSci11ScriptOffset) {
 			offset += script->size();
 
