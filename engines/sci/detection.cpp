@@ -37,6 +37,9 @@
 #include "sci/engine/script.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
+#ifdef ENABLE_SCI32S2
+#include "sci/s2/engine.h"
+#endif
 
 namespace Sci {
 
@@ -127,8 +130,8 @@ static const PlainGameDescriptor s_sciGameTitles[] = {
 	{"lsl7",            "Leisure Suit Larry 7: Love for Sail!"},
 	{"lighthouse",      "Lighthouse: The Dark Being"},
 	{"phantasmagoria2", "Phantasmagoria 2: A Puzzle of Flesh"},
-	//{"shivers2",        "Shivers II: Harvest of Souls"},	// Not SCI
 	{"rama",            "RAMA"},
+	{"shivers2",        "Shivers II: Harvest of Souls"},
 	{0, 0}
 };
 
@@ -209,7 +212,7 @@ static const GameIdStrToEnum s_gameIdStrToEnum[] = {
 	{ "rama",            GID_RAMA },
 	{ "sci-fanmade",     GID_FANMADE },	// FIXME: Do we really need/want this?
 	{ "shivers",         GID_SHIVERS },
-	//{ "shivers2",        GID_SHIVERS2 },	// Not SCI
+	{ "shivers2",        GID_SHIVERS2 },
 	{ "slater",          GID_SLATER },
 	{ "sq1sci",          GID_SQ1 },
 	{ "sq3",             GID_SQ3 },
@@ -540,6 +543,9 @@ public:
 #ifdef ENABLE_SCI32
 			", SCI32"
 #endif
+#ifdef ENABLE_SCI32S2
+			", Shivers 2"
+#endif
 			"]";
 	}
 
@@ -666,8 +672,16 @@ const ADGameDescription *SciMetaEngine::fallbackDetect(const FileMap &allFiles, 
 	Common::String sierraGameId = findSierraGameId(resMan, s_fallbackDesc.platform == Common::kPlatformMacintosh);
 
 	// If we don't have a game id, the game is not SCI
-	if (sierraGameId.empty())
-		return 0;
+	if (sierraGameId.empty()) {
+#ifdef ENABLE_SCI32S2
+		if (allFiles.contains("s2res.sol")) {
+			s_fallbackDesc.flags = ADGF_UNSTABLE | ADGF_DROPPLATFORM;
+			s_fallbackDesc.platform = Common::kPlatformWindows;
+			s_fallbackDesc.gameId = "shivers2";
+		} else
+#endif
+			return nullptr;
+	}
 
 	Common::String gameId = convertSierraGameId(sierraGameId, &s_fallbackDesc.flags, resMan);
 	Common::strlcpy(s_fallbackGameIdBuf, gameId.c_str(), sizeof(s_fallbackGameIdBuf));
@@ -755,7 +769,12 @@ bool SciMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameD
 			metadata.isCD = desc->flags & ADGF_CD;
 			metadata.isDemo = desc->flags & ADGF_DEMO;
 
-			*engine = new SciEngine(syst, desc, metadata);
+#ifdef ENABLE_SCI32S2
+			if (g->gameidEnum == GID_SHIVERS2) {
+				*engine = new S2Engine(*syst, metadata);
+			} else
+#endif
+				*engine = new SciEngine(syst, desc, metadata);
 
 			return true;
 		}

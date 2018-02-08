@@ -4210,32 +4210,32 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 #undef GUIO_SHIVERS_DEMO
 #undef GUIO_SHIVERS
 
-	// Shivers 2 doesn't contain SCI scripts. The whole game logic has
-	// been reimplemented from SCI in native code placed in DLL files.
-	// Each room has its own DLL file, and some SCI functions have been
-	// reimplemented/rewritten for this purpose in native code. The
-	// game and demo have all the resources of a SCI game, apart from
-	// the SCI scripts themselves. Thus, they cannot be directly
-	// supported, unless their whole room logic is rewritten from
-	// scratch, which classifies Shivers 2 as "not SCI"
-#if 0
+#ifdef ENABLE_SCI32S2
+#define GUIO_SHIVERS2     GUIO6(GUIO_NOMIDI, \
+                                GUIO_LINKSPEECHTOSFX, \
+                                GUIO_LINKMUSICTOSFX, \
+                                GUIO_NOASPECT, \
+                                GAMEOPTION_ENABLE_BLACK_LINED_VIDEO, \
+                                GAMEOPTION_HQ_VIDEO)
 
+#if 0
 	// Shivers2 - English Windows Demo
 	// Executable scanning reports "3.000.000"
 	{"shivers2", "Demo", {
 		{"resmap.000", 0, "d8659188b84beaef076bd869837cd530", 634},
 		{"ressci.000", 0, "7fbac0807a044c9543e8ac376d200e59", 4925003},
 		AD_LISTEND},
-		Common::EN_ANY, Common::kPlatformWindows, ADGF_DEMO | ADGF_UNSTABLE, GUIO5(GAMEOPTION_ENABLE_BLACK_LINED_VIDEO, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
-
+		Common::EN_ANY, Common::kPlatformWindows, ADGF_DEMO | ADGF_UNSTABLE | ADGF_DROPPLATFORM, GUIO_SHIVERS2 },
+#endif
 	// Shivers 2 - English Windows (from abevi)
 	// VERSION.TXT Version 1.0 (3/25/97)
 	{"shivers2", "", {
 		{"ressci.001", 0, "a79d03d6eb75be0a79324f14e3d2ace4", 95346793},
 		{"resmap.001", 0, "a4804d436d90c4ec2e46b537f5e954db", 6268},
 		AD_LISTEND},
-		Common::EN_ANY, Common::kPlatformWindows, ADGF_UNSTABLE, GUIO6(GAMEOPTION_ENABLE_BLACK_LINED_VIDEO, GUIO_NOSPEECH, GUIO_NOASPECT, GAMEOPTION_PREFER_DIGITAL_SFX, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_FB01_MIDI)	},
+		Common::EN_ANY, Common::kPlatformWindows, ADGF_UNSTABLE | ADGF_DROPPLATFORM, GUIO_SHIVERS2 },
 
+#undef GUIO_SHIVERS2
 #endif
 
 #endif // ENABLE_SCI32

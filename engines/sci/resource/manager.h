@@ -85,6 +85,8 @@ public:
 
 	const GameMetadata &getGameMetadata() const { return _game; }
 
+	void run();
+
 private:
 	/**
 	 * Initializes the resource manager by scanning all resource sources and

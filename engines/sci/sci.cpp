@@ -293,6 +293,7 @@ extern void showScummVMDialog(const Common::String &message);
 Common::Error SciEngine::run() {
 	_resMan = new ResourceManager(_metadata);
 	assert(_resMan);
+	_resMan->run();
 
 	// Game version must be detected for these to be set properly, so they must
 	// be set after ResourceManager has done its thing and set the SCI version
