@@ -1872,18 +1872,26 @@ void Sci1SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		return;
 	}
 
+	const GuiResourceId soundNo = getSoundResourceId(readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+	const ResourceId id(getSoundResourceType(soundNo), soundNo);
+
 #ifdef ENABLE_SCI32
 	// TODO: Figure out the exact SCI versions which did this, it is at least
 	// SCI2.1early
-	if (_soundVersion >= SCI_VERSION_2 &&
-		sound->id.getType() == kResourceTypeAudio) {
+	if (_soundVersion >= SCI_VERSION_2) {
+		ResourceId stopId;
+		if (_soundVersion == SCI_VERSION_3) {
+			stopId = id;
+		} else if (_soundVersion < SCI_VERSION_3) {
+			stopId = sound->id;
+		}
 
-		g_sci->_audio32->stop(sound->id, sound->nodePtr);
+		if (stopId.getType() == kResourceTypeAudio) {
+			g_sci->_audio32->stop(stopId, nodePtr);
+		}
 	}
 #endif
 
-	const GuiResourceId soundNo = getSoundResourceId(readSelectorValue(_segMan, soundObj, SELECTOR(number)));
-	const ResourceId id(getSoundResourceType(soundNo), soundNo);
 	sound->id = id;
 
 	if (!readSelector(_segMan, soundObj, SELECTOR(handle)).isNull() &&
@@ -1974,7 +1982,13 @@ void Sci1SoundManager::kernelStop(const reg_t soundObj) {
 			// components instead
 #ifdef ENABLE_SCI32
 			if (_soundVersion >= SCI_VERSION_2) {
-				g_sci->_audio32->stop(sound->id, soundObj);
+				ResourceId stopId;
+				if (_soundVersion == SCI_VERSION_3) {
+					stopId = ResourceId(kResourceTypeAudio, readSelectorValue(_segMan, soundObj, SELECTOR(number)));
+				} else {
+					stopId = sound->id;
+				}
+				g_sci->_audio32->stop(stopId, nodePtr);
 			} else
 				// TODO: This should be accepting a sound number so that if
 				// another sound replaced the original sound it does not get
