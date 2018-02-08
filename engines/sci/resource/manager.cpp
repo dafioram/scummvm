@@ -175,7 +175,9 @@ void ResourceManager::init() {
 		break;
 	}
 
-	addNewGMPatch();
+	if (!_detectionMode && getSciVersion() < SCI_VERSION_2) {
+		addNewGMPatch();
+	}
 }
 
 ResourceManager::~ResourceManager() {
