@@ -134,23 +134,23 @@ ResourceErrorCode ExtMapResourceSource::readResourceMapSCI1(ResourceManager *res
 		fileStream.reset(file);
 	}
 
-	resource_index_t resMap[32] = {};
+	ResourceIndex resMap[32] = {};
 	byte type = 0, prevtype = 0;
-	byte nEntrySize = resMan->getMapVersion() == kResVersionSci11 ? SCI11_RESMAP_ENTRIES_SIZE : SCI1_RESMAP_ENTRIES_SIZE;
+	byte nEntrySize = resMan->getMapVersion() == kResVersionSci11 ? 5 : 6;
 	ResourceId resId;
 
 	// Read resource type and offsets to resource offsets block from .MAP file
 	// The last entry has type=0xFF (0x1F) and offset equals to map file length
 	do {
 		type = fileStream->readByte() & 0x1F;
-		resMap[type].wOffset = fileStream->readUint16LE();
+		resMap[type].offset = fileStream->readUint16LE();
 		if (fileStream->eos()) {
 			warning("Premature end of file %s", getLocationName().c_str());
 			return SCI_ERROR_RESMAP_NOT_FOUND;
 		}
 
-		resMap[prevtype].wSize = (resMap[type].wOffset
-		                          - resMap[prevtype].wOffset) / nEntrySize;
+		resMap[prevtype].size = (resMap[type].offset
+		                          - resMap[prevtype].offset) / nEntrySize;
 		prevtype = type;
 	} while (type != 0x1F); // the last entry is FF
 
@@ -159,10 +159,10 @@ ResourceErrorCode ExtMapResourceSource::readResourceMapSCI1(ResourceManager *res
 	// reading each type's offsets
 	uint32 fileOffset = 0;
 	for (type = 0; type < 32; type++) {
-		if (resMap[type].wOffset == 0) // this resource does not exist in map
+		if (resMap[type].offset == 0) // this resource does not exist in map
 			continue;
-		fileStream->seek(resMap[type].wOffset);
-		for (int i = 0; i < resMap[type].wSize; i++) {
+		fileStream->seek(resMap[type].offset);
+		for (int i = 0; i < resMap[type].size; i++) {
 			uint16 number = fileStream->readUint16LE();
 			int volumeNo = 0;
 			if (mapVersion == kResVersionSci11) {

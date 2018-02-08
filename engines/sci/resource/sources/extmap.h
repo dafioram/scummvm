@@ -44,17 +44,9 @@ public:
 	virtual bool scanSource(ResourceManager *resMan) override;
 
 private:
-	enum {
-		SCI0_RESMAP_ENTRIES_SIZE = 6,
-		SCI1_RESMAP_ENTRIES_SIZE = 6,
-		KQ5FMT_RESMAP_ENTRIES_SIZE = 7,
-		SCI11_RESMAP_ENTRIES_SIZE = 5
-	};
-
-	/** resource type for SCI1 resource.map file */
-	struct resource_index_t {
-		uint16 wOffset;
-		uint16 wSize;
+	struct ResourceIndex {
+		uint16 offset;
+		uint16 size;
 	};
 
 	/**
