@@ -644,7 +644,6 @@ const ADGameDescription *SciMetaEngine::fallbackDetect(const FileMap &allFiles, 
 	ResourceManager resMan(true);
 	resMan.addAppropriateSourcesForDetection(fslist);
 	resMan.init();
-	// TODO: Add error handling.
 
 #ifndef ENABLE_SCI32
 	// Is SCI32 compiled in? If not, and this is a SCI32 game,
@@ -931,9 +930,13 @@ Common::String SciMetaEngine::findSierraGameId(ResourceManager &resMan, const bo
 		return "";
 
 	int32 offset;
+#ifdef ENABLE_SCI32
 	if (getSciVersion() == SCI_VERSION_3) {
 		offset = Script::relocateOffsetSci3(*heap, gameObjectOffset + /* base selector offset */ 0x110 + nameSelector * sizeof(uint16), isBE);
 	} else {
+#else
+	{
+#endif
 		// Seek to the name selector of the first export
 		SciSpan<const byte>::const_iterator offsetPtr = heap->cbegin() + gameObjectOffset + nameSelector * sizeof(uint16);
 		offset = !resMan.isSci11Mac() ? offsetPtr.getUint16LE() : offsetPtr.getUint16BE();

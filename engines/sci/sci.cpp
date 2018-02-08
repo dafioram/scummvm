@@ -307,15 +307,6 @@ Common::Error SciEngine::run() {
 	_resMan->addAppropriateSources();
 	_resMan->init();
 
-	// TODO: Add error handling. Check return values of addAppropriateSources
-	// and init. We first have to *add* sensible return values, though ;).
-/*
-	if (!_resMan) {
-		warning("No resources found, aborting");
-		return Common::kNoGameDataFoundError;
-	}
-*/
-
 	_gameObjectAddress = _resMan->findGameObject(true, isBE());
 
 	_scriptPatcher = new ScriptPatcher();
