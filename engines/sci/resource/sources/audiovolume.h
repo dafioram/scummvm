@@ -28,16 +28,7 @@
 
 namespace Sci {
 
-class AudioVolumeResourceSource : public VolumeResourceSource {
-private:
-	struct CompressedTableEntry {
-		uint32 offset;
-		uint32 size;
-	};
-
-	uint32 _audioCompressionType;
-	Common::HashMap<uint32, CompressedTableEntry> _compressedOffsets;
-
+class AudioVolumeResourceSource final : public VolumeResourceSource {
 public:
 	AudioVolumeResourceSource(ResourceManager *resMan, const Common::String &name, ResourceSource *map, int volNum);
 
@@ -61,6 +52,15 @@ public:
 	}
 
 private:
+	struct CompressedTableEntry {
+		uint32 offset;
+		uint32 size;
+	};
+
+	uint32 _audioCompressionType;
+
+	Common::HashMap<uint32, CompressedTableEntry> _compressedOffsets;
+
 	bool loadFromAudioVolumeSCI1(const ResourceManager *resMan, Resource *resource, Common::SeekableReadStream *file) const;
 	bool loadFromAudioVolumeSCI11(const ResourceManager *resMan, Resource *resource, Common::SeekableReadStream *file) const;
 };

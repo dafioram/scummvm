@@ -27,10 +27,9 @@
 
 namespace Sci {
 
-AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, const Common::String &name, ResourceSource *map, int volNum)
-	: VolumeResourceSource(name, map, volNum, kSourceAudioVolume) {
-
-	_audioCompressionType = 0;
+AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, const Common::String &name, ResourceSource *map, int volNum) :
+	VolumeResourceSource(name, map, volNum, kSourceAudioVolume),
+	_audioCompressionType(0) {
 
 	/*
 	 * Check if this audio volume got compressed by our tool. If that is the

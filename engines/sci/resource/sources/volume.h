@@ -29,9 +29,6 @@
 namespace Sci {
 
 class VolumeResourceSource : public ResourceSource {
-protected:
-	ResourceSource * const _associatedMap;
-
 public:
 	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, ResSourceType type = kSourceVolume) :
 		ResourceSource(type, name, volNum),
@@ -44,6 +41,9 @@ public:
 	bool isVolumeForMap(const ResourceSource *map, int volumeNo) const {
 		return (_associatedMap == map && _volumeNumber == volumeNo);
 	}
+
+private:
+	ResourceSource *const _associatedMap;
 };
 
 } // End of namespace Sci

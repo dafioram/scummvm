@@ -64,21 +64,11 @@ static Common::Array<uint32> resTypeToMacTags(ResourceType type) {
 	return tags;
 }
 
-MacResourceForkResourceSource::MacResourceForkResourceSource(const Common::String &name, int volNum)
- : ResourceSource(kSourceMacResourceFork, name, volNum) {
-	_macResMan = new Common::MacResManager();
-	assert(_macResMan);
-}
-
-MacResourceForkResourceSource::~MacResourceForkResourceSource() {
-	delete _macResMan;
-}
-
 bool MacResourceForkResourceSource::scanSource(ResourceManager *resMan) {
-	if (!_macResMan->open(getLocationName().c_str()))
+	if (!_macResMan.open(getLocationName().c_str()))
 		error("%s is not a valid Mac resource fork", getLocationName().c_str());
 
-	Common::MacResTagArray tagArray = _macResMan->getResTagArray();
+	Common::MacResTagArray tagArray = _macResMan.getResTagArray();
 
 	for (uint32 i = 0; i < tagArray.size(); i++) {
 		ResourceType type = kResourceTypeInvalid;
@@ -93,14 +83,14 @@ bool MacResourceForkResourceSource::scanSource(ResourceManager *resMan) {
 		if (type == kResourceTypeInvalid)
 			continue;
 
-		Common::MacResIDArray idArray = _macResMan->getResIDArray(tagArray[i]);
+		Common::MacResIDArray idArray = _macResMan.getResIDArray(tagArray[i]);
 
 		for (uint32 j = 0; j < idArray.size(); j++) {
 			ResourceId resId;
 
 			// Check to see if we've got a base36 encoded resource name
 			if (type == kResourceTypeAudio) {
-				Common::String resourceName = _macResMan->getResName(tagArray[i], idArray[j]);
+				Common::String resourceName = _macResMan.getResName(tagArray[i], idArray[j]);
 
 				// If we have a file name on an audio resource, we've got an audio36
 				// resource. Parse the file name to get the id.
@@ -109,7 +99,7 @@ bool MacResourceForkResourceSource::scanSource(ResourceManager *resMan) {
 				else
 					resId = ResourceId(type, idArray[j]);
 			} else if (type == kResourceTypeSync) {
-				Common::String resourceName = _macResMan->getResName(tagArray[i], idArray[j]);
+				Common::String resourceName = _macResMan.getResName(tagArray[i], idArray[j]);
 
 				// Same as with audio36 above
 				if (!resourceName.empty() && resourceName[0] == '#')
@@ -136,13 +126,13 @@ void MacResourceForkResourceSource::loadResource(const ResourceManager *resMan, 
 
 	if (type == kResourceTypeAudio36 || type == kResourceTypeSync36) {
 		// Handle audio36/sync36, convert back to audio/sync
-		stream = _macResMan->getResource(res->getId().toPatchNameBase36());
+		stream = _macResMan.getResource(res->getId().toPatchNameBase36());
 	} else {
 		// Plain resource handling
 		Common::Array<uint32> tagArray = resTypeToMacTags(type);
 
 		for (uint32 i = 0; i < tagArray.size() && !stream; i++)
-			stream = _macResMan->getResource(tagArray[i], res->getNumber());
+			stream = _macResMan.getResource(tagArray[i], res->getNumber());
 	}
 
 	if (stream)

@@ -31,7 +31,7 @@ namespace Sci {
 /**
  * Reads resources from SCI2.1+ chunk resources
  */
-class ChunkResourceSource : public ResourceSource {
+class ChunkResourceSource final : public ResourceSource {
 public:
 	ChunkResourceSource(const Common::String &name, uint16 number);
 
@@ -40,7 +40,7 @@ public:
 
 	uint16 getNumber() const { return _number; }
 
-protected:
+private:
 	uint16 _number;
 
 	struct ResourceEntry {

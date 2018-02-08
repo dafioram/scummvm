@@ -27,14 +27,12 @@
 
 namespace Sci {
 
-class PatchResourceSource : public ResourceSource {
+class PatchResourceSource final : public ResourceSource {
 public:
-	PatchResourceSource(const Common::String &name) : ResourceSource(kSourcePatch, name) {}
+	PatchResourceSource(const Common::String &name) :
+		ResourceSource(kSourcePatch, name) {}
 
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
-
-private:
-	bool loadFromPatchFile(Resource *res) const;
 };
 
 } // End of namespace Sci

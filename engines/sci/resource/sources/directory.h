@@ -28,7 +28,7 @@
 
 namespace Sci {
 
-class DirectoryResourceSource : public ResourceSource {
+class DirectoryResourceSource final : public ResourceSource {
 public:
 	DirectoryResourceSource(const Common::String &name) :
 		ResourceSource(kSourceDirectory, name) {}

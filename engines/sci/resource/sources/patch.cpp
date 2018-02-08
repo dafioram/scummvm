@@ -26,24 +26,14 @@
 namespace Sci {
 
 void PatchResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
-	bool result = loadFromPatchFile(res);
-	if (!result) {
-		// TODO: We used to fallback to the "default" code here if loadFromPatchFile
-		// failed, but I am not sure whether that is really appropriate.
-		// In fact it looks like a bug to me, so I commented this out for now.
-		//ResourceSource::loadResource(res);
-	}
-}
-
-bool PatchResourceSource::loadFromPatchFile(Resource *res) const {
 	Common::File file;
 	if (!file.open(getLocationName())) {
 		warning("Failed to open patch file %s", getLocationName().c_str());
 		res->unalloc();
-		return false;
+		return;
 	}
 	file.seek(0, SEEK_SET);
-	return loadPatch(&file, res);
+	loadPatch(&file, res);
 }
 
 } // End of namespace Sci

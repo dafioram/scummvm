@@ -32,9 +32,10 @@ namespace Sci {
 class ResourceManager;
 class Resource;
 
-class WaveResourceSource : public ResourceSource {
+class WaveResourceSource final : public ResourceSource {
 public:
-	WaveResourceSource(const Common::String &name) : ResourceSource(kSourceWave, name) {}
+	WaveResourceSource(const Common::String &name) :
+		ResourceSource(kSourceWave, name) {}
 
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
 };

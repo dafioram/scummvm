@@ -35,7 +35,7 @@ namespace Sci {
 
 class ResourceManager;
 
-class ExtMapResourceSource : public ResourceSource {
+class ExtMapResourceSource final : public ResourceSource {
 public:
 	ExtMapResourceSource(const Common::String &name, int volNum, const bool shouldScanAudioMaps, const Common::FSNode *resFile = nullptr) :
 		ResourceSource(kSourceExtMap, name, volNum, resFile),

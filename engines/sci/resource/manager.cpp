@@ -1086,9 +1086,12 @@ void ResourceManager::addPatchDir(const Common::String &dirname) {
 
 const ResourceSource *ResourceManager::findVolumeForMap(const ResourceSource *map, int volumeNo) const {
 	for (SourcesList::const_iterator it = _sources.begin(); it != _sources.end(); ++it) {
-		const VolumeResourceSource *src = dynamic_cast<VolumeResourceSource *>(*it);
-		if (src && src->isVolumeForMap(map, volumeNo)) {
-			return src;
+		const ResSourceType type = (*it)->getSourceType();
+		if (type != kSourceVolume && type != kSourceAudioVolume) {
+			continue;
+		}
+		if (static_cast<const VolumeResourceSource *>(*it)->isVolumeForMap(map, volumeNo)) {
+			return *it;
 		}
 	}
 
@@ -1100,8 +1103,8 @@ Common::SeekableReadStream *ResourceManager::getVolumeFile(const ResourceSource 
 	Common::File *file;
 
 #ifdef ENABLE_SCI32
-	const ChunkResourceSource *chunkSource = dynamic_cast<const ChunkResourceSource *>(source);
-	if (chunkSource != nullptr) {
+	if (source->getSourceType() == kSourceChunk) {
+		const ChunkResourceSource *chunkSource = static_cast<const ChunkResourceSource *>(source);
 		const Resource *res = findResource(ResourceId(kResourceTypeChunk, chunkSource->getNumber()), false);
 		return res ? res->makeStream() : nullptr;
 	}
@@ -1143,8 +1146,7 @@ Common::SeekableReadStream *ResourceManager::getVolumeFile(const ResourceSource 
 
 void ResourceManager::disposeVolumeFileStream(Common::SeekableReadStream *fileStream, const ResourceSource *source) const {
 #ifdef ENABLE_SCI32
-	const ChunkResourceSource *chunkSource = dynamic_cast<const ChunkResourceSource *>(source);
-	if (chunkSource != nullptr) {
+	if (source->getSourceType() == kSourceChunk) {
 		delete fileStream;
 		return;
 	}
@@ -1744,12 +1746,14 @@ Resource *ResourceManager::updateResource(ResourceId resId, const ResourceSource
 		error("Could not open %s for reading", src->getLocationName().c_str());
 	}
 
-	const AudioVolumeResourceSource *avSrc = dynamic_cast<const AudioVolumeResourceSource *>(src);
-	if (avSrc != nullptr && !avSrc->relocateMapOffset(offset, size)) {
-		warning("Compressed volume %s does not contain a valid entry for %s (map offset %u)", src->getLocationName().c_str(), resId.toString().c_str(), offset);
-		_hasBadResources = true;
-		disposeVolumeFileStream(volumeFile, src);
-		return res;
+	if (src->getSourceType() == kSourceAudioVolume) {
+		const AudioVolumeResourceSource *avSrc = static_cast<const AudioVolumeResourceSource *>(src);
+		if (!avSrc->relocateMapOffset(offset, size)) {
+			warning("Compressed volume %s does not contain a valid entry for %s (map offset %u)", src->getLocationName().c_str(), resId.toString().c_str(), offset);
+			_hasBadResources = true;
+			disposeVolumeFileStream(volumeFile, src);
+			return res;
+		}
 	}
 
 	if (validateResource(resId, sourceMapLocation, src->getLocationName(), offset, size, volumeFile->size())) {
@@ -1873,8 +1877,13 @@ void ResourceManager::setAudioLanguage(int language) {
 		// Remove all volumes that use this map from the source list
 		SourcesList::iterator it = _sources.begin();
 		while (it != _sources.end()) {
-			VolumeResourceSource *src = dynamic_cast<VolumeResourceSource *>(*it);
-			if (src && src->isVolumeForMap(_audioMapSCI1, src->_volumeNumber)) {
+			const ResSourceType type = (*it)->getSourceType();
+			if (type != kSourceVolume && type != kSourceAudioVolume) {
+				++it;
+				continue;
+			}
+			VolumeResourceSource *src = static_cast<VolumeResourceSource *>(*it);
+			if (src->isVolumeForMap(_audioMapSCI1, src->_volumeNumber)) {
 				it = _sources.erase(it);
 				delete src;
 			} else {
@@ -1991,18 +2000,23 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 	}
 
 	for (SourcesList::iterator it = _sources.begin(); it != _sources.end(); ) {
-		IntMapResourceSource *mapSource = dynamic_cast<IntMapResourceSource *>(*it);
-		if (mapSource && mapSource->_mapNumber != kSfxModule) {
-			delete *it;
-			it = _sources.erase(it);
-			continue;
+		const ResSourceType type = (*it)->getSourceType();
+		if (type == kSourceIntMap) {
+			IntMapResourceSource *mapSource = static_cast<IntMapResourceSource *>(*it);
+			if (mapSource->_mapNumber != kSfxModule) {
+				delete mapSource;
+				it = _sources.erase(it);
+				continue;
+			}
 		}
 
-		AudioVolumeResourceSource *volSource = dynamic_cast<AudioVolumeResourceSource *>(*it);
-		if (volSource && volSource->getLocationName().contains("RESOURCE.AUD")) {
-			delete volSource;
-			it = _sources.erase(it);
-			continue;
+		if (type == kSourceAudioVolume) {
+			AudioVolumeResourceSource *volSource = static_cast<AudioVolumeResourceSource *>(*it);
+			if (volSource->getLocationName().contains("RESOURCE.AUD")) {
+				delete volSource;
+				it = _sources.erase(it);
+				continue;
+			}
 		}
 
 		++it;

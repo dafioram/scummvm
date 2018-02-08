@@ -28,12 +28,11 @@
 
 namespace Sci {
 
-class IntMapResourceSource : public ResourceSource {
+class IntMapResourceSource final : public ResourceSource {
 public:
 	uint16 _mapNumber;
-	IntMapResourceSource(const Common::String &name, int volNum, int mapNum)
-		: ResourceSource(kSourceIntMap, name, volNum), _mapNumber(mapNum) {
-	}
+	IntMapResourceSource(const Common::String &name, int volNum, int mapNum) :
+		ResourceSource(kSourceIntMap, name, volNum), _mapNumber(mapNum) {}
 
 	virtual bool scanSource(ResourceManager *resMan) override;
 

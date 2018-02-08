@@ -23,6 +23,7 @@
 #ifndef SCI_RESOURCE_SOURCES_MACRESFORK_H
 #define SCI_RESOURCE_SOURCES_MACRESFORK_H
 
+#include "common/macresman.h"
 #include "sci/resource/resource.h"
 #include "sci/resource/source.h"
 
@@ -40,15 +41,15 @@ class ResourceManager;
  */
 class MacResourceForkResourceSource final : public ResourceSource {
 public:
-	MacResourceForkResourceSource(const Common::String &name, int volNum);
-	~MacResourceForkResourceSource();
+	MacResourceForkResourceSource(const Common::String &name, int volNum) :
+		ResourceSource(kSourceMacResourceFork, name, volNum) {}
 
 	virtual bool scanSource(ResourceManager *resMan) override;
 
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
 
 private:
-	Common::MacResManager *_macResMan;
+	Common::MacResManager _macResMan;
 
 	bool isCompressableResource(ResourceType type) const;
 	void decompressResource(Common::SeekableReadStream *stream, Resource *resource) const;
