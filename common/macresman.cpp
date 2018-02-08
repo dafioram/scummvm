@@ -461,7 +461,7 @@ bool MacResManager::load(SeekableReadStream &stream) {
 	return true;
 }
 
-SeekableReadStream *MacResManager::getDataFork() {
+SeekableReadStream *MacResManager::getDataFork() const {
 	if (!_stream)
 		return NULL;
 
@@ -479,7 +479,7 @@ SeekableReadStream *MacResManager::getDataFork() {
 	return NULL;
 }
 
-MacResIDArray MacResManager::getResIDArray(uint32 typeID) {
+MacResIDArray MacResManager::getResIDArray(uint32 typeID) const {
 	int typeNum = -1;
 	MacResIDArray res;
 
@@ -500,7 +500,7 @@ MacResIDArray MacResManager::getResIDArray(uint32 typeID) {
 	return res;
 }
 
-MacResTagArray MacResManager::getResTagArray() {
+MacResTagArray MacResManager::getResTagArray() const {
 	MacResTagArray tagArray;
 
 	if (!hasResFork())
@@ -533,7 +533,7 @@ String MacResManager::getResName(uint32 typeID, uint16 resID) const {
 	return "";
 }
 
-SeekableReadStream *MacResManager::getResource(uint32 typeID, uint16 resID) {
+SeekableReadStream *MacResManager::getResource(uint32 typeID, uint16 resID) const {
 	int typeNum = -1;
 	int resNum = -1;
 
@@ -565,7 +565,7 @@ SeekableReadStream *MacResManager::getResource(uint32 typeID, uint16 resID) {
 	return _stream->readStream(len);
 }
 
-SeekableReadStream *MacResManager::getResource(const String &fileName) {
+SeekableReadStream *MacResManager::getResource(const String &fileName) const {
 	for (uint32 i = 0; i < _resMap.numTypes; i++) {
 		for (uint32 j = 0; j < _resTypes[i].items; j++) {
 			if (_resLists[i][j].nameOffset != -1 && fileName.equalsIgnoreCase(_resLists[i][j].name)) {
@@ -584,7 +584,7 @@ SeekableReadStream *MacResManager::getResource(const String &fileName) {
 	return 0;
 }
 
-SeekableReadStream *MacResManager::getResource(uint32 typeID, const String &fileName) {
+SeekableReadStream *MacResManager::getResource(uint32 typeID, const String &fileName) const {
 	for (uint32 i = 0; i < _resMap.numTypes; i++) {
 		if (_resTypes[i].id != typeID)
 			continue;

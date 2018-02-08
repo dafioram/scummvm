@@ -115,7 +115,7 @@ public:
 	 * @param resID Resource ID to fetch
 	 * @return Pointer to a SeekableReadStream with loaded resource
 	 */
-	SeekableReadStream *getResource(uint32 typeID, uint16 resID);
+	SeekableReadStream *getResource(uint32 typeID, uint16 resID) const;
 
 	/**
 	 * Read resource from the MacBinary file
@@ -123,7 +123,7 @@ public:
 	 * @param filename file name of the resource
 	 * @return Pointer to a SeekableReadStream with loaded resource
 	 */
-	SeekableReadStream *getResource(const String &filename);
+	SeekableReadStream *getResource(const String &filename) const;
 
 	/**
 	 * Read resource from the MacBinary file
@@ -131,13 +131,13 @@ public:
 	 * @param filename file name of the resource
 	 * @return Pointer to a SeekableReadStream with loaded resource
 	 */
-	SeekableReadStream *getResource(uint32 typeID, const String &filename);
+	SeekableReadStream *getResource(uint32 typeID, const String &filename) const;
 
 	/**
 	 * Retrieve the data fork
 	 * @return The stream if present, 0 otherwise
 	 */
-	SeekableReadStream *getDataFork();
+	SeekableReadStream *getDataFork() const;
 
 	/**
 	 * Get the name of a given resource
@@ -169,12 +169,12 @@ public:
 	/**
 	 * Return list of resource IDs with specified type ID
 	 */
-	MacResIDArray getResIDArray(uint32 typeID);
+	MacResIDArray getResIDArray(uint32 typeID) const;
 
 	/**
 	 * Return list of resource tags
 	 */
-	MacResTagArray getResTagArray();
+	MacResTagArray getResTagArray() const;
 
 	/**
 	 * Load from stream in MacBinary format
