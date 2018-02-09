@@ -37,6 +37,8 @@ public:
 	WaveResourceSource(const Common::String &name) :
 		ResourceSource(kSourceWave, name) {}
 
+	static bool loadFromFile(Common::SeekableReadStream *file, Resource *res);
+
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
 };
 

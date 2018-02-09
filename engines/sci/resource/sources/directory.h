@@ -56,6 +56,11 @@ private:
 	 * searched for when looking for patch files.
 	 */
 	bool shouldFindSci0Patches() const;
+
+	/**
+	 * Processes a standard WAV file into a resource.
+	 */
+	void processWavePatch(ResourceManager *resMan, const ResourceId &resourceId, const Common::String &name) const;
 };
 
 } // End of namespace Sci

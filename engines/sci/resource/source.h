@@ -99,9 +99,6 @@ protected:
 	const ResSourceType _sourceType;
 	const Common::String _name;
 
-	bool loadPatch(Common::SeekableReadStream *file, Resource *res) const;
-	bool loadFromWaveFile(Common::SeekableReadStream *file, Resource *res) const;
-
 private:
 	ResourceErrorCode decompress(const ResourceManager *resMan, Resource *res, Common::SeekableReadStream *file) const;
 };

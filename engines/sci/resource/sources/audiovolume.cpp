@@ -24,6 +24,8 @@
 #include "common/stream.h"
 #include "sci/resource/manager.h"
 #include "sci/resource/sources/audiovolume.h"
+#include "sci/resource/sources/patch.h"
+#include "sci/resource/sources/wave.h"
 
 namespace Sci {
 
@@ -123,7 +125,7 @@ bool AudioVolumeResourceSource::loadFromAudioVolumeSCI11(const ResourceManager *
 	if (riffTag == MKTAG('R','I','F','F')) {
 		resource->_size = file->readUint32LE() + 8;
 		file->seek(-8, SEEK_CUR);
-		return loadFromWaveFile(file, resource);
+		return WaveResourceSource::loadFromFile(file, resource);
 	}
 	file->seek(-4, SEEK_CUR);
 
@@ -166,7 +168,7 @@ bool AudioVolumeResourceSource::loadFromAudioVolumeSCI11(const ResourceManager *
 			file->seek(-2, SEEK_CUR);
 		}
 	}
-	return loadPatch(file, resource);
+	return PatchResourceSource::loadPatch(file, resource);
 }
 
 } // End of namespace Sci

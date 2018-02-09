@@ -456,8 +456,10 @@ void ResourceManager::changeAudioDirectory(Common::String path) {
 			continue;
 		}
 
-		ResourceSource *newSource = new PatchResourceSource(path + fileName);
-		processPatch(newSource, kResourceTypeMap, mapNo);
+		PatchResourceSource *newSource = new PatchResourceSource(path + fileName);
+		if (!newSource->processPatch(this, kResourceTypeMap, mapNo)) {
+			delete newSource;
+		}
 		Resource *mapResource = _resMap.getVal(ResourceId(kResourceTypeMap, mapNo));
 		assert(mapResource);
 
@@ -850,6 +852,46 @@ void ResourceManager::addScriptChunkSource() {
 }
 #endif
 
+void ResourceManager::addNewGMPatch() {
+	Common::String gmPatchFile;
+
+	switch (g_sci->getGameId()) {
+	case GID_ECOQUEST:
+		gmPatchFile = "ECO1GM.PAT";
+		break;
+	case GID_HOYLE3:
+		gmPatchFile = "HOY3GM.PAT";
+		break;
+	case GID_LSL1:
+		gmPatchFile = "LL1_GM.PAT";
+		break;
+	case GID_LSL5:
+		gmPatchFile = "LL5_GM.PAT";
+		break;
+	case GID_LONGBOW:
+		gmPatchFile = "ROBNGM.PAT";
+		break;
+	case GID_SQ1:
+		gmPatchFile = "SQ1_GM.PAT";
+		break;
+	case GID_SQ4:
+		gmPatchFile = "SQ4_GM.PAT";
+		break;
+	case GID_FAIRYTALES:
+		gmPatchFile = "TALEGM.PAT";
+		break;
+	default:
+		break;
+	}
+
+	if (!gmPatchFile.empty() && Common::File::exists(gmPatchFile)) {
+		PatchResourceSource *psrcPatch = new PatchResourceSource(gmPatchFile);
+		if (!psrcPatch->processPatch(this, kResourceTypePatch, 4)) {
+			delete psrcPatch;
+		}
+	}
+}
+
 #pragma mark -
 #pragma mark ResourceSource API
 
@@ -1117,191 +1159,6 @@ void ResourceManager::disposeVolumeFileStream(Common::SeekableReadStream *fileSt
 
 	// Other volume file streams are cached in _volumeFiles and should only be
 	// deleted from _volumeFiles
-}
-
-void ResourceManager::processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple) {
-	Common::ScopedPtr<Common::SeekableReadStream> fileStream;
-	Resource *newrsc = nullptr;
-	ResourceId resId = ResourceId(resourceType, resourceNr, tuple);
-	ResourceType checkForType = resourceType;
-
-	if (isBlacklistedPatch(resId)) {
-		debug("Skipping blacklisted patch file %s", source->getLocationName().c_str());
-		delete source;
-		return;
-	}
-
-	// base36 encoded patches (i.e. audio36 and sync36) have the same type as their non-base36 encoded counterparts
-	if (checkForType == kResourceTypeAudio36)
-		checkForType = kResourceTypeAudio;
-	else if (checkForType == kResourceTypeSync36)
-		checkForType = kResourceTypeSync;
-
-	if (source->_resourceFile) {
-		fileStream.reset(source->_resourceFile->createReadStream());
-	} else {
-		Common::File *file = new Common::File();
-		if (!file->open(source->getLocationName())) {
-			warning("ResourceManager::processPatch(): failed to open %s", source->getLocationName().c_str());
-			delete source;
-			delete file;
-			return;
-		}
-		fileStream.reset(file);
-	}
-
-	int fsize = fileStream->size();
-	if (fsize < 3) {
-		debug("Patching %s failed - file too small", source->getLocationName().c_str());
-		delete source;
-		return;
-	}
-
-	byte patchType;
-	if (fileStream->readUint32BE() == MKTAG('R','I','F','F')) {
-		fileStream->seek(-4, SEEK_CUR);
-		patchType = kResourceTypeAudio;
-	} else {
-		fileStream->seek(-4, SEEK_CUR);
-		patchType = convertResType(fileStream->readByte());
-	}
-
-	enum {
-		kExtraHeaderSize    = 2, ///< extra header used in gfx resources
-		kViewHeaderSize     = 22 ///< extra header used in view resources
-	};
-
-	int32 patchDataOffset = kResourceHeaderSize;
-	if (_volVersion < kResVersionSci11) {
-		patchDataOffset += fileStream->readByte();
-	} else {
-		switch (patchType) {
-		case kResourceTypeView:
-			fileStream->seek(3, SEEK_SET);
-			patchDataOffset += fileStream->readByte() + kViewHeaderSize + kExtraHeaderSize;
-			break;
-		case kResourceTypePic:
-			if (_volVersion < kResVersionSci2) {
-				fileStream->seek(3, SEEK_SET);
-				patchDataOffset += fileStream->readByte() + kViewHeaderSize + kExtraHeaderSize;
-			} else {
-				patchDataOffset += kExtraHeaderSize;
-			}
-			break;
-		case kResourceTypePalette:
-			fileStream->seek(3, SEEK_SET);
-			patchDataOffset += fileStream->readByte() + kExtraHeaderSize;
-			break;
-		case kResourceTypeAudio:
-		case kResourceTypeAudio36:
-#ifdef ENABLE_SCI32
-		case kResourceTypeWave:
-		case kResourceTypeVMD:
-		case kResourceTypeDuck:
-		case kResourceTypeClut:
-		case kResourceTypeTGA:
-		case kResourceTypeZZZ:
-		case kResourceTypeEtc:
-#endif
-			patchDataOffset = 0;
-			break;
-		default:
-			fileStream->seek(1, SEEK_SET);
-			patchDataOffset += fileStream->readByte();
-			break;
-		}
-	}
-
-	if (patchType != checkForType) {
-		debug("Patching %s failed - resource type mismatch", source->getLocationName().c_str());
-		delete source;
-		return;
-	}
-
-	if (patchDataOffset >= fsize) {
-		debug("Patching %s failed - patch starting at offset %d can't be in file of size %d",
-		      source->getLocationName().c_str(), patchDataOffset, fsize);
-		delete source;
-		return;
-	}
-
-	// Overwrite everything, because we're patching
-	newrsc = updateResource(resId, source, 0, fsize - patchDataOffset, source->getLocationName());
-	newrsc->_headerSize = patchDataOffset;
-
-	debugC(1, kDebugLevelResMan, "Patching %s - OK", source->getLocationName().c_str());
-}
-
-void ResourceManager::processWavePatch(const ResourceId &resourceId, const Common::String &name) {
-	ResourceSource *resSrc = new WaveResourceSource(name);
-	Common::File file;
-	file.open(name);
-
-	updateResource(resourceId, resSrc, 0, file.size(), name);
-	_sources.push_back(resSrc);
-
-	debugC(1, kDebugLevelResMan, "Patching %s - OK", name.c_str());
-}
-
-bool ResourceManager::isBlacklistedPatch(const ResourceId &resId) const {
-	switch (g_sci->getGameId()) {
-	case GID_SHIVERS:
-		// The SFX resource map patch in the Shivers interactive demo has
-		// broken offsets for some sounds; ignore it so that the correct map
-		// from RESSCI.000 will be used instead.
-		return g_sci->isDemo() &&
-			resId.getType() == kResourceTypeMap &&
-			resId.getNumber() == kSfxModule;
-	case GID_PHANTASMAGORIA:
-		// The GOG release of Phantasmagoria 1 merges all resources into a
-		// single-disc bundle, but they also include the 65535.MAP from the
-		// original game's CD 1, which does not contain the entries for sound
-		// effects from later CDs. So, just ignore this map patch since the
-		// correct maps will be found in the RESSCI.000 file. This also helps
-		// eliminate user error when copying files from the original CDs, since
-		// each CD had a different 65535.MAP patch file.
-		return resId.getType() == kResourceTypeMap && resId.getNumber() == kSfxModule;
-	default:
-		return false;
-	}
-}
-
-void ResourceManager::addNewGMPatch() {
-	Common::String gmPatchFile;
-
-	switch (g_sci->getGameId()) {
-	case GID_ECOQUEST:
-		gmPatchFile = "ECO1GM.PAT";
-		break;
-	case GID_HOYLE3:
-		gmPatchFile = "HOY3GM.PAT";
-		break;
-	case GID_LSL1:
-		gmPatchFile = "LL1_GM.PAT";
-		break;
-	case GID_LSL5:
-		gmPatchFile = "LL5_GM.PAT";
-		break;
-	case GID_LONGBOW:
-		gmPatchFile = "ROBNGM.PAT";
-		break;
-	case GID_SQ1:
-		gmPatchFile = "SQ1_GM.PAT";
-		break;
-	case GID_SQ4:
-		gmPatchFile = "SQ4_GM.PAT";
-		break;
-	case GID_FAIRYTALES:
-		gmPatchFile = "TALEGM.PAT";
-		break;
-	default:
-		break;
-	}
-
-	if (!gmPatchFile.empty() && Common::File::exists(gmPatchFile)) {
-		ResourceSource *psrcPatch = new PatchResourceSource(gmPatchFile);
-		processPatch(psrcPatch, kResourceTypePatch, 4);
-	}
 }
 
 bool ResourceManager::validateResource(const ResourceId &resourceId, const Common::String &sourceMapLocation, const Common::String &sourceName, const uint32 offset, const uint32 size, const uint32 sourceSize) const {

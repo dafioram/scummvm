@@ -65,50 +65,6 @@ void ResourceSource::loadResource(const ResourceManager *resMan, Resource *res) 
 	resMan->disposeVolumeFileStream(fileStream, this);
 }
 
-bool ResourceSource::loadPatch(Common::SeekableReadStream *file, Resource *res) const {
-	// We assume that the resource type matches `type`
-	//  We also assume that the current file position is right at the actual data (behind resourceid/headersize byte)
-
-	byte *data = new byte[res->size()];
-	res->_data = data;
-
-	byte *header;
-	if (res->_headerSize > 0) {
-		header = new byte[res->_headerSize];
-		res->_header = header;
-	}
-
-	if (!data || (res->_headerSize > 0 && !res->_header)) {
-		error("Can't allocate %u bytes needed for loading %s", res->_size + res->_headerSize, res->name().c_str());
-	}
-
-	uint32 bytesRead;
-	if (res->_headerSize > 0) {
-		bytesRead = file->read(header, res->_headerSize);
-		if (bytesRead != res->_headerSize)
-			error("Read %d bytes from %s but expected %d", bytesRead, res->name().c_str(), res->_headerSize);
-	}
-
-	bytesRead = file->read(data, res->_size);
-	if (bytesRead != res->_size)
-		error("Read %d bytes from %s but expected %u", bytesRead, res->name().c_str(), res->_size);
-
-	res->_status = kResStatusAllocated;
-	return true;
-}
-
-bool ResourceSource::loadFromWaveFile(Common::SeekableReadStream *file, Resource *res) const {
-	byte *ptr = new byte[res->_size];
-	res->_data = ptr;
-
-	uint32 bytesRead = file->read(ptr, res->_size);
-	if (bytesRead != res->_size)
-		error("Read %d bytes from %s but expected %u", bytesRead, res->name().c_str(), res->_size);
-
-	res->_status = kResStatusAllocated;
-	return true;
-}
-
 ResourceErrorCode ResourceSource::decompress(const ResourceManager *resMan, Resource *res, Common::SeekableReadStream *file) const {
 	ResourceErrorCode errorNum;
 

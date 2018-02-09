@@ -32,8 +32,23 @@ void WaveResourceSource::loadResource(const ResourceManager *resMan, Resource *r
 		return;
 
 	fileStream->seek(res->_fileOffset, SEEK_SET);
-	loadFromWaveFile(fileStream, res);
+	loadFromFile(fileStream, res);
 	resMan->disposeVolumeFileStream(fileStream, this);
+}
+
+bool WaveResourceSource::loadFromFile(Common::SeekableReadStream *file, Resource *res) {
+	byte *ptr = new byte[res->_size];
+	res->_data = ptr;
+
+	uint32 bytesRead = file->read(ptr, res->_size);
+	if (bytesRead != res->_size) {
+		warning("Read %d bytes from %s but expected %u", bytesRead, res->name().c_str(), res->_size);
+		res->unalloc();
+		return false;
+	}
+
+	res->_status = kResStatusAllocated;
+	return true;
 }
 
 } // End of namespace Sci

@@ -258,13 +258,6 @@ public:
 	void scanMultiDiscAudioMap(const ResourceSource *source, const int mapVolumeNr, const ResourceId resId);
 #endif
 
-private:
-	/**
-	 * Scans all newly added resource sources for resources, earliest addition
-	 * first.
-	 */
-	void scanNewSources();
-
 	/**
 	 * Adds a source to the resource manager's list of sources.
 	 * @param source The source to add. Ownership of the object is transferred.
@@ -273,6 +266,13 @@ private:
 		assert(source);
 		_sources.push_back(source);
 	}
+
+private:
+	/**
+	 * Scans all newly added resource sources for resources, earliest addition
+	 * first.
+	 */
+	void scanNewSources();
 
 	/**
 	 * Adds a patch file directory as a resource source.
@@ -313,6 +313,14 @@ private:
 	 */
 	void addScriptChunkSource();
 #endif
+
+	/**
+	 * Adds the appropriate GM patch from the Sierra MIDI utility as 4.pat,
+	 * without requiring the user to rename the file to 4.pat. Thus, the
+	 * original Sierra archive can be extracted in the extras directory, and the
+	 * GM patches can be applied per game, if applicable.
+	 */
+	void addNewGMPatch();
 
 	typedef Common::List<ResourceSource *> SourcesList;
 
@@ -407,34 +415,9 @@ public:
 	 */
 	void disposeVolumeFileStream(Common::SeekableReadStream *fileStream, const ResourceSource *source) const;
 
-	/**
-	 * Processes a patch file into a resource. Ownership of the `source` object
-	 * is transferred.
-	 */
-	void processPatch(ResourceSource *source, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0);
-
-	/**
-	 * Processes a standard WAV file into a resource.
-	 */
-	void processWavePatch(const ResourceId &resourceId, const Common::String &name);
-
 private:
 	typedef Common::HashMap<ResourceId, Resource *, ResourceIdHash> ResourceMap;
 	typedef Common::List<Common::File *> VolumeFiles;
-
-	/**
-	 * Determines whether or not a patch file matching the given resource ID
-	 * should be ignored when processing patch files.
-	 */
-	bool isBlacklistedPatch(const ResourceId &resId) const;
-
-	/**
-	 * Adds the appropriate GM patch from the Sierra MIDI utility as 4.pat,
-	 * without requiring the user to rename the file to 4.pat. Thus, the
-	 * original Sierra archive can be extracted in the extras directory, and the
-	 * GM patches can be applied per game, if applicable.
-	 */
-	void addNewGMPatch();
 
 	/**
 	 * Performs basic validation of the given resource. Returns true if the

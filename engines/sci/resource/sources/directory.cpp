@@ -23,6 +23,7 @@
 #include "common/archive.h"
 #include "sci/resource/sources/directory.h"
 #include "sci/resource/sources/patch.h"
+#include "sci/resource/sources/wave.h"
 #include "sci/resource/manager.h"
 
 namespace Sci {
@@ -47,7 +48,6 @@ void DirectoryResourceSource::readResourcePatches(ResourceManager *resMan) const
 	Common::ArchiveMemberList files;
 	uint16 resourceNr = 0;
 	const char *szResType;
-	ResourceSource *psrcPatch;
 	const bool shouldUseSci0 = shouldFindSci0Patches();
 
 	for (int i = kResourceTypeView; i < kResourceTypeInvalid; ++i) {
@@ -102,8 +102,10 @@ void DirectoryResourceSource::readResourcePatches(ResourceManager *resMan) const
 			}
 
 			if (bAdd) {
-				psrcPatch = new PatchResourceSource(name);
-				resMan->processPatch(psrcPatch, (ResourceType)i, resourceNr);
+				PatchResourceSource *psrcPatch = new PatchResourceSource(name);
+				if (!psrcPatch->processPatch(resMan, ResourceType(i), resourceNr)) {
+					delete psrcPatch;
+				}
 			}
 		}
 	}
@@ -123,7 +125,6 @@ void DirectoryResourceSource::readResourcePatchesBase36(ResourceManager *resMan)
 
 	Common::String name, inputName;
 	Common::ArchiveMemberList files;
-	ResourceSource *psrcPatch;
 
 	for (int i = kResourceTypeAudio36; i <= kResourceTypeSync36; ++i) {
 		files.clear();
@@ -157,12 +158,11 @@ void DirectoryResourceSource::readResourcePatchesBase36(ResourceManager *resMan)
 
 			// Make sure that the audio patch is a valid resource
 			if (i == kResourceTypeAudio36) {
-				Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(name);
+				Common::ScopedPtr<Common::SeekableReadStream> stream(SearchMan.createReadStreamForMember(name));
 				uint32 tag = stream->readUint32BE();
 
 				if (tag == MKTAG('R','I','F','F') || tag == MKTAG('F','O','R','M')) {
-					delete stream;
-					resMan->processWavePatch(resource36, name);
+					processWavePatch(resMan, resource36, name);
 					continue;
 				}
 
@@ -170,15 +170,14 @@ void DirectoryResourceSource::readResourcePatchesBase36(ResourceManager *resMan)
 				tag = (tag << 16) | stream->readUint16BE();
 
 				if (tag != MKTAG('S','O','L',0)) {
-					delete stream;
 					continue;
 				}
-
-				delete stream;
 			}
 
-			psrcPatch = new PatchResourceSource(name);
-			resMan->processPatch(psrcPatch, (ResourceType)i, resource36.getNumber(), resource36.getTuple());
+			PatchResourceSource *psrcPatch = new PatchResourceSource(name);
+			if (!psrcPatch->processPatch(resMan, ResourceType(i), resource36.getNumber(), resource36.getTuple())) {
+				delete psrcPatch;
+			}
 		}
 	}
 }
@@ -191,8 +190,9 @@ void DirectoryResourceSource::readWaveAudioPatches(ResourceManager *resMan) cons
 	for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
 		Common::String name = (*x)->getName();
 
-		if (Common::isDigit(name[0]))
-			resMan->processWavePatch(ResourceId(kResourceTypeAudio, atoi(name.c_str())), name);
+		if (Common::isDigit(name[0])) {
+			processWavePatch(resMan, ResourceId(kResourceTypeAudio, atoi(name.c_str())), name);
+		}
 	}
 }
 
@@ -202,6 +202,17 @@ bool DirectoryResourceSource::shouldFindSci0Patches() const {
 	}
 
 	return true;
+}
+
+void DirectoryResourceSource::processWavePatch(ResourceManager *resMan, const ResourceId &resourceId, const Common::String &name) const {
+	ResourceSource *resSrc = new WaveResourceSource(name);
+	Common::File file;
+	file.open(name);
+
+	resMan->updateResource(resourceId, resSrc, 0, file.size(), name);
+	resMan->addSource(resSrc);
+
+	debugC(1, kDebugLevelResMan, "Patching %s - OK", name.c_str());
 }
 
 } // End of namespace Sci

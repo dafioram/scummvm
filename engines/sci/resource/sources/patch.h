@@ -32,7 +32,22 @@ public:
 	PatchResourceSource(const Common::String &name) :
 		ResourceSource(kSourcePatch, name) {}
 
+	static bool loadPatch(Common::SeekableReadStream *file, Resource *res);
+
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+
+	/**
+	 * Updates a resource with a patch file, if the patch file is valid.
+	 * @returns `true` if ownership of this object has been transferred.
+	 */
+	bool processPatch(ResourceManager *resMan, ResourceType resourceType, uint16 resourceNr, uint32 tuple = 0) const;
+
+private:
+	/**
+	 * Determines whether or not a patch file matching the given resource ID
+	 * should be ignored when processing patch files.
+	 */
+	static bool isBlacklistedPatch(const ResourceId &resId);
 };
 
 } // End of namespace Sci
