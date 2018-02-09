@@ -139,10 +139,8 @@ private:
 
 	inline Common::Rect scaleRect(const Common::Rect &rect) {
 		Common::Rect scaledRect(rect);
-		const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-		const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-		const Ratio scaleX(_xResolution, scriptWidth);
-		const Ratio scaleY(_yResolution, scriptHeight);
+		const Ratio scaleX(_xResolution, _scriptWidth);
+		const Ratio scaleY(_yResolution, _scriptHeight);
 		mulinc(scaledRect, scaleX, scaleY);
 		return scaledRect;
 	}
@@ -153,7 +151,7 @@ public:
 	/**
 	 * Initialises static GfxText32 members.
 	 */
-	static void init();
+	static void init(const int16 scriptWidth, const int16 scriptHeight);
 
 	/**
 	 * The memory handle of the currently active bitmap.
@@ -162,15 +160,31 @@ public:
 
 	/**
 	 * The size of the x-dimension of the coordinate system used by the text
-	 * renderer. Static since it was global in SSCI.
+	 * renderer. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
 	 */
 	static int16 _xResolution;
 
 	/**
 	 * The size of the y-dimension of the coordinate system used by the text
-	 * renderer. Static since it was global in SSCI.
+	 * renderer. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
 	 */
 	static int16 _yResolution;
+
+	/**
+	 * The size of the x-dimension of the coordinate system used by the game
+	 * scripts. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
+	 */
+	static int16 _scriptWidth;
+
+	/**
+	 * The size of the y-dimension of the coordinate system used by the game
+	 * scripts. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
+	 */
+	static int16 _scriptHeight;
 
 	/**
 	 * The currently active font resource used to write text into the bitmap.
@@ -191,13 +205,11 @@ public:
 	reg_t createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &rect, const Common::String &text, const int16 foreColor, const int16 backColor, const GuiResourceId fontId, const int16 skipColor, const int16 borderColor, const bool dimmed, const bool gc);
 
 	inline int scaleUpWidth(int value) const {
-		const int scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-		return (value * scriptWidth + _xResolution - 1) / _xResolution;
+		return (value * _scriptWidth + _xResolution - 1) / _xResolution;
 	}
 
 	inline int scaleUpHeight(int value) const {
-		const int scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-		return (value * scriptHeight + _yResolution - 1) / _yResolution;
+		return (value * _scriptHeight + _yResolution - 1) / _yResolution;
 	}
 
 	/**

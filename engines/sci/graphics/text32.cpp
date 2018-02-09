@@ -40,6 +40,8 @@ namespace Sci {
 
 int16 GfxText32::_xResolution = 0;
 int16 GfxText32::_yResolution = 0;
+int16 GfxText32::_scriptWidth = 0;
+int16 GfxText32::_scriptHeight = 0;
 
 GfxText32::GfxText32(SegManager *segMan, GfxCache *fonts) :
 	_segMan(segMan),
@@ -47,14 +49,13 @@ GfxText32::GfxText32(SegManager *segMan, GfxCache *fonts) :
 	// SSCI did not initialise height, so we intentionally do not do so also
 	_width(0),
 	_text(""),
-	_bitmap(NULL_REG) {
-		_fontId = kSci32SystemFont;
-		_font = _cache->getFont(kSci32SystemFont);
-	}
+	_bitmap(NULL_REG),
+	_fontId(kSci32SystemFont),
+	_font(_cache->getFont(kSci32SystemFont)) {}
 
-void GfxText32::init() {
-	_xResolution = g_sci->_gfxFrameout->getScriptWidth();
-	_yResolution = g_sci->_gfxFrameout->getScriptHeight();
+void GfxText32::init(const int16 scriptWidth, const int16 scriptHeight) {
+	_scriptWidth = _xResolution = scriptWidth;
+	_scriptHeight = _yResolution = scriptHeight;
 }
 
 reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect &rect, const Common::String &text, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const GuiResourceId fontId, const TextAlign alignment, const int16 borderColor, const bool dimmed, const bool doScaling, const bool gc) {
@@ -73,11 +74,8 @@ reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect 
 	setFont(fontId);
 
 	if (doScaling) {
-		int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-		int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-
-		Ratio scaleX(_xResolution, scriptWidth);
-		Ratio scaleY(_yResolution, scriptHeight);
+		Ratio scaleX(_xResolution, _scriptWidth);
+		Ratio scaleY(_yResolution, _scriptHeight);
 
 		_width = (_width * scaleX).toInt();
 		_height = (_height * scaleY).toInt();
@@ -115,10 +113,7 @@ reg_t GfxText32::createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &
 
 	setFont(fontId);
 
-	int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-
-	mulinc(_textRect, Ratio(_xResolution, scriptWidth), Ratio(_yResolution, scriptHeight));
+	mulinc(_textRect, Ratio(_xResolution, _scriptWidth), Ratio(_yResolution, _scriptHeight));
 
 	CelObjView view(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
 	_skipColor = view._skipColor;
@@ -218,8 +213,7 @@ void GfxText32::drawChar(const char charIndex) {
 }
 
 int16 GfxText32::getScaledFontHeight() const {
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-	return (_font->getHeight() * scriptHeight + _yResolution - 1) / _yResolution;
+	return (_font->getHeight() * _scriptHeight + _yResolution - 1) / _yResolution;
 }
 
 uint16 GfxText32::getCharWidth(const char charIndex, const bool doScaling) const {
@@ -241,11 +235,9 @@ void GfxText32::drawTextBox() {
 	_drawPosition.y = _textRect.top;
 	uint charIndex = 0;
 
-	if (g_sci->getGameId() == GID_SQ6 || g_sci->getGameId() == GID_MOTHERGOOSEHIRES) {
-		if (getLongest(&charIndex, textRectWidth) == 0) {
-			error("DrawTextBox GetLongest=0");
-		}
-	}
+	// SSCI SQ6 and (probably) MGDX had an extra assertion here to verify that
+	// `getLongest(&charIndex, textRectWidth) != 0`, which does nothing for us
+	// so is omitted
 
 	charIndex = 0;
 	uint nextCharIndex = 0;
@@ -335,7 +327,7 @@ void GfxText32::drawText(const uint index, uint length) {
 void GfxText32::invertRect(const reg_t bitmapId, int16 bitmapStride, const Common::Rect &rect, const uint8 foreColor, const uint8 backColor, const bool doScaling) {
 	Common::Rect targetRect = rect;
 	if (doScaling) {
-		bitmapStride = bitmapStride * _xResolution / g_sci->_gfxFrameout->getScriptWidth();
+		bitmapStride = bitmapStride * _xResolution / _scriptWidth;
 		targetRect = scaleRect(rect);
 	}
 
@@ -566,10 +558,7 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 
 	Common::Rect result;
 
-	int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-
-	maxWidth = maxWidth * _xResolution / scriptWidth;
+	maxWidth = maxWidth * _xResolution / _scriptWidth;
 
 	_text = text;
 
@@ -619,8 +608,8 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 	if (doScaling) {
 		// SSCI also scaled top/left but these are always zero so there is no
 		// reason to do that
-		result.right = ((result.right - 1) * scriptWidth + _xResolution - 1) / _xResolution + 1;
-		result.bottom = ((result.bottom - 1) * scriptHeight + _yResolution - 1) / _yResolution + 1;
+		result.right = ((result.right - 1) * _scriptWidth + _xResolution - 1) / _xResolution + 1;
+		result.bottom = ((result.bottom - 1) * _scriptHeight + _yResolution - 1) / _yResolution + 1;
 	}
 
 	return result;
@@ -638,12 +627,10 @@ int16 GfxText32::getStringWidth(const Common::String &text) {
 }
 
 int16 GfxText32::getTextCount(const Common::String &text, const uint index, const Common::Rect &textRect, const bool doScaling) {
-	const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
 
 	Common::Rect scaledRect(textRect);
 	if (doScaling) {
-		mulinc(scaledRect, Ratio(_xResolution, scriptWidth), Ratio(_yResolution, scriptHeight));
+		mulinc(scaledRect, Ratio(_xResolution, _scriptWidth), Ratio(_yResolution, _scriptHeight));
 	}
 
 	Common::String oldText = _text;

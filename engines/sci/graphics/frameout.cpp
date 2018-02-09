@@ -117,7 +117,7 @@ void GfxFrameout::run() {
 	CelObj::init();
 	Plane::init();
 	ScreenItem::init();
-	GfxText32::init();
+	GfxText32::init(_scriptWidth, _scriptHeight);
 
 	// This plane is created in SCI::InitPlane in SSCI, and is a background fill
 	// plane to ensure "hidden" planes (planes with negative priority) are never
