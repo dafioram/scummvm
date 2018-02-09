@@ -32,12 +32,10 @@ namespace Sci {
 class ResourceManager;
 class Resource;
 
-class WaveResourceSource final : public ResourceSource {
+class WaveResourceSource final : public DataOnlyResourceSource {
 public:
 	WaveResourceSource(const Common::String &name) :
-		ResourceSource(kSourceWave, name) {}
-
-	static bool loadFromFile(Common::SeekableReadStream *file, Resource *res);
+		DataOnlyResourceSource(kSourceWave, name) {}
 
 	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
 };

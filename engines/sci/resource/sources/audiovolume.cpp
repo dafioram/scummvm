@@ -125,7 +125,7 @@ bool AudioVolumeResourceSource::loadFromAudioVolumeSCI11(const ResourceManager *
 	if (riffTag == MKTAG('R','I','F','F')) {
 		resource->_size = file->readUint32LE() + 8;
 		file->seek(-8, SEEK_CUR);
-		return WaveResourceSource::loadFromFile(file, resource);
+		return loadFromStream(file, resource);
 	}
 	file->seek(-4, SEEK_CUR);
 

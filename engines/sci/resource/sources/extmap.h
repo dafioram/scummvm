@@ -35,10 +35,10 @@ namespace Sci {
 
 class ResourceManager;
 
-class ExtMapResourceSource final : public ResourceSource {
+class ExtMapResourceSource final : public IndexOnlyResourceSource {
 public:
 	ExtMapResourceSource(const Common::String &name, int volNum, const bool shouldScanAudioMaps, const Common::FSNode *resFile = nullptr) :
-		ResourceSource(kSourceExtMap, name, volNum, resFile),
+		IndexOnlyResourceSource(kSourceExtMap, name, volNum, resFile),
 		_shouldScanAudioMaps(shouldScanAudioMaps) {}
 
 	virtual bool scanSource(ResourceManager *resMan) override;

@@ -28,10 +28,10 @@
 
 namespace Sci {
 
-class ExtAudioMapResourceSource final : public ResourceSource {
+class ExtAudioMapResourceSource final : public IndexOnlyResourceSource {
 public:
 	ExtAudioMapResourceSource(const Common::String &name, int volumeNo) :
-		ResourceSource(kSourceExtAudioMap, name, volumeNo) {
+		IndexOnlyResourceSource(kSourceExtAudioMap, name, volumeNo) {
 	}
 
 	virtual bool scanSource(ResourceManager *resMan) override;

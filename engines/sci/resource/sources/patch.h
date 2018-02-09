@@ -27,10 +27,10 @@
 
 namespace Sci {
 
-class PatchResourceSource final : public ResourceSource {
+class PatchResourceSource final : public DataOnlyResourceSource {
 public:
 	PatchResourceSource(const Common::String &name) :
-		ResourceSource(kSourcePatch, name) {}
+		DataOnlyResourceSource(kSourcePatch, name) {}
 
 	static bool loadPatch(Common::SeekableReadStream *file, Resource *res);
 

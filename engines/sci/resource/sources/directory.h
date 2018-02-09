@@ -28,10 +28,10 @@
 
 namespace Sci {
 
-class DirectoryResourceSource final : public ResourceSource {
+class DirectoryResourceSource final : public IndexOnlyResourceSource {
 public:
 	DirectoryResourceSource(const Common::String &name) :
-		ResourceSource(kSourceDirectory, name) {}
+		IndexOnlyResourceSource(kSourceDirectory, name) {}
 
 	virtual bool scanSource(ResourceManager *resMan) override;
 

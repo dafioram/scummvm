@@ -38,106 +38,28 @@ Common::SeekableReadStream *ResourceSource::getVolumeFile(const ResourceManager 
 	if (!fileStream) {
 		warning("Failed to open %s", getLocationName().c_str());
 		// TODO: trigger resman resource failure
-		if (res) {
-			// TODO: No const_cast
-			const_cast<Resource *>(res)->unalloc();
-		}
 	}
 
 	return fileStream;
 }
 
-void ResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
-	Common::SeekableReadStream *fileStream = getVolumeFile(resMan, res);
-	if (!fileStream)
-		return;
-
-	fileStream->seek(res->_fileOffset, SEEK_SET);
-
-	ResourceErrorCode error = decompress(resMan, res, fileStream);
-	if (error) {
-		warning("Error %d occurred while reading %s from resource file %s: %s",
-				error, res->name().c_str(), res->getResourceLocation().c_str(),
-				getResourceErrorDescription(error));
-		res->unalloc();
-	}
-
-	resMan->disposeVolumeFileStream(fileStream, this);
-}
-
-ResourceErrorCode ResourceSource::decompress(const ResourceManager *resMan, Resource *res, Common::SeekableReadStream *file) const {
-	ResourceErrorCode errorNum;
-
-	ResourceManager::ResourceHeader header;
-	errorNum = resMan->readResourceHeader(file, header);
-	if (errorNum != SCI_ERROR_NONE)
-		return errorNum;
-
-	if (header.uncompressedSize > kMaxResourceSize) {
-		return SCI_ERROR_RESOURCE_TOO_BIG;
-	}
-
-	assert(res->_id == ResourceId(header.type, header.resourceNo));
-
-	// getting a decompressor
-	Common::ScopedPtr<Decompressor> dec;
-	switch (header.compression) {
-	case kCompNone:
-		dec.reset(new Decompressor);
-		break;
-	case kCompHuffman:
-		dec.reset(new DecompressorHuffman);
-		break;
-	case kCompLZW:
-	case kCompLZW1:
-	case kCompLZW1View:
-	case kCompLZW1Pic:
-		dec.reset(new DecompressorLZW(header.compression));
-		break;
-	case kCompDCL:
-		dec.reset(new DecompressorDCL);
-		break;
-#ifdef ENABLE_SCI32
-	case kCompSTACpack:
-		dec.reset(new DecompressorLZS);
-		break;
-#endif
-	default:
-		error("Resource %s: Compression method %d not supported", res->name().c_str(), header.compression);
-	}
-
-	res->_size = header.uncompressedSize;
+bool ResourceSource::loadFromStream(Common::SeekableReadStream *file, Resource *res) const {
 	byte *ptr = new byte[res->_size];
 	res->_data = ptr;
-	res->_status = kResStatusAllocated;
-	if (!ptr) {
-		errorNum = SCI_ERROR_RESOURCE_TOO_BIG;
-	} else if (dec->unpack(file, ptr, header.compressedSize, header.uncompressedSize) != SCI_ERROR_NONE) {
-		errorNum = SCI_ERROR_DECOMPRESSION_ERROR;
-	} else {
-		errorNum = SCI_ERROR_NONE;
-	}
 
-	if (errorNum != SCI_ERROR_NONE) {
+	uint32 bytesRead = file->read(ptr, res->_size);
+	if (bytesRead != res->_size) {
+		warning("Read %d bytes from %s but expected %u", bytesRead, res->name().c_str(), res->_size);
 		res->unalloc();
-	} else {
-		// At least Lighthouse puts sound effects in RESSCI.00n/RESSCI.PAT
-		// instead of using a RESOURCE.SFX
-		if (res->getId().getType() == kResourceTypeAudio) {
-			const uint8 headerSize = res->getUint8At(1);
-			if (headerSize < 11) {
-				error("Unexpected audio header size for %s: should be >= 11, but got %d", res->name().c_str(), headerSize);
-			}
-			const uint32 audioSize = res->getUint32LEAt(9);
-			const uint32 calculatedTotalSize = audioSize + headerSize + kResourceHeaderSize;
-			if (calculatedTotalSize != res->_size) {
-				warning("Unexpected audio file size: the size of %s in %s is %d, but the volume says it should be %d", res->name().c_str(), getLocationName().c_str(), calculatedTotalSize, res->_size);
-			}
-			res->_size = MIN(res->_size - kResourceHeaderSize, headerSize + audioSize);
-		}
+		return false;
 	}
 
-	return errorNum;
+	res->_status = kResStatusAllocated;
+	return true;
+}
+
+void IndexOnlyResourceSource::loadResource(const ResourceManager *, Resource *res) const {
+	error("Attempt to load %s from an index resource source", res->name().c_str());
 }
 
 } // End of namespace Sci

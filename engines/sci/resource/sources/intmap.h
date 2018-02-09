@@ -28,15 +28,16 @@
 
 namespace Sci {
 
-class IntMapResourceSource final : public ResourceSource {
+class IntMapResourceSource final : public IndexOnlyResourceSource {
 public:
-	uint16 _mapNumber;
 	IntMapResourceSource(const Common::String &name, int volNum, int mapNum) :
-		ResourceSource(kSourceIntMap, name, volNum), _mapNumber(mapNum) {}
+		IndexOnlyResourceSource(kSourceIntMap, name, volNum), _mapNumber(mapNum) {}
 
 	virtual bool scanSource(ResourceManager *resMan) override;
 
 	ResourceErrorCode readAudioMapSCI11(ResourceManager *resMan) const;
+
+	uint16 _mapNumber;
 };
 
 } // End of namespace Sci

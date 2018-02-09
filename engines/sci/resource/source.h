@@ -74,12 +74,12 @@ public:
 	/**
 	 * Scan this source for resources to add to the resource manager.
 	 */
-	virtual bool scanSource(ResourceManager *) { return true; }
+	virtual bool scanSource(ResourceManager *) = 0;
 
 	/**
 	 * Load a resource from this source into the given Resource object.
 	 */
-	virtual void loadResource(const ResourceManager *resMan, Resource *res) const;
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const = 0;
 
 	// FIXME: This audio specific method is a hack. After all, why should a
 	// ResourceSource or a Resource (which uses this method) have audio
@@ -96,11 +96,31 @@ protected:
 	// Auxiliary method, used by loadResource implementations.
 	Common::SeekableReadStream *getVolumeFile(const ResourceManager *resMan, const Resource *res) const;
 
+	/**
+	 * Loads data from the file directly to the resource.
+	 */
+	bool loadFromStream(Common::SeekableReadStream *file, Resource *res) const;
+
 	const ResSourceType _sourceType;
 	const Common::String _name;
+};
 
-private:
-	ResourceErrorCode decompress(const ResourceManager *resMan, Resource *res, Common::SeekableReadStream *file) const;
+class DataOnlyResourceSource : public ResourceSource {
+public:
+	virtual bool scanSource(ResourceManager *) override { return true; }
+
+protected:
+	DataOnlyResourceSource(ResSourceType type, const Common::String &name, int volumeNo = 0, const Common::FSNode *resFile = nullptr) :
+		ResourceSource(type, name, volumeNo, resFile) {}
+};
+
+class IndexOnlyResourceSource : public ResourceSource {
+public:
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+
+protected:
+	IndexOnlyResourceSource(ResSourceType type, const Common::String &name, int volumeNo = 0, const Common::FSNode *resFile = nullptr) :
+		ResourceSource(type, name, volumeNo, resFile) {}
 };
 
 } // End of namespace Sci

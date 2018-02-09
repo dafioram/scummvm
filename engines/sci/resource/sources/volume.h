@@ -28,21 +28,25 @@
 
 namespace Sci {
 
-class VolumeResourceSource : public ResourceSource {
+class VolumeResourceSource : public DataOnlyResourceSource {
 public:
 	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, ResSourceType type = kSourceVolume) :
-		ResourceSource(type, name, volNum),
+		DataOnlyResourceSource(type, name, volNum),
 		_associatedMap(map) {}
 
 	VolumeResourceSource(const Common::String &name, ResourceSource *map, int volNum, const Common::FSNode *resFile) :
-		ResourceSource(kSourceVolume, name, volNum, resFile),
+		DataOnlyResourceSource(kSourceVolume, name, volNum, resFile),
 		_associatedMap(map) {}
 
 	bool isVolumeForMap(const ResourceSource *map, int volumeNo) const {
 		return (_associatedMap == map && _volumeNumber == volumeNo);
 	}
 
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+
 private:
+	ResourceErrorCode decompress(const ResourceManager *resMan, Resource *res, Common::SeekableReadStream *file) const;
+
 	ResourceSource *const _associatedMap;
 };
 
