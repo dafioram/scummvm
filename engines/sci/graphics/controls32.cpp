@@ -57,8 +57,6 @@ GfxControls32::~GfxControls32() {
 #pragma mark Text input control
 
 reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
-	SegManager *segMan = _segMan;
-
 	TextEditor editor;
 	reg_t textObject = readSelector(_segMan, controlObject, SELECTOR(text));
 	editor.text = _segMan->getString(textObject);
@@ -301,7 +299,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	}
 
 	g_sci->_gfxFrameout->deletePlane(*plane);
-	if (readSelectorValue(segMan, controlObject, SELECTOR(frameOut))) {
+	if (readSelectorValue(_segMan, controlObject, SELECTOR(frameOut))) {
 		g_sci->_gfxFrameout->frameOut(true);
 	}
 
