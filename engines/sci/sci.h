@@ -438,7 +438,7 @@ private:
 	Console *_console;
 	Common::RandomSource _rng;
 	Common::MacResManager _macExecutable;
-	bool _forceHiresGraphics; // user-option for GK1, KQ6, PQ4
+	bool _forceHiresGraphics; // user-option for KQ6
 };
 
 
