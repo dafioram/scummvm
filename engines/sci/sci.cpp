@@ -304,6 +304,13 @@ extern void showScummVMDialog(const Common::String &message);
 Common::Error SciEngine::run() {
 	_resMan = new ResourceManager(_metadata);
 	assert(_resMan);
+
+	// Game version must be detected for these to be set properly, so they must
+	// be set after ResourceManager has done its thing and set the SCI version
+	g_SciBE = isBE();
+	g_Sci11BE = g_SciBE && getSciVersion() >= SCI_VERSION_1_1;
+	g_Sci32BE = g_SciBE && getSciVersion() >= SCI_VERSION_2_1_EARLY;
+
 	_gameObjectAddress = _resMan->findGameObject(true, isBE());
 
 	_scriptPatcher = new ScriptPatcher();

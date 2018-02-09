@@ -25,50 +25,54 @@
 
 namespace Sci {
 
+bool g_SciBE = false;
+bool g_Sci11BE = false;
+bool g_Sci32BE = false;
+
 uint16 READ_SCIENDIAN_UINT16(const void *ptr) {
-	if (g_sci->isBE())
+	if (g_SciBE)
 		return READ_BE_UINT16(ptr);
 	else
 		return READ_LE_UINT16(ptr);
 }
 
 void WRITE_SCIENDIAN_UINT16(void *ptr, uint16 val) {
-	if (g_sci->isBE())
+	if (g_Sci11BE)
 		WRITE_BE_UINT16(ptr, val);
 	else
 		WRITE_LE_UINT16(ptr, val);
 }
 
 uint16 READ_SCI11ENDIAN_UINT16(const void *ptr) {
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_1_1)
+	if (g_Sci11BE)
 		return READ_BE_UINT16(ptr);
 	else
 		return READ_LE_UINT16(ptr);
 }
 
 uint16 READ_SCI32ENDIAN_UINT16(const void *ptr) {
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1_EARLY)
+	if (g_Sci32BE)
 		return READ_BE_UINT16(ptr);
 	else
 		return READ_LE_UINT16(ptr);
 }
 
 uint32 READ_SCI11ENDIAN_UINT32(const void *ptr) {
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_1_1)
+	if (g_Sci11BE)
 		return READ_BE_UINT32(ptr);
 	else
 		return READ_LE_UINT32(ptr);
 }
 
 void WRITE_SCI11ENDIAN_UINT16(void *ptr, uint16 val) {
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_1_1)
+	if (g_Sci11BE)
 		WRITE_BE_UINT16(ptr, val);
 	else
 		WRITE_LE_UINT16(ptr, val);
 }
 
 void WRITE_SCI11ENDIAN_UINT32(void *ptr, uint32 val) {
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_1_1)
+	if (g_Sci11BE)
 		WRITE_BE_UINT32(ptr, val);
 	else
 		WRITE_LE_UINT32(ptr, val);

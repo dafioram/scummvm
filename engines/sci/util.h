@@ -33,6 +33,10 @@
 
 namespace Sci {
 
+extern bool g_SciBE;
+extern bool g_Sci11BE;
+extern bool g_Sci32BE;
+
 // Wrappers for reading/writing 16-bit values in the endianness
 // of the original game platform.
 uint16 READ_SCIENDIAN_UINT16(const void *ptr);
