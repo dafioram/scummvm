@@ -46,6 +46,10 @@ SoundManager::SoundManager(ResourceManager &resMan, SegManager &segMan, GameFeat
 }
 
 void SoundManager::systemSuspend(const bool pause) {
+	if (!_driver) {
+		return;
+	}
+
 	Common::StackLock lock(_mutex);
 
 	enableSoundServer(!pause);

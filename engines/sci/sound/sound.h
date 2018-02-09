@@ -104,7 +104,11 @@ public:
 	 * sound driver.
 	 */
 	int getNumVoices() const {
-		return _driver->getNumVoices();
+		if (_driver) {
+			return _driver->getNumVoices();
+		} else {
+			return 0;
+		}
 	}
 
 	/**

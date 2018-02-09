@@ -770,11 +770,17 @@ public:
 
 protected:
 	virtual uint8 getMasterVolumeImpl() const override {
-		return _driver->getMasterVolume();
+		if (_driver) {
+			return _driver->getMasterVolume();
+		} else {
+			return kMaxMasterVolume;
+		}
 	}
 
 	virtual void setMasterVolumeImpl(const uint8 volume) override {
-		_driver->setMasterVolume(volume);
+		if (_driver) {
+			_driver->setMasterVolume(volume);
+		}
 	}
 
 private:
