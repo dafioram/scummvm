@@ -48,7 +48,6 @@ enum {
 };
 
 class ExtAudioMapResourceSource;
-class IntMapResourceSource;
 class ResourcePatcher;
 
 ResourceId convertPatchNameBase36(ResourceType type, const Common::String &filename);
