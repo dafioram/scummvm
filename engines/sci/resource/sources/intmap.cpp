@@ -99,6 +99,7 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 
 	if (!src) {
 		warning("Failed to find volume for %s", mapResId.toString().c_str());
+		resMan->forcePurge(mapResId);
 		return SCI_ERROR_NO_RESOURCE_FILES_FOUND;
 	}
 
@@ -106,6 +107,7 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 
 	if (!fileStream) {
 		warning("Failed to open file stream for %s", src->getLocationName().c_str());
+		resMan->forcePurge(mapResId);
 		return SCI_ERROR_NO_RESOURCE_FILES_FOUND;
 	}
 
