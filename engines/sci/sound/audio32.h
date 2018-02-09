@@ -34,6 +34,8 @@
 
 namespace Sci {
 class Console;
+class GameFeatures;
+class GuestAdditions;
 
 bool detectSolAudio(Common::SeekableReadStream &stream);
 bool detectWaveAudio(Common::SeekableReadStream &stream);
@@ -172,7 +174,7 @@ enum AudioChannelIndex {
  */
 class Audio32 : public Audio::AudioStream, public Common::Serializable {
 public:
-	Audio32(ResourceManager *resMan);
+	Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features);
 	~Audio32();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s);
@@ -188,6 +190,7 @@ public:
 
 private:
 	ResourceManager *_resMan;
+	GuestAdditions *_guestAdditions;
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _handle;
 	Common::Mutex _mutex;
@@ -286,6 +289,11 @@ private:
 	 * detail to be exposed.
 	 */
 	bool _inAudioThread;
+
+	/**
+	 * If true, locks of audio resources persist into save games.
+	 */
+	bool _hasPersistentLocks;
 
 	/**
 	 * The list of resources from freed channels that need to be unlocked from

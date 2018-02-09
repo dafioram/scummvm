@@ -1173,7 +1173,7 @@ void GfxCursor32::saveLoadWithSerializer(Common::Serializer &s) {
 }
 
 void Audio32::saveLoadWithSerializer(Common::Serializer &s) {
-	if (!g_sci->_features->hasSci3Audio() || s.getVersion() < 44) {
+	if (!_hasPersistentLocks || s.getVersion() < 44) {
 		return;
 	}
 

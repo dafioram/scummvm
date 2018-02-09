@@ -365,7 +365,7 @@ Common::Error SciEngine::run() {
 	_eventMan = new EventManager(_features->detectFontExtended());
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		_audio32 = new Audio32(_resMan);
+		_audio32 = new Audio32(_resMan, _guestAdditions, _features);
 	} else
 #endif
 		_audio = new AudioPlayer(_resMan);
