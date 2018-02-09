@@ -96,17 +96,208 @@ ResourceId convertPatchNameBase36(ResourceType type, const Common::String &filen
 #pragma mark -
 #pragma mark ResourceManager
 
-ResourceManager::ResourceManager(const bool detectionMode) :
-	_detectionMode(detectionMode),
+ResourceManager::ResourceManager(const GameMetadata &metadata) :
+	_game(metadata),
+	_detectionMode(false),
 	_patcher(nullptr),
+#ifdef ENABLE_SCI32
+	_currentDiscNo(1),
+	_multiDiscAudio(false),
+#endif
 	_memoryLocked(0),
 	_memoryLRU(0),
 	_maxMemoryLRU(0),
-	_audioMapSCI1(nullptr)
+	_audioMapSCI1(nullptr) {
+
+	if (Common::File::exists("resource.map")) {
+		// SCI0-SCI2 file naming scheme
+		ResourceSource *map = addExternalMap("resource.map");
+
+		Common::ArchiveMemberList files;
+		SearchMan.listMatchingMembers(files, "resource.0??");
+
+		for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
+			const Common::String name = (*x)->getName();
+			const char *dot = strrchr(name.c_str(), '.');
+			int number = atoi(dot + 1);
+
+			addSource(new VolumeResourceSource(name, map, number));
+		}
 #ifdef ENABLE_SCI32
-	, _currentDiscNo(1)
+		// GK1CD hires content
+		if (Common::File::exists("alt.map") && Common::File::exists("resource.alt"))
+			addSource(new VolumeResourceSource("resource.alt", addExternalMap("alt.map", 10), 10));
 #endif
-	{}
+	} else if (Common::MacResManager::exists("Data1")) {
+		// Mac SCI1.1+ file naming scheme
+		Common::StringArray files;
+		Common::MacResManager::listFiles(files, "Data?");
+
+		for (Common::StringArray::const_iterator x = files.begin(); x != files.end(); ++x) {
+			addSource(new MacResourceForkResourceSource(*x, atoi(x->c_str() + 4)));
+		}
+
+#ifdef ENABLE_SCI32
+		// There can also be a "Patches" resource fork with patches
+		if (Common::MacResManager::exists("Patches"))
+			addSource(new MacResourceForkResourceSource("Patches", 100));
+	} else {
+		// SCI2.1-SCI3 file naming scheme
+		Common::ArchiveMemberList mapFiles, files;
+		SearchMan.listMatchingMembers(mapFiles, "resmap.0??");
+		SearchMan.listMatchingMembers(files, "ressci.0??");
+
+		if (mapFiles.empty() || files.empty()) {
+			warning("Could not find any resource bundles");
+			_hasBadResources = true;
+			return;
+		}
+
+		if (Common::File::exists("ressci.001")) {
+			_multiDiscAudio = true;
+		}
+
+		for (Common::ArchiveMemberList::const_iterator mapIterator = mapFiles.begin(); mapIterator != mapFiles.end(); ++mapIterator) {
+			Common::String mapName = (*mapIterator)->getName();
+			int mapNumber = atoi(strrchr(mapName.c_str(), '.') + 1);
+			bool foundVolume = false;
+
+			for (Common::ArchiveMemberList::const_iterator fileIterator = files.begin(); fileIterator != files.end(); ++fileIterator) {
+				Common::String resName = (*fileIterator)->getName();
+				int resNumber = atoi(strrchr(resName.c_str(), '.') + 1);
+
+				if (mapNumber == resNumber) {
+					foundVolume = true;
+					addSource(new VolumeResourceSource(resName, addExternalMap(mapName, mapNumber), mapNumber));
+					break;
+				}
+			}
+
+			if (!foundVolume &&
+				// GK2 on Steam comes with an extra bogus resource map file;
+				// ignore it instead of treating it as a bad resource
+				(metadata.id != GID_GK2 || mapFiles.size() != 2 || mapNumber != 1)) {
+
+				warning("Could not find corresponding volume for %s", mapName.c_str());
+				_hasBadResources = true;
+			}
+		}
+
+		// SCI2.1 resource patches
+		if (Common::File::exists("resmap.pat") && Common::File::exists("ressci.pat")) {
+			// We add this resource with a map which surely won't exist
+			addSource(new VolumeResourceSource("ressci.pat", addExternalMap("resmap.pat", kResPatVolumeNumber), kResPatVolumeNumber));
+		}
+	}
+#else
+	} else
+		return;
+#endif
+
+	addPatchDir(".");
+
+	if (Common::File::exists("message.map"))
+		addSource(new VolumeResourceSource("resource.msg", addExternalMap("message.map"), 0));
+
+	if (Common::File::exists("altres.map"))
+		addSource(new VolumeResourceSource("altres.000", addExternalMap("altres.map"), 0));
+
+	_patcher = new ResourcePatcher(metadata.id, metadata.language);
+	addSource(_patcher);
+	init();
+}
+
+ResourceManager::ResourceManager(const Common::FSList &fslist) :
+	_detectionMode(true),
+#ifdef ENABLE_SCI32
+	_multiDiscAudio(false),
+#endif
+	_maxMemoryLRU(0),
+	_memoryLocked(0),
+	_memoryLRU(0) {
+	_game.id = GID_INVALID;
+	_game.isCD = false;
+	_game.isDemo = false;
+	_game.language = Common::UNK_LANG;
+	_game.platform = Common::kPlatformUnknown;
+
+	ResourceSource *map = nullptr;
+	Common::Array<ResourceSource *> sci21Maps;
+
+#ifdef ENABLE_SCI32
+	ResourceSource *sci21PatchMap = nullptr;
+	const Common::FSNode *sci21PatchRes = nullptr;
+#endif
+
+	// First, find resource.map
+	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+		if (file->isDirectory())
+			continue;
+
+		Common::String filename = file->getName();
+		filename.toLowercase();
+
+		if (filename.contains("resource.map"))
+			map = addExternalMap(file);
+
+		if (filename.contains("resmap.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			uint number = atoi(dot + 1);
+
+			// We need to store each of these maps for use later on
+			if (number >= sci21Maps.size())
+				sci21Maps.resize(number + 1);
+
+			sci21Maps[number] = addExternalMap(file, number);
+		}
+
+#ifdef ENABLE_SCI32
+		// SCI2.1 resource patches
+		if (filename.contains("resmap.pat"))
+			sci21PatchMap = addExternalMap(file, kResPatVolumeNumber);
+
+		if (filename.contains("ressci.pat"))
+			sci21PatchRes = file;
+#endif
+	}
+
+	if (!map && sci21Maps.empty()) {
+		init();
+		return;
+	}
+
+#ifdef ENABLE_SCI32
+	if (sci21PatchMap && sci21PatchRes)
+		addSource(new VolumeResourceSource(sci21PatchRes->getName(), sci21PatchMap, kResPatVolumeNumber, sci21PatchRes));
+#endif
+
+	// Now find all the resource.0?? files
+	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+		if (file->isDirectory())
+			continue;
+
+		Common::String filename = file->getName();
+		filename.toLowercase();
+
+		if (filename.contains("resource.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			int number = atoi(dot + 1);
+
+			addSource(new VolumeResourceSource(file->getName(), map, number, file));
+		} else if (filename.contains("ressci.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			int number = atoi(dot + 1);
+
+			// Match this volume to its own map
+			addSource(new VolumeResourceSource(file->getName(), sci21Maps[number], number, file));
+		}
+	}
+
+	// This function is only called by the advanced detector, and we don't really need
+	// to add a patch directory or message.map here
+
+	init();
+}
 
 ResourceManager::~ResourceManager() {
 	for (ResourceMap::iterator it = _resMap.begin(); it != _resMap.end(); ++it) {
@@ -205,9 +396,9 @@ ResourceType ResourceManager::convertResType(byte type) const {
 	// older resource types here.
 	// PQ4 CD and QFG4 CD are SCI2.1, but use the resource types of the
 	// corresponding SCI2 floppy disk versions.
-	if (g_sci && (g_sci->getGameId() == GID_LSL6HIRES ||
-	        g_sci->getGameId() == GID_QFG4 || g_sci->getGameId() == GID_PQ4))
+	if (_game.id == GID_LSL6HIRES || _game.id == GID_QFG4 || _game.id == GID_PQ4) {
 		useSci0 = true;
+	}
 
 	if (useSci0) {
 		if (type < ARRAYSIZE(s_resTypeMapSci0))
@@ -542,183 +733,6 @@ void ResourceManager::printLRU() const {
 #pragma mark -
 #pragma mark Resource scanning
 
-void ResourceManager::addAppropriateSources() {
-#ifdef ENABLE_SCI32
-	_multiDiscAudio = false;
-#endif
-	if (Common::File::exists("resource.map")) {
-		// SCI0-SCI2 file naming scheme
-		ResourceSource *map = addExternalMap("resource.map");
-
-		Common::ArchiveMemberList files;
-		SearchMan.listMatchingMembers(files, "resource.0??");
-
-		for (Common::ArchiveMemberList::const_iterator x = files.begin(); x != files.end(); ++x) {
-			const Common::String name = (*x)->getName();
-			const char *dot = strrchr(name.c_str(), '.');
-			int number = atoi(dot + 1);
-
-			addSource(new VolumeResourceSource(name, map, number));
-		}
-#ifdef ENABLE_SCI32
-		// GK1CD hires content
-		if (Common::File::exists("alt.map") && Common::File::exists("resource.alt"))
-			addSource(new VolumeResourceSource("resource.alt", addExternalMap("alt.map", 10), 10));
-#endif
-	} else if (Common::MacResManager::exists("Data1")) {
-		// Mac SCI1.1+ file naming scheme
-		Common::StringArray files;
-		Common::MacResManager::listFiles(files, "Data?");
-
-		for (Common::StringArray::const_iterator x = files.begin(); x != files.end(); ++x) {
-			addSource(new MacResourceForkResourceSource(*x, atoi(x->c_str() + 4)));
-		}
-
-#ifdef ENABLE_SCI32
-		// There can also be a "Patches" resource fork with patches
-		if (Common::MacResManager::exists("Patches"))
-			addSource(new MacResourceForkResourceSource("Patches", 100));
-	} else {
-		// SCI2.1-SCI3 file naming scheme
-		Common::ArchiveMemberList mapFiles, files;
-		SearchMan.listMatchingMembers(mapFiles, "resmap.0??");
-		SearchMan.listMatchingMembers(files, "ressci.0??");
-
-		if (mapFiles.empty() || files.empty()) {
-			warning("Could not find any resource bundles");
-			_hasBadResources = true;
-			return;
-		}
-
-		if (Common::File::exists("ressci.001")) {
-			_multiDiscAudio = true;
-		}
-
-		for (Common::ArchiveMemberList::const_iterator mapIterator = mapFiles.begin(); mapIterator != mapFiles.end(); ++mapIterator) {
-			Common::String mapName = (*mapIterator)->getName();
-			int mapNumber = atoi(strrchr(mapName.c_str(), '.') + 1);
-			bool foundVolume = false;
-
-			for (Common::ArchiveMemberList::const_iterator fileIterator = files.begin(); fileIterator != files.end(); ++fileIterator) {
-				Common::String resName = (*fileIterator)->getName();
-				int resNumber = atoi(strrchr(resName.c_str(), '.') + 1);
-
-				if (mapNumber == resNumber) {
-					foundVolume = true;
-					addSource(new VolumeResourceSource(resName, addExternalMap(mapName, mapNumber), mapNumber));
-					break;
-				}
-			}
-
-			if (!foundVolume &&
-				// GK2 on Steam comes with an extra bogus resource map file;
-				// ignore it instead of treating it as a bad resource
-				(g_sci->getGameId() != GID_GK2 || mapFiles.size() != 2 || mapNumber != 1)) {
-
-				warning("Could not find corresponding volume for %s", mapName.c_str());
-				_hasBadResources = true;
-			}
-		}
-
-		// SCI2.1 resource patches
-		if (Common::File::exists("resmap.pat") && Common::File::exists("ressci.pat")) {
-			// We add this resource with a map which surely won't exist
-			addSource(new VolumeResourceSource("ressci.pat", addExternalMap("resmap.pat", kResPatVolumeNumber), kResPatVolumeNumber));
-		}
-	}
-#else
-	} else
-		return;
-#endif
-
-	addPatchDir(".");
-
-	if (Common::File::exists("message.map"))
-		addSource(new VolumeResourceSource("resource.msg", addExternalMap("message.map"), 0));
-
-	if (Common::File::exists("altres.map"))
-		addSource(new VolumeResourceSource("altres.000", addExternalMap("altres.map"), 0));
-
-	_patcher = new ResourcePatcher(g_sci->getGameId(), g_sci->getLanguage());
-	addSource(_patcher);
-}
-
-void ResourceManager::addAppropriateSourcesForDetection(const Common::FSList &fslist) {
-	ResourceSource *map = nullptr;
-	Common::Array<ResourceSource *> sci21Maps;
-
-#ifdef ENABLE_SCI32
-	ResourceSource *sci21PatchMap = nullptr;
-	const Common::FSNode *sci21PatchRes = nullptr;
-	_multiDiscAudio = false;
-#endif
-
-	// First, find resource.map
-	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
-		if (file->isDirectory())
-			continue;
-
-		Common::String filename = file->getName();
-		filename.toLowercase();
-
-		if (filename.contains("resource.map"))
-			map = addExternalMap(file);
-
-		if (filename.contains("resmap.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			uint number = atoi(dot + 1);
-
-			// We need to store each of these maps for use later on
-			if (number >= sci21Maps.size())
-				sci21Maps.resize(number + 1);
-
-			sci21Maps[number] = addExternalMap(file, number);
-		}
-
-#ifdef ENABLE_SCI32
-		// SCI2.1 resource patches
-		if (filename.contains("resmap.pat"))
-			sci21PatchMap = addExternalMap(file, kResPatVolumeNumber);
-
-		if (filename.contains("ressci.pat"))
-			sci21PatchRes = file;
-#endif
-	}
-
-	if (!map && sci21Maps.empty())
-		return;
-
-#ifdef ENABLE_SCI32
-	if (sci21PatchMap && sci21PatchRes)
-		addSource(new VolumeResourceSource(sci21PatchRes->getName(), sci21PatchMap, kResPatVolumeNumber, sci21PatchRes));
-#endif
-
-	// Now find all the resource.0?? files
-	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
-		if (file->isDirectory())
-			continue;
-
-		Common::String filename = file->getName();
-		filename.toLowercase();
-
-		if (filename.contains("resource.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			int number = atoi(dot + 1);
-
-			addSource(new VolumeResourceSource(file->getName(), map, number, file));
-		} else if (filename.contains("ressci.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			int number = atoi(dot + 1);
-
-			// Match this volume to its own map
-			addSource(new VolumeResourceSource(file->getName(), sci21Maps[number], number, file));
-		}
-	}
-
-	// This function is only called by the advanced detector, and we don't really need
-	// to add a patch directory or message.map here
-}
-
 #ifdef ENABLE_SCI32
 void ResourceManager::scanMultiDiscAudioMap(const ResourceSource *source, const int mapVolumeNr, const ResourceId resId) {
 	IntMapResourceSource *audioMap = new IntMapResourceSource(source->getLocationName(), mapVolumeNr, resId.getNumber());
@@ -734,7 +748,7 @@ void ResourceManager::scanMultiDiscAudioMap(const ResourceSource *source, const 
 	} else if (resId.getNumber() == kSfxModule) {
 		volumeName = Common::String::format("RESSFX.%03d", mapVolumeNr);
 
-		if (g_sci->getGameId() == GID_RAMA && !Common::File::exists(volumeName)) {
+		if (_game.id == GID_RAMA && !Common::File::exists(volumeName)) {
 			if (Common::File::exists("RESOURCE.SFX")) {
 				volumeName = "RESOURCE.SFX";
 			} else if (Common::File::exists("RESSFX.001")) {
@@ -855,7 +869,7 @@ void ResourceManager::addScriptChunkSource() {
 void ResourceManager::addNewGMPatch() {
 	Common::String gmPatchFile;
 
-	switch (g_sci->getGameId()) {
+	switch (_game.id) {
 	case GID_ECOQUEST:
 		gmPatchFile = "ECO1GM.PAT";
 		break;
@@ -1662,7 +1676,7 @@ void ResourceManager::detectSciVersion() {
 		if (_viewType == kViewAmiga || _viewType == kViewAmiga64)
 			s_sciVersion = SCI_VERSION_1_LATE;
 		// Same goes for Mac SCI1 middle games
-		if (g_sci && g_sci->getPlatform() == Common::kPlatformMacintosh)
+		if (_game.platform == Common::kPlatformMacintosh)
 			s_sciVersion = SCI_VERSION_1_LATE;
 		return;
 	case kResVersionSci1Late:
@@ -1773,7 +1787,7 @@ ViewType ResourceManager::detectViewType() {
 				// However, Longbow Amiga (AGA, 64 colors), also sets this byte
 				// to 128, but it's a mixed VGA/Amiga format. Detect this from
 				// the platform here.
-				if (g_sci && g_sci->getPlatform() == Common::kPlatformAmiga)
+				if (_game.platform == Common::kPlatformAmiga)
 					return kViewAmiga64;
 
 				return kViewVga;

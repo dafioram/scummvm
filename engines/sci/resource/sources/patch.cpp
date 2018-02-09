@@ -83,7 +83,7 @@ bool PatchResourceSource::processPatch(ResourceManager *resMan, ResourceType res
 	ResourceId resId = ResourceId(resourceType, resourceNr, tuple);
 	ResourceType checkForType = resourceType;
 
-	if (isBlacklistedPatch(resId)) {
+	if (isBlacklistedPatch(resMan, resId)) {
 		debug("Skipping blacklisted patch file %s", getLocationName().c_str());
 		return false;
 	}
@@ -190,17 +190,14 @@ bool PatchResourceSource::processPatch(ResourceManager *resMan, ResourceType res
 	return true;
 }
 
-bool PatchResourceSource::isBlacklistedPatch(const ResourceId &resId) {
-	if (!g_sci) {
-		return false;
-	}
-
-	switch (g_sci->getGameId()) {
+bool PatchResourceSource::isBlacklistedPatch(const ResourceManager *resMan, const ResourceId &resId) {
+	const GameMetadata &game = resMan->getGameMetadata();
+	switch (game.id) {
 	case GID_SHIVERS:
 		// The SFX resource map patch in the Shivers interactive demo has
 		// broken offsets for some sounds; ignore it so that the correct map
 		// from RESSCI.000 will be used instead.
-		return g_sci->isDemo() &&
+		return game.isDemo &&
 			resId.getType() == kResourceTypeMap &&
 			resId.getNumber() == kSfxModule;
 	case GID_PHANTASMAGORIA:

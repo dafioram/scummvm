@@ -47,7 +47,7 @@ private:
 	 * Determines whether or not a patch file matching the given resource ID
 	 * should be ignored when processing patch files.
 	 */
-	static bool isBlacklistedPatch(const ResourceId &resId);
+	static bool isBlacklistedPatch(const ResourceManager *resMan, const ResourceId &resId);
 };
 
 } // End of namespace Sci

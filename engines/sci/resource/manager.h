@@ -72,15 +72,27 @@ class ResourceManager {
 
 public:
 	/**
-	 * Creates a new SCI resource manager.
+	 * Instantiates a resource manager suitable for game execution.
 	 */
-	ResourceManager(const bool detectionMode = false);
-	~ResourceManager();
+	ResourceManager(const GameMetadata &metadata);
 
 	/**
-	 * Initializes the resource manager.
+	 * Instantiates a resource manager suitable for game detection.
+	 */
+	ResourceManager(const Common::FSList &fslist);
+
+	~ResourceManager();
+
+	const GameMetadata &getGameMetadata() const { return _game; }
+
+private:
+	/**
+	 * Initializes the resource manager by scanning all resource sources and
+	 * performing version detection.
 	 */
 	void init();
+
+	GameMetadata _game;
 
 #pragma mark -
 #pragma mark Resource management
@@ -242,17 +254,6 @@ private:
 #pragma mark -
 #pragma mark Resource scanning
 public:
-	/**
-	 * Adds all possible resource sources for the game.
-	 */
-	void addAppropriateSources();
-
-	/**
-	 * Adds resource sources from the given FSList necessary for performing
-	 * resource-based version detection.
-	 */
-	void addAppropriateSourcesForDetection(const Common::FSList &fslist);
-
 #ifdef ENABLE_SCI32
 	void scanMultiDiscAudioMap(const ResourceSource *source, const int mapVolumeNr, const ResourceId resId);
 #endif

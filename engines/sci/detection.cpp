@@ -641,9 +641,7 @@ const ADGameDescription *SciMetaEngine::fallbackDetect(const FileMap &allFiles, 
 	if (!foundResMap && !foundRes000)
 		return 0;
 
-	ResourceManager resMan(true);
-	resMan.addAppropriateSourcesForDetection(fslist);
-	resMan.init();
+	ResourceManager resMan(fslist);
 
 #ifndef ENABLE_SCI32
 	// Is SCI32 compiled in? If not, and this is a SCI32 game,
@@ -750,7 +748,15 @@ bool SciMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameD
 	const GameIdStrToEnum *g = s_gameIdStrToEnum;
 	for (; g->gameidStr; ++g) {
 		if (0 == strcmp(desc->gameId, g->gameidStr)) {
-			*engine = new SciEngine(syst, desc, g->gameidEnum);
+			GameMetadata metadata;
+			metadata.id = g->gameidEnum;
+			metadata.language = desc->language;
+			metadata.platform = desc->platform;
+			metadata.isCD = desc->flags & ADGF_CD;
+			metadata.isDemo = desc->flags & ADGF_DEMO;
+
+			*engine = new SciEngine(syst, desc, metadata);
+
 			return true;
 		}
 	}

@@ -48,7 +48,7 @@ void DirectoryResourceSource::readResourcePatches(ResourceManager *resMan) const
 	Common::ArchiveMemberList files;
 	uint16 resourceNr = 0;
 	const char *szResType;
-	const bool shouldUseSci0 = shouldFindSci0Patches();
+	const bool shouldUseSci0 = shouldFindSci0Patches(resMan);
 
 	for (int i = kResourceTypeView; i < kResourceTypeInvalid; ++i) {
 		const ResourceType type = ResourceType(i);
@@ -196,8 +196,9 @@ void DirectoryResourceSource::readWaveAudioPatches(ResourceManager *resMan) cons
 	}
 }
 
-bool DirectoryResourceSource::shouldFindSci0Patches() const {
-	if (g_sci->isCD() && g_sci->getGameId() == GID_MOTHERGOOSE256) {
+bool DirectoryResourceSource::shouldFindSci0Patches(const ResourceManager *resMan) const {
+	const GameMetadata &game = resMan->getGameMetadata();
+	if (game.isCD && game.id == GID_MOTHERGOOSE256) {
 		return false;
 	}
 

@@ -136,7 +136,7 @@ void MacResourceForkResourceSource::loadResource(const ResourceManager *resMan, 
 	}
 
 	if (stream)
-		decompressResource(stream, res);
+		decompressResource(resMan, stream, res);
 }
 
 bool MacResourceForkResourceSource::isCompressableResource(ResourceType type) const {
@@ -160,11 +160,12 @@ bool MacResourceForkResourceSource::isCompressableResource(ResourceType type) co
 		*ptr++ = value; \
 	}
 
-void MacResourceForkResourceSource::decompressResource(Common::SeekableReadStream *stream, Resource *resource) const {
+void MacResourceForkResourceSource::decompressResource(const ResourceManager *resMan, Common::SeekableReadStream *stream, Resource *resource) const {
 	// KQ6 Mac is the only game not compressed. It's not worth writing a
 	// heuristic just for that game. Also, skip over any resource that cannot
 	// be compressed.
-	bool canBeCompressed = !(g_sci && g_sci->getGameId() == GID_KQ6) && isCompressableResource(resource->getId().getType());
+	const GameMetadata &game = resMan->getGameMetadata();
+	bool canBeCompressed = (game.id != GID_KQ6 && isCompressableResource(resource->getId().getType()));
 	uint32 uncompressedSize = 0;
 
 #ifdef ENABLE_SCI32_MAC
@@ -172,7 +173,7 @@ void MacResourceForkResourceSource::decompressResource(Common::SeekableReadStrea
 	// compressed and it is hardcoded in the executable to say that it's
 	// not compressed. Why didn't they just add four zeroes to the end of
 	// the resource? (Checked with PPC disasm)
-	if (g_sci && g_sci->getGameId() == GID_GK2 && resource->_id.getType() == kResourceTypePic && resource->_id.getNumber() == 2315)
+	if (game.id == GID_GK2 && resource->_id.getType() == kResourceTypePic && resource->_id.getNumber() == 2315)
 		canBeCompressed = false;
 #endif
 

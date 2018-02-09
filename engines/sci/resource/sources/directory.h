@@ -55,7 +55,7 @@ private:
 	 * Returns whether or not patches using the SCI0 naming convention should be
 	 * searched for when looking for patch files.
 	 */
-	bool shouldFindSci0Patches() const;
+	bool shouldFindSci0Patches(const ResourceManager *resMan) const;
 
 	/**
 	 * Processes a standard WAV file into a resource.

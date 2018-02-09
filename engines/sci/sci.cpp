@@ -127,8 +127,8 @@ const char *getSciVersionDesc(SciVersion version) {
 
 SciEngine *g_sci = 0;
 
-SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gameId)
-		: Engine(syst), _gameDescription(desc), _gameId(gameId), _rng("sci") {
+SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, const GameMetadata &metadata)
+		: Engine(syst), _gameDescription(desc), _metadata(metadata), _rng("sci") {
 
 	assert(g_sci == 0);
 	g_sci = this;
@@ -209,12 +209,12 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gam
 
 	// Add the patches directory, except for KQ6CD; The patches folder in some versions of KQ6CD
 	// (e.g. KQ Collection 1997) is for the demo of Phantasmagoria, included in the disk
-	if (_gameId != GID_KQ6) {
+	if (metadata.id != GID_KQ6) {
 		// Patch files in the root directory of Phantasmagoria 2 are higher
 		// priority than patch files in the patches directory (the SSCI
 		// installer copies these patches to HDD and gives the HDD directory
 		// top priority)
-		const int priority = _gameId == GID_PHANTASMAGORIA2 ? -1 : 0;
+		const int priority = metadata.id == GID_PHANTASMAGORIA2 ? -1 : 0;
 		SearchMan.addSubDirectoryMatching(gameDataDir, "patches", priority);	// resource patches
 	}
 
@@ -302,11 +302,8 @@ SciEngine::~SciEngine() {
 extern void showScummVMDialog(const Common::String &message);
 
 Common::Error SciEngine::run() {
-	_resMan = new ResourceManager();
+	_resMan = new ResourceManager(_metadata);
 	assert(_resMan);
-	_resMan->addAppropriateSources();
-	_resMan->init();
-
 	_gameObjectAddress = _resMan->findGameObject(true, isBE());
 
 	_scriptPatcher = new ScriptPatcher();
@@ -806,19 +803,19 @@ const char *SciEngine::getGameIdStr() const {
 }
 
 Common::Language SciEngine::getLanguage() const {
-	return _gameDescription->language;
+	return _metadata.language;
 }
 
 Common::Platform SciEngine::getPlatform() const {
-	return _gameDescription->platform;
+	return _metadata.platform;
 }
 
 bool SciEngine::isDemo() const {
-	return _gameDescription->flags & ADGF_DEMO;
+	return _metadata.isDemo;
 }
 
 bool SciEngine::isCD() const {
-	return _gameDescription->flags & ADGF_CD;
+	return _metadata.isCD;
 }
 
 bool SciEngine::forceHiresGraphics() const {
@@ -826,7 +823,7 @@ bool SciEngine::forceHiresGraphics() const {
 }
 
 bool SciEngine::isBE() const{
-	switch(_gameDescription->platform) {
+	switch(_metadata.platform) {
 	case Common::kPlatformAmiga:
 	case Common::kPlatformMacintosh:
 		return true;
@@ -873,13 +870,13 @@ const char *SciEngine::getGameObjectName() {
 }
 
 int SciEngine::inQfGImportRoom() const {
-	if (_gameId == GID_QFG2 && _gamestate->currentRoomNumber() == 805) {
+	if (_metadata.id == GID_QFG2 && _gamestate->currentRoomNumber() == 805) {
 		// QFG2 character import screen
 		return 2;
-	} else if (_gameId == GID_QFG3 && _gamestate->currentRoomNumber() == 54) {
+	} else if (_metadata.id == GID_QFG3 && _gamestate->currentRoomNumber() == 54) {
 		// QFG3 character import screen
 		return 3;
-	} else if (_gameId == GID_QFG4 && _gamestate->currentRoomNumber() == 54) {
+	} else if (_metadata.id == GID_QFG4 && _gamestate->currentRoomNumber() == 54) {
 		return 4;
 	}
 	return 0;

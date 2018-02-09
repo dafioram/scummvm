@@ -209,7 +209,8 @@ enum SciGameId {
 	GID_SQ6,
 	GID_TORIN,
 
-	GID_FANMADE	// FIXME: Do we really need/want this?
+	GID_FANMADE,	// FIXME: Do we really need/want this?
+	GID_INVALID
 };
 
 /**
@@ -248,10 +249,18 @@ enum SciLanguage {
 
 void showScummVMDialog(const Common::String &message);
 
+struct GameMetadata {
+	SciGameId id;
+	Common::Language language;
+	Common::Platform platform;
+	bool isCD;
+	bool isDemo;
+};
+
 class SciEngine : public Engine {
 	friend class Console;
 public:
-	SciEngine(OSystem *syst, const ADGameDescription *desc, SciGameId gameId);
+	SciEngine(OSystem *syst, const ADGameDescription *desc, const GameMetadata &metadata);
 	~SciEngine();
 
 	// Engine APIs
@@ -269,7 +278,7 @@ public:
 	uint32 getTickCount();
 	void setTickCount(const uint32 ticks);
 
-	const SciGameId &getGameId() const { return _gameId; }
+	const SciGameId &getGameId() const { return _metadata.id; }
 	const char *getGameIdStr() const;
 	int getResourceVersion() const;
 	Common::Language getLanguage() const;
@@ -425,8 +434,9 @@ private:
 	bool gameHasFanMadePatch();
 	void setLauncherLanguage();
 
+	GameMetadata _metadata;
+
 	const ADGameDescription *_gameDescription;
-	const SciGameId _gameId;
 	ResourceManager *_resMan; /**< The resource manager */
 	ScriptPatcher *_scriptPatcher; /**< The script patcher */
 	EngineState *_gamestate;

@@ -250,9 +250,11 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 				}
 			}
 
+			const GameMetadata &game = resMan->getGameMetadata();
+
 			// Checking for this 0x40 flag breaks at least Laura Bow 2 CD 1.1
 			// map 448
-			if (g_sci->getGameId() == GID_KQ6 && (n & kRaveFlag)) {
+			if (game.id == GID_KQ6 && (n & kRaveFlag)) {
 				// This seems to define the size of raw lipsync data (at least
 				// in KQ6 CD Windows).
 				uint32 kq6HiresSyncSize = ptr.getUint16LE();
@@ -276,20 +278,20 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 			// and points to garbage in the RESOURCE.AUD. The affected audio36
 			// assets seem to be able to load successfully from one of the later
 			// CDs, so just ignore the map on this disc
-			if (g_sci->getGameId() == GID_PQSWAT &&
-				g_sci->getLanguage() == Common::EN_ANY &&
+			if (game.id == GID_PQSWAT &&
+				game.language == Common::EN_ANY &&
 				_volumeNumber == 1 &&
 				_mapNumber == 405) {
 				continue;
 			}
 
-			if (g_sci->getGameId() == GID_GK2) {
+			if (game.id == GID_GK2) {
 				// At least version 1.00 of the US release, and the German
 				// release, of GK2 have multiple invalid audio36 map entries on
 				// CD 6
 				if (_volumeNumber == 6 && offset + syncSize >= srcSize) {
 					bool skip;
-					switch (g_sci->getLanguage()) {
+					switch (game.language) {
 					case Common::EN_ANY:
 						skip = (_mapNumber == 22 || _mapNumber == 160);
 						break;
@@ -310,7 +312,7 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 				// does not even exist in the US release), and there is a
 				// correct copy of it on CD 6, so just ignore the bad copy on
 				// CD 1
-				if (g_sci->getLanguage() == Common::DE_DEU &&
+				if (game.language == Common::DE_DEU &&
 					_volumeNumber == 1 &&
 					_mapNumber == 2020) {
 					continue;
@@ -322,7 +324,7 @@ ResourceErrorCode IntMapResourceSource::readAudioMapSCI11(ResourceManager *resMa
 			// release, but the audio resources are French so the maps don't
 			// match. Since the content was never used, just ignore these maps
 			// everywhere
-			if (g_sci->getGameId() == GID_PHANTASMAGORIA2 &&
+			if (game.id == GID_PHANTASMAGORIA2 &&
 				(_mapNumber == 800 || _mapNumber == 4176)) {
 				continue;
 			}

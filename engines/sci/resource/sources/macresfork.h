@@ -52,7 +52,7 @@ private:
 	Common::MacResManager _macResMan;
 
 	bool isCompressableResource(ResourceType type) const;
-	void decompressResource(Common::SeekableReadStream *stream, Resource *resource) const;
+	void decompressResource(const ResourceManager *resMan, Common::SeekableReadStream *stream, Resource *resource) const;
 };
 
 } // End of namespace Sci
