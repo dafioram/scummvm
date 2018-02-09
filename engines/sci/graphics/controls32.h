@@ -28,7 +28,7 @@
 namespace Sci {
 
 class GfxCache;
-class GfxScreen;
+class GfxFrameout;
 class GfxText32;
 
 enum MessageBoxStyle {
@@ -145,7 +145,7 @@ class ScreenItem;
  */
 class ScrollWindow {
 public:
-	ScrollWindow(SegManager *segMan, const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries);
+	ScrollWindow(SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries);
 	~ScrollWindow();
 
 	/**
@@ -220,6 +220,7 @@ public:
 
 private:
 	SegManager *_segMan;
+	GfxFrameout *_gfxFrameout;
 
 	typedef Common::Array<ScrollWindowEntry> EntriesList;
 
@@ -389,11 +390,13 @@ private:
  */
 class GfxControls32 {
 public:
-	GfxControls32(SegManager *segMan, GfxCache *cache, GfxText32 *text);
+	GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, GfxText32 *text);
 	~GfxControls32();
 
 private:
+	EventManager *_eventMan;
 	SegManager *_segMan;
+	GfxFrameout *_gfxFrameout;
 	GfxCache *_gfxCache;
 	GfxText32 *_gfxText32;
 

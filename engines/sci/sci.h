@@ -249,6 +249,10 @@ enum SciLanguage {
 
 void showScummVMDialog(const Common::String &message);
 
+uint32 getTickCount();
+
+void setTickCount(const uint32 ticks);
+
 struct GameMetadata {
 	SciGameId id;
 	Common::Language language;
@@ -275,8 +279,8 @@ public:
 	bool canSaveGameStateCurrently();
 	void syncSoundSettings(); ///< from ScummVM to the game
 	void updateSoundMixerVolumes();
-	uint32 getTickCount();
-	void setTickCount(const uint32 ticks);
+	uint32 getTickCount() { return ::Sci::getTickCount(); }
+	void setTickCount(const uint32 ticks) { ::Sci::setTickCount(ticks); }
 
 	const SciGameId &getGameId() const { return _metadata.id; }
 	const char *getGameIdStr() const;

@@ -57,6 +57,20 @@ private:
 	GfxCache *_cache;
 
 	/**
+	 * The size of the x-dimension of the coordinate system used by the game
+	 * scripts. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
+	 */
+	static int16 _scriptWidth;
+
+	/**
+	 * The size of the y-dimension of the coordinate system used by the game
+	 * scripts. Static because it was a global in SSCI, and ScrollWindow
+	 * creates additional instances of GfxText32 which also need this data.
+	 */
+	static int16 _scriptHeight;
+
+	/**
 	 * The width and height of the currently active text bitmap, in text-system
 	 * coordinates.
 	 *
@@ -137,14 +151,6 @@ private:
 	 */
 	int16 getTextWidth(const uint index, uint length) const;
 
-	inline Common::Rect scaleRect(const Common::Rect &rect) {
-		Common::Rect scaledRect(rect);
-		const Ratio scaleX(_xResolution, _scriptWidth);
-		const Ratio scaleY(_yResolution, _scriptHeight);
-		mulinc(scaledRect, scaleX, scaleY);
-		return scaledRect;
-	}
-
 public:
 	GfxText32(SegManager *segMan, GfxCache *fonts);
 
@@ -173,20 +179,6 @@ public:
 	static int16 _yResolution;
 
 	/**
-	 * The size of the x-dimension of the coordinate system used by the game
-	 * scripts. Static because it was a global in SSCI, and ScrollWindow
-	 * creates additional instances of GfxText32 which also need this data.
-	 */
-	static int16 _scriptWidth;
-
-	/**
-	 * The size of the y-dimension of the coordinate system used by the game
-	 * scripts. Static because it was a global in SSCI, and ScrollWindow
-	 * creates additional instances of GfxText32 which also need this data.
-	 */
-	static int16 _scriptHeight;
-
-	/**
 	 * The currently active font resource used to write text into the bitmap.
 	 *
 	 * @note SSCI builds the font table directly inside of FontMgr; we use
@@ -203,6 +195,14 @@ public:
 	 * Creates a font bitmap with a view background.
 	 */
 	reg_t createFontBitmap(const CelInfo32 &celInfo, const Common::Rect &rect, const Common::String &text, const int16 foreColor, const int16 backColor, const GuiResourceId fontId, const int16 skipColor, const int16 borderColor, const bool dimmed, const bool gc);
+
+	inline Common::Rect scaleRect(const Common::Rect &rect) {
+		Common::Rect scaledRect(rect);
+		const Ratio scaleX(_xResolution, _scriptWidth);
+		const Ratio scaleY(_yResolution, _scriptHeight);
+		mulinc(scaledRect, scaleX, scaleY);
+		return scaledRect;
+	}
 
 	inline int scaleUpWidth(int value) const {
 		return (value * _scriptWidth + _xResolution - 1) / _xResolution;

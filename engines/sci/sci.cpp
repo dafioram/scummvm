@@ -90,6 +90,14 @@ void showScummVMDialog(const Common::String &message) {
 	dialog.runModal();
 }
 
+uint32 getTickCount() {
+	return g_engine->getTotalPlayTime() * 60 / 1000;
+}
+
+void setTickCount(const uint32 ticks) {
+	return g_engine->setTotalPlayTime(ticks * 1000 / 60);
+}
+
 const char *getSciVersionDesc(SciVersion version) {
 	switch (version) {
 	case SCI_VERSION_NONE:
@@ -674,7 +682,7 @@ void SciEngine::initGraphics() {
 		_gfxFrameout = new GfxFrameout(_gamestate->_segMan, _gfxPalette32, _gfxTransitions32, _gfxCursor32);
 		_gfxCursor32->init(_gfxFrameout->getCurrentBuffer());
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
-		_gfxControls32 = new GfxControls32(_gamestate->_segMan, _gfxCache, _gfxText32);
+		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache, _gfxText32);
 		_gfxFrameout->run();
 	} else {
 #endif
@@ -1009,13 +1017,6 @@ void SciEngine::loadMacExecutable() {
 		// TODO: Show some sort of warning dialog saying they can't get any
 		// high-res Mac fonts, when we get to that point ;)
 	}
-}
-
-uint32 SciEngine::getTickCount() {
-	return g_engine->getTotalPlayTime() * 60 / 1000;
-}
-void SciEngine::setTickCount(const uint32 ticks) {
-	return g_engine->setTotalPlayTime(ticks * 1000 / 60);
 }
 
 bool SciEngine::hasFeature(EngineFeature f) const {

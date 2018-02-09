@@ -37,8 +37,10 @@
 #include "sci/graphics/text32.h"
 
 namespace Sci {
-GfxControls32::GfxControls32(SegManager *segMan, GfxCache *cache, GfxText32 *text) :
+GfxControls32::GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, GfxText32 *text) :
+	_eventMan(eventMan),
 	_segMan(segMan),
+	_gfxFrameout(frameout),
 	_gfxCache(cache),
 	_gfxText32(text),
 	_overwriteMode(false),
@@ -99,9 +101,9 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	editorPlaneRect.translate(readSelectorValue(_segMan, controlObject, SELECTOR(x)), readSelectorValue(_segMan, controlObject, SELECTOR(y)));
 
 	reg_t planeObj = readSelector(_segMan, controlObject, SELECTOR(plane));
-	Plane *sourcePlane = g_sci->_gfxFrameout->getVisiblePlanes().findByObject(planeObj);
+	Plane *sourcePlane = _gfxFrameout->getVisiblePlanes().findByObject(planeObj);
 	if (sourcePlane == nullptr) {
-		sourcePlane = g_sci->_gfxFrameout->getPlanes().findByObject(planeObj);
+		sourcePlane = _gfxFrameout->getPlanes().findByObject(planeObj);
 		if (sourcePlane == nullptr) {
 			error("Could not find plane %04x:%04x", PRINT_REG(planeObj));
 		}
@@ -126,7 +128,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 
 	Plane *plane = new Plane(editorPlaneRect, kPlanePicTransparent);
 	plane->changePic();
-	g_sci->_gfxFrameout->addPlane(plane);
+	_gfxFrameout->addPlane(plane);
 
 	CelInfo32 celInfo;
 	celInfo.type = kCelTypeMem;
@@ -140,9 +142,8 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	// and updated flags set which crashes the engine (updates are handled
 	// before creations, but the screen item is not in the correct state for an
 	// update)
-	g_sci->_gfxFrameout->frameOut(true);
+	_gfxFrameout->frameOut(true);
 
-	EventManager *eventManager = g_sci->getEventManager();
 	bool clearTextOnInput = true;
 	bool textChanged = false;
 	for (;;) {
@@ -152,7 +153,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 		// the event manager for reprocessing, but instead, we only remove the
 		// event from the queue *after* we have determined it is not a
 		// defocusing event
-		const SciEvent event = eventManager->getSciEvent(kSciEventAny | kSciEventPeek);
+		const SciEvent event = _eventMan->getSciEvent(kSciEventAny | kSciEventPeek);
 
 		bool focused = true;
 		// SSCI did not have a QUIT event, but we do, so we have to handle it
@@ -180,7 +181,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 		// Consume the event now that we know it is not one of the defocusing
 		// events above
 		if (event.type != kSciEventNone)
-			eventManager->getSciEvent(kSciEventAny);
+			_eventMan->getSciEvent(kSciEventAny);
 
 		// In SSCI, the font and bitmap were reset here on each iteration
 		// through the loop, but this is not necessary since control is not
@@ -284,23 +285,23 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 			_gfxText32->drawTextBox(editor.text);
 			drawCursor(editor);
 			textChanged = true;
-			screenItem->_updated = g_sci->_gfxFrameout->getScreenCount();
+			screenItem->_updated = _gfxFrameout->getScreenCount();
 		} else if (editor.cursorCharPosition != lastCursorPosition) {
 			eraseCursor(editor);
 			drawCursor(editor);
-			screenItem->_updated = g_sci->_gfxFrameout->getScreenCount();
+			screenItem->_updated = _gfxFrameout->getScreenCount();
 		} else {
 			flashCursor(editor);
-			screenItem->_updated = g_sci->_gfxFrameout->getScreenCount();
+			screenItem->_updated = _gfxFrameout->getScreenCount();
 		}
 
-		g_sci->_gfxFrameout->frameOut(true);
-		g_sci->_gfxFrameout->throttle();
+		_gfxFrameout->frameOut(true);
+		_gfxFrameout->throttle();
 	}
 
-	g_sci->_gfxFrameout->deletePlane(*plane);
+	_gfxFrameout->deletePlane(*plane);
 	if (readSelectorValue(_segMan, controlObject, SELECTOR(frameOut))) {
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->frameOut(true);
 	}
 
 	_segMan->freeBitmap(editor.bitmap);
@@ -339,7 +340,7 @@ void GfxControls32::drawCursor(TextEditor &editor) {
 		editor.cursorIsDrawn = true;
 	}
 
-	_nextCursorFlashTick = g_sci->getTickCount() + 30;
+	_nextCursorFlashTick = getTickCount() + 30;
 }
 
 void GfxControls32::eraseCursor(TextEditor &editor) {
@@ -348,24 +349,25 @@ void GfxControls32::eraseCursor(TextEditor &editor) {
 		editor.cursorIsDrawn = false;
 	}
 
-	_nextCursorFlashTick = g_sci->getTickCount() + 30;
+	_nextCursorFlashTick = getTickCount() + 30;
 }
 
 void GfxControls32::flashCursor(TextEditor &editor) {
-	if (g_sci->getTickCount() > _nextCursorFlashTick) {
+	if (getTickCount() > _nextCursorFlashTick) {
 		_gfxText32->invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
 
 		editor.cursorIsDrawn = !editor.cursorIsDrawn;
-		_nextCursorFlashTick = g_sci->getTickCount() + 30;
+		_nextCursorFlashTick = getTickCount() + 30;
 	}
 }
 
 #pragma mark -
 #pragma mark Scrollable window control
 
-ScrollWindow::ScrollWindow(SegManager *segMan, const Common::Rect &gameRect, const Common::Point &position, const reg_t plane, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) :
+ScrollWindow::ScrollWindow(SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, const Common::Rect &gameRect, const Common::Point &position, const reg_t plane, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) :
 	_segMan(segMan),
-	_gfxText32(segMan, g_sci->_gfxCache),
+	_gfxFrameout(frameout),
+	_gfxText32(segMan, cache),
 	_maxNumEntries(maxNumEntries),
 	_firstVisibleChar(0),
 	_topVisibleLine(0),
@@ -389,11 +391,7 @@ ScrollWindow::ScrollWindow(SegManager *segMan, const Common::Rect &gameRect, con
 	_gfxText32.setFont(_fontId);
 	_pointSize = _gfxText32._font->getHeight();
 
-	const uint16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const uint16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-
-	Common::Rect bitmapRect(gameRect);
-	mulinc(bitmapRect, Ratio(_gfxText32._xResolution, scriptWidth), Ratio(_gfxText32._yResolution, scriptHeight));
+	Common::Rect bitmapRect(_gfxText32.scaleRect(gameRect));
 
 	_textRect.left = 2;
 	_textRect.top = 2;
@@ -433,7 +431,7 @@ void ScrollWindow::show() {
 		_screenItem = new ScreenItem(_plane, celInfo, _position, ScaleInfo());
 	}
 
-	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(_plane);
+	Plane *plane = _gfxFrameout->getPlanes().findByObject(_plane);
 
 	if (plane == nullptr) {
 		error("[ScrollWindow::show]: Plane %04x:%04x not found", PRINT_REG(_plane));
@@ -449,9 +447,9 @@ void ScrollWindow::hide() {
 		return;
 	}
 
-	g_sci->_gfxFrameout->deleteScreenItem(*_screenItem, _plane);
+	_gfxFrameout->deleteScreenItem(*_screenItem, _plane);
 	_screenItem = nullptr;
-	g_sci->_gfxFrameout->frameOut(true);
+	_gfxFrameout->frameOut(true);
 
 	_visible = false;
 }
@@ -585,7 +583,7 @@ void ScrollWindow::upArrow() {
 		assert(_screenItem);
 
 		_screenItem->update();
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->frameOut(true);
 	}
 }
 
@@ -622,7 +620,7 @@ void ScrollWindow::downArrow() {
 		assert(_screenItem);
 
 		_screenItem->update();
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->frameOut(true);
 	}
 }
 
@@ -765,14 +763,14 @@ void ScrollWindow::update(const bool doFrameOut) {
 
 		_screenItem->update();
 		if (doFrameOut) {
-			g_sci->_gfxFrameout->frameOut(true);
+			_gfxFrameout->frameOut(true);
 		}
 	}
 }
 
 reg_t GfxControls32::makeScrollWindow(const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) {
 
-	ScrollWindow *scrollWindow = new ScrollWindow(_segMan, gameRect, position, planeObj, defaultForeColor, defaultBackColor, defaultFontId, defaultAlignment, defaultBorderColor, maxNumEntries);
+	ScrollWindow *scrollWindow = new ScrollWindow(_segMan, _gfxFrameout, _gfxCache, gameRect, position, planeObj, defaultForeColor, defaultBackColor, defaultFontId, defaultAlignment, defaultBorderColor, maxNumEntries);
 
 	const uint16 id = _nextScrollWindowId++;
 	_scrollWindows[id] = scrollWindow;
