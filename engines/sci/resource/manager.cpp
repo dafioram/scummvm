@@ -39,6 +39,9 @@
 #ifdef ENABLE_SCI32
 #include "sci/resource/sources/chunk32.h"
 #endif
+#ifdef ENABLE_SCI32S2
+#include "sci/resource/sources/solvolume.h"
+#endif
 
 namespace Sci {
 
@@ -188,6 +191,12 @@ ResourceManager::ResourceManager(const GameMetadata &metadata) :
 			// We add this resource with a map which surely won't exist
 			addSource(new VolumeResourceSource("ressci.pat", addExternalMap("resmap.pat", kResPatVolumeNumber), kResPatVolumeNumber));
 		}
+
+#ifdef ENABLE_SCI32S2
+		if (Common::File::exists("s2res.sol")) {
+			addSource(new SolVolumeResourceSource("s2res.sol"));
+		}
+	#endif
 	}
 #else
 	} else
@@ -749,7 +758,9 @@ void ResourceManager::scanMultiDiscAudioMap(const ResourceSource *source, const 
 	} else if (resId.getNumber() == kSfxModule) {
 		volumeName = Common::String::format("RESSFX.%03d", mapVolumeNr);
 
-		if (_game.id == GID_RAMA && !Common::File::exists(volumeName)) {
+		if ((_game.id == GID_RAMA || _game.id == GID_SHIVERS2) &&
+			!Common::File::exists(volumeName)) {
+
 			if (Common::File::exists("RESOURCE.SFX")) {
 				volumeName = "RESOURCE.SFX";
 			} else if (Common::File::exists("RESSFX.001")) {

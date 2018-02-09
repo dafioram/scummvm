@@ -20,12 +20,24 @@
  *
  */
 
-#include "sci/resource/sources/wave.h"
+#ifndef SCI_RESOURCE_SOURCES_SOLVOLUME_H
+#define SCI_RESOURCE_SOURCES_SOLVOLUME_H
+
+#include "sci/resource/resource.h"
+#include "sci/resource/source.h"
 
 namespace Sci {
 
-void WaveResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
-	loadRawData(resMan, res);
-}
+class SolVolumeResourceSource final : public ResourceSource {
+public:
+	SolVolumeResourceSource(const Common::String &name) :
+		ResourceSource(kSourceSolVolume, name) {}
+
+	virtual bool scanSource(ResourceManager *resMan) override;
+
+	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override;
+};
 
 } // End of namespace Sci
+
+#endif

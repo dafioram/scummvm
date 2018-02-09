@@ -58,6 +58,17 @@ bool ResourceSource::loadFromStream(Common::SeekableReadStream *file, Resource *
 	return true;
 }
 
+bool ResourceSource::loadRawData(const ResourceManager *resMan, Resource *res) const {
+	Common::SeekableReadStream *fileStream = getVolumeFile(resMan, res);
+	if (!fileStream)
+		return false;
+
+	fileStream->seek(res->_fileOffset, SEEK_SET);
+	const bool success = loadFromStream(fileStream, res);
+	resMan->disposeVolumeFileStream(fileStream, this);
+	return success;
+}
+
 void IndexOnlyResourceSource::loadResource(const ResourceManager *, Resource *res) const {
 	error("Attempt to load %s from an index resource source", res->name().c_str());
 }

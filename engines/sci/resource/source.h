@@ -48,6 +48,9 @@ enum ResSourceType {
 #ifdef ENABLE_SCI32
 	kSourceChunk,			///< Script chunk resources (*.chk)
 #endif
+#ifdef ENABLE_SCI32S2
+	kSourceSolVolume,		///< Shivers 2 bitmap volume
+#endif
 	kSourceScummVM			///< Built-in resource patcher
 };
 
@@ -97,9 +100,14 @@ protected:
 	Common::SeekableReadStream *getVolumeFile(const ResourceManager *resMan, const Resource *res) const;
 
 	/**
-	 * Loads data from the file directly to the resource.
+	 * Loads raw data from a stream directly into the resource.
 	 */
-	bool loadFromStream(Common::SeekableReadStream *file, Resource *res) const;
+	bool loadFromStream(Common::SeekableReadStream *stream, Resource *res) const;
+
+	/**
+	 * Loads raw data from a data source directly into the resource.
+	 */
+	bool loadRawData(const ResourceManager *resMan, Resource *res) const;
 
 	const ResSourceType _sourceType;
 	const Common::String _name;

@@ -52,6 +52,9 @@ static const char *const s_resourceTypeNames[] = {
 	"chunk", "animation", "etc", "duck", "clut",
 	"tga", "zzz", "macibin", "macibis", "macpict",
 	"rave"
+#ifdef ENABLE_SCI32S2
+	, "pano"
+#endif
 };
 
 const char *getResourceTypeName(ResourceType restype) {
@@ -72,6 +75,9 @@ static const char *const s_resourceTypeSuffixes[] = {
 	"trn", "rbt", "vmd", "chk",    "",
 	"etc", "duk", "clu", "tga", "zzz",
 	   "",    "",    "", ""
+#ifdef ENABLE_SCI32S2
+	, "bmp"
+#endif
 };
 
 const char *getResourceTypeExtension(ResourceType restype) {
@@ -80,6 +86,18 @@ const char *getResourceTypeExtension(ResourceType restype) {
 	else
 		return "";
 }
+
+#ifdef ENABLE_SCI32S2
+ResourceType getResourceTypeFromSuffix(const char *suffix) {
+	for (int i = 0; i < ARRAYSIZE(s_resourceTypeSuffixes); ++i) {
+		if (*suffix != '\0' && scumm_stricmp(s_resourceTypeSuffixes[i], suffix) == 0) {
+			return ResourceType(i);
+		}
+	}
+
+	return kResourceTypeInvalid;
+}
+#endif
 
 Common::String ResourceId::toPatchNameBase36() const {
 	Common::String output;

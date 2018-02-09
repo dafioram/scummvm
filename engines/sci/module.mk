@@ -108,6 +108,11 @@ MODULE_OBJS += \
 	sound/audio32.o \
 	sound/decoders/sol.o \
 	video/robot_decoder.o
+
+ifdef ENABLE_SCI32S2
+MODULE_OBJS += \
+	resource/sources/solvolume.o
+endif
 endif
 
 # This module can be built as a plugin

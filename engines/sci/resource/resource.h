@@ -83,6 +83,13 @@ enum ResourceType {
 
 	kResourceTypeRave,	// KQ6 hires RAVE (special sync) resources
 
+#ifdef ENABLE_SCI32S2
+	// Shivers 2 panorama bitmap. Note in SSCI that a separate resource manager
+	// was used for these bitmaps, so they did not actually have a type in
+	// the normal resource manager
+	kResourceTypePano,
+#endif
+
 	kResourceTypeInvalid
 };
 
@@ -108,6 +115,9 @@ enum ResVersion {
 const char *getResourceErrorDescription(ResourceErrorCode code);
 const char *getResourceTypeName(ResourceType restype);
 const char *getResourceTypeExtension(ResourceType restype);
+#ifdef ENABLE_SCI32S2
+ResourceType getResourceTypeFromSuffix(const char *suffix);
+#endif
 
 class ResourceId {
 	static inline ResourceType fixupType(ResourceType type) {
