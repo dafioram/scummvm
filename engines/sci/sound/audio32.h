@@ -36,6 +36,7 @@ namespace Sci {
 class Console;
 class GameFeatures;
 class GuestAdditions;
+class TimeManager;
 
 bool detectSolAudio(Common::SeekableReadStream &stream);
 bool detectWaveAudio(Common::SeekableReadStream &stream);
@@ -174,7 +175,7 @@ enum AudioChannelIndex {
  */
 class Audio32 : public Audio::AudioStream, public Common::Serializable {
 public:
-	Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features);
+	Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features, TimeManager *timeMan);
 	~Audio32();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s);
@@ -191,6 +192,7 @@ public:
 private:
 	ResourceManager *_resMan;
 	GuestAdditions *_guestAdditions;
+	TimeManager *_timeMan;
 	Audio::Mixer *_mixer;
 	Audio::SoundHandle _handle;
 	Common::Mutex _mutex;

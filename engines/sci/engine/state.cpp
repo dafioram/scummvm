@@ -94,15 +94,13 @@ void EngineState::reset(bool isRestoring) {
 	r_prev = NULL_REG;
 	r_rest = 0;
 
-	lastWaitTime = 0;
+	_lastWaitTime = 0;
 
 	gcCountDown = 0;
 
 #ifdef ENABLE_SCI32
 	_eventCounter = 0;
 #endif
-	_throttleLastTime = 0;
-	_throttleTrigger = false;
 	_gameIsBenchmarking = false;
 
 	_lastSaveVirtualId = SAVEGAMEID_OFFICIALRANGE_START;
@@ -116,25 +114,10 @@ void EngineState::reset(bool isRestoring) {
 	scriptGCInterval = GC_INTERVAL;
 }
 
-void EngineState::speedThrottler(uint32 neededSleep) {
-	if (_throttleTrigger) {
-		uint32 curTime = g_system->getMillis();
-		uint32 duration = curTime - _throttleLastTime;
-
-		if (duration < neededSleep) {
-			g_sci->sleep(neededSleep - duration);
-			_throttleLastTime = g_system->getMillis();
-		} else {
-			_throttleLastTime = curTime;
-		}
-		_throttleTrigger = false;
-	}
-}
-
 int EngineState::wait(int16 ticks) {
-	uint32 time = g_system->getMillis();
-	const int tickDelta = ((long)time - (long)lastWaitTime) * 60 / 1000;
-	lastWaitTime = time;
+	const uint32 time = g_system->getMillis();
+	const int tickDelta = int(time - _lastWaitTime) * 60 / 1000;
+	_lastWaitTime = time;
 
 	ticks *= g_debug_sleeptime_factor;
 	g_sci->sleep(ticks * 1000 / 60);

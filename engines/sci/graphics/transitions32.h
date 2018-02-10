@@ -214,14 +214,16 @@ typedef Common::List<PlaneShowStyle> ShowStyleList;
 typedef Common::List<PlaneScroll> ScrollList;
 
 class GfxFrameout;
+class TimeManager;
 
 class GfxTransitions32 {
 public:
-	GfxTransitions32(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
+	GfxTransitions32(GameFeatures *features, TimeManager *timeMan, GfxFrameout *frameout, SegManager *segMan);
 	~GfxTransitions32();
 
 private:
 	GameFeatures *_features;
+	TimeManager *_timeMan;
 	GfxFrameout *_gfxFrameout;
 	SegManager *_segMan;
 

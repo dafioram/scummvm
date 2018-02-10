@@ -27,6 +27,7 @@
 #include "sci/console.h"
 #include "sci/sci.h"
 #include "sci/event.h"
+#include "sci/time.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/script_patches.h"
 #include "sci/engine/state.h"
@@ -743,13 +744,13 @@ void GfxAnimate::throttleSpeed() {
 			}
 		}
 		_s->_gameIsBenchmarking = false;
-		_s->_throttleTrigger = true;
+		g_sci->getTimeManager()->enableNextThrottle();
 		break;
 	}
 	default:
 		// More than 1 entry drawn -> time for speed throttling
 		_s->_gameIsBenchmarking = false;
-		_s->_throttleTrigger = true;
+		g_sci->getTimeManager()->enableNextThrottle();
 		break;
 	}
 }

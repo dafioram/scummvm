@@ -96,6 +96,25 @@ public:
 		return (getSciVersion() == SCI_VERSION_2_1_MIDDLE && _game.id == GID_KQ7);
 	}
 
+	inline bool missingScreenItemIsError() const {
+		return (getSciVersion() <= SCI_VERSION_2_1_EARLY ||
+				_game.id == GID_SQ6 ||
+				_game.id == GID_MOTHERGOOSEHIRES);
+	}
+
+	inline bool hasRestrictedZeroStyle() const {
+		// TODO: Cannot check Shivers or MGDX until those executables can be
+		// unwrapped
+		switch (_game.id) {
+		case GID_KQ7:
+		case GID_PHANTASMAGORIA:
+		case GID_SQ6:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	inline bool usesModifiedAudioAttenuation() const {
 		switch (_game.id) {
 		// Assuming MGDX uses modified attenuation since SQ6 does and it was

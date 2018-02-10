@@ -233,10 +233,11 @@ struct PalCycler {
 #pragma mark GfxPalette32
 
 class GfxFrameout;
+class TimeManager;
 
 class GfxPalette32 {
 public:
-	GfxPalette32(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout);
+	GfxPalette32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, GfxFrameout *frameout);
 
 	void saveLoadWithSerializer(Common::Serializer &s);
 
@@ -298,6 +299,7 @@ public:
 private:
 	ResourceManager *_resMan;
 	GameFeatures *_features;
+	TimeManager *_timeMan;
 	GfxFrameout *_gfxFrameout;
 
 	/**

@@ -108,17 +108,14 @@ public:
 
 	/* Non-VM information */
 
-	uint32 lastWaitTime; /**< The last time the game invoked Wait() */
+	uint32 _lastWaitTime; /**< The last time the game invoked Wait() */
 	uint32 _screenUpdateTime;	/**< The last time the game updated the screen */
 
-	void speedThrottler(uint32 neededSleep);
 	int wait(int16 ticks);
 
 #ifdef ENABLE_SCI32
 	uint32 _eventCounter; /**< total times kGetEvent was invoked since the last call to kFrameOut */
 #endif
-	uint32 _throttleLastTime; /**< last time kAnimate was invoked */
-	bool _throttleTrigger;
 	bool _gameIsBenchmarking;
 
 	/* Kernel File IO stuff */

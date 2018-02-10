@@ -26,13 +26,14 @@
 
 #include "sci/sci.h"
 #include "sci/event.h"
-#include "sci/resource/manager.h"
+#include "sci/time.h"
 #include "sci/util.h"
 #include "sci/engine/features.h"
 #include "sci/graphics/frameout.h"
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/remap32.h"
 #include "sci/graphics/screen.h"
+#include "sci/resource/manager.h"
 
 namespace Sci {
 
@@ -350,9 +351,10 @@ static const uint8 gammaTables[GfxPalette32::numGammaTables][256] = {
 #pragma mark -
 #pragma mark GfxPalette32
 
-GfxPalette32::GfxPalette32(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout) :
+GfxPalette32::GfxPalette32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, GfxFrameout *frameout) :
 	_resMan(resMan),
 	_features(features),
+	_timeMan(timeMan),
 	_gfxFrameout(frameout),
 
 	// Palette versioning
@@ -618,7 +620,7 @@ void GfxPalette32::setVaryTime(const int32 time) {
 }
 
 void GfxPalette32::setVaryTime(const int16 percent, const int32 ticks) {
-	_varyLastTick = getTickCount();
+	_varyLastTick = _timeMan->getTickCount();
 	if (!ticks || _varyPercent == percent) {
 		_varyDirection = 0;
 		_varyTargetPercent = _varyPercent = percent;
@@ -692,7 +694,7 @@ void GfxPalette32::mergeTarget(const Palette &palette) {
 }
 
 void GfxPalette32::applyVary() {
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 	while ((int32)(now - _varyLastTick) > _varyTime && _varyDirection != 0) {
 		_varyLastTick += _varyTime;
 
@@ -817,7 +819,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 	// that it finds, where "oldest" is determined by the difference between the
 	// tick and now
 	if (cycler == nullptr) {
-		const uint32 now = getTickCount();
+		const uint32 now = _timeMan->getTickCount();
 		uint32 minUpdateDelta = 0xFFFFFFFF;
 
 		for (int i = 0; i < kNumCyclers; ++i) {
@@ -842,7 +844,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 	cycler->currentCycle = fromColor;
 	cycler->direction = direction < 0 ? kPalCycleBackward : kPalCycleForward;
 	cycler->delay = delay;
-	cycler->lastUpdateTick = getTickCount();
+	cycler->lastUpdateTick = _timeMan->getTickCount();
 	cycler->numTimesPaused = 0;
 
 	setCycleMap(fromColor, numColorsToCycle);
@@ -851,7 +853,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 void GfxPalette32::doCycle(const uint8 fromColor, const int16 speed) {
 	PalCycler *const cycler = getCycler(fromColor);
 	if (cycler != nullptr) {
-		cycler->lastUpdateTick = getTickCount();
+		cycler->lastUpdateTick = _timeMan->getTickCount();
 		updateCycler(*cycler, speed);
 	}
 }
@@ -984,7 +986,7 @@ void GfxPalette32::applyCycles() {
 	Color paletteCopy[256];
 	memcpy(paletteCopy, _nextPalette.colors, sizeof(paletteCopy));
 
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 	for (int i = 0; i < kNumCyclers; ++i) {
 		PalCyclerOwner &cycler = _cyclers[i];
 		if (!cycler) {

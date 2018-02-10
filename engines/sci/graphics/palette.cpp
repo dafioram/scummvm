@@ -28,6 +28,7 @@
 #include "graphics/palette.h"
 
 #include "sci/sci.h"
+#include "sci/time.h"
 #include "sci/engine/state.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/maciconbar.h"
@@ -547,11 +548,9 @@ void GfxPalette::kernelSetIntensity(uint16 fromColor, uint16 toColor, uint16 int
 	memset(&_sysPalette.intensity[0] + fromColor, intensity, toColor - fromColor);
 	if (setPalette) {
 		setOnScreen();
-		EngineState *state = g_sci->getEngineState();
 		// Call speed throttler from here as well just in case we need it
 		//  At least in kq6 intro the scripts call us in a tight loop for fadein/fadeout
-		state->speedThrottler(30);
-		state->_throttleTrigger = true;
+		g_sci->getTimeManager()->throttle(30, true);
 	}
 }
 
@@ -583,7 +582,7 @@ bool GfxPalette::kernelAnimate(byte fromColor, byte toColor, int speed) {
 		scheduleCount++;
 	}
 
-	g_sci->getEngineState()->_throttleTrigger = true;
+	g_sci->getTimeManager()->enableNextThrottle();
 
 	for (scheduleNr = 0; scheduleNr < scheduleCount; scheduleNr++) {
 		if (_schedules[scheduleNr].from == fromColor) {

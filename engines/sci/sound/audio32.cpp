@@ -42,6 +42,7 @@
 #include "sci/engine/vm_types.h"    // for reg_t, make_reg, NULL_REG
 #include "sci/resource/manager.h"           // for ResourceId, ResourceType::kResour...
 #include "sci/sci.h"                // for getSciVersion
+#include "sci/time.h"               // for TimeManager
 #include "sci/sound/decoders/sol.h" // for makeSOLStream
 
 namespace Sci {
@@ -147,9 +148,10 @@ private:
 
 #pragma mark -
 
-Audio32::Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features) :
+Audio32::Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features, TimeManager *timeMan) :
 	_resMan(resMan),
 	_guestAdditions(guestAdditions),
+	_timeMan(timeMan),
 	_mixer(g_system->getMixer()),
 	_handle(),
 	_mutex(),
@@ -224,7 +226,7 @@ bool Audio32::channelShouldMix(const AudioChannel &channel) const {
 	}
 
 	if (channel.fadeStartTick) {
-		const uint32 fadeElapsed = getTickCount() - channel.fadeStartTick;
+		const uint32 fadeElapsed = _timeMan->getTickCount() - channel.fadeStartTick;
 		if (fadeElapsed > channel.fadeDuration && channel.stopChannelOnFade) {
 			return false;
 		}
@@ -657,7 +659,7 @@ bool Audio32::playRobotAudio(const RobotAudioStream::RobotAudioPacket &packet) {
 		_robotAudioPaused = false;
 
 		if (_numActiveChannels == 1) {
-			_startedAtTick = getTickCount();
+			_startedAtTick = _timeMan->getTickCount();
 		}
 	}
 
@@ -827,7 +829,7 @@ uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool
 
 	channel.duration = /* round up */ 1 + (stream->getLength().msecs() * 60 / 1000);
 
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 	channel.pausedAtTick = autoPlay ? 0 : now;
 	channel.startedAtTick = now;
 
@@ -847,7 +849,7 @@ bool Audio32::resume(const int16 channelIndex) {
 	}
 
 	Common::StackLock lock(_mutex);
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 
 	if (channelIndex == kAllChannels) {
 		// Global pause in SSCI is an extra layer over
@@ -908,7 +910,7 @@ bool Audio32::pause(const int16 channelIndex) {
 	}
 
 	Common::StackLock lock(_mutex);
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 	bool didPause = false;
 
 	if (channelIndex == kAllChannels) {
@@ -986,7 +988,7 @@ int16 Audio32::getPosition(const int16 channelIndex) const {
 	// SSCI treats this as an unsigned short except for when the value is 65535,
 	// then it treats it as signed
 	int position = -1;
-	const uint32 now = getTickCount();
+	const uint32 now = _timeMan->getTickCount();
 
 	// SSCI also queried the audio driver to see whether it thought that there
 	// was audio playback occurring via driver opcode 9, but we have no analogue
@@ -1077,7 +1079,7 @@ bool Audio32::fadeChannel(const int16 channelIndex, const int16 targetVolume, co
 	}
 
 	if (steps && speed) {
-		channel.fadeStartTick = getTickCount();
+		channel.fadeStartTick = _timeMan->getTickCount();
 		channel.fadeStartVolume = channel.volume;
 		channel.fadeTargetVolume = targetVolume;
 		channel.fadeDuration = speed * steps;
@@ -1094,7 +1096,7 @@ bool Audio32::processFade(const int16 channelIndex) {
 	AudioChannel &channel = getChannel(channelIndex);
 
 	if (channel.fadeStartTick) {
-		const uint32 fadeElapsed = getTickCount() - channel.fadeStartTick;
+		const uint32 fadeElapsed = _timeMan->getTickCount() - channel.fadeStartTick;
 		if (fadeElapsed > channel.fadeDuration) {
 			channel.fadeStartTick = 0;
 			if (channel.stopChannelOnFade) {
@@ -1336,7 +1338,7 @@ void Audio32::printAudioList(Console *con) const {
 						 PRINT_REG(channel.soundNode),
 						 channel.robot ? "robot" : channel.resource->name().c_str(),
 						 channel.startedAtTick,
-						 (getTickCount() - channel.startedAtTick) % channel.duration,
+						 (_timeMan->getTickCount() - channel.startedAtTick) % channel.duration,
 						 channel.duration,
 						 channel.volume,
 						 channel.pan,
@@ -1347,7 +1349,7 @@ void Audio32::printAudioList(Console *con) const {
 							 channel.fadeStartVolume,
 							 channel.fadeTargetVolume,
 							 channel.fadeStartTick,
-							 (getTickCount() - channel.fadeStartTick) % channel.duration,
+							 (_timeMan->getTickCount() - channel.fadeStartTick) % channel.duration,
 							 channel.fadeDuration,
 							 channel.stopChannelOnFade ? ", stopping" : "");
 		}

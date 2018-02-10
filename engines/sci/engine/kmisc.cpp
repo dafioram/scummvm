@@ -26,6 +26,7 @@
 #include "sci/sci.h"
 #include "sci/debug.h"
 #include "sci/event.h"
+#include "sci/time.h"
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/gc.h"
@@ -72,7 +73,7 @@ reg_t kGameIsRestarting(EngineState *s, int argc, reg_t *argv) {
 		// stones to display, otherwise the game scripts reset them too soon.
 		// Fixes bug #3127824.
 		if (s->currentRoomNumber() == 100) {
-			s->_throttleTrigger = true;
+			g_sci->getTimeManager()->enableNextThrottle();
 			neededSleep = 60;
 		}
 		break;
@@ -81,7 +82,7 @@ reg_t kGameIsRestarting(EngineState *s, int argc, reg_t *argv) {
 		// runs way too fast. We calm it down even more, otherwise fighting
 		// against other submarines is almost impossible.
 		if (s->currentRoomNumber() == 27) {
-			s->_throttleTrigger = true;
+			g_sci->getTimeManager()->enableNextThrottle();
 			neededSleep = 60;
 		}
 		break;
@@ -92,7 +93,7 @@ reg_t kGameIsRestarting(EngineState *s, int argc, reg_t *argv) {
 		// way of handling this would be delaying incrementing of "machineSpeed"
 		// selector.
 		if (s->currentRoomNumber() == 290)
-			s->_throttleTrigger = true;
+			g_sci->getTimeManager()->enableNextThrottle();
 		break;
 	case GID_SQ4:
 		// In SQ4 (floppy and CD) the sequel police appear way too quickly in
@@ -102,14 +103,14 @@ reg_t kGameIsRestarting(EngineState *s, int argc, reg_t *argv) {
 		// bit more, in order to prevent timer bugs related to the sequel police.
 		if (s->currentRoomNumber() == 405 || s->currentRoomNumber() == 406 ||
 			s->currentRoomNumber() == 410 || s->currentRoomNumber() == 411) {
-			s->_throttleTrigger = true;
+			g_sci->getTimeManager()->enableNextThrottle();
 			neededSleep = 60;
 		}
 	default:
 		break;
 	}
 
-	s->speedThrottler(neededSleep);
+	g_sci->getTimeManager()->throttle(neededSleep);
 	return s->r_acc;
 }
 

@@ -21,6 +21,8 @@
  */
 
 #include "sci/console.h"
+#include "sci/sci.h"
+#include "sci/time.h"
 #include "sci/engine/features.h"
 #include "sci/engine/segment.h"
 #include "sci/engine/seg_manager.h"
@@ -29,7 +31,6 @@
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/text32.h"
 #include "sci/graphics/transitions32.h"
-#include "sci/sci.h"
 
 namespace Sci {
 static int dissolveSequences[2][20] = {
@@ -41,8 +42,9 @@ static int16 divisionsDefaults[2][16] = {
 	/* SCI2.1mid+ */   { 1, 20, 20, 20, 20, 10, 10, 10, 10, 20, 20,  6, 10, 101, 101, 2 }
 };
 
-GfxTransitions32::GfxTransitions32(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) :
+GfxTransitions32::GfxTransitions32(GameFeatures *features, TimeManager *timeMan, GfxFrameout *frameout, SegManager *segMan) :
 	_features(features),
+	_timeMan(timeMan),
 	_gfxFrameout(frameout),
 	_segMan(segMan) {
 	for (int i = 0; i < 236; i += 2) {
@@ -92,7 +94,7 @@ void GfxTransitions32::sendShowRects() {
 #pragma mark Show styles
 
 void GfxTransitions32::processShowStyles() {
-	uint32 now = getTickCount();
+	uint32 now = _timeMan->getTickCount();
 
 	bool continueProcessing;
 	bool doFrameOut;
@@ -294,7 +296,7 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 
 	entry->fadeUp = isFadeUp;
 	entry->color = color;
-	entry->nextTick = getTickCount();
+	entry->nextTick = _timeMan->getTickCount();
 	entry->type = type;
 	entry->animate = animate;
 	entry->delay = (seconds * 60 + entry->divisions - 1) / entry->divisions;
@@ -1047,7 +1049,7 @@ void GfxTransitions32::kernelSetScroll(const reg_t planeId, const int16 deltaX, 
 	scroll->deltaY = deltaY;
 	scroll->newPictureId = pictureId;
 	scroll->animate = animate;
-	scroll->startTick = getTickCount();
+	scroll->startTick = _timeMan->getTickCount();
 
 	Plane *plane = _gfxFrameout->getPlanes().findByObject(planeId);
 	if (plane == nullptr) {
@@ -1098,7 +1100,7 @@ void GfxTransitions32::kernelSetScroll(const reg_t planeId, const int16 deltaX, 
 
 bool GfxTransitions32::processScroll(PlaneScroll &scroll) {
 	bool finished = false;
-	uint32 now = getTickCount();
+	uint32 now = _timeMan->getTickCount();
 	if (scroll.startTick >= now) {
 		return false;
 	}

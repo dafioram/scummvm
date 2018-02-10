@@ -32,10 +32,11 @@
 #include "engines/util.h"
 #include "graphics/palette.h"
 #include "graphics/surface.h"
-
+#include "gui/debugger.h"
 #include "sci/sci.h"
 #include "sci/console.h"
 #include "sci/event.h"
+#include "sci/time.h"
 #include "sci/engine/features.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
@@ -60,16 +61,19 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, EventManager *eventMan, SegManager *segMan) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Video32 *video, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
-	_palette(resMan, features, this),
+	_palette(resMan, features, timeMan, this),
 	_remapper(features, this),
 	_cursor(resMan, features, this),
+	_transitions(features, timeMan, this, segMan),
+	_text(resMan, segMan),
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),
-	_transitions(features, this, segMan),
-	_text(resMan, segMan),
+	_debugger(debugger),
+	_timeMan(timeMan),
+	_video(video),
 	_throttleState(0),
 	_remapOccurred(false),
 	_overdrawThreshold(0),
@@ -113,6 +117,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, EventM
 	}
 
 	eventMan->attachTo(this);
+	timeMan->attachTo(this);
 	CelObj::init(resMan, _features, this, _segMan);
 	Plane::init(_features, this, _segMan);
 	ScreenItem::init(resMan, _features, this, _segMan);
@@ -396,7 +401,7 @@ void GfxFrameout::kernelAddPicAt(const reg_t planeObject, const GuiResourceId pi
 void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseRect) {
 	updateMousePositionForRendering();
 
-	RobotDecoder &robotPlayer = g_sci->_video32->getRobotPlayer();
+	RobotDecoder &robotPlayer = _video->getRobotPlayer();
 	const bool robotIsActive = robotPlayer.getStatus() != RobotDecoder::kRobotStatusUninitialized;
 
 	if (robotIsActive) {
@@ -1050,6 +1055,18 @@ void GfxFrameout::showBits() {
 	updateScreen();
 }
 
+bool GfxFrameout::validZeroStyle(const uint8 style, const int i) const {
+	if (style != 0) {
+		return false;
+	}
+
+	if (_features->hasRestrictedZeroStyle()) {
+		return (i > 71 && i < 104);
+	}
+
+	return true;
+}
+
 void GfxFrameout::alterVmap(const Palette &palette1, const Palette &palette2, const int8 style, const int8 *const styleRanges) {
 	uint8 clut[256];
 
@@ -1131,7 +1148,7 @@ void GfxFrameout::updateScreen(const int delta) {
 
 	_lastScreenUpdateTick = now;
 	g_system->updateScreen();
-	g_sci->getSciDebugger()->onFrame();
+	_debugger->onFrame();
 }
 
 void GfxFrameout::kernelFrameOut(const bool shouldShowBits) {
@@ -1163,13 +1180,11 @@ void GfxFrameout::throttle() {
 		++_throttleState;
 	}
 
-	g_sci->getEngineState()->speedThrottler(throttleTime);
-	g_sci->getEngineState()->_throttleTrigger = true;
+	_timeMan->throttle(throttleTime, true);
 }
 
 void GfxFrameout::throttle(const uint ms) {
-	g_sci->getEngineState()->speedThrottler(ms);
-	g_sci->getEngineState()->_throttleTrigger = true;
+	_timeMan->throttle(ms, true);
 }
 
 void GfxFrameout::shakeScreen(int16 numShakes, const ShakeDirection direction) {
@@ -1189,14 +1204,14 @@ void GfxFrameout::shakeScreen(int16 numShakes, const ShakeDirection direction) {
 		}
 
 		updateScreen();
-		g_sci->getEngineState()->wait(3);
+		_timeMan->sleepTicks(3);
 
 		if (direction & kShakeVertical) {
 			g_system->setShakePos(0);
 		}
 
 		updateScreen();
-		g_sci->getEngineState()->wait(3);
+		_timeMan->sleepTicks(3);
 	}
 }
 
@@ -1301,10 +1316,7 @@ bool GfxFrameout::getNowSeenRect(const reg_t screenItemObject, Common::Rect &res
 		// before SQ6, but this has not been verified since it cannot be
 		// disassembled at the moment (Phar Lap Windows-only release)
 		// (See also kSetNowSeen32)
-		if (getSciVersion() <= SCI_VERSION_2_1_EARLY ||
-			g_sci->getGameId() == GID_SQ6 ||
-			g_sci->getGameId() == GID_MOTHERGOOSEHIRES) {
-
+		if (_features->missingScreenItemIsError()) {
 			error("getNowSeenRect: Unable to find screen item %04x:%04x", PRINT_REG(screenItemObject));
 		}
 

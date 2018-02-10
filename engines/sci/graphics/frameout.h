@@ -33,6 +33,8 @@
 #include "sci/graphics/text32.h"
 #include "sci/graphics/transitions32.h"
 
+namespace GUI { class Debugger; }
+
 namespace Sci {
 typedef Common::Array<DrawList> ScreenItemListList;
 typedef Common::Array<RectList> EraseListList;
@@ -41,6 +43,8 @@ class EventManager;
 class GameFeatures;
 class GfxTransitions32;
 struct PlaneShowStyle;
+class TimeManager;
+class Video32;
 
 /**
  * Frameout class, kFrameOut and relevant functions for SCI32 games.
@@ -50,7 +54,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, EventManager *eventMan, SegManager *segMan);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Video32 *video, SegManager *segMan);
 	~GfxFrameout();
 
 	void clear();
@@ -98,6 +102,9 @@ private:
 	EventManager *_eventMan;
 	SegManager *_segMan;
 	GameFeatures *_features;
+	GUI::Debugger *_debugger;
+	TimeManager *_timeMan;
+	Video32 *_video;
 
 	/**
 	 * The resolution used by game scripts.
@@ -397,23 +404,7 @@ private:
 	 * a color from the next palette to the source palette during a palette
 	 * morph operation.
 	 */
-	inline bool validZeroStyle(const uint8 style, const int i) const {
-		if (style != 0) {
-			return false;
-		}
-
-		// TODO: Cannot check Shivers or MGDX until those executables can be
-		// unwrapped
-		switch (g_sci->getGameId()) {
-		case GID_KQ7:
-		case GID_PHANTASMAGORIA:
-		case GID_SQ6:
-			return (i > 71 && i < 104);
-			break;
-		default:
-			return true;
-		}
-	}
+	bool validZeroStyle(const uint8 style, const int i) const;
 
 #pragma mark -
 #pragma mark Mouse cursor

@@ -26,6 +26,7 @@
 #include "sci/sci.h"
 #include "sci/console.h"
 #include "sci/event.h"
+#include "sci/time.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
@@ -38,9 +39,10 @@
 #include "sci/graphics/text32.h"
 
 namespace Sci {
-GfxControls32::GfxControls32(EventManager *eventMan, ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout) :
+GfxControls32::GfxControls32(EventManager *eventMan, ResourceManager *resMan, TimeManager *timeMan, SegManager *segMan, GfxFrameout *frameout) :
 	_eventMan(eventMan),
 	_resMan(resMan),
+	_timeMan(timeMan),
 	_segMan(segMan),
 	_gfxFrameout(frameout),
 	_overwriteMode(false),
@@ -340,7 +342,7 @@ void GfxControls32::drawCursor(TextEditor &editor) {
 		editor.cursorIsDrawn = true;
 	}
 
-	_nextCursorFlashTick = getTickCount() + 30;
+	_nextCursorFlashTick = _timeMan->getTickCount() + 30;
 }
 
 void GfxControls32::eraseCursor(TextEditor &editor) {
@@ -349,15 +351,15 @@ void GfxControls32::eraseCursor(TextEditor &editor) {
 		editor.cursorIsDrawn = false;
 	}
 
-	_nextCursorFlashTick = getTickCount() + 30;
+	_nextCursorFlashTick = _timeMan->getTickCount() + 30;
 }
 
 void GfxControls32::flashCursor(TextEditor &editor) {
-	if (getTickCount() > _nextCursorFlashTick) {
+	if (_timeMan->getTickCount() > _nextCursorFlashTick) {
 		_gfxFrameout->_text.invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
 
 		editor.cursorIsDrawn = !editor.cursorIsDrawn;
-		_nextCursorFlashTick = getTickCount() + 30;
+		_nextCursorFlashTick = _timeMan->getTickCount() + 30;
 	}
 }
 

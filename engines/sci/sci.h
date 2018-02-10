@@ -72,6 +72,7 @@ class EventManager;
 class SegManager;
 class ScriptPatcher;
 class Sync;
+class TimeManager;
 
 class GfxAnimate;
 class GfxCache;
@@ -248,10 +249,6 @@ enum SciLanguage {
 
 void showScummVMDialog(const Common::String &message);
 
-uint32 getTickCount();
-
-void setTickCount(const uint32 ticks);
-
 struct GameMetadata {
 	SciGameId id;
 	Common::Language language;
@@ -278,8 +275,8 @@ public:
 	bool canSaveGameStateCurrently();
 	void syncSoundSettings(); ///< from ScummVM to the game
 	void updateSoundMixerVolumes();
-	uint32 getTickCount() { return ::Sci::getTickCount(); }
-	void setTickCount(const uint32 ticks) { ::Sci::setTickCount(ticks); }
+	uint32 getTickCount() const;
+	void setTickCount(const uint32 ticks);
 
 	const SciGameId &getGameId() const { return _metadata.id; }
 	const char *getGameIdStr() const;
@@ -395,6 +392,7 @@ public:
 	DebugState _debugState;
 
 	Common::MacResManager *getMacExecutable() { return &_macExecutable; }
+	TimeManager *getTimeManager() const { return _timeMan.get(); }
 
 private:
 	/**
@@ -446,6 +444,7 @@ private:
 	Console *_console;
 	Common::RandomSource _rng;
 	Common::MacResManager _macExecutable;
+	Common::ScopedPtr<TimeManager> _timeMan;
 	bool _forceHiresGraphics; // user-option for KQ6
 };
 

@@ -36,6 +36,7 @@
 #include "sci/debug.h"
 #include "sci/console.h"
 #include "sci/event.h"
+#include "sci/time.h"
 #include "sci/engine/savegame.h"
 
 #include "sci/engine/features.h"
@@ -87,14 +88,6 @@ namespace Sci {
 void showScummVMDialog(const Common::String &message) {
 	GUI::MessageDialog dialog(message, _("OK"));
 	dialog.runModal();
-}
-
-uint32 getTickCount() {
-	return g_engine->getTotalPlayTime() * 60 / 1000;
-}
-
-void setTickCount(const uint32 ticks) {
-	return g_engine->setTotalPlayTime(ticks * 1000 / 60);
 }
 
 const char *getSciVersionDesc(SciVersion version) {
@@ -360,10 +353,11 @@ Common::Error SciEngine::run() {
 
 	_guestAdditions = new GuestAdditions(_gamestate, _features, _kernel);
 	_eventMan = new EventManager(_features->detectFontExtended(), _console, _gamestate, _gfxScreen);
+	_timeMan.reset(new TimeManager(*g_system, *this, *_eventMan));
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		_audio32 = new Audio32(_resMan, _guestAdditions, _features);
+		_audio32 = new Audio32(_resMan, _guestAdditions, _features, _timeMan.get());
 		_video32 = new Video32(segMan, _eventMan);
 	} else
 #endif
@@ -606,7 +600,7 @@ bool SciEngine::initGame() {
 	if (_vocabulary)
 		_vocabulary->reset();
 
-	_gamestate->lastWaitTime = _gamestate->_screenUpdateTime = g_system->getMillis();
+	_gamestate->_lastWaitTime = _gamestate->_screenUpdateTime = g_system->getMillis();
 
 	// Load game language into printLang property of game object
 	setSciLanguage();
@@ -656,8 +650,8 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _eventMan, _gamestate->_segMan);
-		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _gamestate->_segMan, _gfxFrameout);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _console, _timeMan.get(), _eventMan, _video32, _gamestate->_segMan);
+		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _timeMan.get(), _gamestate->_segMan, _gfxFrameout);
 	} else {
 #endif
 		// SCI0-SCI1.1 graphic objects creation
@@ -724,7 +718,7 @@ void SciEngine::runGame() {
 			_guestAdditions->patchGameSaveRestore();
 			setLauncherLanguage();
 			_gamestate->gameIsRestarting = GAMEISRESTARTING_RESTART;
-			_gamestate->_throttleLastTime = 0;
+			_timeMan->reset();
 			if (_gfxMenu)
 				_gfxMenu->reset();
 			_gamestate->abortScriptProcessing = kAbortNone;
@@ -871,39 +865,7 @@ int SciEngine::inQfGImportRoom() const {
 }
 
 void SciEngine::sleep(uint32 msecs) {
-	if (!msecs) {
-		return;
-	}
-
-	uint32 time;
-	const uint32 wakeUpTime = g_system->getMillis() + msecs;
-
-	for (;;) {
-		// let backend process events and update the screen
-		_eventMan->getSciEvent(kSciEventPeek);
-
-		// There is no point in waiting any more if we are just waiting to quit
-		if (g_engine->shouldQuit()) {
-			return;
-		}
-
-#ifdef ENABLE_SCI32
-		// If a game is in a wait loop, kFrameOut is not called, but mouse
-		// movement is still occurring and the screen needs to be updated to
-		// reflect it
-		if (getSciVersion() >= SCI_VERSION_2) {
-			g_sci->_gfxFrameout->updateScreen();
-		}
-#endif
-		time = g_system->getMillis();
-		if (time + 10 < wakeUpTime) {
-			g_system->delayMillis(10);
-		} else {
-			if (time < wakeUpTime)
-				g_system->delayMillis(wakeUpTime - time);
-			break;
-		}
-	}
+	_timeMan->sleep(msecs);
 }
 
 void SciEngine::setLauncherLanguage() {
@@ -960,6 +922,14 @@ void SciEngine::updateSoundMixerVolumes() {
 		const int16 musicVolume = (ConfMan.getInt("music_volume") + 1) * SoundManager::kMaxMasterVolume / Audio::Mixer::kMaxMixerVolume;
 		_sound->setMasterVolume(ConfMan.getBool("mute") ? 0 : musicVolume);
 	}
+}
+
+uint32 SciEngine::getTickCount() const {
+	return _timeMan->getTickCount();
+}
+
+void SciEngine::setTickCount(const uint32 ticks) {
+	_timeMan->setTickCount(ticks);
 }
 
 void SciEngine::loadMacExecutable() {

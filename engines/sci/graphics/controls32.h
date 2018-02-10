@@ -30,6 +30,7 @@ namespace Sci {
 class GfxCache;
 class GfxFrameout;
 class GfxText32;
+class TimeManager;
 
 enum MessageBoxStyle {
 	kMessageBoxOK    = 0x0,
@@ -390,12 +391,13 @@ private:
  */
 class GfxControls32 {
 public:
-	GfxControls32(EventManager *eventMan, ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout);
+	GfxControls32(EventManager *eventMan, ResourceManager *resMan, TimeManager *_timeMan, SegManager *segMan, GfxFrameout *frameout);
 	~GfxControls32();
 
 private:
 	EventManager *_eventMan;
 	ResourceManager *_resMan;
+	TimeManager *_timeMan;
 	SegManager *_segMan;
 	GfxFrameout *_gfxFrameout;
 

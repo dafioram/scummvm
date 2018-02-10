@@ -1492,7 +1492,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	s->gcCountDown = GC_INTERVAL - 1;
 
 	// Time state:
-	s->lastWaitTime = g_system->getMillis();
+	s->_lastWaitTime = g_system->getMillis();
 	s->_screenUpdateTime = g_system->getMillis();
 	if (meta.version >= 34) {
 		g_sci->setTickCount(meta.playTime);

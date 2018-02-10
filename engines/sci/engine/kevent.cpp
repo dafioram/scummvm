@@ -23,6 +23,7 @@
 #include "common/system.h"
 
 #include "sci/sci.h"
+#include "sci/time.h"
 #include "sci/engine/features.h"
 #include "sci/engine/guest_additions.h"
 #include "sci/engine/kernel.h"
@@ -103,8 +104,8 @@ reg_t kGetEvent(EngineState *s, int argc, reg_t *argv) {
 		// throttling the VM.
 		if (++s->_eventCounter > 2) {
 			g_sci->_gfxFrameout->updateScreen();
-			s->speedThrottler(10); // 10ms is an arbitrary value
-			s->_throttleTrigger = true;
+			// 10ms is an arbitrary value
+			g_sci->getTimeManager()->throttle(10, true);
 		}
 	} else {
 #endif

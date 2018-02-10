@@ -19,6 +19,7 @@ MODULE_OBJS := \
 	resource/sources/volume.o \
 	resource/sources/patch.o \
 	sci.o \
+	time.o \
 	util.o \
 	engine/features.o \
 	engine/file.o \
