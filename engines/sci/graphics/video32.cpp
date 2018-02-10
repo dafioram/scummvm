@@ -45,8 +45,9 @@
 #include "sci/graphics/plane32.h"        // for Plane, PlanePictureCodes::kP...
 #include "sci/graphics/screen_item32.h"  // for ScaleInfo, ScreenItem, Scale...
 #include "sci/resource/manager.h"                // for ResourceManager, ResourceId,...
-#include "sci/sci.h"                     // for SciEngine, g_sci, getSciVersion
+#include "sci/sci.h"                     // for SciEngine, getSciVersion
 #include "sci/sound/audio32.h"           // for Audio32
+#include "sci/time.h"                    // for TimeManager
 #include "sci/video/seq_decoder.h"       // for SEQDecoder
 #include "video/avi_decoder.h"           // for AVIDecoder
 #include "video/coktel_decoder.h"        // for AdvancedVMDDecoder
@@ -90,7 +91,7 @@ bool VideoPlayer::startHQVideo() {
 		// able to fall back to NN scaling for games with 256-color videos
 		// without any error.
 		const Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
-		g_sci->_gfxFrameout->setPixelFormat(format);
+		_gfxFrameout->setPixelFormat(format);
 		_hqVideoMode = (g_system->getScreenFormat() == format);
 		return _hqVideoMode;
 	} else {
@@ -105,7 +106,7 @@ bool VideoPlayer::endHQVideo() {
 #ifdef USE_RGB_COLOR
 	if (g_system->getScreenFormat().bytesPerPixel != 1) {
 		const Graphics::PixelFormat format = Graphics::PixelFormat::createFormatCLUT8();
-		g_sci->_gfxFrameout->setPixelFormat(format);
+		_gfxFrameout->setPixelFormat(format);
 		assert(g_system->getScreenFormat() == format);
 		_hqVideoMode = false;
 		return true;
@@ -125,7 +126,7 @@ VideoPlayer::EventFlags VideoPlayer::playUntilEvent(const EventFlags flags, cons
 
 	EventFlags stopFlag = kEventFlagNone;
 	for (;;) {
-		g_sci->sleep(MIN(_decoder->getTimeToNextFrame(), maxSleepMs));
+		_timeMan->sleep(MIN(_decoder->getTimeToNextFrame(), maxSleepMs));
 
 		const Graphics::Surface *nextFrame = nullptr;
 		// If a decoder needs more than one update per loop, this means we are
@@ -156,7 +157,7 @@ VideoPlayer::EventFlags VideoPlayer::playUntilEvent(const EventFlags flags, cons
 		// Only call to update the screen after the event check, otherwise
 		// whatever the game scripts try to change when the player yields to
 		// them will not make it into the hardware buffer until the next tick
-		g_sci->_gfxFrameout->updateScreen();
+		_gfxFrameout->updateScreen();
 	}
 
 	return stopFlag;
@@ -252,7 +253,7 @@ void VideoPlayer::renderFrame(const Graphics::Surface &nextFrame) const {
 	}
 
 	g_system->copyRectToScreen(convertedFrame->getPixels(), convertedFrame->pitch, _drawRect.left, _drawRect.top, _drawRect.width(), _drawRect.height());
-	g_sci->_gfxFrameout->updateScreen();
+	_gfxFrameout->updateScreen();
 
 	if (freeConvertedFrame) {
 		convertedFrame->free();
@@ -294,8 +295,8 @@ void VideoPlayer::setDrawRect(const int16 x, const int16 y, const int16 width, c
 
 #pragma mark SEQPlayer
 
-SEQPlayer::SEQPlayer(EventManager *eventMan) :
-	VideoPlayer(eventMan) {}
+SEQPlayer::SEQPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout) :
+	VideoPlayer(timeMan, eventMan, frameout) {}
 
 void SEQPlayer::play(const Common::String &fileName, const int16 numTicks, const int16, const int16) {
 
@@ -306,10 +307,10 @@ void SEQPlayer::play(const Common::String &fileName, const int16 numTicks, const
 		return;
 	}
 
-	const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+	const int16 scriptWidth = _gfxFrameout->getScriptWidth();
+	const int16 scriptHeight = _gfxFrameout->getScriptHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 	const int16 scaledWidth = (_decoder->getWidth() * Ratio(screenWidth, scriptWidth)).toInt();
 	const int16 scaledHeight = (_decoder->getHeight() * Ratio(screenHeight, scriptHeight)).toInt();
@@ -334,8 +335,8 @@ void SEQPlayer::play(const Common::String &fileName, const int16 numTicks, const
 #pragma mark -
 #pragma mark AVIPlayer
 
-AVIPlayer::AVIPlayer(EventManager *eventMan) :
-	VideoPlayer(eventMan, new Video::AVIDecoder()),
+AVIPlayer::AVIPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout) :
+	VideoPlayer(timeMan, eventMan, frameout, new Video::AVIDecoder()),
 	_status(kAVINotOpen) {
 	_decoder->setSoundType(Audio::Mixer::kSFXSoundType);
 }
@@ -382,7 +383,7 @@ AVIPlayer::IOStatus AVIPlayer::init(const bool doublePixels) {
 		return kIOFileNotFound;
 	}
 
-	g_sci->_gfxFrameout->_cursor.hide();
+	_gfxFrameout->_cursor.hide();
 
 	int16 width = _decoder->getWidth();
 	int16 height = _decoder->getHeight();
@@ -391,8 +392,8 @@ AVIPlayer::IOStatus AVIPlayer::init(const bool doublePixels) {
 		height *= 2;
 	}
 
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 	// When scaling videos, they must not grow larger than the hardware screen
 	// or else the engine will crash. This is particularly important for the GK1
@@ -422,7 +423,7 @@ AVIPlayer::IOStatus AVIPlayer::init(const bool doublePixels) {
 			error("Failed to find any valid output pixel format");
 		}
 
-		g_sci->_gfxFrameout->setPixelFormat(bestFormat);
+		_gfxFrameout->setPixelFormat(bestFormat);
 	}
 
 	return kIOSuccess;
@@ -467,7 +468,7 @@ AVIPlayer::IOStatus AVIPlayer::close() {
 	}
 
 	g_system->fillScreen(0);
-	g_sci->_gfxFrameout->_cursor.unhide();
+	_gfxFrameout->_cursor.unhide();
 	_decoder->close();
 	_status = kAVINotOpen;
 	return kIOSuccess;
@@ -493,8 +494,11 @@ uint16 AVIPlayer::getDuration() const {
 #pragma mark -
 #pragma mark VMDPlayer
 
-VMDPlayer::VMDPlayer(EventManager *eventMan, SegManager *segMan) :
-	VideoPlayer(eventMan, new Video::AdvancedVMDDecoder(Audio::Mixer::kSFXSoundType)),
+VMDPlayer::VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
+	VideoPlayer(timeMan, eventMan, frameout, new Video::AdvancedVMDDecoder(Audio::Mixer::kSFXSoundType)),
+	_resMan(resMan),
+	_features(features),
+	_audio32(audio),
 	_segMan(segMan),
 
 	_isOpen(false),
@@ -540,11 +544,11 @@ VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFl
 		error("Attempted to play %s, but another VMD was loaded", fileName.c_str());
 	}
 
-	if (g_sci->_features->VMDOpenStopsAudio()) {
-		g_sci->_audio32->stop(kAllChannels);
+	if (_features->VMDOpenStopsAudio()) {
+		_audio32->stop(kAllChannels);
 	}
 
-	const Resource *bundledVmd = g_sci->getResMan()->findResource(ResourceId(kResourceTypeVMD, fileName.asUint64()), true);
+	const Resource *bundledVmd = _resMan->findResource(ResourceId(kResourceTypeVMD, fileName.asUint64()), true);
 
 	if (bundledVmd != nullptr) {
 		Common::SeekableReadStream *stream = bundledVmd->makeStream();
@@ -553,7 +557,7 @@ VMDPlayer::IOStatus VMDPlayer::open(const Common::String &fileName, const OpenFl
 			_isOpen = true;
 		} else {
 			delete stream;
-			g_sci->getResMan()->unlockResource(bundledVmd);
+			_resMan->unlockResource(bundledVmd);
 		}
 	} else if (_decoder->loadFile(fileName)) {
 		_isOpen = true;
@@ -606,24 +610,24 @@ VMDPlayer::IOStatus VMDPlayer::close() {
 		}
 
 		if (_blackoutPlane != nullptr) {
-			g_sci->_gfxFrameout->deletePlane(*_blackoutPlane);
+			_gfxFrameout->deletePlane(*_blackoutPlane);
 			_blackoutPlane = nullptr;
 		}
 
 		if (!_leaveLastFrame && !_leaveScreenBlack) {
 			// This call *actually* deletes the blackout plane
-			g_sci->_gfxFrameout->frameOut(true);
+			_gfxFrameout->frameOut(true);
 		}
 
 		if (!_showCursor) {
-			g_sci->_gfxFrameout->_cursor.unhide();
+			_gfxFrameout->_cursor.unhide();
 		}
 	}
 
 	_decoder->close();
 
 	if (_bundledVmd) {
-		g_sci->getResMan()->unlockResource(_bundledVmd);
+		_resMan->unlockResource(_bundledVmd);
 		_bundledVmd = nullptr;
 	}
 
@@ -692,12 +696,12 @@ VMDPlayer::EventFlags VMDPlayer::playUntilEvent(const EventFlags flags, const ui
 		_isInitialized = true;
 
 		if (!_showCursor) {
-			g_sci->_gfxFrameout->_cursor.hide();
+			_gfxFrameout->_cursor.hide();
 		}
 
 		if (!_blackoutRect.isEmpty() && _planeIsOwned) {
 			_blackoutPlane = new Plane(_blackoutRect);
-			g_sci->_gfxFrameout->addPlane(_blackoutPlane);
+			_gfxFrameout->addPlane(_blackoutPlane);
 		}
 
 		if (shouldUseCompositing()) {
@@ -755,7 +759,7 @@ void VMDPlayer::initOverlay() {
 		if (_priority) {
 			_plane->_priority = _priority;
 		}
-		g_sci->_gfxFrameout->addPlane(_plane);
+		_gfxFrameout->addPlane(_plane);
 	}
 
 	// Make sure that any pending graphics changes from the game are submitted
@@ -763,7 +767,7 @@ void VMDPlayer::initOverlay() {
 	// yields back to the VM in the middle of playback, there may be a flash of
 	// content that draws over the video. (This happens when subtitles are
 	// enabled in Shivers.)
-	g_sci->_gfxFrameout->frameOut(true);
+	_gfxFrameout->frameOut(true);
 
 #ifdef USE_RGB_COLOR
 	// TODO: Allow interpolation for videos where the cursor is drawn, either by
@@ -782,7 +786,7 @@ void VMDPlayer::redrawGameScreen() const {
 		return;
 	}
 
-	g_sci->_gfxFrameout->redrawGameScreen(_drawRect);
+	_gfxFrameout->redrawGameScreen(_drawRect);
 }
 #endif
 
@@ -794,9 +798,9 @@ void VMDPlayer::renderOverlay(const Graphics::Surface &nextFrame) const {
 	}
 #endif
 
-	Graphics::Surface out = g_sci->_gfxFrameout->getCurrentBuffer().getSubArea(_drawRect);
+	Graphics::Surface out = _gfxFrameout->getCurrentBuffer().getSubArea(_drawRect);
 	renderLQToSurface<uint8>(out, nextFrame, _doublePixels, _blackLines);
-	g_sci->_gfxFrameout->directFrameOut(_drawRect);
+	_gfxFrameout->directFrameOut(_drawRect);
 }
 
 void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
@@ -829,9 +833,9 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 		// next frame is rendered, and the frame rendering call will perform the
 		// same operations.
 	} else {
-		g_sci->_gfxFrameout->_palette.submit(palette);
-		g_sci->_gfxFrameout->_palette.updateForFrame();
-		g_sci->_gfxFrameout->_palette.updateHardware();
+		_gfxFrameout->_palette.submit(palette);
+		_gfxFrameout->_palette.updateForFrame();
+		_gfxFrameout->_palette.updateHardware();
 	}
 
 #if SCI_VMD_BLACK_PALETTE
@@ -841,9 +845,9 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 			SciBitmap *bitmap = _segMan->lookupBitmap(_bitmapId);
 			bitmap->setPalette(palette);
 		}
-		g_sci->_gfxFrameout->_palette.submit(palette);
-		g_sci->_gfxFrameout->_palette.updateForFrame();
-		g_sci->_gfxFrameout->_palette.updateHardware();
+		_gfxFrameout->_palette.submit(palette);
+		_gfxFrameout->_palette.updateForFrame();
+		_gfxFrameout->_palette.updateHardware();
 	}
 #endif
 
@@ -857,20 +861,20 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 
 void VMDPlayer::closeOverlay() {
 	if (isNormallyComposited() && _planeIsOwned && _plane != nullptr) {
-		g_sci->_gfxFrameout->deletePlane(*_plane);
+		_gfxFrameout->deletePlane(*_plane);
 		_plane = nullptr;
 	}
 
 #ifdef USE_RGB_COLOR
 	if (_hqVideoMode) {
 		if (endHQVideo()) {
-			g_sci->_gfxFrameout->resetHardware();
+			_gfxFrameout->resetHardware();
 		}
 		return;
 	}
 #endif
 
-	g_sci->_gfxFrameout->frameOut(true, _drawRect);
+	_gfxFrameout->frameOut(true, _drawRect);
 }
 
 void VMDPlayer::initComposited() {
@@ -886,8 +890,8 @@ void VMDPlayer::initComposited() {
 	}
 
 	const uint32 hunkPaletteSize = HunkPalette::calculateHunkPaletteSize(256, false);
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 	SciBitmap &vmdBitmap = *_segMan->allocateBitmap(&_bitmapId, _drawRect.width(), _drawRect.height(), 255, 0, 0, screenWidth, screenHeight, hunkPaletteSize, false, false);
 	vmdBitmap.getBuffer().fillRect(Common::Rect(_drawRect.width(), _drawRect.height()), 0);
@@ -904,7 +908,7 @@ void VMDPlayer::initComposited() {
 		if (_priority) {
 			_plane->_priority = _priority;
 		}
-		g_sci->_gfxFrameout->addPlane(_plane);
+		_gfxFrameout->addPlane(_plane);
 		_screenItem = new ScreenItem(_plane->_object, vmdCelInfo, Common::Point(), vmdScaleInfo);
 	} else {
 		_screenItem = new ScreenItem(_plane->_object, vmdCelInfo, Common::Point(_drawRect.left, _drawRect.top), vmdScaleInfo);
@@ -920,19 +924,19 @@ void VMDPlayer::initComposited() {
 	// In SSCI, there was code for positioning the screen item using insetRect
 	// here, but none of the game scripts seem to use this functionality.
 
-	g_sci->_gfxFrameout->addScreenItem(*_screenItem);
+	_gfxFrameout->addScreenItem(*_screenItem);
 
 	// Composited VMDs periodically yield to game scripts which will often call
 	// kFrameOut to make changes to other parts of the screen. Since VMDPlayer
 	// is responsible for throttling output during these times, GfxFrameout
 	// needs to stop throttling kFrameOut calls or else we will drop frames when
 	// kFrameOut sleeps right through the next frame
-	g_sci->_gfxFrameout->_throttleKernelFrameOut = false;
+	_gfxFrameout->_throttleKernelFrameOut = false;
 }
 
 void VMDPlayer::renderComposited() const {
-	g_sci->_gfxFrameout->updateScreenItem(*_screenItem);
-	g_sci->_gfxFrameout->frameOut(true);
+	_gfxFrameout->updateScreenItem(*_screenItem);
+	_gfxFrameout->frameOut(true);
 }
 
 void VMDPlayer::closeComposited() {
@@ -942,19 +946,19 @@ void VMDPlayer::closeComposited() {
 	}
 
 	if (!_planeIsOwned && _screenItem != nullptr) {
-		g_sci->_gfxFrameout->deleteScreenItem(*_screenItem);
+		_gfxFrameout->deleteScreenItem(*_screenItem);
 		_screenItem = nullptr;
 	} else if (_plane != nullptr) {
-		g_sci->_gfxFrameout->deletePlane(*_plane);
+		_gfxFrameout->deletePlane(*_plane);
 		_plane = nullptr;
 	}
 
 	if (!_leaveLastFrame && _leaveScreenBlack) {
 		// This call *actually* deletes the plane/screen item
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->frameOut(true);
 	}
 
-	g_sci->_gfxFrameout->_throttleKernelFrameOut = true;
+	_gfxFrameout->_throttleKernelFrameOut = true;
 }
 
 #pragma mark -
@@ -991,7 +995,7 @@ void VMDPlayer::fillPalette(const uint8 rawPalette[256 * 3], Palette &outPalette
 void VMDPlayer::setPlane(const int16 priority, const reg_t planeId) {
 	_priority = priority;
 	if (planeId != NULL_REG) {
-		_plane = g_sci->_gfxFrameout->getPlanes().findByObject(planeId);
+		_plane = _gfxFrameout->getPlanes().findByObject(planeId);
 		assert(_plane != nullptr);
 		_planeIsOwned = false;
 	}
@@ -1010,8 +1014,8 @@ void VMDPlayer::restrictPalette(const uint8 startColor, const int16 endColor) {
 #pragma mark -
 #pragma mark DuckPlayer
 
-DuckPlayer::DuckPlayer(EventManager *eventMan, SegManager *segMan) :
-	VideoPlayer(eventMan, new Video::AVIDecoder()),
+DuckPlayer::DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, SegManager *segMan) :
+	VideoPlayer(timeMan, eventMan, frameout, new Video::AVIDecoder()),
 	_plane(nullptr),
 	_status(kDuckClosed),
 	_volume(Audio::Mixer::kMaxChannelVolume),
@@ -1042,16 +1046,16 @@ void DuckPlayer::open(const GuiResourceId resourceId, const int displayMode, con
 				(_decoder->getWidth() << _doublePixels),
 				(_decoder->getHeight() << _doublePixels));
 
-	g_sci->_gfxFrameout->_cursor.hide();
+	_gfxFrameout->_cursor.hide();
 
 	if (_doFrameOut) {
 		_plane = new Plane(_drawRect, kPlanePicColored);
-		g_sci->_gfxFrameout->addPlane(_plane);
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->addPlane(_plane);
+		_gfxFrameout->frameOut(true);
 	}
 
 	if (!startHQVideo() && _decoder->getPixelFormat().bytesPerPixel != 1) {
-		g_sci->_gfxFrameout->setPixelFormat(_decoder->getPixelFormat());
+		_gfxFrameout->setPixelFormat(_decoder->getPixelFormat());
 	}
 
 	_status = kDuckOpen;
@@ -1088,11 +1092,11 @@ void DuckPlayer::close() {
 
 	endHQVideo();
 
-	g_sci->_gfxFrameout->_cursor.unhide();
+	_gfxFrameout->_cursor.unhide();
 
 	if (_doFrameOut) {
-		g_sci->_gfxFrameout->deletePlane(*_plane);
-		g_sci->_gfxFrameout->frameOut(true);
+		_gfxFrameout->deletePlane(*_plane);
+		_gfxFrameout->frameOut(true);
 		_plane = nullptr;
 	}
 

@@ -39,8 +39,12 @@ namespace Video {
 class AdvancedVMDDecoder;
 }
 namespace Sci {
+class Audio32;
 class EventManager;
+class GameFeatures;
+class GfxFrameout;
 class Plane;
+class ResourceManager;
 class ScreenItem;
 class SegManager;
 class SEQDecoder;
@@ -67,8 +71,10 @@ public:
 		return static_cast<EventFlags>((int)a | (int)b);
 	}
 
-	VideoPlayer(EventManager *eventMan, Video::VideoDecoder *decoder = nullptr) :
+	VideoPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Video::VideoDecoder *decoder = nullptr) :
+		_timeMan(timeMan),
 		_eventMan(eventMan),
+		_gfxFrameout(frameout),
 		_decoder(decoder)
 #ifdef USE_RGB_COLOR
 		,
@@ -79,7 +85,9 @@ public:
 	virtual ~VideoPlayer() {}
 
 protected:
+	TimeManager *_timeMan;
 	EventManager *_eventMan;
+	GfxFrameout *_gfxFrameout;
 
 	/**
 	 * The video decoder to use for video playback by this player.
@@ -188,7 +196,7 @@ protected:
  */
 class SEQPlayer : public VideoPlayer {
 public:
-	SEQPlayer(EventManager *eventMan);
+	SEQPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout);
 
 	/**
 	 * Plays a SEQ animation with the given file name, with each frame being
@@ -219,7 +227,7 @@ public:
 		kAVIPaused   = 3
 	};
 
-	AVIPlayer(EventManager *eventMan);
+	AVIPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout);
 
 	/**
 	 * Opens a stream to an AVI resource.
@@ -301,10 +309,13 @@ public:
 		kVMDFinished = 5
 	};
 
-	VMDPlayer(EventManager *eventMan, SegManager *segMan);
+	VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan);
 	virtual ~VMDPlayer();
 
 private:
+	ResourceManager *_resMan;
+	GameFeatures *_features;
+	Audio32 *_audio32;
 	SegManager *_segMan;
 
 #pragma mark -
@@ -632,7 +643,7 @@ public:
 		kDuckPaused  = 3
 	};
 
-	DuckPlayer(EventManager *eventMan, SegManager *segMan);
+	DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, SegManager *segMan);
 
 	/**
 	 * Opens a stream to a Duck resource.
@@ -716,12 +727,12 @@ private:
  */
 class Video32 : public Common::Serializable {
 public:
-	Video32(SegManager *segMan, EventManager *eventMan) :
-	_SEQPlayer(eventMan),
-	_AVIPlayer(eventMan),
-	_VMDPlayer(eventMan, segMan),
-	_robotPlayer(segMan),
-	_duckPlayer(eventMan, segMan) {}
+	Video32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
+		_SEQPlayer(timeMan, eventMan, frameout),
+		_AVIPlayer(timeMan, eventMan, frameout),
+		_VMDPlayer(resMan, features, timeMan, eventMan, frameout, audio, segMan),
+		_robotPlayer(timeMan, frameout, audio, segMan),
+		_duckPlayer(timeMan, eventMan, frameout, segMan) {}
 
 	void beforeSaveLoadWithSerializer(Common::Serializer &ser);
 	virtual void saveLoadWithSerializer(Common::Serializer &ser);

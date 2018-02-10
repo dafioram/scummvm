@@ -450,12 +450,16 @@ public:
 #pragma mark -
 #pragma mark RobotDecoder
 
+class Audio32;
+class GfxFrameout;
+class TimeManager;
+
 /**
  * RobotDecoder implements the logic required for Robot animations.
  */
 class RobotDecoder {
 public:
-	RobotDecoder(SegManager *segMan);
+	RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan);
 	~RobotDecoder();
 
 	GuiResourceId getResourceId() const {
@@ -463,6 +467,10 @@ public:
 	}
 
 private:
+	static Audio32 *_audio32;
+
+	TimeManager *_timeMan;
+	GfxFrameout *_gfxFrameout;
 	SegManager *_segMan;
 
 	/**
@@ -1278,7 +1286,7 @@ private:
 	 * The hunk palette to use when rendering the current frame, if the
 	 * `usePalette` flag was set in the robot header.
 	 */
-	uint8 *_rawPalette;
+	uint8 _rawPalette[kRawPaletteSize];
 
 	/**
 	 * A list of the raw video data sizes, in bytes, for each frame of the

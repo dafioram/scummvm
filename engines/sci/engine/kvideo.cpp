@@ -202,7 +202,7 @@ reg_t kShowMovie32(EngineState *s, int argc, reg_t *argv) {
 	const int16 x = argc > 3 ? argv[2].toSint16() : 0;
 	const int16 y = argc > 3 ? argv[3].toSint16() : 0;
 
-	g_sci->_video32->getSEQPlayer().play(fileName, numTicks, x, y);
+	g_sci->_gfxFrameout->_video.getSEQPlayer().play(fileName, numTicks, x, y);
 
 	return s->r_acc;
 }
@@ -220,20 +220,20 @@ reg_t kRobotOpen(EngineState *s, int argc, reg_t *argv) {
 	const int16 x = argv[3].toSint16();
 	const int16 y = argv[4].toSint16();
 	const int16 scale = argc > 5 ? argv[5].toSint16() : 128;
-	g_sci->_video32->getRobotPlayer().open(robotId, plane, priority, x, y, scale);
+	g_sci->_gfxFrameout->_video.getRobotPlayer().open(robotId, plane, priority, x, y, scale);
 	return make_reg(0, 0);
 }
 reg_t kRobotShowFrame(EngineState *s, int argc, reg_t *argv) {
 	const uint16 frameNo = argv[0].toUint16();
 	const uint16 newX = argc > 1 ? argv[1].toUint16() : (uint16)RobotDecoder::kUnspecified;
 	const uint16 newY = argc > 1 ? argv[2].toUint16() : (uint16)RobotDecoder::kUnspecified;
-	g_sci->_video32->getRobotPlayer().showFrame(frameNo, newX, newY, RobotDecoder::kUnspecified);
+	g_sci->_gfxFrameout->_video.getRobotPlayer().showFrame(frameNo, newX, newY, RobotDecoder::kUnspecified);
 	return s->r_acc;
 }
 
 reg_t kRobotGetFrameSize(EngineState *s, int argc, reg_t *argv) {
 	Common::Rect frameRect;
-	const uint16 numFramesTotal = g_sci->_video32->getRobotPlayer().getFrameSize(frameRect);
+	const uint16 numFramesTotal = g_sci->_gfxFrameout->_video.getRobotPlayer().getFrameSize(frameRect);
 
 	SciArray *outRect = s->_segMan->lookupArray(argv[0]);
 	reg_t values[4] = {
@@ -247,39 +247,39 @@ reg_t kRobotGetFrameSize(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kRobotPlay(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getRobotPlayer().resume();
+	g_sci->_gfxFrameout->_video.getRobotPlayer().resume();
 	return s->r_acc;
 }
 
 reg_t kRobotGetIsFinished(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getRobotPlayer().getStatus() == RobotDecoder::kRobotStatusEnd);
+	return make_reg(0, g_sci->_gfxFrameout->_video.getRobotPlayer().getStatus() == RobotDecoder::kRobotStatusEnd);
 }
 
 reg_t kRobotGetIsPlaying(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getRobotPlayer().getStatus() == RobotDecoder::kRobotStatusPlaying);
+	return make_reg(0, g_sci->_gfxFrameout->_video.getRobotPlayer().getStatus() == RobotDecoder::kRobotStatusPlaying);
 }
 
 reg_t kRobotClose(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getRobotPlayer().close();
+	g_sci->_gfxFrameout->_video.getRobotPlayer().close();
 	return s->r_acc;
 }
 
 reg_t kRobotGetCue(EngineState *s, int argc, reg_t *argv) {
-	writeSelectorValue(s->_segMan, argv[0], SELECTOR(signal), g_sci->_video32->getRobotPlayer().getCue());
+	writeSelectorValue(s->_segMan, argv[0], SELECTOR(signal), g_sci->_gfxFrameout->_video.getRobotPlayer().getCue());
 	return s->r_acc;
 }
 
 reg_t kRobotPause(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getRobotPlayer().pause();
+	g_sci->_gfxFrameout->_video.getRobotPlayer().pause();
 	return s->r_acc;
 }
 
 reg_t kRobotGetFrameNo(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getRobotPlayer().getFrameNo());
+	return make_reg(0, g_sci->_gfxFrameout->_video.getRobotPlayer().getFrameNo());
 }
 
 reg_t kRobotSetPriority(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getRobotPlayer().setPriority(argv[0].toSint16());
+	g_sci->_gfxFrameout->_video.getRobotPlayer().setPriority(argv[0].toSint16());
 	return s->r_acc;
 }
 
@@ -298,7 +298,7 @@ reg_t kShowMovieWinOpen(EngineState *s, int argc, reg_t *argv) {
 	}
 
 	const Common::String fileName = s->_segMan->getString(argv[0]);
-	return make_reg(0, g_sci->_video32->getAVIPlayer().open(fileName));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().open(fileName));
 }
 
 reg_t kShowMovieWinInit(EngineState *s, int argc, reg_t *argv) {
@@ -314,29 +314,29 @@ reg_t kShowMovieWinInit(EngineState *s, int argc, reg_t *argv) {
 	// argv[2] is an optional broken width
 	// argv[3] is an optional broken height
 	const bool pixelDouble = argc > 3 && argv[2].toSint16() && argv[3].toSint16();
-	return make_reg(0, g_sci->_video32->getAVIPlayer().init(pixelDouble));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().init(pixelDouble));
 }
 
 reg_t kShowMovieWinPlay(EngineState *s, int argc, reg_t *argv) {
 	if (getSciVersion() == SCI_VERSION_2) {
 		AVIPlayer::EventFlags flags = (AVIPlayer::EventFlags)argv[0].toUint16();
-		return make_reg(0, g_sci->_video32->getAVIPlayer().playUntilEvent(flags));
+		return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().playUntilEvent(flags));
 	} else {
 		// argv[0] is a broken movie ID
 		const int16 from = argc > 2 ? argv[1].toSint16() : 0;
 		const int16 to = argc > 2 ? argv[2].toSint16() : 0;
 		const int16 showStyle = argc > 3 ? argv[3].toSint16() : 0;
 		const bool cue = argc > 4 ? (bool)argv[4].toSint16() : false;
-		return make_reg(0, g_sci->_video32->getAVIPlayer().play(from, to, showStyle, cue));
+		return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().play(from, to, showStyle, cue));
 	}
 }
 
 reg_t kShowMovieWinClose(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getAVIPlayer().close());
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().close());
 }
 
 reg_t kShowMovieWinGetDuration(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getAVIPlayer().getDuration());
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().getDuration());
 }
 
 reg_t kShowMovieWinCue(EngineState *s, int argc, reg_t *argv) {
@@ -348,7 +348,7 @@ reg_t kShowMovieWinCue(EngineState *s, int argc, reg_t *argv) {
 	}
 
 	const uint16 frameNo = argv[0].toUint16();
-	return make_reg(0, g_sci->_video32->getAVIPlayer().cue(frameNo));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().cue(frameNo));
 }
 
 reg_t kShowMovieWinPlayUntilEvent(EngineState *s, int argc, reg_t *argv) {
@@ -359,14 +359,14 @@ reg_t kShowMovieWinPlayUntilEvent(EngineState *s, int argc, reg_t *argv) {
 	// argv[0] is the movie number, which is not used by this method
 	const AVIPlayer::EventFlags flags = (AVIPlayer::EventFlags)(argc > 1 ? argv[1].toUint16() : defaultFlags);
 
-	return make_reg(0, g_sci->_video32->getAVIPlayer().playUntilEvent(flags));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().playUntilEvent(flags));
 }
 
 reg_t kShowMovieWinInitDouble(EngineState *s, int argc, reg_t *argv) {
 	// argv[0] is a broken movie ID
 	// argv[1] is a broken x-coordinate
 	// argv[2] is a broken y-coordinate
-	return make_reg(0, g_sci->_video32->getAVIPlayer().init(true));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getAVIPlayer().init(true));
 }
 
 reg_t kPlayVMD(EngineState *s, int argc, reg_t *argv) {
@@ -381,7 +381,7 @@ reg_t kPlayVMDOpen(EngineState *s, int argc, reg_t *argv) {
 	// const uint16 cacheSize = argc > 1 ? CLIP<int16>(argv[1].toSint16(), 16, 1024) : 0;
 	const VMDPlayer::OpenFlags flags = argc > 2 ? (VMDPlayer::OpenFlags)argv[2].toUint16() : VMDPlayer::kOpenFlagNone;
 
-	return make_reg(0, g_sci->_video32->getVMDPlayer().open(fileName, flags));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getVMDPlayer().open(fileName, flags));
 }
 
 reg_t kPlayVMDInit(EngineState *s, int argc, reg_t *argv) {
@@ -401,22 +401,22 @@ reg_t kPlayVMDInit(EngineState *s, int argc, reg_t *argv) {
 		boostEndColor = -1;
 	}
 
-	g_sci->_video32->getVMDPlayer().init(x, y, flags, boostPercent, boostStartColor, boostEndColor);
+	g_sci->_gfxFrameout->_video.getVMDPlayer().init(x, y, flags, boostPercent, boostStartColor, boostEndColor);
 
 	return make_reg(0, 0);
 }
 
 reg_t kPlayVMDClose(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getVMDPlayer().close());
+	return make_reg(0, g_sci->_gfxFrameout->_video.getVMDPlayer().close());
 }
 
 reg_t kPlayVMDIgnorePalettes(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getVMDPlayer().ignorePalettes();
+	g_sci->_gfxFrameout->_video.getVMDPlayer().ignorePalettes();
 	return s->r_acc;
 }
 
 reg_t kPlayVMDGetStatus(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_video32->getVMDPlayer().getStatus());
+	return make_reg(0, g_sci->_gfxFrameout->_video.getVMDPlayer().getStatus());
 }
 
 reg_t kPlayVMDPlayUntilEvent(EngineState *s, int argc, reg_t *argv) {
@@ -427,11 +427,11 @@ reg_t kPlayVMDPlayUntilEvent(EngineState *s, int argc, reg_t *argv) {
 	const VMDPlayer::EventFlags flags = (VMDPlayer::EventFlags)argv[0].toUint16();
 	const int16 lastFrameNo = argc > 1 ? argv[1].toSint16() : -1;
 	const int16 yieldInterval = argc > 2 ? argv[2].toSint16() : -1;
-	return make_reg(0, g_sci->_video32->getVMDPlayer().kernelPlayUntilEvent(flags, lastFrameNo, yieldInterval));
+	return make_reg(0, g_sci->_gfxFrameout->_video.getVMDPlayer().kernelPlayUntilEvent(flags, lastFrameNo, yieldInterval));
 }
 
 reg_t kPlayVMDShowCursor(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getVMDPlayer().setShowCursor((bool)argv[0].toUint16());
+	g_sci->_gfxFrameout->_video.getVMDPlayer().setShowCursor((bool)argv[0].toUint16());
 	return s->r_acc;
 }
 
@@ -444,17 +444,17 @@ reg_t kPlayVMDSetBlackoutArea(EngineState *s, int argc, reg_t *argv) {
 	blackoutArea.top = MAX<int16>(0, argv[1].toSint16());
 	blackoutArea.right = MIN<int16>(scriptWidth, argv[2].toSint16() + 1);
 	blackoutArea.bottom = MIN<int16>(scriptHeight, argv[3].toSint16() + 1);
-	g_sci->_video32->getVMDPlayer().setBlackoutArea(blackoutArea);
+	g_sci->_gfxFrameout->_video.getVMDPlayer().setBlackoutArea(blackoutArea);
 	return s->r_acc;
 }
 
 reg_t kPlayVMDRestrictPalette(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getVMDPlayer().restrictPalette(argv[0].toUint16(), argv[1].toUint16());
+	g_sci->_gfxFrameout->_video.getVMDPlayer().restrictPalette(argv[0].toUint16(), argv[1].toUint16());
 	return s->r_acc;
 }
 
 reg_t kPlayVMDSetPlane(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getVMDPlayer().setPlane(argv[0].toSint16(), argc > 1 ? argv[1] : NULL_REG);
+	g_sci->_gfxFrameout->_video.getVMDPlayer().setPlane(argv[0].toSint16(), argc > 1 ? argv[1] : NULL_REG);
 	return s->r_acc;
 }
 
@@ -469,13 +469,13 @@ reg_t kPlayDuckPlay(EngineState *s, int argc, reg_t *argv) {
 		return NULL_REG;
 	}
 	kPlayDuckOpen(s, argc, argv);
-	g_sci->_video32->getDuckPlayer().play(-1);
-	g_sci->_video32->getDuckPlayer().close();
+	g_sci->_gfxFrameout->_video.getDuckPlayer().play(-1);
+	g_sci->_gfxFrameout->_video.getDuckPlayer().close();
 	return NULL_REG;
 }
 
 reg_t kPlayDuckSetFrameOut(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getDuckPlayer().setDoFrameOut((bool)argv[0].toUint16());
+	g_sci->_gfxFrameout->_video.getDuckPlayer().setDoFrameOut((bool)argv[0].toUint16());
 	return NULL_REG;
 }
 
@@ -485,17 +485,17 @@ reg_t kPlayDuckOpen(EngineState *s, int argc, reg_t *argv) {
 	const int16 x = argv[2].toSint16();
 	const int16 y = argv[3].toSint16();
 	// argv[4] is a cache size argument that we do not use
-	g_sci->_video32->getDuckPlayer().open(resourceId, displayMode, x, y);
+	g_sci->_gfxFrameout->_video.getDuckPlayer().open(resourceId, displayMode, x, y);
 	return NULL_REG;
 }
 
 reg_t kPlayDuckClose(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getDuckPlayer().close();
+	g_sci->_gfxFrameout->_video.getDuckPlayer().close();
 	return NULL_REG;
 }
 
 reg_t kPlayDuckSetVolume(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_video32->getDuckPlayer().setVolume(argv[0].toUint16());
+	g_sci->_gfxFrameout->_video.getDuckPlayer().setVolume(argv[0].toUint16());
 	return NULL_REG;
 }
 

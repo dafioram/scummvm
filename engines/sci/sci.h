@@ -377,7 +377,6 @@ public:
 
 #ifdef ENABLE_SCI32
 	Audio32 *_audio32;
-	Video32 *_video32;
 	GfxFrameout *_gfxFrameout; // kFrameout and the like for 32-bit gfx
 #endif
 

@@ -139,7 +139,6 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, const GameMet
 	_sync = nullptr;
 #ifdef ENABLE_SCI32
 	_audio32 = nullptr;
-	_video32 = nullptr;
 #endif
 	_guestAdditions = nullptr;
 	_features = 0;
@@ -250,9 +249,6 @@ SciEngine::~SciEngine() {
 #ifdef ENABLE_SCI32
 	delete _gfxControls32;
 	delete _gfxPaint32;
-	// GfxFrameout must be deleted after Video32 since destruction of screen
-	// items in the Video32 destructor relies on this component
-	delete _video32;
 	delete _gfxFrameout;
 	delete _audio32;
 #endif
@@ -358,7 +354,6 @@ Common::Error SciEngine::run() {
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
 		_audio32 = new Audio32(_resMan, _guestAdditions, _features, _timeMan.get());
-		_video32 = new Video32(segMan, _eventMan);
 	} else
 #endif
 		_audio = new AudioPlayer(_resMan);
@@ -650,7 +645,7 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _console, _timeMan.get(), _eventMan, _video32, _gamestate->_segMan);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _console, _timeMan.get(), _eventMan, _audio32, _gamestate->_segMan);
 		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _timeMan.get(), _gamestate->_segMan, _gfxFrameout);
 	} else {
 #endif

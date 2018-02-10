@@ -38,6 +38,7 @@
 #include "sci/graphics/text32.h"     // for BitmapResource
 #include "sci/sound/audio32.h"       // for Audio32
 #include "sci/sci.h"                 // for kDebugLevels::kDebugLevelVideo
+#include "sci/time.h"                // for TimeManager
 #include "sci/util.h"                // for READ_SCI11ENDIAN_UINT16, READ_SC...
 
 namespace Sci {
@@ -347,17 +348,24 @@ int RobotAudioStream::readBuffer(Audio::st_sample_t *outBuffer, int numSamples) 
 #pragma mark -
 #pragma mark RobotDecoder
 
-RobotDecoder::RobotDecoder(SegManager *segMan) :
+Audio32 *RobotDecoder::_audio32 = nullptr;
+
+RobotDecoder::RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
 	_delayTime(this),
+	_timeMan(timeMan),
+	_gfxFrameout(frameout),
 	_segMan(segMan),
 	_status(kRobotStatusUninitialized),
 	_audioBuffer(nullptr),
-	_rawPalette((uint8 *)malloc(kRawPaletteSize)) {}
+	_rawPalette() {
+	assert(!_audio32);
+	_audio32 = audio;
+}
 
 RobotDecoder::~RobotDecoder() {
 	close();
-	free(_rawPalette);
 	free(_audioBuffer);
+	_audio32 = nullptr;
 }
 
 #pragma mark -
@@ -374,13 +382,16 @@ void RobotDecoder::initStream(const GuiResourceId robotId) {
 
 	_robotId = robotId;
 
+	// TODO: Mac version not tested, so this could be totally wrong
+	bool isBE = false;
 	const uint16 id = stream->readUint16LE();
-	if (id != 0x16) {
+	if (id == 0x1600) {
+		isBE = true;
+	} else if (id != 0x16) {
 		error("Invalid robot file %s", fileName.c_str());
 	}
 
-	// TODO: Mac version not tested, so this could be totally wrong
-	_stream = new Common::SeekableSubReadStreamEndian(stream, 0, stream->size(), g_sci->getPlatform() == Common::kPlatformMacintosh, DisposeAfterUse::YES);
+	_stream = new Common::SeekableSubReadStreamEndian(stream, 0, stream->size(), isBE, DisposeAfterUse::YES);
 	_stream->seek(2, SEEK_SET);
 	if (_stream->readUint32BE() != MKTAG('S', 'O', 'L', 0)) {
 		error("Resource %s is not Robot type!", fileName.c_str());
@@ -436,7 +447,7 @@ void RobotDecoder::initVideo(const int16 x, const int16 y, const int16 scale, co
 	_scaleInfo.y = scale;
 	_scaleInfo.signal = scale == 128 ? kScaleSignalNone : kScaleSignalManual;
 
-	_plane = g_sci->_gfxFrameout->getPlanes().findByObject(plane);
+	_plane = _gfxFrameout->getPlanes().findByObject(plane);
 	if (_plane == nullptr) {
 		error("Invalid plane %04x:%04x passed to RobotDecoder::open", PRINT_REG(plane));
 	}
@@ -448,8 +459,8 @@ void RobotDecoder::initVideo(const int16 x, const int16 y, const int16 scale, co
 	if (_xResolution == 0 || _yResolution == 0) {
 		// In SSCI, default values were taken from RESOURCE.CFG hires property
 		// if it exists, but no games seem to take advantage of this
-		_xResolution = g_sci->_gfxFrameout->getScreenWidth();
-		_yResolution = g_sci->_gfxFrameout->getScreenHeight();
+		_xResolution = _gfxFrameout->getScreenWidth();
+		_yResolution = _gfxFrameout->getScreenHeight();
 	}
 
 	if (hasPalette) {
@@ -592,10 +603,10 @@ void RobotDecoder::close() {
 	}
 	_fixedCels.clear();
 
-	if (g_sci->_gfxFrameout->getPlanes().findByObject(_planeId) != nullptr) {
+	if (_gfxFrameout->getPlanes().findByObject(_planeId) != nullptr) {
 		for (RobotScreenItemList::size_type i = 0; i < _screenItemList.size(); ++i) {
 			if (_screenItemList[i] != nullptr) {
-				g_sci->_gfxFrameout->deleteScreenItem(*_screenItemList[i]);
+				_gfxFrameout->deleteScreenItem(*_screenItemList[i]);
 			}
 		}
 	}
@@ -678,10 +689,10 @@ void RobotDecoder::showFrame(const uint16 frameNo, const uint16 newX, const uint
 			if (_isHiRes) {
 				SciBitmap &bitmap = *_segMan->lookupBitmap(_celHandles[i].bitmapId);
 
-				const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-				const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-				const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-				const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+				const int16 scriptWidth = _gfxFrameout->getScriptWidth();
+				const int16 scriptHeight = _gfxFrameout->getScriptHeight();
+				const int16 screenWidth = _gfxFrameout->getScreenWidth();
+				const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 				if (scriptWidth == kLowResX && scriptHeight == kLowResY) {
 					const Ratio lowResToScreenX(screenWidth, kLowResX);
@@ -728,7 +739,7 @@ void RobotDecoder::showFrame(const uint16 frameNo, const uint16 newX, const uint
 					screenItem->_priority = _priority;
 					screenItem->_fixedPriority = true;
 				}
-				g_sci->_gfxFrameout->addScreenItem(*screenItem);
+				_gfxFrameout->addScreenItem(*screenItem);
 			} else {
 				ScreenItem *screenItem = _screenItemList[i];
 				screenItem->_celInfo.bitmap = _celHandles[i].bitmapId;
@@ -739,7 +750,7 @@ void RobotDecoder::showFrame(const uint16 frameNo, const uint16 newX, const uint
 					screenItem->_priority = _priority;
 					screenItem->_fixedPriority = true;
 				}
-				g_sci->_gfxFrameout->updateScreenItem(*screenItem);
+				_gfxFrameout->updateScreenItem(*screenItem);
 			}
 		}
 	}
@@ -864,7 +875,7 @@ uint32 RobotDecoder::ticksToFrames(const uint32 ticks) const {
 }
 
 uint32 RobotDecoder::getTickCount() const {
-	return g_sci->getTickCount();
+	return _timeMan->getTickCount();
 }
 
 #pragma mark -
@@ -880,19 +891,19 @@ RobotDecoder::AudioList::AudioList() :
 
 void RobotDecoder::AudioList::startAudioNow() {
 	submitDriverMax();
-	g_sci->_audio32->resume(kRobotChannel);
+	_audio32->resume(kRobotChannel);
 	_status = kRobotAudioPlaying;
 }
 
 void RobotDecoder::AudioList::stopAudio() {
-	g_sci->_audio32->finishRobotAudio();
+	_audio32->finishRobotAudio();
 	freeAudioBlocks();
 	_status = kRobotAudioStopping;
 }
 
 void RobotDecoder::AudioList::stopAudioNow() {
 	if (_status == kRobotAudioPlaying || _status == kRobotAudioStopping || _status == kRobotAudioPaused) {
-		g_sci->_audio32->stopRobotAudio();
+		_audio32->stopRobotAudio();
 		_status = kRobotAudioStopped;
 	}
 
@@ -951,7 +962,7 @@ void RobotDecoder::AudioList::reset() {
 }
 
 void RobotDecoder::AudioList::prepareForPrimer() {
-	g_sci->_audio32->pause(kRobotChannel);
+	_audio32->pause(kRobotChannel);
 	_status = kRobotAudioPaused;
 }
 
@@ -973,7 +984,7 @@ RobotDecoder::AudioList::AudioBlock::~AudioBlock() {
 bool RobotDecoder::AudioList::AudioBlock::submit(const int startOffset) {
 	assert(_data != nullptr);
 	RobotAudioStream::RobotAudioPacket packet(_data, _size, (_position - startOffset) * 2);
-	return g_sci->_audio32->playRobotAudio(packet);
+	return _audio32->playRobotAudio(packet);
 }
 
 void RobotDecoder::AudioList::freeAudioBlocks() {
@@ -1277,7 +1288,7 @@ void RobotDecoder::frameNowVisible() {
 
 	if (!_syncFrame && _hasAudio && getTickCount() >= _checkAudioSyncTime) {
 		RobotAudioStream::StreamState status;
-		const bool success = g_sci->_audio32->queryRobotAudio(status);
+		const bool success = _audio32->queryRobotAudio(status);
 		if (!success) {
 			return;
 		}
@@ -1404,7 +1415,7 @@ void RobotDecoder::doVersion5(const bool shouldSubmitAudio) {
 				screenItem->_fixedPriority = true;
 				screenItem->_priority = _priority;
 			}
-			g_sci->_gfxFrameout->addScreenItem(*screenItem);
+			_gfxFrameout->addScreenItem(*screenItem);
 		} else {
 			ScreenItem *screenItem = _screenItemList[i];
 			screenItem->_celInfo.bitmap = _celHandles[i].bitmapId;
@@ -1416,13 +1427,13 @@ void RobotDecoder::doVersion5(const bool shouldSubmitAudio) {
 				screenItem->_fixedPriority = true;
 				screenItem->_priority = _priority;
 			}
-			g_sci->_gfxFrameout->updateScreenItem(*screenItem);
+			_gfxFrameout->updateScreenItem(*screenItem);
 		}
 	}
 
 	for (RobotScreenItemList::size_type i = screenItemCount; i < oldScreenItemCount; ++i) {
 		if (_screenItemList[i] != nullptr) {
-			g_sci->_gfxFrameout->deleteScreenItem(*_screenItemList[i]);
+			_gfxFrameout->deleteScreenItem(*_screenItemList[i]);
 			_screenItemList[i] = nullptr;
 		}
 	}
@@ -1454,10 +1465,10 @@ uint32 RobotDecoder::createCel5(const byte *rawVideoData, const int16 screenItem
 
 	rawVideoData += kCelHeaderSize;
 
-	const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+	const int16 scriptWidth = _gfxFrameout->getScriptWidth();
+	const int16 scriptHeight = _gfxFrameout->getScriptHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 	Common::Point origin;
 	if (scriptWidth == kLowResX && scriptHeight == kLowResY) {

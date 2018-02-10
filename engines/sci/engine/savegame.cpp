@@ -420,7 +420,7 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		g_sci->_video32->beforeSaveLoadWithSerializer(s);
+		g_sci->_gfxFrameout->_video.beforeSaveLoadWithSerializer(s);
 	}
 #endif
 
@@ -434,7 +434,7 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 		g_sci->_gfxFrameout->_remapper.saveLoadWithSerializer(s);
 		g_sci->_gfxFrameout->_cursor.saveLoadWithSerializer(s);
 		g_sci->_audio32->saveLoadWithSerializer(s);
-		g_sci->_video32->saveLoadWithSerializer(s);
+		g_sci->_gfxFrameout->_video.saveLoadWithSerializer(s);
 	} else
 #endif
 		g_sci->_gfxPalette16->saveLoadWithSerializer(s);

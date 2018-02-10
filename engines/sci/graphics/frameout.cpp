@@ -61,19 +61,19 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Video32 *video, SegManager *segMan) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, timeMan, this),
 	_remapper(features, this),
 	_cursor(resMan, features, this),
 	_transitions(features, timeMan, this, segMan),
 	_text(resMan, segMan),
+	_video(resMan, features, timeMan, eventMan, this, audio, segMan),
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),
 	_debugger(debugger),
 	_timeMan(timeMan),
-	_video(video),
 	_throttleState(0),
 	_remapOccurred(false),
 	_overdrawThreshold(0),
@@ -401,7 +401,7 @@ void GfxFrameout::kernelAddPicAt(const reg_t planeObject, const GuiResourceId pi
 void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseRect) {
 	updateMousePositionForRendering();
 
-	RobotDecoder &robotPlayer = _video->getRobotPlayer();
+	RobotDecoder &robotPlayer = _video.getRobotPlayer();
 	const bool robotIsActive = robotPlayer.getStatus() != RobotDecoder::kRobotStatusUninitialized;
 
 	if (robotIsActive) {
