@@ -38,11 +38,11 @@
 #include "sci/graphics/text32.h"
 
 namespace Sci {
-GfxControls32::GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache) :
+GfxControls32::GfxControls32(EventManager *eventMan, ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout) :
 	_eventMan(eventMan),
+	_resMan(resMan),
 	_segMan(segMan),
 	_gfxFrameout(frameout),
-	_gfxCache(cache),
 	_overwriteMode(false),
 	_nextCursorFlashTick(0),
 	// SSCI used a memory handle for a ScrollWindow object as ID. We use a
@@ -77,8 +77,8 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	int16 titleHeight = 0;
 	GuiResourceId titleFontId = readSelectorValue(_segMan, controlObject, SELECTOR(titleFont));
 	if (!titleObject.isNull()) {
-		GfxFont *titleFont = _gfxCache->getFont(titleFontId);
-		titleHeight += _gfxFrameout->_text.scaleUpHeight(titleFont->getHeight()) + 1;
+		GfxFontFromResource titleFont(_resMan, titleFontId);
+		titleHeight += _gfxFrameout->_text.scaleUpHeight(titleFont.getHeight()) + 1;
 		if (editor.borderColor != -1) {
 			titleHeight += 2;
 		}
@@ -87,8 +87,8 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	int16 width = 0;
 	int16 height = titleHeight;
 
-	GfxFont *editorFont = _gfxCache->getFont(editor.fontId);
-	height += _gfxFrameout->_text.scaleUpHeight(editorFont->getHeight()) + 1;
+	GfxFontFromResource editorFont(_resMan, editor.fontId);
+	height += _gfxFrameout->_text.scaleUpHeight(editorFont.getHeight()) + 1;
 	_gfxFrameout->_text.setFont(editor.fontId);
 	int16 emSize = _gfxFrameout->_text.getCharWidth('M', true);
 	width += editor.maxLength * emSize + 1;
@@ -319,7 +319,7 @@ void GfxControls32::drawCursor(TextEditor &editor) {
 	if (!editor.cursorIsDrawn) {
 		editor.cursorRect.left = editor.textRect.left + _gfxFrameout->_text.getTextWidth(editor.text, 0, editor.cursorCharPosition);
 
-		const int16 scaledFontHeight = _gfxFrameout->_text.scaleUpHeight(_gfxFrameout->_text._font->getHeight());
+		const int16 scaledFontHeight = _gfxFrameout->_text.scaleUpHeight(_gfxFrameout->_text._font.getHeight());
 
 		// SSCI branched on borderColor here but the two branches appeared to be
 		// identical, differing only because the compiler decided to be
@@ -364,10 +364,10 @@ void GfxControls32::flashCursor(TextEditor &editor) {
 #pragma mark -
 #pragma mark Scrollable window control
 
-ScrollWindow::ScrollWindow(SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, const Common::Rect &gameRect, const Common::Point &position, const reg_t plane, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) :
+ScrollWindow::ScrollWindow(ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout, const Common::Rect &gameRect, const Common::Point &position, const reg_t plane, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) :
 	_segMan(segMan),
 	_gfxFrameout(frameout),
-	_gfxText32(segMan, cache),
+	_gfxText32(resMan, segMan),
 	_maxNumEntries(maxNumEntries),
 	_firstVisibleChar(0),
 	_topVisibleLine(0),
@@ -389,7 +389,7 @@ ScrollWindow::ScrollWindow(SegManager *segMan, GfxFrameout *frameout, GfxCache *
 	_entries.reserve(maxNumEntries);
 
 	_gfxText32.setFont(_fontId);
-	_pointSize = _gfxText32._font->getHeight();
+	_pointSize = _gfxText32._font.getHeight();
 
 	Common::Rect bitmapRect(_gfxText32.scaleRect(gameRect));
 
@@ -699,8 +699,8 @@ void ScrollWindow::computeLineIndices() {
 	// Unlike SSCI, foreColor and alignment are not set since these properties
 	// do not affect the width of lines
 
-	if (_gfxText32._font->getHeight() != _pointSize) {
-		error("Illegal font size font = %d pointSize = %d, should be %d.", _fontId, _gfxText32._font->getHeight(), _pointSize);
+	if (_gfxText32._font.getHeight() != _pointSize) {
+		error("Illegal font size font = %d pointSize = %d, should be %d.", _fontId, _gfxText32._font.getHeight(), _pointSize);
 	}
 
 	Common::Rect lineRect(0, 0, _textRect.width(), _pointSize + 3);
@@ -770,7 +770,7 @@ void ScrollWindow::update(const bool doFrameOut) {
 
 reg_t GfxControls32::makeScrollWindow(const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries) {
 
-	ScrollWindow *scrollWindow = new ScrollWindow(_segMan, _gfxFrameout, _gfxCache, gameRect, position, planeObj, defaultForeColor, defaultBackColor, defaultFontId, defaultAlignment, defaultBorderColor, maxNumEntries);
+	ScrollWindow *scrollWindow = new ScrollWindow(_resMan, _segMan, _gfxFrameout, gameRect, position, planeObj, defaultForeColor, defaultBackColor, defaultFontId, defaultAlignment, defaultBorderColor, maxNumEntries);
 
 	const uint16 id = _nextScrollWindowId++;
 	_scrollWindows[id] = scrollWindow;

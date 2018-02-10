@@ -145,7 +145,7 @@ class ScreenItem;
  */
 class ScrollWindow {
 public:
-	ScrollWindow(SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries);
+	ScrollWindow(ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout, const Common::Rect &gameRect, const Common::Point &position, const reg_t planeObj, const uint8 defaultForeColor, const uint8 defaultBackColor, const GuiResourceId defaultFontId, const TextAlign defaultAlignment, const int16 defaultBorderColor, const uint16 maxNumEntries);
 	~ScrollWindow();
 
 	/**
@@ -390,14 +390,14 @@ private:
  */
 class GfxControls32 {
 public:
-	GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache);
+	GfxControls32(EventManager *eventMan, ResourceManager *resMan, SegManager *segMan, GfxFrameout *frameout);
 	~GfxControls32();
 
 private:
 	EventManager *_eventMan;
+	ResourceManager *_resMan;
 	SegManager *_segMan;
 	GfxFrameout *_gfxFrameout;
-	GfxCache *_gfxCache;
 
 #pragma mark -
 #pragma mark Text input control

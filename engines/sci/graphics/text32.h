@@ -25,6 +25,7 @@
 
 #include "sci/engine/state.h"
 #include "sci/graphics/celobj32.h"
+#include "sci/graphics/font.h"
 #include "sci/graphics/helpers.h"
 
 namespace Sci {
@@ -42,6 +43,7 @@ enum ScrollDirection {
 };
 
 class GfxFont;
+class ResourceManager;
 
 /**
  * This class handles text calculation and rendering for SCI32 games. The text
@@ -52,8 +54,8 @@ class GfxFont;
  */
 class GfxText32 {
 private:
+	ResourceManager *_resMan;
 	SegManager *_segMan;
-	GfxCache *_cache;
 
 	/**
 	 * The size of the x-dimension of the coordinate system used by the game
@@ -151,7 +153,7 @@ private:
 	int16 getTextWidth(const uint index, uint length) const;
 
 public:
-	GfxText32(SegManager *segMan, GfxCache *fonts);
+	GfxText32(ResourceManager *resMan, SegManager *segMan);
 
 	/**
 	 * Initialises static GfxText32 members.
@@ -183,7 +185,7 @@ public:
 	 * @note SSCI builds the font table directly inside of FontMgr; we use
 	 * GfxFont instead.
 	 */
-	GfxFont *_font;
+	GfxFontFromResource _font;
 
 	/**
 	 * Creates a plain font bitmap with a flat color background.

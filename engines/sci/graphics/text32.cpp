@@ -43,15 +43,15 @@ int16 GfxText32::_yResolution = 0;
 int16 GfxText32::_scriptWidth = 0;
 int16 GfxText32::_scriptHeight = 0;
 
-GfxText32::GfxText32(SegManager *segMan, GfxCache *fonts) :
+GfxText32::GfxText32(ResourceManager *resMan, SegManager *segMan) :
+	_resMan(resMan),
 	_segMan(segMan),
-	_cache(fonts),
 	// SSCI did not initialise height, so we intentionally do not do so also
 	_width(0),
 	_text(""),
 	_bitmap(NULL_REG),
 	_fontId(kSci32SystemFont),
-	_font(_cache->getFont(kSci32SystemFont)) {}
+	_font(resMan, kSci32SystemFont) {}
 
 void GfxText32::init(const int16 scriptWidth, const int16 scriptHeight) {
 	_scriptWidth = _xResolution = scriptWidth;
@@ -165,7 +165,7 @@ void GfxText32::setFont(const GuiResourceId fontId) {
 	// code just grabs those out of GfxCache
 	if (fontId != _fontId) {
 		_fontId = fontId;
-		_font = _cache->getFont(_fontId);
+		_font = GfxFontFromResource(_resMan, fontId);
 	}
 }
 
@@ -208,16 +208,16 @@ void GfxText32::drawChar(const char charIndex) {
 	SciBitmap &bitmap = *_segMan->lookupBitmap(_bitmap);
 	byte *pixels = bitmap.getPixels();
 
-	_font->drawToBuffer((unsigned char)charIndex, _drawPosition.y, _drawPosition.x, _foreColor, _dimmed, pixels, _width, _height);
-	_drawPosition.x += _font->getCharWidth((unsigned char)charIndex);
+	_font.draw((unsigned char)charIndex, _drawPosition.y, _drawPosition.x, _foreColor, _dimmed, pixels, _width, _height);
+	_drawPosition.x += _font.getCharWidth((unsigned char)charIndex);
 }
 
 int16 GfxText32::getScaledFontHeight() const {
-	return (_font->getHeight() * _scriptHeight + _yResolution - 1) / _yResolution;
+	return (_font.getHeight() * _scriptHeight + _yResolution - 1) / _yResolution;
 }
 
 uint16 GfxText32::getCharWidth(const char charIndex, const bool doScaling) const {
-	uint16 width = _font->getCharWidth((unsigned char)charIndex);
+	uint16 width = _font.getCharWidth((unsigned char)charIndex);
 	if (doScaling) {
 		width = scaleUpWidth(width);
 	}
@@ -256,7 +256,7 @@ void GfxText32::drawTextBox() {
 		drawText(charIndex, length);
 		charIndex = nextCharIndex;
 		text = sourceText + charIndex;
-		_drawPosition.y += _font->getHeight();
+		_drawPosition.y += _font.getHeight();
 	}
 }
 
@@ -491,7 +491,7 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 
 	const char *text = _text.c_str() + index;
 
-	GfxFont *font = _font;
+	GfxFontFromResource font = _font;
 
 	char currentChar = *text++;
 	while (length > 0 && currentChar != '\0') {
@@ -517,7 +517,7 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 				}
 
 				if (length > 0) {
-					font = _cache->getFont(fontId);
+					font = GfxFontFromResource(_resMan, fontId);
 				}
 			}
 
@@ -531,7 +531,7 @@ int16 GfxText32::getTextWidth(const uint index, uint length) const {
 				--length;
 			}
 		} else {
-			width += font->getCharWidth((unsigned char)currentChar);
+			width += font.getCharWidth((unsigned char)currentChar);
 		}
 
 		if (length > 0) {
@@ -583,7 +583,7 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 				// TODO: Due to getLongest and getTextWidth not having side
 				// effects, it is possible that the currently loaded font's
 				// height is wrong for this line if it was changed inline
-				result.bottom += _font->getHeight();
+				result.bottom += _font.getHeight();
 			}
 		}
 
@@ -601,7 +601,7 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 			// This was not the case in the other branch, which decremented the
 			// bottom by 1 at the end of the loop. For accuracy, we do what SSCI
 			// did, even though this means the result is a pixel off
-			result.bottom = _font->getHeight() + 1;
+			result.bottom = _font.getHeight() + 1;
 		}
 	}
 
@@ -638,7 +638,7 @@ int16 GfxText32::getTextCount(const Common::String &text, const uint index, cons
 
 	uint charIndex = index;
 	int16 maxWidth = scaledRect.width();
-	int16 lineCount = (scaledRect.height() - 2) / _font->getHeight();
+	int16 lineCount = (scaledRect.height() - 2) / _font.getHeight();
 	while (lineCount--) {
 		getLongest(&charIndex, maxWidth);
 	}
@@ -656,7 +656,7 @@ void GfxText32::scrollLine(const Common::String &lineText, int numLines, uint8 c
 	SciBitmap &bmr = *_segMan->lookupBitmap(_bitmap);
 	byte *pixels = bmr.getPixels();
 
-	int h = _font->getHeight();
+	int h = _font.getHeight();
 
 	if (dir == kScrollUp) {
 		// Scroll existing text down

@@ -68,9 +68,9 @@ GfxFont *GfxCache::getFont(GuiResourceId fontId) {
 	if (!_cachedFonts.contains(fontId)) {
 		// Create special SJIS font in japanese games, when font 900 is selected
 		if ((fontId == 900) && (g_sci->getLanguage() == Common::JA_JPN))
-			_cachedFonts[fontId] = new GfxFontSjis(_screen, fontId);
+			_cachedFonts[fontId] = new GfxFontSjis(fontId);
 		else
-			_cachedFonts[fontId] = new GfxFontFromResource(_resMan, _screen, fontId);
+			_cachedFonts[fontId] = new GfxFontFromResource(_resMan, fontId);
 	}
 
 	return _cachedFonts[fontId];

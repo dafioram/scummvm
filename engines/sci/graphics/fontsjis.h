@@ -23,6 +23,7 @@
 #ifndef SCI_GRAPHICS_FONTSJIS_H
 #define SCI_GRAPHICS_FONTSJIS_H
 
+#include "common/ptr.h"
 #include "sci/graphics/helpers.h"
 
 namespace Graphics {
@@ -34,22 +35,18 @@ namespace Sci {
 /**
  * Special Font class, handles SJIS inside sci games, uses ScummVM SJIS support
  */
-class GfxFontSjis : public GfxFont {
+class GfxFontSjis final : public GfxFont {
 public:
-	GfxFontSjis(GfxScreen *screen, GuiResourceId resourceId);
-	~GfxFontSjis();
+	GfxFontSjis(GuiResourceId fontId);
 
-	GuiResourceId getResourceId();
-	byte getHeight();
-	bool isDoubleByte(uint16 chr);
-	byte getCharWidth(uint16 chr);
-	void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput);
+	virtual uint8 getHeight() const override;
+	virtual bool isDoubleByte(uint16 chr) const override;
+	virtual byte getCharWidth(uint16 chr) const override;
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, GfxScreen *screen) const override;
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 width, int16 height) const override {}
 
 private:
-	GfxScreen *_screen;
-	GuiResourceId _resourceId;
-
-	Graphics::FontSJIS *_commonFont;
+	Common::ScopedPtr<Graphics::FontSJIS> _commonFont;
 };
 
 } // End of namespace Sci

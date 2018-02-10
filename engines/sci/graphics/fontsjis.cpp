@@ -28,43 +28,29 @@
 
 namespace Sci {
 
-GfxFontSjis::GfxFontSjis(GfxScreen *screen, GuiResourceId resourceId)
-	: _resourceId(resourceId), _screen(screen) {
-	assert(resourceId != -1);
-
-	if (!_screen->getUpscaledHires())
-		error("I don't want to initialize, when not being in upscaled hires mode");
-
-	_commonFont = Graphics::FontSJIS::createFont(Common::kPlatformPC98);
-
+GfxFontSjis::GfxFontSjis(GuiResourceId fontId) {
+	_fontId = fontId;
+	_commonFont.reset(Graphics::FontSJIS::createFont(Common::kPlatformPC98));
 	if (!_commonFont)
 		error("Could not load ScummVM's 'SJIS.FNT'");
 }
 
-GfxFontSjis::~GfxFontSjis() {
+bool GfxFontSjis::isDoubleByte(uint16 chr) const {
+	// Returns true for first byte of double byte characters
+	return (chr >= 0x81 && chr <= 0x9F) || (chr >= 0xE0 && chr <= 0xEF);
 }
 
-GuiResourceId GfxFontSjis::getResourceId() {
-	return _resourceId;
+byte GfxFontSjis::getHeight() const {
+	// Font returns hires size, we need lowres
+	return _commonFont->getFontHeight() / 2;
 }
 
-// Returns true for first byte of double byte characters
-bool GfxFontSjis::isDoubleByte(uint16 chr) {
-	if (((chr >= 0x81) && (chr <= 0x9F)) || ((chr >= 0xE0) && (chr <= 0xEF)))
-		return true;
-	return false;
+byte GfxFontSjis::getCharWidth(uint16 chr) const {
+	// Font returns hires size, we need lowres
+	return _commonFont->getCharWidth(chr) / 2;
 }
 
-// We can do >>1, because returned char width/height is 8 or 16 exclusively. Font returns hires size, we need lowres
-byte GfxFontSjis::getHeight() {
-	return _commonFont->getFontHeight() >> 1;
-}
-
-byte GfxFontSjis::getCharWidth(uint16 chr) {
-	return _commonFont->getCharWidth(chr) >> 1;
-
-}
-void GfxFontSjis::draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput) {
+void GfxFontSjis::draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, GfxScreen *screen) const {
 	// TODO: Check, if character fits on screen - if it doesn't we need to skip it
 	//  Normally SCI cuts the character and draws the part that fits, but the common SJIS doesn't support that
 
@@ -73,7 +59,7 @@ void GfxFontSjis::draw(uint16 chr, int16 top, int16 left, byte color, bool greye
 	//  If we don't do this, the characters will be slightly to the right, caused by "GetLongest()" inside GfxText16 that
 	//  leaves the last character that is causing a split into a new line within the current line instead of removing it.
 	//  That way the result will actually be too long (not our fault, sierra sci does it the same way)
-	_screen->putKanjiChar(_commonFont, left & 0xFFC, top, chr, color);
+	screen->putKanjiChar(_commonFont.get(), left & 0xFFC, top, chr, color);
 }
 
 } // End of namespace Sci

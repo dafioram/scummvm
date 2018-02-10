@@ -648,17 +648,16 @@ void SciEngine::initGraphics() {
 		_gfxPalette16 = new GfxPalette(_resMan, _gfxScreen);
 		if (getGameId() == GID_QFG4DEMO)
 			_gfxRemap16 = new GfxRemap(_gfxPalette16);
+		_gfxCache = new GfxCache(_resMan, _gfxScreen, _gfxPalette16);
 	}
-
-	_gfxCache = new GfxCache(_resMan, _gfxScreen, _gfxPalette16);
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxCache);
-		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan);
+		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _gamestate->_segMan, _gfxFrameout);
 	} else {
 #endif
 		// SCI0-SCI1.1 graphic objects creation

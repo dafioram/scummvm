@@ -36,55 +36,47 @@ enum {
 
 class GfxFont {
 public:
-	GfxFont() {}
 	virtual ~GfxFont() {}
+	GuiResourceId getResourceId() const { return _fontId; }
+	virtual uint8 getHeight() const = 0;
+	virtual bool isDoubleByte(uint16 chr) const = 0;
+	virtual uint8 getCharWidth(uint16 chr) const = 0;
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, GfxScreen *screen) const = 0;
+#ifdef ENABLE_SCI32
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 width, int16 height) const = 0;
+#endif
 
-	virtual GuiResourceId getResourceId() { return 0; }
-	virtual byte getHeight() { return 0; }
-	virtual bool isDoubleByte(uint16 chr) { return false; }
-	virtual byte getCharWidth(uint16 chr) { return 0; }
-	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput) {}
-	virtual void drawToBuffer(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 width, int16 height) {}
+protected:
+	GuiResourceId _fontId;
 };
 
-
-/**
- * Font class, handles loading of font resources and drawing characters to screen
- *  every font resource has its own instance of this class
- */
-class GfxFontFromResource : public GfxFont {
+class GfxFontFromResource final : public GfxFont {
 public:
-	GfxFontFromResource(ResourceManager *resMan, GfxScreen *screen, GuiResourceId resourceId);
-	~GfxFontFromResource();
+	GfxFontFromResource(ResourceManager *resMan, const GuiResourceId fontId);
+	GfxFontFromResource(const GfxFontFromResource &other);
+	virtual ~GfxFontFromResource();
 
-	GuiResourceId getResourceId();
-	uint8 getHeight();
-	uint8 getCharWidth(uint16 chr);
-	void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput);
+	virtual uint8 getHeight() const override;
+	virtual uint8 getCharWidth(uint16 chr) const override;
+	virtual bool isDoubleByte(uint16 chr) const override { return false; }
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, GfxScreen *screen) const override;
 #ifdef ENABLE_SCI32
-	// SCI2/2.1 equivalent
-	void drawToBuffer(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 width, int16 height);
+	virtual void draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 width, int16 height) const override;
 #endif
 
 private:
-	uint8 getCharHeight(uint16 chr);
-	SciSpan<const byte> getCharData(uint16 chr);
+	uint8 getCharHeight(uint16 chr) const;
+	SciSpan<const byte> getCharData(uint16 chr) const;
+
+	template <typename Renderer>
+	void render(int charWidth, int charHeight, uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, Renderer renderer) const;
 
 	ResourceManager *_resMan;
-	GfxScreen *_screen;
-
 	const Resource *_resource;
-	SciSpan<const byte> _resourceData;
-	GuiResourceId _resourceId;
-
-	struct Charinfo {
-		uint8 width, height;
-		int16 offset;
-	};
-
-	uint8 _fontHeight;
+	SciSpan<const byte> _data;
+	SciSpan<const uint16> _offsets;
 	uint16 _numChars;
-	Charinfo *_chars;
+	uint8 _fontHeight;
 };
 
 } // End of namespace Sci

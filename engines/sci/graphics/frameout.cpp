@@ -60,7 +60,7 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxCache *cache) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, this),
 	_remapper(features, this),
@@ -68,7 +68,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 	_segMan(segMan),
 	_features(features),
 	_transitions(features, this, segMan),
-	_text(segMan, cache),
+	_text(resMan, segMan),
 	_throttleState(0),
 	_remapOccurred(false),
 	_overdrawThreshold(0),

@@ -185,76 +185,102 @@ static const byte sci32SystemFont[] = {
 };
 #endif
 
-	GfxFontFromResource::GfxFontFromResource(ResourceManager *resMan, GfxScreen *screen, GuiResourceId resourceId)
-	: _resourceId(resourceId), _screen(screen), _resMan(resMan) {
+GfxFontFromResource::GfxFontFromResource(ResourceManager *resMan, GuiResourceId fontId) :
+	_resMan(resMan) {
+	_fontId = fontId;
 	if (getSciVersion() < SCI_VERSION_2) {
-		assert(resourceId != -1);
+		assert(fontId != -1);
 	}
 
 #ifdef ENABLE_SCI32
-	if (getSciVersion() >= SCI_VERSION_2 && resourceId == kSci32SystemFont) {
+	if (getSciVersion() >= SCI_VERSION_2 && fontId == kSci32SystemFont) {
 		_resource = nullptr;
-		_resourceData = SciSpan<const byte>(sci32SystemFont, sizeof(sci32SystemFont), "system font");
+		_data = SciSpan<const byte>(sci32SystemFont, sizeof(sci32SystemFont), "system font");
 	} else {
 #endif
 		// Workaround: lsl1sci mixes its own internal fonts with the global
 		// SCI ones, so we translate them here, by removing their extra bits
-		if (!resMan->testResource(ResourceId(kResourceTypeFont, resourceId)))
-			resourceId = resourceId & 0x7ff;
+		if (!resMan->testResource(ResourceId(kResourceTypeFont, fontId)))
+			fontId = fontId & 0x7ff;
 
-		_resource = resMan->findResource(ResourceId(kResourceTypeFont, resourceId), true);
+		_resource = resMan->findResource(ResourceId(kResourceTypeFont, fontId), true);
 		if (!_resource) {
-			error("font resource %d not found", resourceId);
+			error("Font resource %d not found", fontId);
 		}
-		_resourceData = *_resource;
+		_data = *_resource;
 #ifdef ENABLE_SCI32
 	}
 #endif
 
-	_numChars = _resourceData.getUint16SE32At(2);
-	_fontHeight = _resourceData.getUint16SE32At(4);
-	_chars = new Charinfo[_numChars];
-	// filling info for every char
-	for (int16 i = 0; i < _numChars; i++) {
-		_chars[i].offset = _resourceData.getUint16SE32At(6 + i * 2);
-		_chars[i].width = _resourceData.getUint8At(_chars[i].offset);
-		_chars[i].height = _resourceData.getUint8At(_chars[i].offset + 1);
+	_numChars = _data.getUint16SE32At(2);
+	_fontHeight = _data.getUint16SE32At(4);
+	_offsets = _data.subspan<const uint16>(6, _numChars * sizeof(uint16));
+}
+
+GfxFontFromResource::GfxFontFromResource(const GfxFontFromResource &other) :
+	_resMan(other._resMan),
+	_resource(other._resource),
+	_data(other._data),
+	_offsets(other._offsets),
+	_numChars(other._numChars),
+	_fontHeight(other._fontHeight) {
+	if (_resource) {
+		_resMan->findResource(_resource->getId(), true);
 	}
 }
 
 GfxFontFromResource::~GfxFontFromResource() {
-	delete[] _chars;
 	if (_resource) {
 		_resMan->unlockResource(_resource);
 	}
 }
 
-GuiResourceId GfxFontFromResource::getResourceId() {
-	return _resourceId;
-}
-
-uint8 GfxFontFromResource::getHeight() {
+uint8 GfxFontFromResource::getHeight() const {
 	return _fontHeight;
 }
 
-uint8 GfxFontFromResource::getCharWidth(uint16 chr) {
-	return chr < _numChars ? _chars[chr].width : 0;
+uint8 GfxFontFromResource::getCharWidth(const uint16 chr) const {
+	if (chr >= _numChars) {
+		return 0;
+	}
+
+	return _data.getUint8At(_offsets.getUint16SE32At(chr));
 }
 
-uint8 GfxFontFromResource::getCharHeight(uint16 chr) {
-	return chr < _numChars ? _chars[chr].height : 0;
+uint8 GfxFontFromResource::getCharHeight(const uint16 chr) const {
+	if (chr >= _numChars) {
+		return 0;
+	}
+
+	return _data.getUint8At(_offsets.getUint16SE32At(chr) + 1);
 }
 
-SciSpan<const byte> GfxFontFromResource::getCharData(uint16 chr) {
+SciSpan<const byte> GfxFontFromResource::getCharData(const uint16 chr) const {
 	if (chr >= _numChars) {
 		return SciSpan<const byte>();
 	}
 
-	const uint32 size = (chr + 1 >= _numChars ? _resourceData.size() : _chars[chr + 1].offset) - _chars[chr].offset - 2;
-	return _resourceData.subspan(_chars[chr].offset + 2, size);
+	const uint16 offset = _offsets.getUint16SE32At(chr) + 2;
+	uint16 nextOffset;
+	if (chr + 1 >= _numChars) {
+		nextOffset = _data.size();
+	} else {
+		nextOffset = _offsets.getUint16SE32At(chr + 1);
+	}
+
+	return _data.subspan(offset, nextOffset - offset);
 }
 
-void GfxFontFromResource::draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput) {
+struct GfxScreenRenderer {
+	GfxScreenRenderer(GfxScreen *s) : screen(s) {}
+	void operator()(const int16 top, const int16 x, const int16 y, const uint8 color) const {
+		screen->putFontPixel(top, x, y, color);
+	}
+private:
+	GfxScreen *screen;
+};
+
+void GfxFontFromResource::draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, GfxScreen *screen) const {
 	if (chr >= _numChars) {
 		// SSCI silently ignores attempts to draw characters that do not exist
 		// in the font; for now, emit warnings if this happens, to learn if
@@ -265,31 +291,30 @@ void GfxFontFromResource::draw(uint16 chr, int16 top, int16 left, byte color, bo
 
 	// Make sure we're comparing against the correct dimensions
 	// If the font we're drawing is already upscaled, make sure we use the full screen width/height
-	uint16 screenWidth = _screen->fontIsUpscaled() ? _screen->getDisplayWidth() : _screen->getWidth();
-	uint16 screenHeight = _screen->fontIsUpscaled() ? _screen->getDisplayHeight() : _screen->getHeight();
+	uint16 screenWidth = screen->fontIsUpscaled() ? screen->getDisplayWidth() : screen->getWidth();
+	uint16 screenHeight = screen->fontIsUpscaled() ? screen->getDisplayHeight() : screen->getHeight();
 
 	int charWidth = MIN<int>(getCharWidth(chr), screenWidth - left);
 	int charHeight = MIN<int>(getCharHeight(chr), screenHeight - top);
-	byte b = 0, mask = 0xFF;
-	int y = 0;
-	int16 greyedTop = top;
 
-	SciSpan<const byte> charData = getCharData(chr);
-	for (int i = 0; i < charHeight; i++, y++) {
-		if (greyedOutput)
-			mask = ((greyedTop++) % 2) ? 0xAA : 0x55;
-		for (int done = 0; done < charWidth; done++) {
-			if ((done & 7) == 0) // fetching next data byte
-				b = *(charData++) & mask;
-			if (b & 0x80) // if MSB is set - paint it
-				_screen->putFontPixel(top, left + done, y, color);
-			b = b << 1;
-		}
-	}
+	GfxScreenRenderer renderer(screen);
+	render(charWidth, charHeight, chr, top, left, color, greyedOutput, renderer);
 }
 
 #ifdef ENABLE_SCI32
-void GfxFontFromResource::drawToBuffer(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 bufWidth, int16 bufHeight) {
+struct BufferRenderer {
+	BufferRenderer(byte *b, const int16 w) : buffer(b), width(w) {}
+	void operator()(const int16 top, const int16 x, const int16 y, const uint8 color) const {
+		int offset = (top + y) * width + x;
+		buffer[offset] = color;
+	}
+private:
+	byte *buffer;
+	int16 width;
+};
+
+void GfxFontFromResource::draw(uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, byte *buffer, int16 bufWidth, int16 bufHeight) const {
+
 	if (chr >= _numChars) {
 		// SSCI silently ignores attempts to draw characters that do not exist
 		// in the font; for now, emit warnings if this happens, to learn if
@@ -300,6 +325,14 @@ void GfxFontFromResource::drawToBuffer(uint16 chr, int16 top, int16 left, byte c
 
 	int charWidth = MIN<int>(getCharWidth(chr), bufWidth - left);
 	int charHeight = MIN<int>(getCharHeight(chr), bufHeight - top);
+
+	BufferRenderer renderer(buffer, bufWidth);
+	render(charWidth, charHeight, chr, top, left, color, greyedOutput, renderer);
+}
+#endif
+
+template <typename Renderer>
+void GfxFontFromResource::render(int charWidth, int charHeight, uint16 chr, int16 top, int16 left, byte color, bool greyedOutput, Renderer renderer) const {
 	byte b = 0, mask = 0xFF;
 	int y = 0;
 	int16 greyedTop = top;
@@ -312,13 +345,11 @@ void GfxFontFromResource::drawToBuffer(uint16 chr, int16 top, int16 left, byte c
 			if ((done & 7) == 0) // fetching next data byte
 				b = *(charData++) & mask;
 			if (b & 0x80) {	// if MSB is set - paint it
-				int offset = (top + y) * bufWidth + (left + done);
-				buffer[offset] = color;
+				renderer(top, left + done, y, color);
 			}
-			b = b << 1;
+			b <<= 1;
 		}
 	}
 }
-#endif
 
 } // End of namespace Sci
