@@ -24,7 +24,6 @@
 #define SCI_GRAPHICS_FRAMEOUT_H
 
 #include "engines/util.h"                // for initGraphics
-#include "sci/event.h"
 #include "sci/graphics/controls32.h"
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/palette32.h"
@@ -38,6 +37,7 @@ namespace Sci {
 typedef Common::Array<DrawList> ScreenItemListList;
 typedef Common::Array<RectList> EraseListList;
 
+class EventManager;
 class GameFeatures;
 class GfxTransitions32;
 struct PlaneShowStyle;
@@ -50,7 +50,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, EventManager *eventMan, SegManager *segMan);
 	~GfxFrameout();
 
 	void clear();
@@ -95,6 +95,7 @@ public:
 	GfxText32 _text;
 
 private:
+	EventManager *_eventMan;
 	SegManager *_segMan;
 	GameFeatures *_features;
 
@@ -420,22 +421,17 @@ public:
 	reg_t kernelIsOnMe(const reg_t object, const Common::Point &position, const bool checkPixel) const;
 
 private:
-	void updateMousePositionForRendering() const {
-		// In SSCI, mouse events were received via hardware interrupt, so the
-		// mouse cursor would always get updated immediately when the user moved
-		// the mouse. ScummVM must poll for mouse events from the backend
-		// instead, so we poll just before rendering so that the latest mouse
-		// position is rendered instead of whatever position it was at the last
-		// time kGetEvent was called. Without this, the mouse appears stuck
-		// during loops that do not make calls to kGetEvent, like transitions.
-		g_sci->getEventManager()->getSciEvent(kSciEventPeek);
-	}
-
 	/**
 	 * Determines whether or not the point given by `position` is inside of the
 	 * given screen item.
 	 */
 	bool isOnMe(const ScreenItem &screenItem, const Plane &plane, const Common::Point &position, const bool checkPixel) const;
+
+	/**
+	 * Forces a poll of the event manager to ensure the mouse cursor position is
+	 * up-to-date.
+	 */
+	void updateMousePositionForRendering() const;
 
 #pragma mark -
 #pragma mark Debugging

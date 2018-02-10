@@ -353,23 +353,22 @@ Common::Error SciEngine::run() {
 		_vocabulary = new Vocabulary(_resMan, false);
 
 	_gamestate = new EngineState(segMan);
+
+	// Requires _gamestate to be initialized
+	_console = new Console(this);
+
 	_guestAdditions = new GuestAdditions(_gamestate, _features, _kernel);
-	_eventMan = new EventManager(_features->detectFontExtended());
+	_eventMan = new EventManager(_features->detectFontExtended(), _console, _gamestate, _gfxScreen);
+
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
 		_audio32 = new Audio32(_resMan, _guestAdditions, _features);
+		_video32 = new Video32(segMan, _eventMan);
 	} else
 #endif
 		_audio = new AudioPlayer(_resMan);
-#ifdef ENABLE_SCI32
-	if (getSciVersion() >= SCI_VERSION_2) {
-		_video32 = new Video32(segMan, _eventMan);
-	}
-#endif
-	_sync = new Sync(_resMan, segMan);
 
-	// Create debugger console. It requires GFX and _gamestate to be initialized
-	_console = new Console(this);
+	_sync = new Sync(_resMan, segMan);
 
 	// The game needs to be initialized before the graphics system is initialized, as
 	// the graphics code checks parts of the seg manager upon initialization (e.g. for
@@ -656,7 +655,7 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _eventMan, _gamestate->_segMan);
 		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _gamestate->_segMan, _gfxFrameout);
 	} else {
 #endif

@@ -24,9 +24,9 @@
 #include "common/events.h"
 #include "common/file.h"
 
+#include "gui/debugger.h"
 #include "sci/sci.h"
 #include "sci/event.h"
-#include "sci/console.h"
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
 #ifdef ENABLE_SCI32
@@ -108,8 +108,11 @@ static const MouseEventConversion mouseEventMappings[] = {
 	{ Common::EVENT_MBUTTONUP   , kSciEventMouseRelease }
 };
 
-EventManager::EventManager(bool fontIsExtended) :
-	_fontIsExtended(fontIsExtended)
+EventManager::EventManager(bool fontIsExtended, GUI::Debugger *debugger, EngineState *engineState, GfxScreen *screen) :
+	_fontIsExtended(fontIsExtended),
+	_debugger(debugger),
+	_engineState(engineState),
+	_gfxScreen(screen)
 #ifdef ENABLE_SCI32
 	, _hotRectanglesActive(false)
 #endif
@@ -161,15 +164,13 @@ SciEvent EventManager::getScummVMEvent() {
 
 #if ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		const GfxFrameout *gfxFrameout = g_sci->_gfxFrameout;
-
 		// This will clamp `mousePos` according to the restricted zone,
 		// so any cursor or screen item associated with the mouse position
 		// does not bounce when it hits the edge (or ignore the edge)
-		g_sci->_gfxFrameout->_cursor.deviceMoved(mousePos);
+		_gfxFrameout->_cursor.deviceMoved(mousePos);
 
 		Common::Point mousePosSci = mousePos;
-		mulru(mousePosSci, Ratio(gfxFrameout->getScriptWidth(), gfxFrameout->getScreenWidth()), Ratio(gfxFrameout->getScriptHeight(), gfxFrameout->getScreenHeight()));
+		mulru(mousePosSci, Ratio(_gfxFrameout->getScriptWidth(), _gfxFrameout->getScreenWidth()), Ratio(_gfxFrameout->getScriptHeight(), _gfxFrameout->getScreenHeight()));
 		noEvent.mousePosSci = input.mousePosSci = mousePosSci;
 
 		if (_hotRectanglesActive) {
@@ -177,7 +178,7 @@ SciEvent EventManager::getScummVMEvent() {
 		}
 	} else {
 #endif
-		g_sci->_gfxScreen->adjustBackUpscaledCoordinates(mousePos.y, mousePos.x);
+		_gfxScreen->adjustBackUpscaledCoordinates(mousePos.y, mousePos.x);
 #if ENABLE_SCI32
 	}
 #endif
@@ -251,10 +252,9 @@ SciEvent EventManager::getScummVMEvent() {
 	}
 
 	// Check for Control-Shift-D (debug console)
-	if (ev.type == Common::EVENT_KEYDOWN && ev.kbd.hasFlags(Common::KBD_CTRL | Common::KBD_SHIFT) && ev.kbd.keycode == Common::KEYCODE_d) {
+	if (_debugger && ev.type == Common::EVENT_KEYDOWN && ev.kbd.hasFlags(Common::KBD_CTRL | Common::KBD_SHIFT) && ev.kbd.keycode == Common::KEYCODE_d) {
 		// Open debug console
-		Console *con = g_sci->getSciDebugger();
-		con->attach();
+		_debugger->attach();
 		return noEvent;
 	}
 
@@ -358,17 +358,16 @@ SciEvent EventManager::getScummVMEvent() {
 void EventManager::updateScreen() {
 	// Update the screen here, since it's called very often.
 	// Throttle the screen update rate to 60fps.
-	EngineState *s = g_sci->getEngineState();
-	if (g_system->getMillis() - s->_screenUpdateTime >= 1000 / 60) {
+	if (g_system->getMillis() - _engineState->_screenUpdateTime >= 1000 / 60) {
 		g_system->updateScreen();
-		s->_screenUpdateTime = g_system->getMillis();
+		_engineState->_screenUpdateTime = g_system->getMillis();
 		// Throttle the checking of shouldQuit() to 60fps as well, since
 		// Engine::shouldQuit() invokes 2 virtual functions
 		// (EventManager::shouldQuit() and EventManager::shouldRTL()),
 		// which is very expensive to invoke constantly without any
 		// throttling at all.
 		if (g_engine->shouldQuit())
-			s->abortScriptProcessing = kAbortQuitGame;
+			_engineState->abortScriptProcessing = kAbortQuitGame;
 	}
 }
 

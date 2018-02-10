@@ -60,11 +60,12 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, EventManager *eventMan, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, this),
 	_remapper(features, this),
 	_cursor(resMan, features, this),
+	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),
 	_transitions(features, this, segMan),
@@ -111,6 +112,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 		break;
 	}
 
+	eventMan->attachTo(this);
 	CelObj::init(resMan, _features, this, _segMan);
 	Plane::init(_features, this, _segMan);
 	ScreenItem::init(resMan, _features, this, _segMan);
@@ -1273,6 +1275,17 @@ bool GfxFrameout::isOnMe(const ScreenItem &screenItem, const Plane &plane, const
 	}
 
 	return true;
+}
+
+void GfxFrameout::updateMousePositionForRendering() const {
+	// In SSCI, mouse events were received via hardware interrupt, so the
+	// mouse cursor would always get updated immediately when the user moved
+	// the mouse. ScummVM must poll for mouse events from the backend
+	// instead, so we poll just before rendering so that the latest mouse
+	// position is rendered instead of whatever position it was at the last
+	// time kGetEvent was called. Without this, the mouse appears stuck
+	// during loops that do not make calls to kGetEvent, like transitions.
+	_eventMan->getSciEvent(kSciEventPeek);
 }
 
 bool GfxFrameout::getNowSeenRect(const reg_t screenItemObject, Common::Rect &result) const {

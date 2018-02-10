@@ -33,6 +33,7 @@
 #ifdef ENABLE_SCI32
 #include "common/translation.h"
 #include "gui/saveload.h"
+#include "sci/event.h"
 #include "sci/graphics/frameout.h"
 #include "sci/sound/audio32.h"
 #endif

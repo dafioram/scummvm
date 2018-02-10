@@ -23,8 +23,11 @@
 #ifndef SCI_EVENT_H
 #define SCI_EVENT_H
 
+#include "common/array.h"
 #include "common/list.h"
 #include "common/rect.h"
+
+namespace GUI { class Debugger; }
 
 namespace Sci {
 
@@ -148,20 +151,39 @@ struct SciEvent {
 #endif
 };
 
+struct EngineState;
+class GfxScreen;
+#ifdef ENABLE_SCI32
+class GfxFrameout;
+#endif
+
 class EventManager {
 public:
-	EventManager(bool fontIsExtended);
+	EventManager(bool fontIsExtended, GUI::Debugger *debugger, EngineState *engineState, GfxScreen *screen);
 
 	void updateScreen();
 	SciEvent getSciEvent(SciEventType mask);
 	void flushEvents();
+
+#ifdef ENABLE_SCI32
+	void attachTo(GfxFrameout *frameout) { _gfxFrameout = frameout; }
+#endif
 
 private:
 	SciEvent getScummVMEvent();
 
 	const bool _fontIsExtended;
 	Common::List<SciEvent> _events;
+
+	EngineState *_engineState;
+	GfxScreen *_gfxScreen;
+	GUI::Debugger *_debugger;
+
 #ifdef ENABLE_SCI32
+	GfxFrameout *_gfxFrameout;
+
+#pragma mark -
+#pragma mark Hot rectangles
 public:
 	void setHotRectanglesActive(const bool active);
 	void setHotRectangles(const Common::Array<Common::Rect> &rects);
