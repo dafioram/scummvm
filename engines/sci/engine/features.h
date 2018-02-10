@@ -52,8 +52,7 @@ enum MessageTypeSyncStrategy {
 
 class GameFeatures {
 public:
-	GameFeatures(SegManager *segMan, Kernel *kernel);
-	~GameFeatures() {}
+	GameFeatures(ResourceManager *resMan, SegManager *segMan, Kernel *kernel);
 
 	/**
 	 * Autodetects the DoSound type
@@ -94,7 +93,7 @@ public:
 	SciVersion detectSci21KernelType();
 
 	inline bool usesModifiedAudioAttenuation() const {
-		switch (g_sci->getGameId()) {
+		switch (_game.id) {
 		// Assuming MGDX uses modified attenuation since SQ6 does and it was
 		// released earlier, but not verified (Phar Lap Windows-only release)
 		case GID_MOTHERGOOSEHIRES:
@@ -111,7 +110,7 @@ public:
 	}
 
 	inline bool gameScriptsControlMasterVolume() const {
-		switch (g_sci->getGameId()) {
+		switch (_game.id) {
 		case GID_LSL7:
 		case GID_PHANTASMAGORIA2:
 		case GID_TORIN:
@@ -122,11 +121,11 @@ public:
 	}
 
 	inline bool hasSci3Audio() const {
-		return getSciVersion() == SCI_VERSION_3 || g_sci->getGameId() == GID_GK2;
+		return getSciVersion() == SCI_VERSION_3 || _game.id == GID_GK2;
 	}
 
 	inline bool hasTransparentPicturePlanes() const {
-		const SciGameId &gid = g_sci->getGameId();
+		const SciGameId &gid = _game.id;
 
 		// MGDX is assumed to not have transparent picture planes since it
 		// was released before SQ6, but this has not been verified since it
@@ -137,17 +136,17 @@ public:
 	}
 
 	inline bool hasMidPaletteCode() const {
-		return getSciVersion() >= SCI_VERSION_2_1_MIDDLE || g_sci->getGameId() == GID_KQ7;
+		return getSciVersion() >= SCI_VERSION_2_1_MIDDLE || _game.id == GID_KQ7;
 	}
 
 	inline bool hasLatePaletteCode() const {
 		return getSciVersion() > SCI_VERSION_2_1_MIDDLE ||
-			g_sci->getGameId() == GID_GK2 ||
-			g_sci->getGameId() == GID_PQSWAT ||
+			_game.id == GID_GK2 ||
+			_game.id == GID_PQSWAT ||
 			// Guessing that Shivers has the late palette code because it has a
 			// brightness slider
-			g_sci->getGameId() == GID_SHIVERS ||
-			g_sci->getGameId() == GID_TORIN;
+			_game.id == GID_SHIVERS ||
+			_game.id == GID_TORIN;
 	}
 
 	inline bool VMDOpenStopsAudio() const {
@@ -157,25 +156,22 @@ public:
 		// TODO: Optional extra flag to kPlayVMD which defaults to Yes: PQ:SWAT
 		// TODO: SCI3, GK2 (GK2's VMD code is closer to SCI3 than SCI21)
 		return getSciVersion() == SCI_VERSION_2_1_MIDDLE &&
-			g_sci->getGameId() != GID_SQ6 &&
-			g_sci->getGameId() != GID_GK2;
+			_game.id != GID_SQ6 &&
+			_game.id != GID_GK2;
 	}
 
 	inline bool usesAlternateSelectors() const {
-		return g_sci->getGameId() == GID_PHANTASMAGORIA2;
+		return _game.id == GID_PHANTASMAGORIA2;
 	}
 
 	inline bool hasEmptyScaleDrawHack() const {
-		// Yes: KQ7 (all), PQ4CD, QFG4CD, SQ6, Phant1
-		// No: All SCI2, all SCI3, GK2, LSL6hires, PQ:SWAT, Torin
 		// Unknown: Hoyle5, MGDX, Shivers
-		const SciGameId &gid = g_sci->getGameId();
 		return getSciVersion() > SCI_VERSION_2 &&
 			getSciVersion() < SCI_VERSION_2_1_LATE &&
-			gid != GID_LSL6HIRES &&
-			gid != GID_GK2 &&
-			gid != GID_PQSWAT &&
-			gid != GID_TORIN;
+			_game.id != GID_LSL6HIRES &&
+			_game.id != GID_GK2 &&
+			_game.id != GID_PQSWAT &&
+			_game.id != GID_TORIN;
 	}
 #endif
 
@@ -188,7 +184,7 @@ public:
 	 * If true, the game supports changing text speed.
 	 */
 	bool supportsTextSpeed() const {
-		switch (g_sci->getGameId()) {
+		switch (_game.id) {
 #ifdef ENABLE_SCI32
 		case GID_GK1:
 		case GID_SQ6:
@@ -284,6 +280,8 @@ private:
 
 	PseudoMouseAbilityType _pseudoMouseAbility;
 
+	GameMetadata _game;
+	ResourceManager *_resMan;
 	SegManager *_segMan;
 	Kernel *_kernel;
 };

@@ -353,7 +353,7 @@ Common::Error SciEngine::run() {
 	_kernel = new Kernel(_resMan, segMan);
 	_kernel->init();
 
-	_features = new GameFeatures(segMan, _kernel);
+	_features = new GameFeatures(_resMan, segMan, _kernel);
 	// Only SCI0, SCI01 and SCI1 EGA games used a parser
 	_vocabulary = (getSciVersion() <= SCI_VERSION_1_EGA_ONLY) ? new Vocabulary(_resMan, false) : NULL;
 	// Also, XMAS1990 apparently had a parser too. Refer to http://forums.scummvm.org/viewtopic.php?t=9135

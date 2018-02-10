@@ -31,25 +31,26 @@
 
 namespace Sci {
 
-GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan), _kernel(kernel) {
-	_setCursorType = SCI_VERSION_NONE;
-	_doSoundType = SCI_VERSION_NONE;
-	_lofsType = SCI_VERSION_NONE;
-	_gfxFunctionsType = SCI_VERSION_NONE;
-	_messageFunctionType = SCI_VERSION_NONE;
-	_moveCountType = kMoveCountUninitialized;
+GameFeatures::GameFeatures(ResourceManager *resMan, SegManager *segMan, Kernel *kernel) :
+	_game(resMan->getGameMetadata()),
+	_resMan(resMan),
+	_segMan(segMan),
+	_kernel(kernel),
+	_setCursorType(SCI_VERSION_NONE),
+	_doSoundType(SCI_VERSION_NONE),
+	_lofsType(SCI_VERSION_NONE),
+	_gfxFunctionsType(SCI_VERSION_NONE),
+	_messageFunctionType(SCI_VERSION_NONE),
+	_moveCountType(kMoveCountUninitialized),
 #ifdef ENABLE_SCI32
-	_sci21KernelType = SCI_VERSION_NONE;
+	_sci21KernelType(SCI_VERSION_NONE),
 #endif
-	_usesCdTrack = Common::File::exists("cdaudio.map");
-	if (!ConfMan.getBool("use_cdaudio"))
-		_usesCdTrack = false;
-	_forceDOSTracks = false;
-	_pseudoMouseAbility = kPseudoMouseAbilityUninitialized;
-}
+	_usesCdTrack(ConfMan.getBool("use_cdaudio") && Common::File::exists("cdaudio.map")),
+	_forceDOSTracks(false),
+	_pseudoMouseAbility(kPseudoMouseAbilityUninitialized) {}
 
 bool GameFeatures::detectEarlySound() const {
-	const Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeSound, 1), false);
+	const Resource *res = _resMan->findResource(ResourceId(kResourceTypeSound, 1), false);
 	if (res &&
 		res->size() >= 0x22 &&
 		res->getUint16LEAt(0x1f) == 0 && // channel 15 voice count + play mask is 0 in SCI0LATE
@@ -159,11 +160,11 @@ SciVersion GameFeatures::detectDoSoundType() {
 		} else if (getSciVersion() == SCI_VERSION_3) {
 			_doSoundType = SCI_VERSION_3;
 		} else if (getSciVersion() >= SCI_VERSION_2_1_MIDDLE &&
-				   g_sci->getGameId() != GID_SQ6 &&
+				   _game.id != GID_SQ6 &&
 				   // Assuming MGDX uses SCI2.1early sound mode since SQ6 does
 				   // and it was released earlier, but not verified (Phar Lap
 				   // Windows-only release)
-				   g_sci->getGameId() != GID_MOTHERGOOSEHIRES) {
+				   _game.id != GID_MOTHERGOOSEHIRES) {
 			_doSoundType = SCI_VERSION_2_1_MIDDLE;
 		} else if (getSciVersion() >= SCI_VERSION_2_1_EARLY) {
 			_doSoundType = SCI_VERSION_2_1_EARLY;
@@ -459,7 +460,7 @@ SciVersion GameFeatures::detectMessageFunctionType() {
 		return _messageFunctionType;
 	}
 
-	Common::List<ResourceId> resources = g_sci->getResMan()->listResources(kResourceTypeMessage, -1);
+	Common::List<ResourceId> resources = _resMan->listResources(kResourceTypeMessage, -1);
 
 	if (resources.empty()) {
 		// No messages found, so this doesn't really matter anyway...
@@ -467,7 +468,7 @@ SciVersion GameFeatures::detectMessageFunctionType() {
 		return _messageFunctionType;
 	}
 
-	const Resource *res = g_sci->getResMan()->findResource(*resources.begin(), false);
+	const Resource *res = _resMan->findResource(*resources.begin(), false);
 	assert(res);
 
 	// Only v2 Message resources use the kGetMessage kernel function.
@@ -494,9 +495,9 @@ bool GameFeatures::autoDetectSci21KernelType() {
 
 		// HACK: The Inside the Chest Demo and King's Questions minigame
 		// don't have sounds at all, but they're using a SCI2 kernel
-		if (g_sci->getGameId() == GID_CHEST || g_sci->getGameId() == GID_KQUESTIONS) {
+		if (_game.id == GID_CHEST || _game.id == GID_KQUESTIONS) {
 			_sci21KernelType = SCI_VERSION_2;
-		} else if (g_sci->getGameId() == GID_RAMA && g_sci->isDemo()) {
+		} else if (_game.id == GID_RAMA && _game.isDemo) {
 			_sci21KernelType = SCI_VERSION_2_1_MIDDLE;
 		} else {
 			warning("autoDetectSci21KernelType(): Sound object not loaded, assuming a SCI2.1 table");
@@ -561,7 +562,7 @@ SciVersion GameFeatures::detectSci21KernelType() {
 #endif
 
 bool GameFeatures::supportsSpeechWithSubtitles() const {
-	switch (g_sci->getGameId()) {
+	switch (_game.id) {
 	case GID_SQ4:
 	case GID_FREDDYPHARKAS:
 	case GID_ECOQUEST:
@@ -587,7 +588,7 @@ bool GameFeatures::supportsSpeechWithSubtitles() const {
 }
 
 bool GameFeatures::audioVolumeSyncUsesGlobals() const {
-	switch (g_sci->getGameId()) {
+	switch (_game.id) {
 	case GID_GK1:
 	case GID_GK2:
 	case GID_LSL6HIRES:
@@ -607,17 +608,17 @@ MessageTypeSyncStrategy GameFeatures::getMessageTypeSyncStrategy() const {
 		return kMessageTypeSyncStrategyNone;
 	}
 
-	if (getSciVersion() == SCI_VERSION_1_1 && g_sci->isCD()) {
+	if (getSciVersion() == SCI_VERSION_1_1 && _game.isCD) {
 		return kMessageTypeSyncStrategyDefault;
 	}
 
 #ifdef ENABLE_SCI32
-	switch (g_sci->getGameId()) {
+	switch (_game.id) {
 	// TODO: Hoyle5, SCI3
 	case GID_GK1:
 	case GID_PQ4:
 	case GID_QFG4:
-		return g_sci->isCD() ? kMessageTypeSyncStrategyDefault : kMessageTypeSyncStrategyNone;
+		return _game.isCD ? kMessageTypeSyncStrategyDefault : kMessageTypeSyncStrategyNone;
 
 	case GID_KQ7:
 	case GID_LSL7:
@@ -702,13 +703,12 @@ MoveCountType GameFeatures::detectMoveCountType() {
 }
 
 bool GameFeatures::useAltWinGMSound() const {
-	if (g_sci && g_sci->getPlatform() == Common::kPlatformWindows && g_sci->isCD() && !_forceDOSTracks) {
-		SciGameId id = g_sci->getGameId();
-		return (id == GID_ECOQUEST ||
-				id == GID_JONES ||
-				id == GID_KQ5 ||
-				//id == GID_FREDDYPHARKAS ||	// Has alternate tracks, but handles them differently
-				id == GID_SQ4);
+	if (_game.platform == Common::kPlatformWindows && _game.isCD && !_forceDOSTracks) {
+		return (_game.id == GID_ECOQUEST ||
+				_game.id == GID_JONES ||
+				_game.id == GID_KQ5 ||
+				//_game.id == GID_FREDDYPHARKAS ||	// Has alternate tracks, but handles them differently
+				_game.id == GID_SQ4);
 	} else {
 		return false;
 	}
@@ -761,7 +761,7 @@ PseudoMouseAbilityType GameFeatures::detectPseudoMouseAbility() {
 }
 
 bool GameFeatures::detectFontExtended() const {
-	const Resource *res = g_sci->getResMan()->findResource(ResourceId(kResourceTypeFont, 0), false);
+	const Resource *res = _resMan->findResource(ResourceId(kResourceTypeFont, 0), false);
 	if (res && res->size() >= 4) {
 		uint16 numChars = res->getUint16LEAt(2);
 		return (numChars > 0x80);
