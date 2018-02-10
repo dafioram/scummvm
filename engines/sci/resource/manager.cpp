@@ -209,6 +209,7 @@ ResourceManager::ResourceManager(const GameMetadata &metadata) :
 
 ResourceManager::ResourceManager(const Common::FSList &fslist) :
 	_detectionMode(true),
+	_patcher(nullptr),
 #ifdef ENABLE_SCI32
 	_multiDiscAudio(false),
 #endif
