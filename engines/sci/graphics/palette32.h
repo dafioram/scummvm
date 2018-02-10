@@ -232,9 +232,11 @@ struct PalCycler {
 #pragma mark -
 #pragma mark GfxPalette32
 
+class GfxFrameout;
+
 class GfxPalette32 {
 public:
-	GfxPalette32(ResourceManager *resMan);
+	GfxPalette32(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout);
 
 	void saveLoadWithSerializer(Common::Serializer &s);
 
@@ -295,6 +297,8 @@ public:
 
 private:
 	ResourceManager *_resMan;
+	GameFeatures *_features;
+	GfxFrameout *_gfxFrameout;
 
 	/**
 	 * The palette revision version. Increments once per game loop that changes
@@ -306,6 +310,20 @@ private:
 	 * Whether or not the hardware palette needs updating.
 	 */
 	bool _needsUpdate;
+
+	/**
+	 * Whether or not the maximum hardware palette index should be restricted to
+	 * a value lower than the usual maximum.
+	 */
+	bool _restrictMaxIndex;
+
+#ifdef ENABLE_SCI32_MAC
+	/**
+	 * Whether or not the final palette entry should be forced to black instead
+	 * of white.
+	 */
+	bool _lastColorIsBlack;
+#endif
 
 #ifdef USE_RGB_COLOR
 	/**

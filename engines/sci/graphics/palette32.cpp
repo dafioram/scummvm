@@ -29,6 +29,7 @@
 #include "sci/resource/manager.h"
 #include "sci/util.h"
 #include "sci/engine/features.h"
+#include "sci/graphics/frameout.h"
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/remap32.h"
 #include "sci/graphics/screen.h"
@@ -349,12 +350,15 @@ static const uint8 gammaTables[GfxPalette32::numGammaTables][256] = {
 #pragma mark -
 #pragma mark GfxPalette32
 
-	GfxPalette32::GfxPalette32(ResourceManager *resMan)
-	: _resMan(resMan),
+GfxPalette32::GfxPalette32(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout) :
+	_resMan(resMan),
+	_features(features),
+	_gfxFrameout(frameout),
 
 	// Palette versioning
 	_version(1),
 	_needsUpdate(false),
+
 #ifdef USE_RGB_COLOR
 	_hardwarePalette(),
 #endif
@@ -381,6 +385,12 @@ static const uint8 gammaTables[GfxPalette32::numGammaTables][256] = {
 	_gammaLevel(-1),
 	_gammaChanged(false) {
 
+	const GameMetadata &game = resMan->getGameMetadata();
+	_restrictMaxIndex = (game.id == GID_HOYLE5 || (game.id == GID_GK2 && game.isDemo));
+#ifdef ENABLE_SCI32_MAC
+	_lastColorIsBlack = (game.platform == Common::kPlatformMacintosh);
+#endif
+
 	for (int i = 0, len = ARRAYSIZE(_fadeTable); i < len; ++i) {
 		_fadeTable[i] = 100;
 	}
@@ -405,7 +415,7 @@ int16 GfxPalette32::matchColor(const uint8 r, const uint8 g, const uint8 b) {
 	int bestDifference = 0xFFFFF;
 	int difference;
 
-	for (int i = 0, channelDifference; i < g_sci->_gfxRemap32->getStartColor(); ++i) {
+	for (int i = 0, channelDifference; i < _gfxFrameout->_remapper.getStartColor(); ++i) {
 		difference = _currentPalette.colors[i].r - r;
 		difference *= difference;
 		if (bestDifference <= difference) {
@@ -459,7 +469,7 @@ void GfxPalette32::submit(const HunkPalette &hunkPalette) {
 bool GfxPalette32::updateForFrame() {
 	applyAll();
 	_needsUpdate = false;
-	return g_sci->_gfxRemap32->remapAllTables(_nextPalette != _currentPalette);
+	return _gfxFrameout->_remapper.remapAllTables(_nextPalette != _currentPalette);
 }
 
 void GfxPalette32::updateFFrame() {
@@ -467,7 +477,7 @@ void GfxPalette32::updateFFrame() {
 		_nextPalette.colors[i] = _sourcePalette.colors[i];
 	}
 	_needsUpdate = false;
-	g_sci->_gfxRemap32->remapAllTables(_nextPalette != _currentPalette);
+	_gfxFrameout->_remapper.remapAllTables(_nextPalette != _currentPalette);
 }
 
 void GfxPalette32::updateHardware() {
@@ -491,11 +501,7 @@ void GfxPalette32::updateHardware() {
 	// to the backend. This makes those high pixels render black, which seems to
 	// match what would happen in the original interpreter, and saves us from
 	// having to clutter up the engine with a bunch of palette shifting garbage.
-	int maxIndex = ARRAYSIZE(_currentPalette.colors) - 2;
-	if (g_sci->getGameId() == GID_HOYLE5 ||
-		(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
-		maxIndex = 235;
-	}
+	const int maxIndex = _restrictMaxIndex ? 235 : ARRAYSIZE(_currentPalette.colors) - 2;
 
 	for (int i = 0; i <= maxIndex; ++i) {
 		_currentPalette.colors[i] = _nextPalette.colors[i];
@@ -524,7 +530,7 @@ void GfxPalette32::updateHardware() {
 #endif
 
 #ifdef ENABLE_SCI32_MAC
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
+	if (_lastColorIsBlack) {
 		bpal[255 * 3    ] = 0;
 		bpal[255 * 3 + 1] = 0;
 		bpal[255 * 3 + 2] = 0;
@@ -612,7 +618,7 @@ void GfxPalette32::setVaryTime(const int32 time) {
 }
 
 void GfxPalette32::setVaryTime(const int16 percent, const int32 ticks) {
-	_varyLastTick = g_sci->getTickCount();
+	_varyLastTick = getTickCount();
 	if (!ticks || _varyPercent == percent) {
 		_varyDirection = 0;
 		_varyTargetPercent = _varyPercent = percent;
@@ -686,7 +692,7 @@ void GfxPalette32::mergeTarget(const Palette &palette) {
 }
 
 void GfxPalette32::applyVary() {
-	const uint32 now = g_sci->getTickCount();
+	const uint32 now = getTickCount();
 	while ((int32)(now - _varyLastTick) > _varyTime && _varyDirection != 0) {
 		_varyLastTick += _varyTime;
 
@@ -811,7 +817,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 	// that it finds, where "oldest" is determined by the difference between the
 	// tick and now
 	if (cycler == nullptr) {
-		const uint32 now = g_sci->getTickCount();
+		const uint32 now = getTickCount();
 		uint32 minUpdateDelta = 0xFFFFFFFF;
 
 		for (int i = 0; i < kNumCyclers; ++i) {
@@ -828,7 +834,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 	}
 
 	uint16 numColorsToCycle = toColor - fromColor;
-	if (g_sci->_features->hasMidPaletteCode()) {
+	if (_features->hasMidPaletteCode()) {
 		numColorsToCycle += 1;
 	}
 	cycler->fromColor = fromColor;
@@ -836,7 +842,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 	cycler->currentCycle = fromColor;
 	cycler->direction = direction < 0 ? kPalCycleBackward : kPalCycleForward;
 	cycler->delay = delay;
-	cycler->lastUpdateTick = g_sci->getTickCount();
+	cycler->lastUpdateTick = getTickCount();
 	cycler->numTimesPaused = 0;
 
 	setCycleMap(fromColor, numColorsToCycle);
@@ -845,7 +851,7 @@ void GfxPalette32::setCycle(const uint8 fromColor, const uint8 toColor, const in
 void GfxPalette32::doCycle(const uint8 fromColor, const int16 speed) {
 	PalCycler *const cycler = getCycler(fromColor);
 	if (cycler != nullptr) {
-		cycler->lastUpdateTick = g_sci->getTickCount();
+		cycler->lastUpdateTick = getTickCount();
 		updateCycler(*cycler, speed);
 	}
 }
@@ -978,7 +984,7 @@ void GfxPalette32::applyCycles() {
 	Color paletteCopy[256];
 	memcpy(paletteCopy, _nextPalette.colors, sizeof(paletteCopy));
 
-	const uint32 now = g_sci->getTickCount();
+	const uint32 now = getTickCount();
 	for (int i = 0; i < kNumCyclers; ++i) {
 		PalCyclerOwner &cycler = _cyclers[i];
 		if (!cycler) {

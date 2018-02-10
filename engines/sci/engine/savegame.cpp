@@ -430,8 +430,8 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		g_sci->_gfxPalette32->saveLoadWithSerializer(s);
-		g_sci->_gfxRemap32->saveLoadWithSerializer(s);
+		g_sci->_gfxFrameout->_palette.saveLoadWithSerializer(s);
+		g_sci->_gfxFrameout->_remapper.saveLoadWithSerializer(s);
 		g_sci->_gfxCursor32->saveLoadWithSerializer(s);
 		g_sci->_audio32->saveLoadWithSerializer(s);
 		g_sci->_video32->saveLoadWithSerializer(s);
@@ -1076,7 +1076,7 @@ void GfxPalette32::saveLoadWithSerializer(Common::Serializer &s) {
 		s.syncAsByte(_cycleMap[i]);
 	}
 
-	if (g_sci->_features->hasLatePaletteCode() && s.getVersion() >= 41) {
+	if (_features->hasLatePaletteCode() && s.getVersion() >= 41) {
 		s.syncAsSint16LE(_gammaLevel);
 		saveLoadPalette32(s, _sourcePalette);
 		++_version;

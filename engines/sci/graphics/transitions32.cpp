@@ -623,9 +623,9 @@ bool GfxTransitions32::processShowStyle(PlaneShowStyle &showStyle, uint32 now) {
 
 bool GfxTransitions32::processNone(PlaneShowStyle &showStyle) {
 	if (showStyle.fadeUp) {
-		g_sci->_gfxPalette32->setFade(100, 0, 255);
+		g_sci->_gfxFrameout->_palette.setFade(100, 0, 255);
 	} else {
-		g_sci->_gfxPalette32->setFade(0, 0, 255);
+		g_sci->_gfxFrameout->_palette.setFade(0, 0, 255);
 	}
 
 	showStyle.processed = true;
@@ -940,10 +940,10 @@ bool GfxTransitions32::processFade(const int8 direction, PlaneShowStyle &showSty
 
 		if (showStyle.fadeColorRanges.size()) {
 			for (uint i = 0, len = showStyle.fadeColorRanges.size(); i < len; i += 2) {
-				g_sci->_gfxPalette32->setFade(percent, showStyle.fadeColorRanges[i], showStyle.fadeColorRanges[i + 1]);
+				g_sci->_gfxFrameout->_palette.setFade(percent, showStyle.fadeColorRanges[i], showStyle.fadeColorRanges[i + 1]);
 			}
 		} else {
-			g_sci->_gfxPalette32->setFade(percent, 0, 255);
+			g_sci->_gfxFrameout->_palette.setFade(percent, 0, 255);
 		}
 
 		++showStyle.currentStep;

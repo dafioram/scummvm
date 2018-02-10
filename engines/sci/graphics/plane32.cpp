@@ -355,7 +355,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 				visibleItem != nullptr &&
 				!visibleItemScreenRect.isEmpty()
 			) {
-				if (g_sci->_gfxRemap32->getRemapCount()) {
+				if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
 					mergeToRectList(visibleItemScreenRect, eraseList);
 				} else {
 					eraseList.add(visibleItemScreenRect);
@@ -373,7 +373,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		if (item->_created) {
 			// Add item to draw list
 			if(!itemScreenRect.isEmpty()) {
-				if (g_sci->_gfxRemap32->getRemapCount()) {
+				if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
 					drawList.add(item, itemScreenRect);
 					mergeToRectList(itemScreenRect, eraseList);
 				} else {
@@ -383,7 +383,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		} else {
 			// Add old rect to erase list, new item to draw list
 
-			if (g_sci->_gfxRemap32->getRemapCount()) {
+			if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
 				// If item and visibleItem don't overlap...
 				if (itemScreenRect.isEmpty() ||
 					visibleItem == nullptr ||
@@ -491,7 +491,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		}
 	}
 
-	if (g_sci->_gfxRemap32->getRemapCount() == 0) {
+	if (g_sci->_gfxFrameout->_remapper.getRemapCount() == 0) {
 		// Add all items that overlap with items in the drawlist and have higher
 		// priority.
 

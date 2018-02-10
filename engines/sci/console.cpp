@@ -2862,8 +2862,8 @@ bool Console::cmdDumpReference(int argc, const char **argv) {
 		outFileName = Common::String::format("%04x_%04x.tga", PRINT_REG(reg));
 		out.open(outFileName);
 		SciBitmap &bitmap = *_engine->_gamestate->_segMan->lookupBitmap(reg);
-		const Color *color = g_sci->_gfxPalette32->getCurrentPalette().colors;
-		const uint16 numColors = ARRAYSIZE(g_sci->_gfxPalette32->getCurrentPalette().colors);
+		const Color *color = g_sci->_gfxFrameout->_palette.getCurrentPalette().colors;
+		const uint16 numColors = ARRAYSIZE(g_sci->_gfxFrameout->_palette.getCurrentPalette().colors);
 
 		out.writeByte(0); // image id length
 		out.writeByte(1); // color map type (present)

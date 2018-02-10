@@ -895,7 +895,7 @@ reg_t kMorphOn(EngineState *s, int argc, reg_t *argv) {
 
 reg_t kPaletteSetFromResource32(EngineState *s, int argc, reg_t *argv) {
 	const GuiResourceId paletteId = argv[0].toUint16();
-	g_sci->_gfxPalette32->loadPalette(paletteId);
+	g_sci->_gfxFrameout->_palette.loadPalette(paletteId);
 	return s->r_acc;
 }
 
@@ -903,11 +903,11 @@ reg_t kPaletteFindColor32(EngineState *s, int argc, reg_t *argv) {
 	const uint8 r = argv[0].toUint16();
 	const uint8 g = argv[1].toUint16();
 	const uint8 b = argv[2].toUint16();
-	return make_reg(0, g_sci->_gfxPalette32->matchColor(r, g, b));
+	return make_reg(0, g_sci->_gfxFrameout->_palette.matchColor(r, g, b));
 }
 
 reg_t kPaletteSetGamma(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxPalette32->setGamma(argv[0].toSint16());
+	g_sci->_gfxFrameout->_palette.setGamma(argv[0].toSint16());
 	return s->r_acc;
 }
 
@@ -915,7 +915,7 @@ reg_t kPaletteSetFade(EngineState *s, int argc, reg_t *argv) {
 	const uint16 fromColor = argv[0].toUint16();
 	const uint16 toColor = argv[1].toUint16();
 	const uint16 percent = argv[2].toUint16();
-	g_sci->_gfxPalette32->setFade(percent, fromColor, toColor);
+	g_sci->_gfxFrameout->_palette.setFade(percent, fromColor, toColor);
 	return s->r_acc;
 }
 
@@ -933,54 +933,54 @@ reg_t kPalVarySetVary(EngineState *s, int argc, reg_t *argv) {
 		fromColor = toColor = -1;
 	}
 
-	g_sci->_gfxPalette32->kernelPalVarySet(paletteId, percent, time, fromColor, toColor);
+	g_sci->_gfxFrameout->_palette.kernelPalVarySet(paletteId, percent, time, fromColor, toColor);
 	return s->r_acc;
 }
 
 reg_t kPalVarySetPercent(EngineState *s, int argc, reg_t *argv) {
 	const int32 time = argc > 0 ? argv[0].toSint16() * 60 : 0;
 	const int16 percent = argc > 1 ? argv[1].toSint16() : 0;
-	g_sci->_gfxPalette32->setVaryPercent(percent, time);
+	g_sci->_gfxFrameout->_palette.setVaryPercent(percent, time);
 	return s->r_acc;
 }
 
 reg_t kPalVaryGetPercent(EngineState *s, int argc, reg_t *argv) {
-	return make_reg(0, g_sci->_gfxPalette32->getVaryPercent());
+	return make_reg(0, g_sci->_gfxFrameout->_palette.getVaryPercent());
 }
 
 reg_t kPalVaryOff(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxPalette32->varyOff();
+	g_sci->_gfxFrameout->_palette.varyOff();
 	return s->r_acc;
 }
 
 reg_t kPalVaryMergeTarget(EngineState *s, int argc, reg_t *argv) {
 	const GuiResourceId paletteId = argv[0].toUint16();
-	g_sci->_gfxPalette32->kernelPalVaryMergeTarget(paletteId);
-	return make_reg(0, g_sci->_gfxPalette32->getVaryPercent());
+	g_sci->_gfxFrameout->_palette.kernelPalVaryMergeTarget(paletteId);
+	return make_reg(0, g_sci->_gfxFrameout->_palette.getVaryPercent());
 }
 
 reg_t kPalVarySetTime(EngineState *s, int argc, reg_t *argv) {
 	const int32 time = argv[0].toSint16() * 60;
-	g_sci->_gfxPalette32->setVaryTime(time);
+	g_sci->_gfxFrameout->_palette.setVaryTime(time);
 	return s->r_acc;
 }
 
 reg_t kPalVarySetTarget(EngineState *s, int argc, reg_t *argv) {
 	const GuiResourceId paletteId = argv[0].toUint16();
-	g_sci->_gfxPalette32->kernelPalVarySetTarget(paletteId);
-	return make_reg(0, g_sci->_gfxPalette32->getVaryPercent());
+	g_sci->_gfxFrameout->_palette.kernelPalVarySetTarget(paletteId);
+	return make_reg(0, g_sci->_gfxFrameout->_palette.getVaryPercent());
 }
 
 reg_t kPalVarySetStart(EngineState *s, int argc, reg_t *argv) {
 	const GuiResourceId paletteId = argv[0].toUint16();
-	g_sci->_gfxPalette32->kernelPalVarySetStart(paletteId);
-	return make_reg(0, g_sci->_gfxPalette32->getVaryPercent());
+	g_sci->_gfxFrameout->_palette.kernelPalVarySetStart(paletteId);
+	return make_reg(0, g_sci->_gfxFrameout->_palette.getVaryPercent());
 }
 
 reg_t kPalVaryMergeStart(EngineState *s, int argc, reg_t *argv) {
 	const GuiResourceId paletteId = argv[0].toUint16();
-	g_sci->_gfxPalette32->kernelPalVaryMergeStart(paletteId);
-	return make_reg(0, g_sci->_gfxPalette32->getVaryPercent());
+	g_sci->_gfxFrameout->_palette.kernelPalVaryMergeStart(paletteId);
+	return make_reg(0, g_sci->_gfxFrameout->_palette.getVaryPercent());
 }
 
 reg_t kPalCycle(EngineState *s, int argc, reg_t *argv) {
@@ -994,43 +994,43 @@ reg_t kPalCycleSetCycle(EngineState *s, int argc, reg_t *argv) {
 	const uint16 toColor = argv[1].toUint16();
 	const int16 direction = argv[2].toSint16();
 	const uint16 delay = argc > 3 ? argv[3].toUint16() : 0;
-	g_sci->_gfxPalette32->setCycle(fromColor, toColor, direction, delay);
+	g_sci->_gfxFrameout->_palette.setCycle(fromColor, toColor, direction, delay);
 	return s->r_acc;
 }
 
 reg_t kPalCycleDoCycle(EngineState *s, int argc, reg_t *argv) {
 	const uint16 fromColor = argv[0].toUint16();
 	const int16 speed = argc > 1 ? argv[1].toSint16() : 1;
-	g_sci->_gfxPalette32->doCycle(fromColor, speed);
+	g_sci->_gfxFrameout->_palette.doCycle(fromColor, speed);
 	return s->r_acc;
 }
 
 reg_t kPalCyclePause(EngineState *s, int argc, reg_t *argv) {
 	if (argc == 0) {
-		g_sci->_gfxPalette32->cycleAllPause();
+		g_sci->_gfxFrameout->_palette.cycleAllPause();
 	} else {
 		const uint16 fromColor = argv[0].toUint16();
-		g_sci->_gfxPalette32->cyclePause(fromColor);
+		g_sci->_gfxFrameout->_palette.cyclePause(fromColor);
 	}
 	return s->r_acc;
 }
 
 reg_t kPalCycleOn(EngineState *s, int argc, reg_t *argv) {
 	if (argc == 0) {
-		g_sci->_gfxPalette32->cycleAllOn();
+		g_sci->_gfxFrameout->_palette.cycleAllOn();
 	} else {
 		const uint16 fromColor = argv[0].toUint16();
-		g_sci->_gfxPalette32->cycleOn(fromColor);
+		g_sci->_gfxFrameout->_palette.cycleOn(fromColor);
 	}
 	return s->r_acc;
 }
 
 reg_t kPalCycleOff(EngineState *s, int argc, reg_t *argv) {
 	if (argc == 0) {
-		g_sci->_gfxPalette32->cycleAllOff();
+		g_sci->_gfxFrameout->_palette.cycleAllOff();
 	} else {
 		const uint16 fromColor = argv[0].toUint16();
-		g_sci->_gfxPalette32->cycleOff(fromColor);
+		g_sci->_gfxFrameout->_palette.cycleOff(fromColor);
 	}
 	return s->r_acc;
 }
@@ -1043,10 +1043,10 @@ reg_t kRemapColors32(EngineState *s, int argc, reg_t *argv) {
 
 reg_t kRemapColorsOff(EngineState *s, int argc, reg_t *argv) {
 	if (argc == 0) {
-		g_sci->_gfxRemap32->remapAllOff();
+		g_sci->_gfxFrameout->_remapper.remapAllOff();
 	} else {
 		const uint8 color = argv[0].toUint16();
-		g_sci->_gfxRemap32->remapOff(color);
+		g_sci->_gfxFrameout->_remapper.remapOff(color);
 	}
 	return s->r_acc;
 }
@@ -1059,7 +1059,7 @@ reg_t kRemapColorsByRange(EngineState *s, int argc, reg_t *argv) {
 	// There is an optional last parameter after `base` which was only used by
 	// the priority map debugger which does not exist in release versions of
 	// SSCI
-	g_sci->_gfxRemap32->remapByRange(color, from, to, base);
+	g_sci->_gfxFrameout->_remapper.remapByRange(color, from, to, base);
 	return s->r_acc;
 }
 
@@ -1069,7 +1069,7 @@ reg_t kRemapColorsByPercent(EngineState *s, int argc, reg_t *argv) {
 	// There is an optional last parameter after `percent` which was only used
 	// by the priority map debugger, which does not exist in release versions of
 	// SSCI
-	g_sci->_gfxRemap32->remapByPercent(color, percent);
+	g_sci->_gfxFrameout->_remapper.remapByPercent(color, percent);
 	return s->r_acc;
 }
 
@@ -1079,7 +1079,7 @@ reg_t kRemapColorsToGray(EngineState *s, int argc, reg_t *argv) {
 	// There is an optional last parameter after `gray` which was only used by
 	// the priority map debugger, which does not exist in release versions of
 	// SSCI
-	g_sci->_gfxRemap32->remapToGray(color, gray);
+	g_sci->_gfxFrameout->_remapper.remapToGray(color, gray);
 	return s->r_acc;
 }
 
@@ -1090,14 +1090,14 @@ reg_t kRemapColorsToPercentGray(EngineState *s, int argc, reg_t *argv) {
 	// There is an optional last parameter after `percent` which was only used
 	// by the priority map debugger, which does not exist in release versions of
 	// SSCI
-	g_sci->_gfxRemap32->remapToPercentGray(color, gray, percent);
+	g_sci->_gfxFrameout->_remapper.remapToPercentGray(color, gray, percent);
 	return s->r_acc;
 }
 
 reg_t kRemapColorsBlockRange(EngineState *s, int argc, reg_t *argv) {
 	const uint8 from = argv[0].toUint16();
 	const uint8 count = argv[1].toUint16();
-	g_sci->_gfxRemap32->blockRange(from, count);
+	g_sci->_gfxFrameout->_remapper.blockRange(from, count);
 	return s->r_acc;
 }
 

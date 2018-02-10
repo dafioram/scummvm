@@ -60,9 +60,9 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitions32 *transitions, GfxCursor32 *cursor) :
-	_isHiRes(detectHiRes()),
-	_palette(palette),
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions, GfxCursor32 *cursor) :
+	_isHiRes(detectHiRes(resMan->getGameMetadata())),
+	_palette(resMan, features, this),
 	_cursor(cursor),
 	_segMan(segMan),
 	_transitions(transitions),
@@ -73,7 +73,8 @@ GfxFrameout::GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitio
 	_palMorphIsOn(false),
 	_lastScreenUpdateTick(0) {
 
-	if (g_sci->getGameId() == GID_PHANTASMAGORIA) {
+	const GameMetadata &game = resMan->getGameMetadata();
+	if (game.id == GID_PHANTASMAGORIA) {
 		_currentBuffer.create(630, 450, Graphics::PixelFormat::createFormatCLUT8());
 	} else if (_isHiRes) {
 		_currentBuffer.create(640, 480, Graphics::PixelFormat::createFormatCLUT8());
@@ -82,7 +83,7 @@ GfxFrameout::GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitio
 	}
 	initGraphics(_currentBuffer.w, _currentBuffer.h);
 
-	switch (g_sci->getGameId()) {
+	switch (game.id) {
 	case GID_HOYLE5:
 	case GID_LIGHTHOUSE:
 	case GID_LSL7:
@@ -94,7 +95,7 @@ GfxFrameout::GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitio
 		break;
 	case GID_GK2:
 	case GID_PQSWAT:
-		if (!g_sci->isDemo()) {
+		if (!game.isDemo) {
 			_scriptWidth = 640;
 			_scriptHeight = 480;
 			break;
@@ -133,23 +134,20 @@ void GfxFrameout::clear() {
 	_showList.clear();
 }
 
-bool GfxFrameout::detectHiRes() const {
+bool GfxFrameout::detectHiRes(const GameMetadata &game) const {
 	// QFG4 is always low resolution
-	if (g_sci->getGameId() == GID_QFG4) {
+	if (game.id == GID_QFG4) {
 		return false;
 	}
 
 	// PQ4 DOS floppy is low resolution only
-	if (g_sci->getGameId() == GID_PQ4 && !g_sci->isCD()) {
+	if (game.id == GID_PQ4 && !game.isCD) {
 		return false;
 	}
 
 	// GK1 DOS floppy is low resolution only, but GK1 Mac floppy is high
 	// resolution only
-	if (g_sci->getGameId() == GID_GK1 &&
-		!g_sci->isCD() &&
-		g_sci->getPlatform() != Common::kPlatformMacintosh) {
-
+	if (game.id == GID_GK1 && !game.isCD && game.platform != Common::kPlatformMacintosh) {
 		return false;
 	}
 
@@ -301,7 +299,7 @@ void GfxFrameout::kernelDeletePlane(const reg_t object) {
 		_planes.erase(plane);
 	} else {
 		plane->_created = 0;
-		plane->_deleted = g_sci->_gfxFrameout->getScreenCount();
+		plane->_deleted = getScreenCount();
 	}
 }
 
@@ -409,7 +407,7 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 	screenItemLists.resize(_planes.size());
 	eraseLists.resize(_planes.size());
 
-	if (g_sci->_gfxRemap32->getRemapCount() > 0 && _remapOccurred) {
+	if (_remapper.getRemapCount() > 0 && _remapOccurred) {
 		remapMarkRedraw();
 	}
 
@@ -425,7 +423,7 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 		}
 	}
 
-	_remapOccurred = _palette->updateForFrame();
+	_remapOccurred = _palette.updateForFrame();
 
 	for (PlaneList::size_type i = 0; i < _planes.size(); ++i) {
 		drawEraseList(eraseLists[i], *_planes[i]);
@@ -436,7 +434,7 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 		robotPlayer.frameAlmostVisible();
 	}
 
-	_palette->updateHardware();
+	_palette.updateHardware();
 
 	if (shouldShowBits) {
 		showBits();
@@ -450,7 +448,7 @@ void GfxFrameout::frameOut(const bool shouldShowBits, const Common::Rect &eraseR
 void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *showStyle) {
 	updateMousePositionForRendering();
 
-	Palette sourcePalette(_palette->getNextPalette());
+	Palette sourcePalette(_palette.getNextPalette());
 	alterVmap(sourcePalette, sourcePalette, -1, styleRanges);
 
 	int16 prevRoom = g_sci->getEngineState()->variables[VAR_GLOBAL][kGlobalVarPreviousRoomNo].toSint16();
@@ -467,7 +465,7 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 	screenItemLists.resize(_planes.size());
 	eraseLists.resize(_planes.size());
 
-	if (g_sci->_gfxRemap32->getRemapCount() > 0 && _remapOccurred) {
+	if (_remapper.getRemapCount() > 0 && _remapOccurred) {
 		remapMarkRedraw();
 	}
 
@@ -482,14 +480,14 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 		}
 	}
 
-	_remapOccurred = _palette->updateForFrame();
+	_remapOccurred = _palette.updateForFrame();
 
 	for (PlaneList::size_type i = 0; i < _planes.size(); ++i) {
 		drawEraseList(eraseLists[i], *_planes[i]);
 		drawScreenItemList(screenItemLists[i]);
 	}
 
-	Palette nextPalette(_palette->getNextPalette());
+	Palette nextPalette(_palette.getNextPalette());
 
 	if (prevRoom < 1000) {
 		for (int i = 0; i < ARRAYSIZE(sourcePalette.colors); ++i) {
@@ -507,9 +505,9 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 		}
 	}
 
-	_palette->submit(sourcePalette);
-	_palette->updateFFrame();
-	_palette->updateHardware();
+	_palette.submit(sourcePalette);
+	_palette.updateFFrame();
+	_palette.updateHardware();
 	alterVmap(nextPalette, sourcePalette, 1, _transitions->_styleRanges);
 
 	if (showStyle && showStyle->type != kShowStyleMorph) {
@@ -522,7 +520,7 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 		(*plane)->_redrawAllCount = getScreenCount();
 	}
 
-	if (g_sci->_gfxRemap32->getRemapCount() > 0 && _remapOccurred) {
+	if (_remapper.getRemapCount() > 0 && _remapOccurred) {
 		remapMarkRedraw();
 	}
 
@@ -537,16 +535,16 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 		}
 	}
 
-	_remapOccurred = _palette->updateForFrame();
+	_remapOccurred = _palette.updateForFrame();
 
 	for (PlaneList::size_type i = 0; i < _planes.size(); ++i) {
 		drawEraseList(eraseLists[i], *_planes[i]);
 		drawScreenItemList(screenItemLists[i]);
 	}
 
-	_palette->submit(nextPalette);
-	_palette->updateFFrame();
-	_palette->updateHardware();
+	_palette.submit(nextPalette);
+	_palette.updateFFrame();
+	_palette.updateHardware();
 	showBits();
 }
 
@@ -558,7 +556,7 @@ void GfxFrameout::directFrameOut(const Common::Rect &showRect) {
 
 #ifdef USE_RGB_COLOR
 void GfxFrameout::redrawGameScreen(const Common::Rect &skipRect) const {
-	Common::ScopedPtr<Graphics::Surface> game(_currentBuffer.convertTo(g_system->getScreenFormat(), _palette->getHardwarePalette()));
+	Common::ScopedPtr<Graphics::Surface> game(_currentBuffer.convertTo(g_system->getScreenFormat(), _palette.getHardwarePalette()));
 	assert(game);
 
 	Common::Rect rects[4];
@@ -576,7 +574,7 @@ void GfxFrameout::redrawGameScreen(const Common::Rect &skipRect) const {
 void GfxFrameout::resetHardware() {
 	updateMousePositionForRendering();
 	_showList.add(Common::Rect(_currentBuffer.w, _currentBuffer.h));
-	g_system->getPaletteManager()->setPalette(_palette->getHardwarePalette(), 0, 256);
+	g_system->getPaletteManager()->setPalette(_palette.getHardwarePalette(), 0, 256);
 	showBits();
 }
 #endif
@@ -1029,7 +1027,7 @@ void GfxFrameout::showBits() {
 		if (g_system->getScreenFormat() != _currentBuffer.format) {
 			// This happens (at least) when playing a video in Shivers with
 			// HQ video on & subtitles on
-			Graphics::Surface *screenSurface = _currentBuffer.getSubArea(rounded).convertTo(g_system->getScreenFormat(), _palette->getHardwarePalette());
+			Graphics::Surface *screenSurface = _currentBuffer.getSubArea(rounded).convertTo(g_system->getScreenFormat(), _palette.getHardwarePalette());
 			assert(screenSurface);
 			g_system->copyRectToScreen(screenSurface->getPixels(), screenSurface->pitch, rounded.left, rounded.top, screenSurface->w, screenSurface->h);
 			screenSurface->free();

@@ -25,13 +25,16 @@
 
 #include "engines/util.h"                // for initGraphics
 #include "sci/event.h"
+#include "sci/graphics/palette32.h"
 #include "sci/graphics/plane32.h"
+#include "sci/graphics/remap32.h"
 #include "sci/graphics/screen_item32.h"
 
 namespace Sci {
 typedef Common::Array<DrawList> ScreenItemListList;
 typedef Common::Array<RectList> EraseListList;
 
+class GameFeatures;
 class GfxCursor32;
 class GfxTransitions32;
 struct PlaneShowStyle;
@@ -44,7 +47,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(SegManager *segMan, GfxPalette32 *palette, GfxTransitions32 *transitions, GfxCursor32 *cursor);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions, GfxCursor32 *cursor);
 	~GfxFrameout();
 
 	void clear();
@@ -76,9 +79,11 @@ public:
 	 */
 	inline int16 getScreenHeight() const { return _currentBuffer.h; }
 
+	GfxPalette32 _palette;
+	GfxRemap32 _remapper;
+
 private:
 	GfxCursor32 *_cursor;
-	GfxPalette32 *_palette;
 	GfxTransitions32 *_transitions;
 	SegManager *_segMan;
 
@@ -97,7 +102,7 @@ private:
 	 * Determines whether the current game should be rendered in high
 	 * resolution.
 	 */
-	bool detectHiRes() const;
+	bool detectHiRes(const GameMetadata &game) const;
 
 #pragma mark -
 #pragma mark Screen items

@@ -829,9 +829,9 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 		// next frame is rendered, and the frame rendering call will perform the
 		// same operations.
 	} else {
-		g_sci->_gfxPalette32->submit(palette);
-		g_sci->_gfxPalette32->updateForFrame();
-		g_sci->_gfxPalette32->updateHardware();
+		g_sci->_gfxFrameout->_palette.submit(palette);
+		g_sci->_gfxFrameout->_palette.updateForFrame();
+		g_sci->_gfxFrameout->_palette.updateHardware();
 	}
 
 #if SCI_VMD_BLACK_PALETTE
@@ -841,9 +841,9 @@ void VMDPlayer::submitPalette(const uint8 rawPalette[256 * 3]) const {
 			SciBitmap *bitmap = _segMan->lookupBitmap(_bitmapId);
 			bitmap->setPalette(palette);
 		}
-		g_sci->_gfxPalette32->submit(palette);
-		g_sci->_gfxPalette32->updateForFrame();
-		g_sci->_gfxPalette32->updateHardware();
+		g_sci->_gfxFrameout->_palette.submit(palette);
+		g_sci->_gfxFrameout->_palette.updateForFrame();
+		g_sci->_gfxFrameout->_palette.updateHardware();
 	}
 #endif
 

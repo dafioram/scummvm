@@ -260,15 +260,12 @@ SciEngine::~SciEngine() {
 	delete _gfxControls32;
 	delete _gfxPaint32;
 	delete _gfxText32;
-	// GfxFrameout and GfxPalette32 must be deleted after Video32 since
-	// destruction of screen items in the Video32 destructor relies on these
-	// components
+	// GfxFrameout must be deleted after Video32 since destruction of screen
+	// items in the Video32 destructor relies on this component
 	delete _video32;
 	delete _gfxCursor32;
-	delete _gfxPalette32;
 	delete _gfxTransitions32;
 	delete _gfxFrameout;
-	delete _gfxRemap32;
 	delete _audio32;
 #endif
 	delete _gfxMenu;
@@ -648,8 +645,6 @@ void SciEngine::initGraphics() {
 	_gfxText32 = 0;
 	_gfxFrameout = 0;
 	_gfxPaint32 = 0;
-	_gfxPalette32 = 0;
-	_gfxRemap32 = 0;
 	_gfxTransitions32 = 0;
 	_gfxCursor32 = 0;
 #endif
@@ -657,18 +652,11 @@ void SciEngine::initGraphics() {
 	if (hasMacIconBar())
 		_gfxMacIconBar = new GfxMacIconBar();
 
-#ifdef ENABLE_SCI32
-	if (getSciVersion() >= SCI_VERSION_2) {
-		_gfxPalette32 = new GfxPalette32(_resMan);
-		_gfxRemap32 = new GfxRemap32();
-	} else {
-#endif
+	if (getSciVersion() < SCI_VERSION_2) {
 		_gfxPalette16 = new GfxPalette(_resMan, _gfxScreen);
 		if (getGameId() == GID_QFG4DEMO)
 			_gfxRemap16 = new GfxRemap(_gfxPalette16);
-#ifdef ENABLE_SCI32
 	}
-#endif
 
 	_gfxCache = new GfxCache(_resMan, _gfxScreen, _gfxPalette16);
 
@@ -679,7 +667,7 @@ void SciEngine::initGraphics() {
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
 		_gfxTransitions32 = new GfxTransitions32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_gamestate->_segMan, _gfxPalette32, _gfxTransitions32, _gfxCursor32);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxTransitions32, _gfxCursor32);
 		_gfxCursor32->init(_gfxFrameout->getCurrentBuffer());
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
 		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache, _gfxText32);

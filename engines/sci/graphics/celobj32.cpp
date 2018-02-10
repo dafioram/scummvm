@@ -405,10 +405,10 @@ struct MAPPER_Map {
 		if (pixel != skipColor) {
 			// For some reason, SSCI never checks if the source pixel is *above*
 			// the range of remaps, so we do not either.
-			if (pixel < g_sci->_gfxRemap32->getStartColor()) {
+			if (pixel < g_sci->_gfxFrameout->_remapper.getStartColor()) {
 				*target = pixel;
-			} else if (g_sci->_gfxRemap32->remapEnabled(pixel)) {
-				*target = g_sci->_gfxRemap32->remapColor(pixel, *target);
+			} else if (g_sci->_gfxFrameout->_remapper.remapEnabled(pixel)) {
+				*target = g_sci->_gfxFrameout->_remapper.remapColor(pixel, *target);
 			}
 		}
 	}
@@ -422,7 +422,7 @@ struct MAPPER_NoMap {
 	inline void draw(byte *target, const byte pixel, const uint8 skipColor) const {
 		// For some reason, SSCI never checks if the source pixel is *above* the
 		// range of remaps, so we do not either.
-		if (pixel != skipColor && pixel < g_sci->_gfxRemap32->getStartColor()) {
+		if (pixel != skipColor && pixel < g_sci->_gfxFrameout->_remapper.getStartColor()) {
 			*target = pixel;
 		}
 	}
@@ -438,7 +438,7 @@ void CelObj::draw(Buffer &target, const ScreenItem &screenItem, const Common::Re
 		// In SSCI, this check was `g_Remap_numActiveRemaps && _remap`, but
 		// since we are already in a `_remap` branch, there is no reason to
 		// check that again
-		if (g_sci->_gfxRemap32->getRemapCount()) {
+		if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
 			if (scaleX.isOne() && scaleY.isOne()) {
 				if (_compressionType == kCelCompressionNone) {
 					if (_drawMirrored) {
@@ -595,7 +595,7 @@ void CelObj::submitPalette() const {
 	if (_hunkPaletteOffset) {
 		const SciSpan<const byte> data = getResPointer();
 		const HunkPalette palette(data.subspan(_hunkPaletteOffset));
-		g_sci->_gfxPalette32->submit(palette);
+		g_sci->_gfxFrameout->_palette.submit(palette);
 	}
 }
 
@@ -1003,8 +1003,8 @@ bool CelObjView::analyzeUncompressedForRemap() const {
 	for (int i = 0; i < _width * _height; ++i) {
 		const byte pixel = pixels[i];
 		if (
-			pixel >= g_sci->_gfxRemap32->getStartColor() &&
-			pixel <= g_sci->_gfxRemap32->getEndColor() &&
+			pixel >= g_sci->_gfxFrameout->_remapper.getStartColor() &&
+			pixel <= g_sci->_gfxFrameout->_remapper.getEndColor() &&
 			pixel != _skipColor
 		) {
 			return true;
@@ -1020,8 +1020,8 @@ bool CelObjView::analyzeForRemap() const {
 		for (int x = 0; x < _width; x++) {
 			const byte pixel = curRow[x];
 			if (
-				pixel >= g_sci->_gfxRemap32->getStartColor() &&
-				pixel <= g_sci->_gfxRemap32->getEndColor() &&
+				pixel >= g_sci->_gfxFrameout->_remapper.getStartColor() &&
+				pixel <= g_sci->_gfxFrameout->_remapper.getEndColor() &&
 				pixel != _skipColor
 			) {
 				return true;
