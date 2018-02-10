@@ -972,6 +972,8 @@ void OpenGLGraphicsManager::notifyContextDestroy() {
 Surface *OpenGLGraphicsManager::createSurface(const Graphics::PixelFormat &format, bool wantAlpha) {
 	GLenum glIntFormat, glFormat, glType;
 	if (format.bytesPerPixel == 1) {
+		GL_CALL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+
 #if !USE_FORCED_GLES
 		if (TextureCLUT8GPU::isSupportedByContext()) {
 			return new TextureCLUT8GPU();
@@ -995,6 +997,7 @@ Surface *OpenGLGraphicsManager::createSurface(const Graphics::PixelFormat &forma
 		return new TextureRGB555();
 #endif // !USE_FORCED_GL
 	} else {
+		GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_COLOR));
 		const bool supported = getGLPixelFormat(format, glIntFormat, glFormat, glType);
 		if (!supported) {
 			return nullptr;
