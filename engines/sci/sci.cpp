@@ -343,7 +343,6 @@ Common::Error SciEngine::run() {
 	}
 
 	_kernel = new Kernel(_resMan, segMan);
-	_kernel->init();
 
 	_features = new GameFeatures(_resMan, segMan, _kernel);
 	// Only SCI0, SCI01 and SCI1 EGA games used a parser
