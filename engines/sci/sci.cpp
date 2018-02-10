@@ -345,11 +345,13 @@ Common::Error SciEngine::run() {
 	_kernel = new Kernel(_resMan, segMan);
 
 	_features = new GameFeatures(_resMan, segMan, _kernel);
+
 	// Only SCI0, SCI01 and SCI1 EGA games used a parser
-	_vocabulary = (getSciVersion() <= SCI_VERSION_1_EGA_ONLY) ? new Vocabulary(_resMan, false) : NULL;
 	// Also, XMAS1990 apparently had a parser too. Refer to http://forums.scummvm.org/viewtopic.php?t=9135
-	if (getGameId() == GID_CHRISTMAS1990)
+	if (getSciVersion() <= SCI_VERSION_1_EGA_ONLY || getGameId() == GID_CHRISTMAS1990)
 		_vocabulary = new Vocabulary(_resMan, false);
+	else
+		_vocabulary = nullptr;
 
 	_gamestate = new EngineState(segMan);
 
