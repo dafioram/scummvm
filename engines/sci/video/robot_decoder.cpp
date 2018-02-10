@@ -34,6 +34,7 @@
 #include "common/types.h"            // for Flag::NO, Flag::YES
 #include "sci/engine/seg_manager.h"  // for SegManager
 #include "sci/graphics/celobj32.h"   // for Ratio, ::kLowResX, ::kLowResY
+#include "sci/graphics/frameout.h"   // for GfxFrameout
 #include "sci/graphics/text32.h"     // for BitmapResource
 #include "sci/sound/audio32.h"       // for Audio32
 #include "sci/sci.h"                 // for kDebugLevels::kDebugLevelVideo

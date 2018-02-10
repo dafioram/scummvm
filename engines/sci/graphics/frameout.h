@@ -25,11 +25,13 @@
 
 #include "engines/util.h"                // for initGraphics
 #include "sci/event.h"
+#include "sci/graphics/controls32.h"
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/plane32.h"
 #include "sci/graphics/remap32.h"
 #include "sci/graphics/screen_item32.h"
+#include "sci/graphics/text32.h"
 #include "sci/graphics/transitions32.h"
 
 namespace Sci {
@@ -48,7 +50,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxCache *cache);
 	~GfxFrameout();
 
 	void clear();
@@ -91,6 +93,7 @@ public:
 	GfxPalette32 _palette;
 	GfxRemap32 _remapper;
 	GfxTransitions32 _transitions;
+	GfxText32 _text;
 
 private:
 	SegManager *_segMan;

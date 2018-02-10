@@ -390,7 +390,7 @@ private:
  */
 class GfxControls32 {
 public:
-	GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, GfxText32 *text);
+	GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache);
 	~GfxControls32();
 
 private:
@@ -398,7 +398,6 @@ private:
 	SegManager *_segMan;
 	GfxFrameout *_gfxFrameout;
 	GfxCache *_gfxCache;
-	GfxText32 *_gfxText32;
 
 #pragma mark -
 #pragma mark Text input control

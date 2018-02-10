@@ -25,7 +25,6 @@
 
 #include "sci/engine/state.h"
 #include "sci/graphics/celobj32.h"
-#include "sci/graphics/frameout.h"
 #include "sci/graphics/helpers.h"
 
 namespace Sci {

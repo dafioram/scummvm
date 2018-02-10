@@ -32,17 +32,17 @@
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
 #include "sci/graphics/controls32.h"
+#include "sci/graphics/frameout.h"
 #include "sci/graphics/font.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text32.h"
 
 namespace Sci {
-GfxControls32::GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache, GfxText32 *text) :
+GfxControls32::GfxControls32(EventManager *eventMan, SegManager *segMan, GfxFrameout *frameout, GfxCache *cache) :
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_gfxFrameout(frameout),
 	_gfxCache(cache),
-	_gfxText32(text),
 	_overwriteMode(false),
 	_nextCursorFlashTick(0),
 	// SSCI used a memory handle for a ScrollWindow object as ID. We use a
@@ -78,7 +78,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	GuiResourceId titleFontId = readSelectorValue(_segMan, controlObject, SELECTOR(titleFont));
 	if (!titleObject.isNull()) {
 		GfxFont *titleFont = _gfxCache->getFont(titleFontId);
-		titleHeight += _gfxText32->scaleUpHeight(titleFont->getHeight()) + 1;
+		titleHeight += _gfxFrameout->_text.scaleUpHeight(titleFont->getHeight()) + 1;
 		if (editor.borderColor != -1) {
 			titleHeight += 2;
 		}
@@ -88,9 +88,9 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	int16 height = titleHeight;
 
 	GfxFont *editorFont = _gfxCache->getFont(editor.fontId);
-	height += _gfxText32->scaleUpHeight(editorFont->getHeight()) + 1;
-	_gfxText32->setFont(editor.fontId);
-	int16 emSize = _gfxText32->getCharWidth('M', true);
+	height += _gfxFrameout->_text.scaleUpHeight(editorFont->getHeight()) + 1;
+	_gfxFrameout->_text.setFont(editor.fontId);
+	int16 emSize = _gfxFrameout->_text.getCharWidth('M', true);
 	width += editor.maxLength * emSize + 1;
 	if (editor.borderColor != -1) {
 		width += 4;
@@ -118,7 +118,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 
 		if (titleObject.isNull()) {
 			bool dimmed = readSelectorValue(_segMan, controlObject, SELECTOR(dimmed));
-			editor.bitmap = _gfxText32->createFontBitmap(width, height, editor.textRect, editor.text, editor.foreColor, editor.backColor, editor.skipColor, editor.fontId, alignment, editor.borderColor, dimmed, true, false);
+			editor.bitmap = _gfxFrameout->_text.createFontBitmap(width, height, editor.textRect, editor.text, editor.foreColor, editor.backColor, editor.skipColor, editor.fontId, alignment, editor.borderColor, dimmed, true, false);
 		} else {
 			error("Titled bitmaps are not known to be used by any game. Please submit a bug report with details about the game you were playing and what you were doing that triggered this error. Thanks!");
 		}
@@ -256,7 +256,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 
 					if (
 						(_overwriteMode && editor.cursorCharPosition < editor.maxLength) ||
-						(editor.text.size() < editor.maxLength && _gfxText32->getCharWidth(event.character, true) + _gfxText32->getStringWidth(editor.text) < editor.textRect.width())
+						(editor.text.size() < editor.maxLength && _gfxFrameout->_text.getCharWidth(event.character, true) + _gfxFrameout->_text.getStringWidth(editor.text) < editor.textRect.width())
 					) {
 						if (_overwriteMode && editor.cursorCharPosition < editor.text.size()) {
 							editor.text.setChar(event.character, editor.cursorCharPosition);
@@ -281,8 +281,8 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 
 		if (shouldRedrawText) {
 			eraseCursor(editor);
-			_gfxText32->erase(editor.textRect, true);
-			_gfxText32->drawTextBox(editor.text);
+			_gfxFrameout->_text.erase(editor.textRect, true);
+			_gfxFrameout->_text.drawTextBox(editor.text);
 			drawCursor(editor);
 			textChanged = true;
 			screenItem->_updated = _gfxFrameout->getScreenCount();
@@ -317,9 +317,9 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 
 void GfxControls32::drawCursor(TextEditor &editor) {
 	if (!editor.cursorIsDrawn) {
-		editor.cursorRect.left = editor.textRect.left + _gfxText32->getTextWidth(editor.text, 0, editor.cursorCharPosition);
+		editor.cursorRect.left = editor.textRect.left + _gfxFrameout->_text.getTextWidth(editor.text, 0, editor.cursorCharPosition);
 
-		const int16 scaledFontHeight = _gfxText32->scaleUpHeight(_gfxText32->_font->getHeight());
+		const int16 scaledFontHeight = _gfxFrameout->_text.scaleUpHeight(_gfxFrameout->_text._font->getHeight());
 
 		// SSCI branched on borderColor here but the two branches appeared to be
 		// identical, differing only because the compiler decided to be
@@ -333,9 +333,9 @@ void GfxControls32::drawCursor(TextEditor &editor) {
 		}
 
 		const char currentChar = editor.cursorCharPosition < editor.text.size() ? editor.text[editor.cursorCharPosition] : ' ';
-		editor.cursorRect.setWidth(_gfxText32->getCharWidth(currentChar, true));
+		editor.cursorRect.setWidth(_gfxFrameout->_text.getCharWidth(currentChar, true));
 
-		_gfxText32->invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
+		_gfxFrameout->_text.invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
 
 		editor.cursorIsDrawn = true;
 	}
@@ -345,7 +345,7 @@ void GfxControls32::drawCursor(TextEditor &editor) {
 
 void GfxControls32::eraseCursor(TextEditor &editor) {
 	if (editor.cursorIsDrawn) {
-		_gfxText32->invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
+		_gfxFrameout->_text.invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
 		editor.cursorIsDrawn = false;
 	}
 
@@ -354,7 +354,7 @@ void GfxControls32::eraseCursor(TextEditor &editor) {
 
 void GfxControls32::flashCursor(TextEditor &editor) {
 	if (getTickCount() > _nextCursorFlashTick) {
-		_gfxText32->invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
+		_gfxFrameout->_text.invertRect(editor.bitmap, editor.width, editor.cursorRect, editor.foreColor, editor.backColor, true);
 
 		editor.cursorIsDrawn = !editor.cursorIsDrawn;
 		_nextCursorFlashTick = getTickCount() + 30;

@@ -22,6 +22,7 @@
 
 #include "graphics/primitives.h"
 #include "sci/engine/seg_manager.h"
+#include "sci/graphics/frameout.h"
 #include "sci/graphics/paint32.h"
 #include "sci/graphics/text32.h"
 

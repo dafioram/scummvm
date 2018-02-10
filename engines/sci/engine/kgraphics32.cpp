@@ -291,14 +291,14 @@ reg_t kCreateTextBitmap(EngineState *s, int argc, reg_t *argv) {
 
 	if (subop == 0) {
 		TextAlign alignment = (TextAlign)readSelectorValue(segMan, object, SELECTOR(mode));
-		return g_sci->_gfxText32->createFontBitmap(width, height, rect, text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, true, true);
+		return g_sci->_gfxFrameout->_text.createFontBitmap(width, height, rect, text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, true, true);
 	} else {
 		CelInfo32 celInfo;
 		celInfo.type = kCelTypeView;
 		celInfo.resourceId = readSelectorValue(segMan, object, SELECTOR(view));
 		celInfo.loopNo = readSelectorValue(segMan, object, SELECTOR(loop));
 		celInfo.celNo = readSelectorValue(segMan, object, SELECTOR(cel));
-		return g_sci->_gfxText32->createFontBitmap(celInfo, rect, text, foreColor, backColor, fontId, skipColor, borderColor, dimmed, true);
+		return g_sci->_gfxFrameout->_text.createFontBitmap(celInfo, rect, text, foreColor, backColor, fontId, skipColor, borderColor, dimmed, true);
 	}
 }
 
@@ -309,7 +309,7 @@ reg_t kText(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kTextSize32(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxText32->setFont(argv[2].toUint16());
+	g_sci->_gfxFrameout->_text.setFont(argv[2].toUint16());
 
 	SciArray *rect = s->_segMan->lookupArray(argv[0]);
 	if (rect == nullptr) {
@@ -320,7 +320,7 @@ reg_t kTextSize32(EngineState *s, int argc, reg_t *argv) {
 	int16 maxWidth = argc > 3 ? argv[3].toSint16() : 0;
 	bool doScaling = argc > 4 ? argv[4].toSint16() : true;
 
-	Common::Rect textRect = g_sci->_gfxText32->getTextSize(text, maxWidth, doScaling);
+	Common::Rect textRect = g_sci->_gfxFrameout->_text.getTextSize(text, maxWidth, doScaling);
 
 	reg_t value[4] = {
 		make_reg(0, textRect.left),
@@ -333,9 +333,9 @@ reg_t kTextSize32(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kTextWidth(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxText32->setFont(argv[1].toUint16());
+	g_sci->_gfxFrameout->_text.setFont(argv[1].toUint16());
 	Common::String text = s->_segMan->getString(argv[0]);
-	return make_reg(0, g_sci->_gfxText32->getStringWidth(text));
+	return make_reg(0, g_sci->_gfxFrameout->_text.getStringWidth(text));
 }
 
 reg_t kWinHelp(EngineState *s, int argc, reg_t *argv) {
@@ -630,13 +630,13 @@ reg_t kFont(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kPointSize(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxText32->setFont(argv[0].toUint16());
-	return make_reg(0, g_sci->_gfxText32->getScaledFontHeight());
+	g_sci->_gfxFrameout->_text.setFont(argv[0].toUint16());
+	return make_reg(0, g_sci->_gfxFrameout->_text.getScaledFontHeight());
 }
 
 reg_t kSetFontRes(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxText32->_xResolution = argv[0].toUint16();
-	g_sci->_gfxText32->_yResolution = argv[1].toUint16();
+	g_sci->_gfxFrameout->_text._xResolution = argv[0].toUint16();
+	g_sci->_gfxFrameout->_text._yResolution = argv[1].toUint16();
 	return s->r_acc;
 }
 
@@ -651,8 +651,8 @@ reg_t kBitmapCreate(EngineState *s, int argc, reg_t *argv) {
 	int16 height = argv[1].toSint16();
 	int16 skipColor = argv[2].toSint16();
 	int16 backColor = argv[3].toSint16();
-	int16 xResolution = argc > 4 ? argv[4].toSint16() : g_sci->_gfxText32->_xResolution;
-	int16 yResolution = argc > 5 ? argv[5].toSint16() : g_sci->_gfxText32->_yResolution;
+	int16 xResolution = argc > 4 ? argv[4].toSint16() : g_sci->_gfxFrameout->_text._xResolution;
+	int16 yResolution = argc > 5 ? argv[5].toSint16() : g_sci->_gfxFrameout->_text._yResolution;
 	bool useRemap = argc > 6 ? argv[6].toSint16() : false;
 
 	reg_t bitmapId;
@@ -717,7 +717,7 @@ reg_t kBitmapDrawText(EngineState *s, int argc, reg_t *argv) {
 
 	textRect.clip(Common::Rect(bitmap.getWidth(), bitmap.getHeight()));
 
-	reg_t textBitmapObject = g_sci->_gfxText32->createFontBitmap(textRect.width(), textRect.height(), Common::Rect(textRect.width(), textRect.height()), text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, false, false);
+	reg_t textBitmapObject = g_sci->_gfxFrameout->_text.createFontBitmap(textRect.width(), textRect.height(), Common::Rect(textRect.width(), textRect.height()), text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, false, false);
 	CelObjMem textCel(textBitmapObject);
 	textCel.draw(bitmap.getBuffer(), textRect, Common::Point(textRect.left, textRect.top), false);
 	s->_segMan->freeBitmap(textBitmapObject);

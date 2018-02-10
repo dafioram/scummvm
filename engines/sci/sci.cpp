@@ -257,7 +257,6 @@ SciEngine::~SciEngine() {
 #ifdef ENABLE_SCI32
 	delete _gfxControls32;
 	delete _gfxPaint32;
-	delete _gfxText32;
 	// GfxFrameout must be deleted after Video32 since destruction of screen
 	// items in the Video32 destructor relies on this component
 	delete _video32;
@@ -638,7 +637,6 @@ void SciEngine::initGraphics() {
 	_gfxTransitions = 0;
 #ifdef ENABLE_SCI32
 	_gfxControls32 = 0;
-	_gfxText32 = 0;
 	_gfxFrameout = 0;
 	_gfxPaint32 = 0;
 #endif
@@ -659,9 +657,8 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan);
-		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
-		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache, _gfxText32);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxCache);
+		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache);
 		_gfxFrameout->run();
 	} else {
 #endif
