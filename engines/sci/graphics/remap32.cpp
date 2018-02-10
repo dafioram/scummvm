@@ -30,12 +30,14 @@ namespace Sci {
 
 #pragma mark SingleRemap
 
+GfxFrameout *SingleRemap::_gfxFrameout = nullptr;
+
 void SingleRemap::reset() {
 	_lastPercent = 100;
 	_lastGray = 0;
 
-	const uint8 remapStartColor = g_sci->_gfxFrameout->_remapper.getStartColor();
-	const Palette &currentPalette = g_sci->_gfxFrameout->_palette.getCurrentPalette();
+	const uint8 remapStartColor = _gfxFrameout->_remapper.getStartColor();
+	const Palette &currentPalette = _gfxFrameout->_palette.getCurrentPalette();
 	for (uint i = 0; i < remapStartColor; ++i) {
 		const Color &color = currentPalette.colors[i];
 		_remapColors[i] = i;
@@ -67,7 +69,7 @@ bool SingleRemap::update() {
 }
 
 bool SingleRemap::updateRange() {
-	const uint8 remapStartColor = g_sci->_gfxFrameout->_remapper.getStartColor();
+	const uint8 remapStartColor = _gfxFrameout->_remapper.getStartColor();
 	bool updated = false;
 
 	for (uint i = 0; i < remapStartColor; ++i) {
@@ -90,8 +92,8 @@ bool SingleRemap::updateRange() {
 }
 
 bool SingleRemap::updateBrightness() {
-	const uint8 remapStartColor = g_sci->_gfxFrameout->_remapper.getStartColor();
-	const Palette &nextPalette = g_sci->_gfxFrameout->_palette.getNextPalette();
+	const uint8 remapStartColor = _gfxFrameout->_remapper.getStartColor();
+	const Palette &nextPalette = _gfxFrameout->_palette.getNextPalette();
 	for (uint i = 1; i < remapStartColor; ++i) {
 		Color color(nextPalette.colors[i]);
 
@@ -123,8 +125,8 @@ bool SingleRemap::updateBrightness() {
 }
 
 bool SingleRemap::updateSaturation() {
-	const uint8 remapStartColor = g_sci->_gfxFrameout->_remapper.getStartColor();
-	const Palette &currentPalette = g_sci->_gfxFrameout->_palette.getCurrentPalette();
+	const uint8 remapStartColor = _gfxFrameout->_remapper.getStartColor();
+	const Palette &currentPalette = _gfxFrameout->_palette.getCurrentPalette();
 	for (uint i = 1; i < remapStartColor; ++i) {
 		Color color(currentPalette.colors[i]);
 		if (_originalColors[i] != color) {
@@ -154,8 +156,8 @@ bool SingleRemap::updateSaturation() {
 }
 
 bool SingleRemap::updateSaturationAndBrightness() {
-	const uint8 remapStartColor = g_sci->_gfxFrameout->_remapper.getStartColor();
-	const Palette &currentPalette = g_sci->_gfxFrameout->_palette.getCurrentPalette();
+	const uint8 remapStartColor = _gfxFrameout->_remapper.getStartColor();
+	const Palette &currentPalette = _gfxFrameout->_palette.getCurrentPalette();
 	for (uint i = 1; i < remapStartColor; i++) {
 		Color color(currentPalette.colors[i]);
 		if (_originalColors[i] != color) {
@@ -186,14 +188,14 @@ bool SingleRemap::updateSaturationAndBrightness() {
 }
 
 bool SingleRemap::apply() {
-	const GfxRemap32 &gfxRemap32 = g_sci->_gfxFrameout->_remapper;
+	const GfxRemap32 &gfxRemap32 = _gfxFrameout->_remapper;
 	const uint8 remapStartColor = gfxRemap32.getStartColor();
 
 	// Blocked colors are not allowed to be used as target colors for the remap
 	bool blockedColors[236];
 	Common::fill(blockedColors, blockedColors + remapStartColor, false);
 
-	const bool *const paletteCycleMap = g_sci->_gfxFrameout->_palette.getCycleMap();
+	const bool *const paletteCycleMap = _gfxFrameout->_palette.getCycleMap();
 
 	const int16 blockedRangeCount = gfxRemap32.getBlockedRangeCount();
 	if (blockedRangeCount) {
@@ -253,9 +255,9 @@ int16 SingleRemap::matchColor(const Color &color, const int minimumDistance, int
 	int16 bestIndex = -1;
 	int bestDistance = 0xFFFFF;
 	int distance = minimumDistance;
-	const Palette &nextPalette = g_sci->_gfxFrameout->_palette.getNextPalette();
+	const Palette &nextPalette = _gfxFrameout->_palette.getNextPalette();
 
-	for (uint i = 0, channelDistance; i < g_sci->_gfxFrameout->_remapper.getStartColor(); ++i) {
+	for (uint i = 0, channelDistance; i < _gfxFrameout->_remapper.getStartColor(); ++i) {
 		if (blockedIndexes[i]) {
 			continue;
 		}
@@ -288,7 +290,8 @@ int16 SingleRemap::matchColor(const Color &color, const int minimumDistance, int
 #pragma mark -
 #pragma mark GfxRemap32
 
-GfxRemap32::GfxRemap32() :
+GfxRemap32::GfxRemap32(GameFeatures *features, GfxFrameout *frameout) :
+	_gfxFrameout(frameout),
 	_needsUpdate(false),
 	_blockedRangeStart(0),
 	_blockedRangeCount(0),
@@ -299,13 +302,21 @@ GfxRemap32::GfxRemap32() :
 	// be changed to match the highest possible value of `_remapStartColor`
 	assert(_remapStartColor == 236);
 
-	if (g_sci->_features->hasMidPaletteCode()) {
+	assert(!SingleRemap::_gfxFrameout);
+	SingleRemap::_gfxFrameout = frameout;
+
+	if (features->hasMidPaletteCode()) {
 		_remaps.resize(9);
 	} else {
 		_remaps.resize(19);
 	}
 
 	_remapEndColor = _remapStartColor + _remaps.size() - 1;
+}
+
+GfxRemap32::~GfxRemap32() {
+	assert(SingleRemap::_gfxFrameout == _gfxFrameout);
+	SingleRemap::_gfxFrameout = nullptr;
 }
 
 void GfxRemap32::remapOff(const uint8 color) {

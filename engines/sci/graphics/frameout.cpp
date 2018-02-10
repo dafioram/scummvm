@@ -63,6 +63,7 @@ namespace Sci {
 GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions, GfxCursor32 *cursor) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, this),
+	_remapper(features, this),
 	_cursor(cursor),
 	_segMan(segMan),
 	_transitions(transitions),

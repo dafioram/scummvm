@@ -46,6 +46,8 @@ enum RemapType {
  * SingleRemap objects each manage one remapping operation.
  */
 class SingleRemap {
+	friend class GfxRemap32;
+
 public:
 	SingleRemap() : _type(kRemapNone) {}
 
@@ -114,6 +116,8 @@ public:
 	bool update();
 
 private:
+	static GfxFrameout *_gfxFrameout;
+
 	/**
 	 * The previous brightness value. Used to determine whether or not
 	 * `_idealColors` needs to be updated.
@@ -225,12 +229,16 @@ private:
 #pragma mark -
 #pragma mark GfxRemap32
 
+class GameFeatures;
+class GfxFrameout;
+
 /**
  * This class provides color remapping support for SCI32 games.
  */
 class GfxRemap32 : public Common::Serializable {
 public:
-	GfxRemap32();
+	GfxRemap32(GameFeatures *features, GfxFrameout *frameout);
+	~GfxRemap32();
 
 	void saveLoadWithSerializer(Common::Serializer &s);
 
@@ -339,6 +347,8 @@ public:
 
 private:
 	typedef Common::Array<SingleRemap> SingleRemapsList;
+
+	GfxFrameout *_gfxFrameout;
 
 	/**
 	 * The first index of the remap area in the system palette.
