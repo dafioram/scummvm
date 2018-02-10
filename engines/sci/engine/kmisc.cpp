@@ -531,7 +531,7 @@ reg_t kMacPlatform(EngineState *s, int argc, reg_t *argv) {
 		// In SCI32, it's used for remapping cursor ID's
 #ifdef ENABLE_SCI32_MAC
 		if (getSciVersion() >= SCI_VERSION_2_1_EARLY) // Set Mac cursor remap
-			g_sci->_gfxCursor32->setMacCursorRemapList(argc - 1, argv + 1);
+			g_sci->_gfxFrameout->_cursor.setMacCursorRemapList(argc - 1, argv + 1);
 		else
 #endif
 		if (getSciVersion() != SCI_VERSION_1_1)

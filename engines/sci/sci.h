@@ -385,7 +385,6 @@ public:
 	Video32 *_video32;
 	GfxFrameout *_gfxFrameout; // kFrameout and the like for 32-bit gfx
 	GfxTransitions32 *_gfxTransitions32;
-	GfxCursor32 *_gfxCursor32;
 #endif
 
 	AudioPlayer *_audio;

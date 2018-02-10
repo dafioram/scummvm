@@ -25,6 +25,7 @@
 
 #include "engines/util.h"                // for initGraphics
 #include "sci/event.h"
+#include "sci/graphics/cursor32.h"
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/plane32.h"
 #include "sci/graphics/remap32.h"
@@ -35,7 +36,6 @@ typedef Common::Array<DrawList> ScreenItemListList;
 typedef Common::Array<RectList> EraseListList;
 
 class GameFeatures;
-class GfxCursor32;
 class GfxTransitions32;
 struct PlaneShowStyle;
 
@@ -47,12 +47,19 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions, GfxCursor32 *cursor);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions);
 	~GfxFrameout();
 
 	void clear();
 	void run();
 
+private:
+	/**
+	 * Whether or not the game should render at a resolution above 320x240.
+	 */
+	bool _isHiRes;
+
+public:
 	/**
 	 * Returns true if the game should render at a resolution greater than
 	 * 320x240.
@@ -79,18 +86,13 @@ public:
 	 */
 	inline int16 getScreenHeight() const { return _currentBuffer.h; }
 
+	GfxCursor32 _cursor;
 	GfxPalette32 _palette;
 	GfxRemap32 _remapper;
 
 private:
-	GfxCursor32 *_cursor;
 	GfxTransitions32 *_transitions;
 	SegManager *_segMan;
-
-	/**
-	 * Whether or not the game should render at a resolution above 320x240.
-	 */
-	bool _isHiRes;
 
 	/**
 	 * The resolution used by game scripts.

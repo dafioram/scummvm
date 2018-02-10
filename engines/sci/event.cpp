@@ -166,7 +166,7 @@ SciEvent EventManager::getScummVMEvent() {
 		// This will clamp `mousePos` according to the restricted zone,
 		// so any cursor or screen item associated with the mouse position
 		// does not bounce when it hits the edge (or ignore the edge)
-		g_sci->_gfxCursor32->deviceMoved(mousePos);
+		g_sci->_gfxFrameout->_cursor.deviceMoved(mousePos);
 
 		Common::Point mousePosSci = mousePos;
 		mulru(mousePosSci, Ratio(gfxFrameout->getScriptWidth(), gfxFrameout->getScreenWidth()), Ratio(gfxFrameout->getScriptHeight(), gfxFrameout->getScreenHeight()));

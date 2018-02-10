@@ -32,9 +32,13 @@
 
 namespace Sci {
 
+class GameFeatures;
+class GfxFrameout;
+class ResourceManager;
+
 class GfxCursor32 : public Common::Serializable {
 public:
-	GfxCursor32();
+	GfxCursor32(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout);
 	~GfxCursor32();
 
 	/**
@@ -111,6 +115,11 @@ private:
 
 		DrawRegion() : data(nullptr) {}
 	};
+
+	GfxFrameout *_gfxFrameout;
+	ResourceManager *_resMan;
+
+	int16 _maxDoubledCursorSize;
 
 	/**
 	 * Information about the current cursor. Used to restore cursor when loading

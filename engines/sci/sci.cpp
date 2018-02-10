@@ -148,7 +148,6 @@ SciEngine::SciEngine(OSystem *syst, const ADGameDescription *desc, const GameMet
 #ifdef ENABLE_SCI32
 	_audio32 = nullptr;
 	_video32 = nullptr;
-	_gfxCursor32 = nullptr;
 #endif
 	_guestAdditions = nullptr;
 	_features = 0;
@@ -263,7 +262,6 @@ SciEngine::~SciEngine() {
 	// GfxFrameout must be deleted after Video32 since destruction of screen
 	// items in the Video32 destructor relies on this component
 	delete _video32;
-	delete _gfxCursor32;
 	delete _gfxTransitions32;
 	delete _gfxFrameout;
 	delete _audio32;
@@ -646,7 +644,6 @@ void SciEngine::initGraphics() {
 	_gfxFrameout = 0;
 	_gfxPaint32 = 0;
 	_gfxTransitions32 = 0;
-	_gfxCursor32 = 0;
 #endif
 
 	if (hasMacIconBar())
@@ -663,12 +660,10 @@ void SciEngine::initGraphics() {
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
 		// SCI32 graphic objects creation
-		_gfxCursor32 = new GfxCursor32();
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
 		_gfxTransitions32 = new GfxTransitions32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxTransitions32, _gfxCursor32);
-		_gfxCursor32->init(_gfxFrameout->getCurrentBuffer());
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxTransitions32);
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
 		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache, _gfxText32);
 		_gfxFrameout->run();

@@ -60,11 +60,11 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions, GfxCursor32 *cursor) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, this),
 	_remapper(features, this),
-	_cursor(cursor),
+	_cursor(resMan, features, this),
 	_segMan(segMan),
 	_transitions(transitions),
 	_throttleState(0),
@@ -83,6 +83,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 		_currentBuffer.create(320, 200, Graphics::PixelFormat::createFormatCLUT8());
 	}
 	initGraphics(_currentBuffer.w, _currentBuffer.h);
+	_cursor.init(_currentBuffer);
 
 	switch (game.id) {
 	case GID_HOYLE5:
@@ -1000,10 +1001,10 @@ void GfxFrameout::showBits() {
 		// to ensure that the width of rects is always even
 		rounded.left &= ~1;
 		rounded.right = (rounded.right + 1) & ~1;
-		_cursor->gonnaPaint(rounded);
+		_cursor.gonnaPaint(rounded);
 	}
 
-	_cursor->paintStarting();
+	_cursor.paintStarting();
 
 	for (RectList::const_iterator rect = _showList.begin(); rect != _showList.end(); ++rect) {
 		Common::Rect rounded(**rect);
@@ -1041,7 +1042,7 @@ void GfxFrameout::showBits() {
 		}
 	}
 
-	_cursor->donePainting();
+	_cursor.donePainting();
 
 	_showList.clear();
 	updateScreen();

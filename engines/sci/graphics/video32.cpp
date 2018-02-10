@@ -382,7 +382,7 @@ AVIPlayer::IOStatus AVIPlayer::init(const bool doublePixels) {
 		return kIOFileNotFound;
 	}
 
-	g_sci->_gfxCursor32->hide();
+	g_sci->_gfxFrameout->_cursor.hide();
 
 	int16 width = _decoder->getWidth();
 	int16 height = _decoder->getHeight();
@@ -467,7 +467,7 @@ AVIPlayer::IOStatus AVIPlayer::close() {
 	}
 
 	g_system->fillScreen(0);
-	g_sci->_gfxCursor32->unhide();
+	g_sci->_gfxFrameout->_cursor.unhide();
 	_decoder->close();
 	_status = kAVINotOpen;
 	return kIOSuccess;
@@ -616,7 +616,7 @@ VMDPlayer::IOStatus VMDPlayer::close() {
 		}
 
 		if (!_showCursor) {
-			g_sci->_gfxCursor32->unhide();
+			g_sci->_gfxFrameout->_cursor.unhide();
 		}
 	}
 
@@ -692,7 +692,7 @@ VMDPlayer::EventFlags VMDPlayer::playUntilEvent(const EventFlags flags, const ui
 		_isInitialized = true;
 
 		if (!_showCursor) {
-			g_sci->_gfxCursor32->hide();
+			g_sci->_gfxFrameout->_cursor.hide();
 		}
 
 		if (!_blackoutRect.isEmpty() && _planeIsOwned) {
@@ -1042,7 +1042,7 @@ void DuckPlayer::open(const GuiResourceId resourceId, const int displayMode, con
 				(_decoder->getWidth() << _doublePixels),
 				(_decoder->getHeight() << _doublePixels));
 
-	g_sci->_gfxCursor32->hide();
+	g_sci->_gfxFrameout->_cursor.hide();
 
 	if (_doFrameOut) {
 		_plane = new Plane(_drawRect, kPlanePicColored);
@@ -1088,7 +1088,7 @@ void DuckPlayer::close() {
 
 	endHQVideo();
 
-	g_sci->_gfxCursor32->unhide();
+	g_sci->_gfxFrameout->_cursor.unhide();
 
 	if (_doFrameOut) {
 		g_sci->_gfxFrameout->deletePlane(*_plane);

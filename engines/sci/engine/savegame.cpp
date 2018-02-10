@@ -432,7 +432,7 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 	if (getSciVersion() >= SCI_VERSION_2) {
 		g_sci->_gfxFrameout->_palette.saveLoadWithSerializer(s);
 		g_sci->_gfxFrameout->_remapper.saveLoadWithSerializer(s);
-		g_sci->_gfxCursor32->saveLoadWithSerializer(s);
+		g_sci->_gfxFrameout->_cursor.saveLoadWithSerializer(s);
 		g_sci->_audio32->saveLoadWithSerializer(s);
 		g_sci->_video32->saveLoadWithSerializer(s);
 	} else

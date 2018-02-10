@@ -118,23 +118,23 @@ reg_t kSetCursor32(EngineState *s, int argc, reg_t *argv) {
 	switch (argc) {
 	case 1: {
 		if (argv[0].toSint16() == -2) {
-			g_sci->_gfxCursor32->clearRestrictedArea();
+			g_sci->_gfxFrameout->_cursor.clearRestrictedArea();
 		} else {
 			if (argv[0].isNull()) {
-				g_sci->_gfxCursor32->hide();
+				g_sci->_gfxFrameout->_cursor.hide();
 			} else {
-				g_sci->_gfxCursor32->show();
+				g_sci->_gfxFrameout->_cursor.show();
 			}
 		}
 		break;
 	}
 	case 2: {
 		const Common::Point position(argv[0].toSint16(), argv[1].toSint16());
-		g_sci->_gfxCursor32->setPosition(position);
+		g_sci->_gfxFrameout->_cursor.setPosition(position);
 		break;
 	}
 	case 3: {
-		g_sci->_gfxCursor32->setView(argv[0].toUint16(), argv[1].toSint16(), argv[2].toSint16());
+		g_sci->_gfxFrameout->_cursor.setView(argv[0].toUint16(), argv[1].toSint16(), argv[2].toSint16());
 		break;
 	}
 	case 4: {
@@ -142,7 +142,7 @@ reg_t kSetCursor32(EngineState *s, int argc, reg_t *argv) {
 										argv[1].toSint16(),
 										argv[2].toSint16() + 1,
 										argv[3].toSint16() + 1);
-		g_sci->_gfxCursor32->setRestrictedArea(restrictRect);
+		g_sci->_gfxFrameout->_cursor.setRestrictedArea(restrictRect);
 		break;
 	}
 	default:
