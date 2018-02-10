@@ -48,19 +48,11 @@ namespace Sci {
 extern void deDPCM16Mono(int16 *out, const byte *in, const uint32 numBytes, int16 &sample);
 
 RobotAudioStream::RobotAudioStream(const int32 bufferSize) :
-	_loopBuffer((byte *)malloc(bufferSize)),
-	_loopBufferSize(bufferSize),
-	_decompressionBuffer(nullptr),
-	_decompressionBufferSize(0),
+	_loopBuffer(bufferSize),
 	_decompressionBufferPosition(-1),
 	_waiting(true),
 	_finished(false),
 	_firstPacketPosition(-1) {}
-
-RobotAudioStream::~RobotAudioStream() {
-	free(_loopBuffer);
-	free(_decompressionBuffer);
-}
 
 static void interpolateChannel(int16 *buffer, int32 numSamples, const int8 bufferIndex) {
 	if (numSamples <= 0) {
@@ -119,7 +111,7 @@ bool RobotAudioStream::addPacket(const RobotAudioPacket &packet) {
 	if (packet.position <= 2 && _firstPacketPosition == -1) {
 		_readHead = 0;
 		_readHeadAbs = 0;
-		_maxWriteAbs = _loopBufferSize;
+		_maxWriteAbs = _loopBuffer.size();
 		_writeHeadAbs = 2;
 		_jointMin[0] = 0;
 		_jointMin[1] = 2;
@@ -171,13 +163,10 @@ void RobotAudioStream::fillRobotBuffer(const RobotAudioPacket &packet, const int
 
 	const int32 decompressedSize = packet.dataSize * sizeof(int16);
 	if (_decompressionBufferPosition != packet.position) {
-		if (decompressedSize != _decompressionBufferSize) {
-			_decompressionBuffer = (byte *)realloc(_decompressionBuffer, decompressedSize);
-			_decompressionBufferSize = decompressedSize;
-		}
+		_decompressionBuffer.resize(decompressedSize);
 
 		int16 carry = 0;
-		deDPCM16Mono((int16 *)_decompressionBuffer, packet.data, packet.dataSize, carry);
+		deDPCM16Mono((int16 *)_decompressionBuffer.data(), packet.data, packet.dataSize, carry);
 		_decompressionBufferPosition = packet.position;
 	}
 
@@ -206,43 +195,43 @@ void RobotAudioStream::fillRobotBuffer(const RobotAudioPacket &packet, const int
 	}
 
 	if (packetPosition > _jointMin[bufferIndex]) {
-		int32 packetEndByte = packetPosition % _loopBufferSize;
+		int32 packetEndByte = packetPosition % _loopBuffer.size();
 		int32 targetBytePosition;
 		int32 numBytesToEnd;
 		if ((packetPosition & ~3) > (_jointMin[1 - bufferIndex] & ~3)) {
-			targetBytePosition = _jointMin[1 - bufferIndex] % _loopBufferSize;
+			targetBytePosition = _jointMin[1 - bufferIndex] % _loopBuffer.size();
 			if (targetBytePosition >= packetEndByte) {
-				numBytesToEnd = _loopBufferSize - targetBytePosition;
-				memset(_loopBuffer + targetBytePosition, 0, numBytesToEnd);
+				numBytesToEnd = _loopBuffer.size() - targetBytePosition;
+				memset(_loopBuffer.data() + targetBytePosition, 0, numBytesToEnd);
 				targetBytePosition = (1 - bufferIndex) ? 2 : 0;
 			}
 			numBytesToEnd = packetEndByte - targetBytePosition;
 			if (numBytesToEnd > 0) {
-				memset(_loopBuffer + targetBytePosition, 0, numBytesToEnd);
+				memset(_loopBuffer.data() + targetBytePosition, 0, numBytesToEnd);
 			}
 		}
-		targetBytePosition = _jointMin[bufferIndex] % _loopBufferSize;
+		targetBytePosition = _jointMin[bufferIndex] % _loopBuffer.size();
 		if (targetBytePosition >= packetEndByte) {
-			numBytesToEnd = _loopBufferSize - targetBytePosition;
-			interpolateChannel((int16 *)(_loopBuffer + targetBytePosition), numBytesToEnd / (sizeof(int16) + kEOSExpansion), 0);
+			numBytesToEnd = _loopBuffer.size() - targetBytePosition;
+			interpolateChannel((int16 *)(_loopBuffer.data() + targetBytePosition), numBytesToEnd / (sizeof(int16) + kEOSExpansion), 0);
 			targetBytePosition = bufferIndex ? 2 : 0;
 		}
 		numBytesToEnd = packetEndByte - targetBytePosition;
 		if (numBytesToEnd > 0) {
-			interpolateChannel((int16 *)(_loopBuffer + targetBytePosition), numBytesToEnd / (sizeof(int16) + kEOSExpansion), 0);
+			interpolateChannel((int16 *)(_loopBuffer.data() + targetBytePosition), numBytesToEnd / (sizeof(int16) + kEOSExpansion), 0);
 		}
 	}
 
 	if (numBytes > 0) {
-		int32 targetBytePosition = packetPosition % _loopBufferSize;
-		int32 packetEndByte = endByte % _loopBufferSize;
+		int32 targetBytePosition = packetPosition % _loopBuffer.size();
+		int32 packetEndByte = endByte % _loopBuffer.size();
 		int32 numBytesToEnd = 0;
 		if (targetBytePosition >= packetEndByte) {
-			numBytesToEnd = (_loopBufferSize - (targetBytePosition & ~3)) / kEOSExpansion;
-			copyEveryOtherSample((int16 *)(_loopBuffer + targetBytePosition), (int16 *)(_decompressionBuffer + sourceByte), numBytesToEnd / kEOSExpansion);
+			numBytesToEnd = (_loopBuffer.size() - (targetBytePosition & ~3)) / kEOSExpansion;
+			copyEveryOtherSample((int16 *)(_loopBuffer.data() + targetBytePosition), (int16 *)(_decompressionBuffer.data() + sourceByte), numBytesToEnd / kEOSExpansion);
 			targetBytePosition = bufferIndex ? 2 : 0;
 		}
-		copyEveryOtherSample((int16 *)(_loopBuffer + targetBytePosition), (int16 *)(_decompressionBuffer + sourceByte + numBytesToEnd), (packetEndByte - targetBytePosition) / (sizeof(int16) + kEOSExpansion));
+		copyEveryOtherSample((int16 *)(_loopBuffer.data() + targetBytePosition), (int16 *)(_decompressionBuffer.data() + sourceByte + numBytesToEnd), (packetEndByte - targetBytePosition) / (sizeof(int16) + kEOSExpansion));
 	}
 	_jointMin[bufferIndex] = endByte;
 }
@@ -254,33 +243,33 @@ void RobotAudioStream::interpolateMissingSamples(int32 numSamples) {
 
 	if (nextReadHeadPosition > _jointMin[1]) {
 		if (nextReadHeadPosition > _jointMin[0]) {
-			if (targetPosition + numBytes >= _loopBufferSize) {
-				const int32 numBytesToEdge = (_loopBufferSize - targetPosition);
-				memset(_loopBuffer + targetPosition, 0, numBytesToEdge);
+			if (targetPosition + numBytes >= int32(_loopBuffer.size())) {
+				const int32 numBytesToEdge = (_loopBuffer.size() - targetPosition);
+				memset(_loopBuffer.data() + targetPosition, 0, numBytesToEdge);
 				numBytes -= numBytesToEdge;
 				targetPosition = 0;
 			}
-			memset(_loopBuffer + targetPosition, 0, numBytes);
+			memset(_loopBuffer.data() + targetPosition, 0, numBytes);
 			_jointMin[0] = nextReadHeadPosition;
 			_jointMin[1] = nextReadHeadPosition + sizeof(int16);
 		} else {
-			if (targetPosition + numBytes >= _loopBufferSize) {
-				const int32 numSamplesToEdge = (_loopBufferSize - targetPosition) / (sizeof(int16) + kEOSExpansion);
-				interpolateChannel((int16 *)(_loopBuffer + targetPosition), numSamplesToEdge, 1);
+			if (targetPosition + numBytes >= int32(_loopBuffer.size())) {
+				const int32 numSamplesToEdge = (_loopBuffer.size() - targetPosition) / (sizeof(int16) + kEOSExpansion);
+				interpolateChannel((int16 *)(_loopBuffer.data() + targetPosition), numSamplesToEdge, 1);
 				numSamples -= numSamplesToEdge;
 				targetPosition = 0;
 			}
-			interpolateChannel((int16 *)(_loopBuffer + targetPosition), numSamples, 1);
+			interpolateChannel((int16 *)(_loopBuffer.data() + targetPosition), numSamples, 1);
 			_jointMin[1] = nextReadHeadPosition + sizeof(int16);
 		}
 	} else if (nextReadHeadPosition > _jointMin[0]) {
-		if (targetPosition + numBytes >= _loopBufferSize) {
-			const int32 numSamplesToEdge = (_loopBufferSize - targetPosition) / (sizeof(int16) + kEOSExpansion);
-			interpolateChannel((int16 *)(_loopBuffer + targetPosition), numSamplesToEdge, 0);
+		if (targetPosition + numBytes >= int32(_loopBuffer.size())) {
+			const int32 numSamplesToEdge = (_loopBuffer.size() - targetPosition) / (sizeof(int16) + kEOSExpansion);
+			interpolateChannel((int16 *)(_loopBuffer.data() + targetPosition), numSamplesToEdge, 0);
 			numSamples -= numSamplesToEdge;
 			targetPosition = 2;
 		}
-		interpolateChannel((int16 *)(_loopBuffer + targetPosition), numSamples, 0);
+		interpolateChannel((int16 *)(_loopBuffer.data() + targetPosition), numSamples, 0);
 		_jointMin[0] = nextReadHeadPosition;
 	}
 }
@@ -316,16 +305,16 @@ int RobotAudioStream::readBuffer(Audio::st_sample_t *outBuffer, int numSamples) 
 
 	interpolateMissingSamples(numSamples);
 
-	Audio::st_sample_t *inBuffer = (Audio::st_sample_t *)(_loopBuffer + _readHead);
+	Audio::st_sample_t *inBuffer = (Audio::st_sample_t *)(_loopBuffer.data() + _readHead);
 
-	assert(!((_loopBufferSize - _readHead) & 1));
-	const int numSamplesToEnd = (_loopBufferSize - _readHead) / sizeof(Audio::st_sample_t);
+	assert(!((_loopBuffer.size() - _readHead) & 1));
+	const int numSamplesToEnd = (_loopBuffer.size() - _readHead) / sizeof(Audio::st_sample_t);
 
 	int numSamplesToRead = MIN(numSamples, numSamplesToEnd);
 	Common::copy(inBuffer, inBuffer + numSamplesToRead, outBuffer);
 
 	if (numSamplesToRead < numSamples) {
-		inBuffer = (Audio::st_sample_t *)_loopBuffer;
+		inBuffer = (Audio::st_sample_t *)_loopBuffer.data();
 		outBuffer += numSamplesToRead;
 		numSamplesToRead = numSamples - numSamplesToRead;
 		Common::copy(inBuffer, inBuffer + numSamplesToRead, outBuffer);
@@ -334,8 +323,8 @@ int RobotAudioStream::readBuffer(Audio::st_sample_t *outBuffer, int numSamples) 
 	const int32 numBytes = numSamples * sizeof(Audio::st_sample_t);
 
 	_readHead += numBytes;
-	if (_readHead > _loopBufferSize) {
-		_readHead -= _loopBufferSize;
+	if (_readHead > int32(_loopBuffer.size())) {
+		_readHead -= _loopBuffer.size();
 	}
 	_readHeadAbs += numBytes;
 	_maxWriteAbs += numBytes;
@@ -356,7 +345,6 @@ RobotDecoder::RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 
 	_gfxFrameout(frameout),
 	_segMan(segMan),
 	_status(kRobotStatusUninitialized),
-	_audioBuffer(nullptr),
 	_rawPalette() {
 	assert(!_audio32);
 	_audio32 = audio;
@@ -364,7 +352,6 @@ RobotDecoder::RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 
 
 RobotDecoder::~RobotDecoder() {
 	close();
-	free(_audioBuffer);
 	_audio32 = nullptr;
 }
 
@@ -412,7 +399,7 @@ void RobotDecoder::initAudio() {
 	_audioRecordInterval = RobotAudioStream::kRobotSampleRate / _frameRate;
 
 	_expectedAudioBlockSize = _audioBlockSize - kAudioBlockHeaderSize;
-	_audioBuffer = (byte *)realloc(_audioBuffer, kRobotZeroCompressSize + _expectedAudioBlockSize);
+	_audioBuffer.resize(kRobotZeroCompressSize + _expectedAudioBlockSize);
 
 	if (_primerReservedSize != 0) {
 		const int32 primerHeaderPosition = _stream->pos();
@@ -972,18 +959,11 @@ void RobotDecoder::AudioList::setAudioOffset(const int offset) {
 
 RobotDecoder::AudioList::AudioBlock::AudioBlock(const int position, const int size, const byte* const data) :
 	_position(position),
-	_size(size) {
-	_data = (byte *)malloc(size);
-	memcpy(_data, data, size);
-}
-
-RobotDecoder::AudioList::AudioBlock::~AudioBlock() {
-	free(_data);
-}
+	_data(data, size) {}
 
 bool RobotDecoder::AudioList::AudioBlock::submit(const int startOffset) {
-	assert(_data != nullptr);
-	RobotAudioStream::RobotAudioPacket packet(_data, _size, (_position - startOffset) * 2);
+	assert(_data.size());
+	RobotAudioStream::RobotAudioPacket packet(_data.data(), _data.size(), (_position - startOffset) * 2);
 	return _audio32->playRobotAudio(packet);
 }
 
@@ -1103,11 +1083,11 @@ bool RobotDecoder::primeAudio(const uint32 startTick) {
 
 		int audioPosition, audioSize;
 		for (int i = audioStartFrame; i < videoStartFrame; i++) {
-			if (!readAudioDataFromRecord(i, _audioBuffer, audioPosition, audioSize)) {
+			if (!readAudioDataFromRecord(i, _audioBuffer.data(), audioPosition, audioSize)) {
 				break;
 			}
 
-			_audioList.addBlock(audioPosition, audioSize, _audioBuffer);
+			_audioList.addBlock(audioPosition, audioSize, _audioBuffer.data());
 		}
 	}
 
@@ -1167,10 +1147,10 @@ bool RobotDecoder::readAudioDataFromRecord(const int frameNo, byte *outBuffer, i
 
 bool RobotDecoder::readPartialAudioRecordAndSubmit(const int startFrame, const int startPosition) {
 	int audioPosition, audioSize;
-	bool success = readAudioDataFromRecord(startFrame, _audioBuffer, audioPosition, audioSize);
+	bool success = readAudioDataFromRecord(startFrame, _audioBuffer.data(), audioPosition, audioSize);
 	if (success) {
 		const int relativeStartOffset = (startPosition - audioPosition) / 2;
-		_audioList.addBlock(startPosition, audioSize - relativeStartOffset, _audioBuffer + relativeStartOffset);
+		_audioList.addBlock(startPosition, audioSize - relativeStartOffset, _audioBuffer.data() + relativeStartOffset);
 	}
 
 	return success;
@@ -1234,8 +1214,8 @@ void RobotDecoder::doRobot() {
 			_audioList.submitDriverMax();
 
 			int audioPosition, audioSize;
-			if (readAudioDataFromRecord(candidateFrameNo, _audioBuffer, audioPosition, audioSize)) {
-				_audioList.addBlock(audioPosition, audioSize, _audioBuffer);
+			if (readAudioDataFromRecord(candidateFrameNo, _audioBuffer.data(), audioPosition, audioSize)) {
+				_audioList.addBlock(audioPosition, audioSize, _audioBuffer.data());
 			}
 		}
 		_audioList.submitDriverMax();
@@ -1381,8 +1361,8 @@ void RobotDecoder::doVersion5(const bool shouldSubmitAudio) {
 	if (_hasAudio &&
 		(getSciVersion() < SCI_VERSION_3 || shouldSubmitAudio)) {
 		int audioPosition, audioSize;
-		if (readAudioDataFromRecord(_currentFrameNo, _audioBuffer, audioPosition, audioSize)) {
-			_audioList.addBlock(audioPosition, audioSize, _audioBuffer);
+		if (readAudioDataFromRecord(_currentFrameNo, _audioBuffer.data(), audioPosition, audioSize)) {
+			_audioList.addBlock(audioPosition, audioSize, _audioBuffer.data());
 		}
 	}
 

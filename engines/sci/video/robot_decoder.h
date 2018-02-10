@@ -320,7 +320,6 @@ public:
 	};
 
 	RobotAudioStream(const int32 bufferSize);
-	virtual ~RobotAudioStream();
 
 	/**
 	 * Adds a new audio packet to the stream.
@@ -346,12 +345,7 @@ private:
 	/**
 	 * Loop buffer for playback. Contains decompressed 16-bit PCM samples.
 	 */
-	byte *_loopBuffer;
-
-	/**
-	 * The size of the loop buffer, in bytes.
-	 */
-	int32 _loopBufferSize;
+	Common::Array<byte> _loopBuffer;
 
 	/**
 	 * The position of the read head within the loop buffer, in bytes.
@@ -406,12 +400,7 @@ private:
 	 * Decompression buffer, used to temporarily store an uncompressed block of
 	 * audio data.
 	 */
-	byte *_decompressionBuffer;
-
-	/**
-	 * The size of the decompression buffer, in bytes.
-	 */
-	int32 _decompressionBufferSize;
+	Common::Array<byte> _decompressionBuffer;
 
 	/**
 	 * The position of the packet currently in the decompression buffer. Used to
@@ -940,7 +929,6 @@ private:
 		class AudioBlock {
 		public:
 			AudioBlock(const int position, const int size, const byte *const data);
-			~AudioBlock();
 
 			/**
 			 * Submits the block of audio to the audio manager.
@@ -957,14 +945,9 @@ private:
 			int _position;
 
 			/**
-			 * The compressed size, in bytes, of this audio block's audio data.
-			 */
-			int _size;
-
-			/**
 			 * A buffer containing raw SOL-compressed audio data.
 			 */
-			byte *_data;
+			Common::Array<byte> _data;
 		};
 
 		/**
@@ -1073,7 +1056,7 @@ private:
 	 * A temporary buffer used to hold one frame of raw (DPCM-compressed) audio
 	 * when reading audio records from the robot stream.
 	 */
-	byte *_audioBuffer;
+	Common::Array<byte> _audioBuffer;
 
 	/**
 	 * The next tick count when AV sync should be checked and framerate
