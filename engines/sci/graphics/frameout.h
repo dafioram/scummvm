@@ -97,6 +97,7 @@ public:
 
 private:
 	SegManager *_segMan;
+	GameFeatures *_features;
 
 	/**
 	 * The resolution used by game scripts.

@@ -92,6 +92,8 @@ public:
 	}
 };
 
+class GameFeatures;
+class GfxFrameout;
 class PlaneList;
 
 #pragma mark -
@@ -113,6 +115,22 @@ private:
 	 * stable sort order for planes with identical priorities.
 	 */
 	static uint32 _nextCreationId;
+
+	/**
+	 * A pointer to the currently active GfxFrameout instance.
+	 */
+	static GfxFrameout *_gfxFrameout;
+
+	/**
+	 * A pointer to the currently active GameFeatures instance.
+	 */
+	static GameFeatures *_features;
+
+	/**
+	 * A pointer to the currently active SegManager instance. This will be null
+	 * for non-interpreted games.
+	 */
+	static SegManager *_segMan;
 
 	/**
 	 * The creation order number, which ensures a stable sort when planes with
@@ -238,7 +256,7 @@ public:
 	/**
 	 * Initialises static Plane members.
 	 */
-	static void init();
+	static void init(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
 
 	// In SSCI this constructor signature did not accept a picture ID, but some
 	// calls to construct planes with this signature immediately set the picture

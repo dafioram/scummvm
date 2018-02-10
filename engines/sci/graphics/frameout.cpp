@@ -66,6 +66,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 	_remapper(features, this),
 	_cursor(resMan, features, this),
 	_segMan(segMan),
+	_features(features),
 	_transitions(features, this, segMan),
 	_text(segMan, cache),
 	_throttleState(0),
@@ -119,7 +120,7 @@ GfxFrameout::~GfxFrameout() {
 
 void GfxFrameout::run() {
 	CelObj::init();
-	Plane::init();
+	Plane::init(_features, this, _segMan);
 	ScreenItem::init();
 	GfxText32::init(_scriptWidth, _scriptHeight);
 
@@ -1313,7 +1314,7 @@ bool GfxFrameout::kernelSetNowSeen(const reg_t screenItemObject) const {
 	if (!found)
 		return false;
 
-	if (g_sci->_features->usesAlternateSelectors()) {
+	if (_features->usesAlternateSelectors()) {
 		writeSelectorValue(_segMan, screenItemObject, SELECTOR(left), nsrect.left);
 		writeSelectorValue(_segMan, screenItemObject, SELECTOR(top), nsrect.top);
 		writeSelectorValue(_segMan, screenItemObject, SELECTOR(right), nsrect.right - 1);

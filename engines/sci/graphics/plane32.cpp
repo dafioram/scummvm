@@ -46,6 +46,9 @@ void DrawList::add(ScreenItem *screenItem, const Common::Rect &rect) {
 #pragma mark Plane
 uint16 Plane::_nextObjectId = 20000;
 uint32 Plane::_nextCreationId = 0;
+GfxFrameout *Plane::_gfxFrameout = nullptr;
+GameFeatures *Plane::_features = nullptr;
+SegManager *Plane::_segMan = nullptr;
 
 Plane::Plane(const Common::Rect &gameRect, PlanePictureCodes pictureId) :
 _creationId(_nextCreationId++),
@@ -55,14 +58,14 @@ _type(kPlaneTypeColored),
 _back(0),
 _priorityChanged(false),
 _object(make_reg(0, _nextObjectId++)),
-_redrawAllCount(g_sci->_gfxFrameout->getScreenCount()),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_redrawAllCount(_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _moved(0),
 _gameRect(gameRect) {
 	convertGameRectToPlaneRect();
-	_priority = MAX(10000, g_sci->_gfxFrameout->getPlanes().getTopPlanePriority() + 1);
+	_priority = MAX(10000, _gfxFrameout->getPlanes().getTopPlanePriority() + 1);
 	setType();
 	_screenRect = _planeRect;
 }
@@ -72,34 +75,33 @@ _creationId(_nextCreationId++),
 _type(kPlaneTypeColored),
 _priorityChanged(false),
 _object(object),
-_redrawAllCount(g_sci->_gfxFrameout->getScreenCount()),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_redrawAllCount(_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _moved(0) {
-	SegManager *segMan = g_sci->getEngineState()->_segMan;
-	_vanishingPoint.x = readSelectorValue(segMan, object, SELECTOR(vanishingX));
-	_vanishingPoint.y = readSelectorValue(segMan, object, SELECTOR(vanishingY));
+	_vanishingPoint.x = readSelectorValue(_segMan, object, SELECTOR(vanishingX));
+	_vanishingPoint.y = readSelectorValue(_segMan, object, SELECTOR(vanishingY));
 
-	if (g_sci->_features->usesAlternateSelectors()) {
-		_gameRect.left = readSelectorValue(segMan, object, SELECTOR(left));
-		_gameRect.top = readSelectorValue(segMan, object, SELECTOR(top));
-		_gameRect.right = readSelectorValue(segMan, object, SELECTOR(right)) + 1;
-		_gameRect.bottom = readSelectorValue(segMan, object, SELECTOR(bottom)) + 1;
+	if (_features->usesAlternateSelectors()) {
+		_gameRect.left = readSelectorValue(_segMan, object, SELECTOR(left));
+		_gameRect.top = readSelectorValue(_segMan, object, SELECTOR(top));
+		_gameRect.right = readSelectorValue(_segMan, object, SELECTOR(right)) + 1;
+		_gameRect.bottom = readSelectorValue(_segMan, object, SELECTOR(bottom)) + 1;
 	} else {
-		_gameRect.left = readSelectorValue(segMan, object, SELECTOR(inLeft));
-		_gameRect.top = readSelectorValue(segMan, object, SELECTOR(inTop));
-		_gameRect.right = readSelectorValue(segMan, object, SELECTOR(inRight)) + 1;
-		_gameRect.bottom = readSelectorValue(segMan, object, SELECTOR(inBottom)) + 1;
+		_gameRect.left = readSelectorValue(_segMan, object, SELECTOR(inLeft));
+		_gameRect.top = readSelectorValue(_segMan, object, SELECTOR(inTop));
+		_gameRect.right = readSelectorValue(_segMan, object, SELECTOR(inRight)) + 1;
+		_gameRect.bottom = readSelectorValue(_segMan, object, SELECTOR(inBottom)) + 1;
 	}
 	convertGameRectToPlaneRect();
 
-	_back = readSelectorValue(segMan, object, SELECTOR(back));
-	_priority = readSelectorValue(segMan, object, SELECTOR(priority));
-	_pictureId = readSelectorValue(segMan, object, SELECTOR(picture));
+	_back = readSelectorValue(_segMan, object, SELECTOR(back));
+	_priority = readSelectorValue(_segMan, object, SELECTOR(priority));
+	_pictureId = readSelectorValue(_segMan, object, SELECTOR(picture));
 	setType();
 
-	_mirrored = readSelectorValue(segMan, object, SELECTOR(mirrored));
+	_mirrored = readSelectorValue(_segMan, object, SELECTOR(mirrored));
 	_screenRect = _planeRect;
 	changePic();
 }
@@ -131,16 +133,19 @@ void Plane::operator=(const Plane &other) {
 	_priorityChanged = other._priorityChanged;
 }
 
-void Plane::init() {
+void Plane::init(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) {
+	_features = features;
+	_gfxFrameout = frameout;
+	_segMan = segMan;
 	_nextObjectId = 20000;
 	_nextCreationId = 0;
 }
 
 void Plane::convertGameRectToPlaneRect() {
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
-	const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
+	const int16 scriptWidth = _gfxFrameout->getScriptWidth();
+	const int16 scriptHeight = _gfxFrameout->getScriptHeight();
 
 	const Ratio ratioX = Ratio(screenWidth, scriptWidth);
 	const Ratio ratioY = Ratio(screenHeight, scriptHeight);
@@ -154,7 +159,7 @@ void Plane::printDebugInfo(Console *con) const {
 	if (_object.isNumber()) {
 		name = "-scummvm-";
 	} else {
-		name = g_sci->getEngineState()->_segMan->getObjectName(_object);
+		name = _segMan->getObjectName(_object);
 	}
 
 	con->debugPrintf("%04x:%04x (%s): type %d, prio %d, ins %u, pic %d, mirror %d, back %d\n",
@@ -205,7 +210,7 @@ void Plane::addPicInternal(const GuiResourceId pictureId, const Common::Point *p
 
 		_screenItemList.add(screenItem);
 	}
-	_type = (g_sci->_features->hasTransparentPicturePlanes() && transparent) ? kPlaneTypeTransparentPicture : kPlaneTypePicture;
+	_type = (_features->hasTransparentPicturePlanes() && transparent) ? kPlaneTypeTransparentPicture : kPlaneTypePicture;
 }
 
 GuiResourceId Plane::addPic(const GuiResourceId pictureId, const Common::Point &position, const bool mirrorX, const bool deleteDuplicate) {
@@ -232,7 +237,7 @@ void Plane::deletePic(const GuiResourceId pictureId) {
 		if (screenItem->_pictureId == pictureId) {
 			screenItem->_created = 0;
 			screenItem->_updated = 0;
-			screenItem->_deleted = g_sci->_gfxFrameout->getScreenCount();
+			screenItem->_deleted = _gfxFrameout->getScreenCount();
 		}
 	}
 }
@@ -249,7 +254,7 @@ void Plane::deleteAllPics() {
 			if (screenItem->_created == 0) {
 				screenItem->_created = 0;
 				screenItem->_updated = 0;
-				screenItem->_deleted = g_sci->_gfxFrameout->getScreenCount();
+				screenItem->_deleted = _gfxFrameout->getScreenCount();
 			} else {
 				_screenItemList.erase(it);
 			}
@@ -355,7 +360,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 				visibleItem != nullptr &&
 				!visibleItemScreenRect.isEmpty()
 			) {
-				if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
+				if (_gfxFrameout->_remapper.getRemapCount()) {
 					mergeToRectList(visibleItemScreenRect, eraseList);
 				} else {
 					eraseList.add(visibleItemScreenRect);
@@ -373,7 +378,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		if (item->_created) {
 			// Add item to draw list
 			if(!itemScreenRect.isEmpty()) {
-				if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
+				if (_gfxFrameout->_remapper.getRemapCount()) {
 					drawList.add(item, itemScreenRect);
 					mergeToRectList(itemScreenRect, eraseList);
 				} else {
@@ -383,7 +388,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		} else {
 			// Add old rect to erase list, new item to draw list
 
-			if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
+			if (_gfxFrameout->_remapper.getRemapCount()) {
 				// If item and visibleItem don't overlap...
 				if (itemScreenRect.isEmpty() ||
 					visibleItem == nullptr ||
@@ -491,7 +496,7 @@ void Plane::calcLists(Plane &visiblePlane, const PlaneList &planeList, DrawList 
 		}
 	}
 
-	if (g_sci->_gfxFrameout->_remapper.getRemapCount() == 0) {
+	if (_gfxFrameout->_remapper.getRemapCount() == 0) {
 		// Add all items that overlap with items in the drawlist and have higher
 		// priority.
 
@@ -760,14 +765,14 @@ void Plane::setType() {
 		_type = kPlaneTypeOpaque;
 		break;
 	case kPlanePicTransparentPicture:
-		if (g_sci->_features->hasTransparentPicturePlanes()) {
+		if (_features->hasTransparentPicturePlanes()) {
 			_type = kPlaneTypeTransparentPicture;
 			break;
 		}
 		// The game doesn't have transparent picture planes
 		// fall through
 	default:
-		if (!g_sci->_features->hasTransparentPicturePlanes() || _type != kPlaneTypeTransparentPicture) {
+		if (!_features->hasTransparentPicturePlanes() || _type != kPlaneTypeTransparentPicture) {
 			_type = kPlaneTypePicture;
 		}
 		break;
@@ -780,7 +785,7 @@ void Plane::sync(const Plane *other, const Common::Rect &screenRect) {
 			deleteAllPics();
 			setType();
 			changePic();
-			_redrawAllCount = g_sci->_gfxFrameout->getScreenCount();
+			_redrawAllCount = _gfxFrameout->getScreenCount();
 		} else {
 			setType();
 		}
@@ -792,32 +797,32 @@ void Plane::sync(const Plane *other, const Common::Rect &screenRect) {
 			_planeRect.bottom > other->_planeRect.bottom
 		) {
 			// the plane moved or got larger
-			_redrawAllCount = g_sci->_gfxFrameout->getScreenCount();
-			_moved = g_sci->_gfxFrameout->getScreenCount();
+			_redrawAllCount = _gfxFrameout->getScreenCount();
+			_moved = _gfxFrameout->getScreenCount();
 		} else if (_planeRect != other->_planeRect) {
 			// the plane got smaller
-			_moved = g_sci->_gfxFrameout->getScreenCount();
+			_moved = _gfxFrameout->getScreenCount();
 		}
 
 		if (_priority != other->_priority) {
-			_priorityChanged = g_sci->_gfxFrameout->getScreenCount();
+			_priorityChanged = _gfxFrameout->getScreenCount();
 		}
 
 		if (_pictureId != other->_pictureId || _mirrored != other->_mirrored || _pictureChanged) {
 			deleteAllPics();
 			setType();
 			changePic();
-			_redrawAllCount = g_sci->_gfxFrameout->getScreenCount();
+			_redrawAllCount = _gfxFrameout->getScreenCount();
 		}
 
 		if (_back != other->_back) {
-			_redrawAllCount = g_sci->_gfxFrameout->getScreenCount();
+			_redrawAllCount = _gfxFrameout->getScreenCount();
 		}
 	}
 
 	_deleted = 0;
 	if (_created == 0) {
-		_updated = g_sci->_gfxFrameout->getScreenCount();
+		_updated = _gfxFrameout->getScreenCount();
 	}
 
 	convertGameRectToPlaneRect();
@@ -828,36 +833,35 @@ void Plane::sync(const Plane *other, const Common::Rect &screenRect) {
 }
 
 void Plane::update(const reg_t object) {
-	SegManager *segMan = g_sci->getEngineState()->_segMan;
-	_vanishingPoint.x = readSelectorValue(segMan, object, SELECTOR(vanishingX));
-	_vanishingPoint.y = readSelectorValue(segMan, object, SELECTOR(vanishingY));
+	_vanishingPoint.x = readSelectorValue(_segMan, object, SELECTOR(vanishingX));
+	_vanishingPoint.y = readSelectorValue(_segMan, object, SELECTOR(vanishingY));
 
-	if (g_sci->_features->usesAlternateSelectors()) {
-		_gameRect.left = readSelectorValue(segMan, object, SELECTOR(left));
-		_gameRect.top = readSelectorValue(segMan, object, SELECTOR(top));
-		_gameRect.right = readSelectorValue(segMan, object, SELECTOR(right)) + 1;
-		_gameRect.bottom = readSelectorValue(segMan, object, SELECTOR(bottom)) + 1;
+	if (_features->usesAlternateSelectors()) {
+		_gameRect.left = readSelectorValue(_segMan, object, SELECTOR(left));
+		_gameRect.top = readSelectorValue(_segMan, object, SELECTOR(top));
+		_gameRect.right = readSelectorValue(_segMan, object, SELECTOR(right)) + 1;
+		_gameRect.bottom = readSelectorValue(_segMan, object, SELECTOR(bottom)) + 1;
 	} else {
-		_gameRect.left = readSelectorValue(segMan, object, SELECTOR(inLeft));
-		_gameRect.top = readSelectorValue(segMan, object, SELECTOR(inTop));
-		_gameRect.right = readSelectorValue(segMan, object, SELECTOR(inRight)) + 1;
-		_gameRect.bottom = readSelectorValue(segMan, object, SELECTOR(inBottom)) + 1;
+		_gameRect.left = readSelectorValue(_segMan, object, SELECTOR(inLeft));
+		_gameRect.top = readSelectorValue(_segMan, object, SELECTOR(inTop));
+		_gameRect.right = readSelectorValue(_segMan, object, SELECTOR(inRight)) + 1;
+		_gameRect.bottom = readSelectorValue(_segMan, object, SELECTOR(inBottom)) + 1;
 	}
 	convertGameRectToPlaneRect();
 
-	_priority = readSelectorValue(segMan, object, SELECTOR(priority));
-	GuiResourceId pictureId = readSelectorValue(segMan, object, SELECTOR(picture));
+	_priority = readSelectorValue(_segMan, object, SELECTOR(priority));
+	GuiResourceId pictureId = readSelectorValue(_segMan, object, SELECTOR(picture));
 	if (_pictureId != pictureId) {
 		_pictureId = pictureId;
 		_pictureChanged = true;
 	}
 
-	_mirrored = readSelectorValue(segMan, object, SELECTOR(mirrored));
-	_back = readSelectorValue(segMan, object, SELECTOR(back));
+	_mirrored = readSelectorValue(_segMan, object, SELECTOR(mirrored));
+	_back = readSelectorValue(_segMan, object, SELECTOR(back));
 }
 
 void Plane::scrollScreenItems(const int16 deltaX, const int16 deltaY, const bool scrollPics) {
-	_redrawAllCount = g_sci->_gfxFrameout->getScreenCount();
+	_redrawAllCount = _gfxFrameout->getScreenCount();
 
 	for (ScreenItemList::iterator it = _screenItemList.begin(); it != _screenItemList.end(); ++it) {
 		if (*it != nullptr) {
@@ -879,7 +883,7 @@ void Plane::remapMarkRedraw() {
 			!screenItem->_deleted && !screenItem->_created &&
 			screenItem->getCelObj()._remap
 		) {
-			screenItem->_updated = g_sci->_gfxFrameout->getScreenCount();
+			screenItem->_updated = _gfxFrameout->getScreenCount();
 		}
 	}
 }
