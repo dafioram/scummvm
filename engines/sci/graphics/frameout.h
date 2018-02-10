@@ -54,7 +54,6 @@ public:
 	~GfxFrameout();
 
 	void clear();
-	void run();
 
 private:
 	/**

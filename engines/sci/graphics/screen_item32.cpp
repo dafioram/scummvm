@@ -36,20 +36,22 @@ namespace Sci {
 
 uint16 ScreenItem::_nextObjectId = 20000;
 uint32 ScreenItem::_nextCreationId = 0;
+ResourceManager *ScreenItem::_resMan = nullptr;
+GfxFrameout *ScreenItem::_gfxFrameout = nullptr;
+GameFeatures *ScreenItem::_features = nullptr;
+SegManager *ScreenItem::_segMan = nullptr;
 
 ScreenItem::ScreenItem(const reg_t object) :
 _creationId(_nextCreationId++),
 _object(object),
 _pictureId(-1),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _mirrorX(false),
 _drawBlackLines(false) {
-	SegManager *segMan = g_sci->getEngineState()->_segMan;
-
-	setFromObject(segMan, object, true, true);
-	_plane = readSelector(segMan, object, SELECTOR(plane));
+	setFromObject(object, true, true);
+	_plane = readSelector(_segMan, object, SELECTOR(plane));
 }
 
 ScreenItem::ScreenItem(const reg_t plane, const CelInfo32 &celInfo) :
@@ -62,7 +64,7 @@ _fixedPriority(false),
 _position(0, 0),
 _object(make_reg(0, _nextObjectId++)),
 _pictureId(-1),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _mirrorX(false),
@@ -78,7 +80,7 @@ _fixedPriority(false),
 _position(rect.left, rect.top),
 _object(make_reg(0, _nextObjectId++)),
 _pictureId(-1),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _mirrorX(false),
@@ -99,7 +101,7 @@ _fixedPriority(false),
 _position(position),
 _object(make_reg(0, _nextObjectId++)),
 _pictureId(-1),
-_created(g_sci->_gfxFrameout->getScreenCount()),
+_created(_gfxFrameout->getScreenCount()),
 _updated(0),
 _deleted(0),
 _mirrorX(false),
@@ -148,26 +150,30 @@ void ScreenItem::operator=(const ScreenItem &other) {
 	_drawBlackLines = other._drawBlackLines;
 }
 
-void ScreenItem::init() {
+void ScreenItem::init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) {
 	_nextObjectId = 20000;
 	_nextCreationId = 0;
+	_resMan = resMan;
+	_features = features;
+	_gfxFrameout = frameout;
+	_segMan = segMan;
 }
 
-void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const bool updateCel, const bool updateBitmap) {
-	_position.x = readSelectorValue(segMan, object, SELECTOR(x));
-	_position.y = readSelectorValue(segMan, object, SELECTOR(y));
-	_scale.x = readSelectorValue(segMan, object, SELECTOR(scaleX));
-	_scale.y = readSelectorValue(segMan, object, SELECTOR(scaleY));
-	_scale.max = readSelectorValue(segMan, object, SELECTOR(maxScale));
-	_scale.signal = (ScaleSignals32)(readSelectorValue(segMan, object, SELECTOR(scaleSignal)) & 3);
+void ScreenItem::setFromObject(const reg_t object, const bool updateCel, const bool updateBitmap) {
+	_position.x = readSelectorValue(_segMan, object, SELECTOR(x));
+	_position.y = readSelectorValue(_segMan, object, SELECTOR(y));
+	_scale.x = readSelectorValue(_segMan, object, SELECTOR(scaleX));
+	_scale.y = readSelectorValue(_segMan, object, SELECTOR(scaleY));
+	_scale.max = readSelectorValue(_segMan, object, SELECTOR(maxScale));
+	_scale.signal = (ScaleSignals32)(readSelectorValue(_segMan, object, SELECTOR(scaleSignal)) & 3);
 
 	if (updateCel) {
-		_celInfo.resourceId = (GuiResourceId)readSelectorValue(segMan, object, SELECTOR(view));
-		_celInfo.loopNo = readSelectorValue(segMan, object, SELECTOR(loop));
-		_celInfo.celNo = readSelectorValue(segMan, object, SELECTOR(cel));
+		_celInfo.resourceId = (GuiResourceId)readSelectorValue(_segMan, object, SELECTOR(view));
+		_celInfo.loopNo = readSelectorValue(_segMan, object, SELECTOR(loop));
+		_celInfo.celNo = readSelectorValue(_segMan, object, SELECTOR(cel));
 
 		if (_celInfo.resourceId <= kPlanePic) {
-			const Resource *view = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _celInfo.resourceId), false);
+			const Resource *view = _resMan->findResource(ResourceId(kResourceTypeView, _celInfo.resourceId), false);
 			if (!view) {
 				error("Failed to load %s", _celInfo.toString().c_str());
 			}
@@ -181,7 +187,7 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 			if ((uint16)_celInfo.loopNo >= loopCount) {
 				const int maxLoopNo = loopCount - 1;
 				_celInfo.loopNo = maxLoopNo;
-				writeSelectorValue(segMan, object, SELECTOR(loop), maxLoopNo);
+				writeSelectorValue(_segMan, object, SELECTOR(loop), maxLoopNo);
 			}
 
 			SciSpan<const byte> loopData = view->subspan(headerSize + (_celInfo.loopNo * loopSize));
@@ -196,12 +202,12 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 			if ((uint16)_celInfo.celNo >= celCount) {
 				const int maxCelNo = celCount - 1;
 				_celInfo.celNo = maxCelNo;
-				writeSelectorValue(segMan, object, SELECTOR(cel), maxCelNo);
+				writeSelectorValue(_segMan, object, SELECTOR(cel), maxCelNo);
 			}
 		}
 	}
 
-	const reg_t bitmap = readSelector(segMan, object, SELECTOR(bitmap));
+	const reg_t bitmap = readSelector(_segMan, object, SELECTOR(bitmap));
 	if (updateBitmap && !bitmap.isNull()) {
 		_celInfo.bitmap = bitmap;
 		_celInfo.type = kCelTypeMem;
@@ -214,47 +220,47 @@ void ScreenItem::setFromObject(SegManager *segMan, const reg_t object, const boo
 		_celObj.reset();
 	}
 
-	if (readSelectorValue(segMan, object, SELECTOR(fixPriority))) {
+	if (readSelectorValue(_segMan, object, SELECTOR(fixPriority))) {
 		_fixedPriority = true;
-		_priority = readSelectorValue(segMan, object, SELECTOR(priority));
+		_priority = readSelectorValue(_segMan, object, SELECTOR(priority));
 	} else {
 		_fixedPriority = false;
-		writeSelectorValue(segMan, object, SELECTOR(priority), _position.y);
+		writeSelectorValue(_segMan, object, SELECTOR(priority), _position.y);
 	}
 
-	_z = (int16)readSelectorValue(segMan, object, SELECTOR(z));
+	_z = (int16)readSelectorValue(_segMan, object, SELECTOR(z));
 	_position.y -= _z;
 
-	if (g_sci->_features->usesAlternateSelectors()) {
-		if (readSelectorValue(segMan, object, SELECTOR(seenRect))) {
+	if (_features->usesAlternateSelectors()) {
+		if (readSelectorValue(_segMan, object, SELECTOR(seenRect))) {
 			_useInsetRect = true;
-			_insetRect.left = readSelectorValue(segMan, object, SELECTOR(left));
-			_insetRect.top = readSelectorValue(segMan, object, SELECTOR(top));
-			_insetRect.right = readSelectorValue(segMan, object, SELECTOR(right)) + 1;
-			_insetRect.bottom = readSelectorValue(segMan, object, SELECTOR(bottom)) + 1;
+			_insetRect.left = readSelectorValue(_segMan, object, SELECTOR(left));
+			_insetRect.top = readSelectorValue(_segMan, object, SELECTOR(top));
+			_insetRect.right = readSelectorValue(_segMan, object, SELECTOR(right)) + 1;
+			_insetRect.bottom = readSelectorValue(_segMan, object, SELECTOR(bottom)) + 1;
 		} else {
 			_useInsetRect = false;
 		}
 	} else {
-		if (readSelectorValue(segMan, object, SELECTOR(useInsetRect))) {
+		if (readSelectorValue(_segMan, object, SELECTOR(useInsetRect))) {
 			_useInsetRect = true;
-			_insetRect.left = readSelectorValue(segMan, object, SELECTOR(inLeft));
-			_insetRect.top = readSelectorValue(segMan, object, SELECTOR(inTop));
-			_insetRect.right = readSelectorValue(segMan, object, SELECTOR(inRight)) + 1;
-			_insetRect.bottom = readSelectorValue(segMan, object, SELECTOR(inBottom)) + 1;
+			_insetRect.left = readSelectorValue(_segMan, object, SELECTOR(inLeft));
+			_insetRect.top = readSelectorValue(_segMan, object, SELECTOR(inTop));
+			_insetRect.right = readSelectorValue(_segMan, object, SELECTOR(inRight)) + 1;
+			_insetRect.bottom = readSelectorValue(_segMan, object, SELECTOR(inBottom)) + 1;
 		} else {
 			_useInsetRect = false;
 		}
 	}
 
-	segMan->getObject(object)->clearInfoSelectorFlag(kInfoFlagViewVisible);
+	_segMan->getObject(object)->clearInfoSelectorFlag(kInfoFlagViewVisible);
 }
 
 void ScreenItem::calcRects(const Plane &plane) {
-	const int16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const int16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
-	const int16 screenWidth = g_sci->_gfxFrameout->getScreenWidth();
-	const int16 screenHeight = g_sci->_gfxFrameout->getScreenHeight();
+	const int16 scriptWidth = _gfxFrameout->getScriptWidth();
+	const int16 scriptHeight = _gfxFrameout->getScriptHeight();
+	const int16 screenWidth = _gfxFrameout->getScreenWidth();
+	const int16 screenHeight = _gfxFrameout->getScreenHeight();
 
 	const CelObj &celObj = getCelObj();
 
@@ -496,7 +502,7 @@ void ScreenItem::printDebugInfo(Console *con) const {
 	if (_object.isNumber()) {
 		name = "-scummvm-";
 	} else {
-		name = g_sci->getEngineState()->_segMan->getObjectName(_object);
+		name = _segMan->getObjectName(_object);
 	}
 
 	con->debugPrintf("%04x:%04x (%s), prio %d, ins %u, x %d, y %d, z: %d, scaledX: %d, scaledY: %d flags: %d\n",
@@ -529,11 +535,9 @@ void ScreenItem::printDebugInfo(Console *con) const {
 }
 
 void ScreenItem::update(const reg_t object) {
-	SegManager *segMan = g_sci->getEngineState()->_segMan;
-
-	const GuiResourceId view = readSelectorValue(segMan, object, SELECTOR(view));
-	const int16 loopNo = readSelectorValue(segMan, object, SELECTOR(loop));
-	const int16 celNo = readSelectorValue(segMan, object, SELECTOR(cel));
+	const GuiResourceId view = readSelectorValue(_segMan, object, SELECTOR(view));
+	const int16 loopNo = readSelectorValue(_segMan, object, SELECTOR(loop));
+	const int16 celNo = readSelectorValue(_segMan, object, SELECTOR(cel));
 
 	const bool updateCel = (
 		_celInfo.resourceId != view ||
@@ -541,19 +545,19 @@ void ScreenItem::update(const reg_t object) {
 		_celInfo.celNo != celNo
 	);
 
-	const bool updateBitmap = !readSelector(segMan, object, SELECTOR(bitmap)).isNull();
+	const bool updateBitmap = !readSelector(_segMan, object, SELECTOR(bitmap)).isNull();
 
-	setFromObject(segMan, object, updateCel, updateBitmap);
+	setFromObject(object, updateCel, updateBitmap);
 
 	if (!_created) {
-		_updated = g_sci->_gfxFrameout->getScreenCount();
+		_updated = _gfxFrameout->getScreenCount();
 	}
 
 	_deleted = 0;
 }
 
 void ScreenItem::update() {
-	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(_plane);
+	Plane *plane = _gfxFrameout->getPlanes().findByObject(_plane);
 	if (plane == nullptr) {
 		error("ScreenItem::update: Invalid plane %04x:%04x", PRINT_REG(_plane));
 	}
@@ -563,7 +567,7 @@ void ScreenItem::update() {
 	}
 
 	if (!_created) {
-		_updated = g_sci->_gfxFrameout->getScreenCount();
+		_updated = _gfxFrameout->getScreenCount();
 	}
 	_deleted = 0;
 
@@ -587,8 +591,8 @@ Common::Rect ScreenItem::getNowSeenRect(const Plane &plane) const {
 		nsRect = celObjRect;
 	}
 
-	const uint16 scriptWidth = g_sci->_gfxFrameout->getScriptWidth();
-	const uint16 scriptHeight = g_sci->_gfxFrameout->getScriptHeight();
+	const uint16 scriptWidth = _gfxFrameout->getScriptWidth();
+	const uint16 scriptHeight = _gfxFrameout->getScriptHeight();
 
 	Ratio scaleX, scaleY;
 	if (_scale.signal == kScaleSignalManual) {

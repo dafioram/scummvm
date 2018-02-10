@@ -42,8 +42,11 @@ struct ScaleInfo {
 };
 
 class CelObj;
+class GameFeatures;
+class GfxFrameout;
 class Plane;
 class SegManager;
+class ResourceManager;
 
 #pragma mark -
 #pragma mark ScreenItem
@@ -65,6 +68,27 @@ private:
 	 * z-indexes.
 	 */
 	static uint32 _nextCreationId;
+
+	/**
+	 * A pointer to the currently active ResourceManager instance.
+	 */
+	static ResourceManager *_resMan;
+
+	/**
+	 * A pointer to the currently active GfxFrameout instance.
+	 */
+	static GfxFrameout *_gfxFrameout;
+
+	/**
+	 * A pointer to the currently active GameFeatures instance.
+	 */
+	static GameFeatures *_features;
+
+	/**
+	 * A pointer to the currently active SegManager instance. This will be null
+	 * for non-interpreted games.
+	 */
+	static SegManager *_segMan;
 
 public:
 	/**
@@ -114,7 +138,7 @@ private:
 	 * Sets the common properties of a screen item that must be set both during
 	 * creation and update of a screen item.
 	 */
-	void setFromObject(SegManager *segMan, const reg_t object, const bool updateCel, const bool updateBitmap);
+	void setFromObject(const reg_t object, const bool updateCel, const bool updateBitmap);
 
 public:
 	/**
@@ -216,9 +240,9 @@ public:
 	bool _drawBlackLines;
 
 	/**
-	 * Initialises static Plane members.
+	 * Initialises static ScreenItem members.
 	 */
-	static void init();
+	static void init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
 
 	ScreenItem(const reg_t screenItem);
 	ScreenItem(const reg_t plane, const CelInfo32 &celInfo);

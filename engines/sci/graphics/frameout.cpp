@@ -110,18 +110,10 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 		_scriptHeight = 200;
 		break;
 	}
-}
 
-GfxFrameout::~GfxFrameout() {
-	clear();
-	CelObj::deinit();
-	_currentBuffer.free();
-}
-
-void GfxFrameout::run() {
 	CelObj::init();
 	Plane::init(_features, this, _segMan);
-	ScreenItem::init();
+	ScreenItem::init(resMan, _features, this, _segMan);
 	GfxText32::init(_scriptWidth, _scriptHeight);
 
 	// This plane is created in SCI::InitPlane in SSCI, and is a background fill
@@ -130,6 +122,12 @@ void GfxFrameout::run() {
 	Plane *initPlane = new Plane(Common::Rect(_scriptWidth, _scriptHeight));
 	initPlane->_priority = 0;
 	_planes.add(initPlane);
+}
+
+GfxFrameout::~GfxFrameout() {
+	clear();
+	CelObj::deinit();
+	_currentBuffer.free();
 }
 
 void GfxFrameout::clear() {

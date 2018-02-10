@@ -659,7 +659,6 @@ void SciEngine::initGraphics() {
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
 		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxCache);
 		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache);
-		_gfxFrameout->run();
 	} else {
 #endif
 		// SCI0-SCI1.1 graphic objects creation
