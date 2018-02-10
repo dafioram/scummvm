@@ -238,12 +238,43 @@ public:
 #pragma mark CelObj
 
 class ScreenItem;
+class ResourceManager;
+class GfxFrameout;
+class GameFeatures;
+class SegManager;
+struct MAPPER_Map;
+struct MAPPER_NoMap;
 /**
  * A cel object is the lowest-level rendering primitive in the SCI engine and
  * draws itself directly to a target pixel buffer.
  */
 class CelObj {
+	template <bool, typename> friend struct SCALER_Scale;
+	friend struct MAPPER_NoMap;
+	friend struct MAPPER_Map;
+
 protected:
+	/**
+	 * A pointer to the currently active ResourceManager instance.
+	 */
+	static ResourceManager *_resMan;
+
+	/**
+	 * A pointer to the currently active GfxFrameout instance.
+	 */
+	static GfxFrameout *_gfxFrameout;
+
+	/**
+	 * A pointer to the currently active GameFeatures instance.
+	 */
+	static GameFeatures *_features;
+
+	/**
+	 * A pointer to the currently active SegManager instance. This will be null
+	 * for non-interpreted games.
+	 */
+	static SegManager *_segMan;
+
 	/**
 	 * When true, every second line of the cel will be rendered as a black line.
 	 *
@@ -338,7 +369,7 @@ public:
 	/**
 	 * Initialises static CelObj members.
 	 */
-	static void init();
+	static void init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
 
 	/**
 	 * Frees static CelObj members.

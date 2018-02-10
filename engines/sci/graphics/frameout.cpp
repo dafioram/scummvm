@@ -111,7 +111,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegMan
 		break;
 	}
 
-	CelObj::init();
+	CelObj::init(resMan, _features, this, _segMan);
 	Plane::init(_features, this, _segMan);
 	ScreenItem::init(resMan, _features, this, _segMan);
 	GfxText32::init(_scriptWidth, _scriptHeight);

@@ -81,10 +81,18 @@ const CelScalerTable &CelScaler::getScalerTable(const Ratio &scaleX, const Ratio
 
 #pragma mark -
 #pragma mark CelObj
+ResourceManager *CelObj::_resMan = nullptr;
+GfxFrameout *CelObj::_gfxFrameout = nullptr;
+GameFeatures *CelObj::_features = nullptr;
+SegManager *CelObj::_segMan = nullptr;
 bool CelObj::_drawBlackLines = false;
 
-void CelObj::init() {
+void CelObj::init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) {
 	CelObj::deinit();
+	_resMan = resMan;
+	_features = features;
+	_gfxFrameout = frameout;
+	_segMan = segMan;
 	_drawBlackLines = false;
 	_nextCacheId = 1;
 	_scaler.reset(new CelScaler());
@@ -196,7 +204,7 @@ struct SCALER_Scale {
 
 		const CelScalerTable &table = CelObj::_scaler->getScalerTable(scaleX, scaleY);
 
-		if (g_sci->_gfxFrameout->getScriptWidth() == kLowResX) {
+		if (CelObj::_gfxFrameout->getScriptWidth() == kLowResX) {
 			const int16 unscaledX = (scaledPosition.x / scaleX).toInt();
 			if (FLIP) {
 				const int lastIndex = celObj._width - 1;
@@ -405,10 +413,10 @@ struct MAPPER_Map {
 		if (pixel != skipColor) {
 			// For some reason, SSCI never checks if the source pixel is *above*
 			// the range of remaps, so we do not either.
-			if (pixel < g_sci->_gfxFrameout->_remapper.getStartColor()) {
+			if (pixel < CelObj::_gfxFrameout->_remapper.getStartColor()) {
 				*target = pixel;
-			} else if (g_sci->_gfxFrameout->_remapper.remapEnabled(pixel)) {
-				*target = g_sci->_gfxFrameout->_remapper.remapColor(pixel, *target);
+			} else if (CelObj::_gfxFrameout->_remapper.remapEnabled(pixel)) {
+				*target = CelObj::_gfxFrameout->_remapper.remapColor(pixel, *target);
 			}
 		}
 	}
@@ -422,7 +430,7 @@ struct MAPPER_NoMap {
 	inline void draw(byte *target, const byte pixel, const uint8 skipColor) const {
 		// For some reason, SSCI never checks if the source pixel is *above* the
 		// range of remaps, so we do not either.
-		if (pixel != skipColor && pixel < g_sci->_gfxFrameout->_remapper.getStartColor()) {
+		if (pixel != skipColor && pixel < CelObj::_gfxFrameout->_remapper.getStartColor()) {
 			*target = pixel;
 		}
 	}
@@ -438,7 +446,7 @@ void CelObj::draw(Buffer &target, const ScreenItem &screenItem, const Common::Re
 		// In SSCI, this check was `g_Remap_numActiveRemaps && _remap`, but
 		// since we are already in a `_remap` branch, there is no reason to
 		// check that again
-		if (g_sci->_gfxFrameout->_remapper.getRemapCount()) {
+		if (_gfxFrameout->_remapper.getRemapCount()) {
 			if (scaleX.isOne() && scaleY.isOne()) {
 				if (_compressionType == kCelCompressionNone) {
 					if (_drawMirrored) {
@@ -595,7 +603,7 @@ void CelObj::submitPalette() const {
 	if (_hunkPaletteOffset) {
 		const SciSpan<const byte> data = getResPointer();
 		const HunkPalette palette(data.subspan(_hunkPaletteOffset));
-		g_sci->_gfxFrameout->_palette.submit(palette);
+		_gfxFrameout->_palette.submit(palette);
 	}
 }
 
@@ -795,7 +803,7 @@ void CelObj::drawUncompHzFlipNoMDNoSkip(Buffer &target, const Common::Rect &targ
 void CelObj::scaleDrawNoMD(Buffer &target, const Ratio &scaleX, const Ratio &scaleY, const Common::Rect &targetRect, const Common::Point &scaledPosition) const {
 	// In SSCI the checks are > because their rects are BR-inclusive; our checks
 	// are >= because our rects are BR-exclusive
-	if (g_sci->_features->hasEmptyScaleDrawHack() &&
+	if (_features->hasEmptyScaleDrawHack() &&
 		(targetRect.left >= targetRect.right ||
 		 targetRect.top >= targetRect.bottom)) {
 		return;
@@ -810,7 +818,7 @@ void CelObj::scaleDrawNoMD(Buffer &target, const Ratio &scaleX, const Ratio &sca
 void CelObj::scaleDrawUncompNoMD(Buffer &target, const Ratio &scaleX, const Ratio &scaleY, const Common::Rect &targetRect, const Common::Point &scaledPosition) const {
 	// In SSCI the checks are > because their rects are BR-inclusive; our checks
 	// are >= because our rects are BR-exclusive
-	if (g_sci->_features->hasEmptyScaleDrawHack() &&
+	if (_features->hasEmptyScaleDrawHack() &&
 		(targetRect.left >= targetRect.right ||
 		 targetRect.top >= targetRect.bottom)) {
 		return;
@@ -827,7 +835,7 @@ void CelObj::scaleDrawUncompNoMD(Buffer &target, const Ratio &scaleX, const Rati
 #pragma mark CelObjView
 
 int16 CelObjView::getNumLoops(const GuiResourceId viewId) {
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, viewId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypeView, viewId), false);
 
 	if (!resource) {
 		return 0;
@@ -837,7 +845,7 @@ int16 CelObjView::getNumLoops(const GuiResourceId viewId) {
 }
 
 int16 CelObjView::getNumCels(const GuiResourceId viewId, int16 loopNo) {
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, viewId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypeView, viewId), false);
 
 	if (!resource) {
 		return 0;
@@ -855,8 +863,10 @@ int16 CelObjView::getNumCels(const GuiResourceId viewId, int16 loopNo) {
 	// This bug is triggered in basically every SCI32 game and appears to be
 	// universally fixable simply by always using the next lowest loop instead.
 	if (loopNo == loopCount) {
-		const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
-		debugC(kDebugLevelWorkarounds, "Workaround: kNumCels loop %d -> loop %d in view %u, %s", loopNo, loopNo - 1, viewId, origin.toString().c_str());
+		if (g_sci) {
+			const SciCallOrigin origin = g_sci->getEngineState()->getCurrentCallOrigin();
+			debugC(kDebugLevelWorkarounds, "Workaround: kNumCels loop %d -> loop %d in view %u, %s", loopNo, loopNo - 1, viewId, origin.toString().c_str());
+		}
 		--loopNo;
 	}
 
@@ -899,7 +909,7 @@ CelObjView::CelObjView(const GuiResourceId viewId, const int16 loopNo, const int
 		return;
 	}
 
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, viewId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypeView, viewId), false);
 
 	// SSCI just silently returns here
 	if (!resource) {
@@ -1003,8 +1013,8 @@ bool CelObjView::analyzeUncompressedForRemap() const {
 	for (int i = 0; i < _width * _height; ++i) {
 		const byte pixel = pixels[i];
 		if (
-			pixel >= g_sci->_gfxFrameout->_remapper.getStartColor() &&
-			pixel <= g_sci->_gfxFrameout->_remapper.getEndColor() &&
+			pixel >= _gfxFrameout->_remapper.getStartColor() &&
+			pixel <= _gfxFrameout->_remapper.getEndColor() &&
 			pixel != _skipColor
 		) {
 			return true;
@@ -1020,8 +1030,8 @@ bool CelObjView::analyzeForRemap() const {
 		for (int x = 0; x < _width; x++) {
 			const byte pixel = curRow[x];
 			if (
-				pixel >= g_sci->_gfxFrameout->_remapper.getStartColor() &&
-				pixel <= g_sci->_gfxFrameout->_remapper.getEndColor() &&
+				pixel >= _gfxFrameout->_remapper.getStartColor() &&
+				pixel <= _gfxFrameout->_remapper.getEndColor() &&
 				pixel != _skipColor
 			) {
 				return true;
@@ -1041,7 +1051,7 @@ CelObjView *CelObjView::duplicate() const {
 }
 
 const SciSpan<const byte> CelObjView::getResPointer() const {
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypeView, _info.resourceId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypeView, _info.resourceId), false);
 	if (resource == nullptr) {
 		error("Failed to load view %d from resource manager", _info.resourceId);
 	}
@@ -1106,7 +1116,7 @@ CelObjPic::CelObjPic(const GuiResourceId picId, const int16 celNo) {
 		return;
 	}
 
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypePic, picId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypePic, picId), false);
 
 	// SSCI just silently returns here
 	if (!resource) {
@@ -1200,7 +1210,7 @@ CelObjPic *CelObjPic::duplicate() const {
 }
 
 const SciSpan<const byte> CelObjPic::getResPointer() const {
-	const Resource *const resource = g_sci->getResMan()->findResource(ResourceId(kResourceTypePic, _info.resourceId), false);
+	const Resource *const resource = _resMan->findResource(ResourceId(kResourceTypePic, _info.resourceId), false);
 	if (resource == nullptr) {
 		error("Failed to load pic %d from resource manager", _info.resourceId);
 	}
@@ -1218,7 +1228,7 @@ CelObjMem::CelObjMem(const reg_t bitmapObject) {
 	_celHeaderOffset = 0;
 	_transparent = true;
 
-	SciBitmap *bitmap = g_sci->getEngineState()->_segMan->lookupBitmap(bitmapObject);
+	SciBitmap *bitmap = _segMan->lookupBitmap(bitmapObject);
 
 	// SSCI did no error checking here at all so would just end up reading
 	// garbage or crashing if this ever happened
@@ -1241,7 +1251,7 @@ CelObjMem *CelObjMem::duplicate() const {
 }
 
 const SciSpan<const byte> CelObjMem::getResPointer() const {
-	SciBitmap &bitmap = *g_sci->getEngineState()->_segMan->lookupBitmap(_info.bitmap);
+	SciBitmap &bitmap = *_segMan->lookupBitmap(_info.bitmap);
 	return SciSpan<const byte>(bitmap.getRawData(), bitmap.getRawSize(), Common::String::format("bitmap %04x:%04x", PRINT_REG(_info.bitmap)));
 }
 
@@ -1253,8 +1263,8 @@ CelObjColor::CelObjColor(const uint8 color, const int16 width, const int16 heigh
 	_info.color = color;
 	_origin.x = 0;
 	_origin.y = 0;
-	_xResolution = g_sci->_gfxFrameout->getScriptWidth();
-	_yResolution = g_sci->_gfxFrameout->getScriptHeight();
+	_xResolution = _gfxFrameout->getScriptWidth();
+	_yResolution = _gfxFrameout->getScriptHeight();
 	_hunkPaletteOffset = 0;
 	_mirrorX = false;
 	_remap = false;
