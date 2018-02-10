@@ -92,6 +92,10 @@ public:
 	 */
 	SciVersion detectSci21KernelType();
 
+	inline bool hasBrokenShowStyle() const {
+		return (getSciVersion() == SCI_VERSION_2_1_MIDDLE && _game.id == GID_KQ7);
+	}
+
 	inline bool usesModifiedAudioAttenuation() const {
 		switch (_game.id) {
 		// Assuming MGDX uses modified attenuation since SQ6 does and it was

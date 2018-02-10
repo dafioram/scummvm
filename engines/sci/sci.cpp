@@ -78,7 +78,6 @@
 #include "sci/graphics/palette32.h"
 #include "sci/graphics/remap32.h"
 #include "sci/graphics/text32.h"
-#include "sci/graphics/transitions32.h"
 #include "sci/graphics/video32.h"
 #include "sci/sound/audio32.h"
 #endif
@@ -262,7 +261,6 @@ SciEngine::~SciEngine() {
 	// GfxFrameout must be deleted after Video32 since destruction of screen
 	// items in the Video32 destructor relies on this component
 	delete _video32;
-	delete _gfxTransitions32;
 	delete _gfxFrameout;
 	delete _audio32;
 #endif
@@ -643,7 +641,6 @@ void SciEngine::initGraphics() {
 	_gfxText32 = 0;
 	_gfxFrameout = 0;
 	_gfxPaint32 = 0;
-	_gfxTransitions32 = 0;
 #endif
 
 	if (hasMacIconBar())
@@ -662,8 +659,7 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxTransitions32 = new GfxTransitions32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan, _gfxTransitions32);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _gamestate->_segMan);
 		_gfxText32 = new GfxText32(_gamestate->_segMan, _gfxCache);
 		_gfxControls32 = new GfxControls32(_eventMan, _gamestate->_segMan, _gfxFrameout, _gfxCache, _gfxText32);
 		_gfxFrameout->run();

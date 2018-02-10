@@ -236,7 +236,7 @@ reg_t kFrameOut(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kSetPalStyleRange(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_gfxTransitions32->kernelSetPalStyleRange(argv[0].toUint16(), argv[1].toUint16());
+	g_sci->_gfxFrameout->_transitions.kernelSetPalStyleRange(argv[0].toUint16(), argv[1].toUint16());
 	return s->r_acc;
 }
 
@@ -405,7 +405,7 @@ reg_t kSetShowStyle(EngineState *s, int argc, reg_t *argv) {
 
 	// The order of planeObj and showStyle are reversed because this is how
 	// SSCI3 called the corresponding method on the KernelMgr
-	g_sci->_gfxTransitions32->kernelSetShowStyle(argc, planeObj, (ShowStyleType)type, seconds, back, priority, animate, refFrame, pFadeArray, divisions, blackScreen);
+	g_sci->_gfxFrameout->_transitions.kernelSetShowStyle(argc, planeObj, (ShowStyleType)type, seconds, back, priority, animate, refFrame, pFadeArray, divisions, blackScreen);
 
 	return s->r_acc;
 }
@@ -883,7 +883,7 @@ reg_t kSetScroll(EngineState *s, int argc, reg_t *argv) {
 	// we ignore it here
 	const bool mirrorX = argc > 6 ? (bool)argv[6].toUint16() : false;
 
-	g_sci->_gfxTransitions32->kernelSetScroll(plane, deltaX, deltaY, pictureId, animate, mirrorX);
+	g_sci->_gfxFrameout->_transitions.kernelSetScroll(plane, deltaX, deltaY, pictureId, animate, mirrorX);
 	return s->r_acc;
 }
 

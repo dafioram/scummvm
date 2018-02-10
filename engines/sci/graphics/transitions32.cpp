@@ -21,6 +21,7 @@
  */
 
 #include "sci/console.h"
+#include "sci/engine/features.h"
 #include "sci/engine/segment.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
@@ -40,7 +41,9 @@ static int16 divisionsDefaults[2][16] = {
 	/* SCI2.1mid+ */   { 1, 20, 20, 20, 20, 10, 10, 10, 10, 20, 20,  6, 10, 101, 101, 2 }
 };
 
-GfxTransitions32::GfxTransitions32(SegManager *segMan) :
+GfxTransitions32::GfxTransitions32(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) :
+	_features(features),
+	_gfxFrameout(frameout),
 	_segMan(segMan) {
 	for (int i = 0; i < 236; i += 2) {
 		_styleRanges[i] = 0;
@@ -67,22 +70,21 @@ GfxTransitions32::~GfxTransitions32() {
 }
 
 void GfxTransitions32::throttle(const uint32 ms) {
-	g_sci->getEngineState()->speedThrottler(ms);
-	g_sci->getEngineState()->_throttleTrigger = true;
+	_gfxFrameout->throttle(ms);
 }
 
 void GfxTransitions32::clearShowRects() {
-	g_sci->_gfxFrameout->_showList.clear();
+	_gfxFrameout->_showList.clear();
 }
 
 void GfxTransitions32::addShowRect(const Common::Rect &rect) {
 	if (!rect.isEmpty()) {
-		g_sci->_gfxFrameout->_showList.add(rect);
+		_gfxFrameout->_showList.add(rect);
 	}
 }
 
 void GfxTransitions32::sendShowRects() {
-	g_sci->_gfxFrameout->showBits();
+	_gfxFrameout->showBits();
 	throttle();
 }
 
@@ -90,7 +92,7 @@ void GfxTransitions32::sendShowRects() {
 #pragma mark Show styles
 
 void GfxTransitions32::processShowStyles() {
-	uint32 now = g_sci->getTickCount();
+	uint32 now = getTickCount();
 
 	bool continueProcessing;
 	bool doFrameOut;
@@ -123,7 +125,7 @@ void GfxTransitions32::processShowStyles() {
 		}
 
 		if (doFrameOut) {
-			g_sci->_gfxFrameout->frameOut(true);
+			_gfxFrameout->frameOut(true);
 			throttle();
 		}
 	} while (continueProcessing && doFrameOut);
@@ -183,7 +185,7 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 	// KQ7 2.0b uses a mismatched version of the Styler script (SCI2.1early script
 	// for SCI2.1mid engine), so the calls it makes to kSetShowStyle are wrong and
 	// put `divisions` where `pFadeArray` is supposed to be
-	if (getSciVersion() == SCI_VERSION_2_1_MIDDLE && g_sci->getGameId() == GID_KQ7) {
+	if (_features->hasBrokenShowStyle()) {
 		hasDivisions = argc > 7;
 		hasFadeArray = false;
 		divisions = argc > 7 ? pFadeArray.toSint16() : -1;
@@ -209,7 +211,7 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 		color = 0;
 	}
 
-	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(planeObj);
+	Plane *plane = _gfxFrameout->getPlanes().findByObject(planeObj);
 	if (plane == nullptr) {
 		error("Plane %04x:%04x is not present in active planes list", PRINT_REG(planeObj));
 	}
@@ -292,7 +294,7 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 
 	entry->fadeUp = isFadeUp;
 	entry->color = color;
-	entry->nextTick = g_sci->getTickCount();
+	entry->nextTick = getTickCount();
 	entry->type = type;
 	entry->animate = animate;
 	entry->delay = (seconds * 60 + entry->divisions - 1) / entry->divisions;
@@ -303,7 +305,7 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 
 	if (frameOutNow) {
 		// Creates a reference frame for the pixel dissolves to use
-		g_sci->_gfxFrameout->frameOut(false);
+		_gfxFrameout->frameOut(false);
 	}
 
 	if (createNewEntry) {
@@ -371,7 +373,7 @@ ShowStyleList::iterator GfxTransitions32::deleteShowStyle(const ShowStyleList::i
 	case kShowStyleDissolve:
 		if (getSciVersion() <= SCI_VERSION_2_1_EARLY) {
 			_segMan->freeBitmap(showStyle->bitmap);
-			g_sci->_gfxFrameout->deleteScreenItem(*showStyle->bitmapScreenItem);
+			_gfxFrameout->deleteScreenItem(*showStyle->bitmapScreenItem);
 		}
 		break;
 	case kShowStyleWipeLeft:
@@ -383,7 +385,7 @@ ShowStyleList::iterator GfxTransitions32::deleteShowStyle(const ShowStyleList::i
 			for (uint i = 0; i < showStyle->screenItems.size(); ++i) {
 				ScreenItem *screenItem = showStyle->screenItems[i];
 				if (screenItem != nullptr) {
-					g_sci->_gfxFrameout->deleteScreenItem(*screenItem);
+					_gfxFrameout->deleteScreenItem(*screenItem);
 				}
 			}
 		}
@@ -427,7 +429,7 @@ void GfxTransitions32::configure21EarlyHorizontalWipe(PlaneShowStyle &showStyle,
 
 	if (showStyle.fadeUp) {
 		for (int i = 0; i < divisions; ++i) {
-			g_sci->_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
+			_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
 		}
 	}
 }
@@ -468,7 +470,7 @@ void GfxTransitions32::configure21EarlyHorizontalShutter(PlaneShowStyle &showSty
 
 	if (showStyle.fadeUp) {
 		for (int i = 0; i < numScreenItems; ++i) {
-			g_sci->_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
+			_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
 		}
 	}
 }
@@ -531,7 +533,7 @@ void GfxTransitions32::configure21EarlyIris(PlaneShowStyle &showStyle, const int
 
 	if (showStyle.fadeUp) {
 		for (int i = 0; i < numScreenItems; ++i) {
-			g_sci->_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
+			_gfxFrameout->addScreenItem(*showStyle.screenItems[i]);
 		}
 	}
 }
@@ -543,7 +545,7 @@ void GfxTransitions32::configure21EarlyDissolve(PlaneShowStyle &showStyle, const
 
 	showStyle.bitmap = bitmapId;
 
-	const Buffer &source = g_sci->_gfxFrameout->getCurrentBuffer();
+	const Buffer &source = _gfxFrameout->getCurrentBuffer();
 	Buffer target;
 	target.init(showStyle.width, showStyle.height, showStyle.width, bitmap.getPixels(), Graphics::PixelFormat::createFormatCLUT8());
 
@@ -558,7 +560,7 @@ void GfxTransitions32::configure21EarlyDissolve(PlaneShowStyle &showStyle, const
 	showStyle.bitmapScreenItem->_priority = priority;
 	showStyle.bitmapScreenItem->_fixedPriority = true;
 
-	g_sci->_gfxFrameout->addScreenItem(*showStyle.bitmapScreenItem);
+	_gfxFrameout->addScreenItem(*showStyle.bitmapScreenItem);
 }
 
 bool GfxTransitions32::processShowStyle(PlaneShowStyle &showStyle, uint32 now) {
@@ -623,9 +625,9 @@ bool GfxTransitions32::processShowStyle(PlaneShowStyle &showStyle, uint32 now) {
 
 bool GfxTransitions32::processNone(PlaneShowStyle &showStyle) {
 	if (showStyle.fadeUp) {
-		g_sci->_gfxFrameout->_palette.setFade(100, 0, 255);
+		_gfxFrameout->_palette.setFade(100, 0, 255);
 	} else {
-		g_sci->_gfxFrameout->_palette.setFade(0, 0, 255);
+		_gfxFrameout->_palette.setFade(0, 0, 255);
 	}
 
 	showStyle.processed = true;
@@ -645,7 +647,7 @@ void GfxTransitions32::processHShutterIn(const PlaneShowStyle &showStyle) {
 		error("HShutterIn is not known to be used by any SCI2.1early- game. Please submit a bug report with details about the game you were playing and what you were doing that triggered this error. Thanks!");
 	}
 
-	Plane* plane = g_sci->_gfxFrameout->getVisiblePlanes().findByObject(showStyle.plane);
+	Plane* plane = _gfxFrameout->getVisiblePlanes().findByObject(showStyle.plane);
 	const Common::Rect &screenRect = plane->_screenRect;
 	Common::Rect rect;
 
@@ -828,7 +830,7 @@ bool GfxTransitions32::processPixelDissolve21Early(PlaneShowStyle &showStyle) {
 		++showStyle.currentStep;
 		unchanged = false;
 		if (showStyle.bitmapScreenItem->_created == 0) {
-			showStyle.bitmapScreenItem->_updated = g_sci->_gfxFrameout->getScreenCount();
+			showStyle.bitmapScreenItem->_updated = _gfxFrameout->getScreenCount();
 		}
 	}
 
@@ -846,7 +848,7 @@ bool GfxTransitions32::processPixelDissolve21Early(PlaneShowStyle &showStyle) {
 bool GfxTransitions32::processPixelDissolve21Mid(const PlaneShowStyle &showStyle) {
 	// SQ6 room 530, LSL7 room 130
 
-	Plane* plane = g_sci->_gfxFrameout->getVisiblePlanes().findByObject(showStyle.plane);
+	Plane* plane = _gfxFrameout->getVisiblePlanes().findByObject(showStyle.plane);
 	const Common::Rect &screenRect = plane->_screenRect;
 	Common::Rect rect;
 
@@ -860,7 +862,7 @@ bool GfxTransitions32::processPixelDissolve21Mid(const PlaneShowStyle &showStyle
 	int seq = 1;
 
 	uint iteration = 0;
-	const uint numIterationsPerTick = g_sci->_gfxFrameout->_showList.max_size();
+	const uint numIterationsPerTick = _gfxFrameout->_showList.max_size();
 
 	clearShowRects();
 
@@ -940,10 +942,10 @@ bool GfxTransitions32::processFade(const int8 direction, PlaneShowStyle &showSty
 
 		if (showStyle.fadeColorRanges.size()) {
 			for (uint i = 0, len = showStyle.fadeColorRanges.size(); i < len; i += 2) {
-				g_sci->_gfxFrameout->_palette.setFade(percent, showStyle.fadeColorRanges[i], showStyle.fadeColorRanges[i + 1]);
+				_gfxFrameout->_palette.setFade(percent, showStyle.fadeColorRanges[i], showStyle.fadeColorRanges[i + 1]);
 			}
 		} else {
-			g_sci->_gfxFrameout->_palette.setFade(percent, 0, 255);
+			_gfxFrameout->_palette.setFade(percent, 0, 255);
 		}
 
 		++showStyle.currentStep;
@@ -963,7 +965,7 @@ bool GfxTransitions32::processFade(const int8 direction, PlaneShowStyle &showSty
 }
 
 bool GfxTransitions32::processMorph(PlaneShowStyle &showStyle) {
-	g_sci->_gfxFrameout->palMorphFrameOut(_styleRanges, &showStyle);
+	_gfxFrameout->palMorphFrameOut(_styleRanges, &showStyle);
 	showStyle.processed = true;
 	return true;
 }
@@ -982,10 +984,10 @@ bool GfxTransitions32::processWipe(const int8 direction, PlaneShowStyle &showSty
 		for (int i = 0; i < showStyle.numEdges; ++i) {
 			ScreenItem *screenItem = showStyle.screenItems[index + i];
 			if (showStyle.fadeUp) {
-				g_sci->_gfxFrameout->deleteScreenItem(*screenItem);
+				_gfxFrameout->deleteScreenItem(*screenItem);
 				showStyle.screenItems[index + i] = nullptr;
 			} else {
-				g_sci->_gfxFrameout->addScreenItem(*screenItem);
+				_gfxFrameout->addScreenItem(*screenItem);
 			}
 		}
 
@@ -1045,14 +1047,14 @@ void GfxTransitions32::kernelSetScroll(const reg_t planeId, const int16 deltaX, 
 	scroll->deltaY = deltaY;
 	scroll->newPictureId = pictureId;
 	scroll->animate = animate;
-	scroll->startTick = g_sci->getTickCount();
+	scroll->startTick = getTickCount();
 
-	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(planeId);
+	Plane *plane = _gfxFrameout->getPlanes().findByObject(planeId);
 	if (plane == nullptr) {
 		error("kSetScroll: Plane %04x:%04x not found", PRINT_REG(planeId));
 	}
 
-	Plane *visiblePlane = g_sci->_gfxFrameout->getPlanes().findByObject(planeId);
+	Plane *visiblePlane = _gfxFrameout->getPlanes().findByObject(planeId);
 	if (visiblePlane == nullptr) {
 		error("kSetScroll: Visible plane %04x:%04x not found", PRINT_REG(planeId));
 	}
@@ -1086,7 +1088,7 @@ void GfxTransitions32::kernelSetScroll(const reg_t planeId, const int16 deltaX, 
 		bool finished = false;
 		while (!finished && !g_engine->shouldQuit()) {
 			finished = processScroll(*scroll);
-			g_sci->_gfxFrameout->frameOut(true);
+			_gfxFrameout->frameOut(true);
 			throttle(33);
 		}
 	}
@@ -1096,7 +1098,7 @@ void GfxTransitions32::kernelSetScroll(const reg_t planeId, const int16 deltaX, 
 
 bool GfxTransitions32::processScroll(PlaneScroll &scroll) {
 	bool finished = false;
-	uint32 now = g_sci->getTickCount();
+	uint32 now = getTickCount();
 	if (scroll.startTick >= now) {
 		return false;
 	}
@@ -1113,7 +1115,7 @@ bool GfxTransitions32::processScroll(PlaneScroll &scroll) {
 	scroll.x += deltaX;
 	scroll.y += deltaY;
 
-	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(scroll.plane);
+	Plane *plane = _gfxFrameout->getPlanes().findByObject(scroll.plane);
 
 	if (plane == nullptr) {
 		error("[GfxTransitions32::processScroll]: Plane %04x:%04x not found", PRINT_REG(scroll.plane));

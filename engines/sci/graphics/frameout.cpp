@@ -60,13 +60,13 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, this),
 	_remapper(features, this),
 	_cursor(resMan, features, this),
 	_segMan(segMan),
-	_transitions(transitions),
+	_transitions(features, this, segMan),
 	_throttleState(0),
 	_remapOccurred(false),
 	_overdrawThreshold(0),
@@ -510,10 +510,10 @@ void GfxFrameout::palMorphFrameOut(const int8 *styleRanges, PlaneShowStyle *show
 	_palette.submit(sourcePalette);
 	_palette.updateFFrame();
 	_palette.updateHardware();
-	alterVmap(nextPalette, sourcePalette, 1, _transitions->_styleRanges);
+	alterVmap(nextPalette, sourcePalette, 1, _transitions._styleRanges);
 
 	if (showStyle && showStyle->type != kShowStyleMorph) {
-		_transitions->processEffects(*showStyle);
+		_transitions.processEffects(*showStyle);
 	} else {
 		showBits();
 	}
@@ -1133,14 +1133,14 @@ void GfxFrameout::updateScreen(const int delta) {
 }
 
 void GfxFrameout::kernelFrameOut(const bool shouldShowBits) {
-	if (_transitions->hasShowStyles()) {
-		_transitions->processShowStyles();
+	if (_transitions.hasShowStyles()) {
+		_transitions.processShowStyles();
 	} else if (_palMorphIsOn) {
-		palMorphFrameOut(_transitions->_styleRanges, nullptr);
+		palMorphFrameOut(_transitions._styleRanges, nullptr);
 		_palMorphIsOn = false;
 	} else {
-		if (_transitions->hasScrolls()) {
-			_transitions->processScrolls();
+		if (_transitions.hasScrolls()) {
+			_transitions.processScrolls();
 		}
 
 		frameOut(shouldShowBits);
@@ -1162,6 +1162,11 @@ void GfxFrameout::throttle() {
 	}
 
 	g_sci->getEngineState()->speedThrottler(throttleTime);
+	g_sci->getEngineState()->_throttleTrigger = true;
+}
+
+void GfxFrameout::throttle(const uint ms) {
+	g_sci->getEngineState()->speedThrottler(ms);
 	g_sci->getEngineState()->_throttleTrigger = true;
 }
 

@@ -213,12 +213,16 @@ struct PlaneScroll {
 typedef Common::List<PlaneShowStyle> ShowStyleList;
 typedef Common::List<PlaneScroll> ScrollList;
 
+class GfxFrameout;
+
 class GfxTransitions32 {
 public:
-	GfxTransitions32(SegManager *_segMan);
+	GfxTransitions32(GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
 	~GfxTransitions32();
 
 private:
+	GameFeatures *_features;
+	GfxFrameout *_gfxFrameout;
 	SegManager *_segMan;
 
 	/**

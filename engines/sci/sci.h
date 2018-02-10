@@ -98,7 +98,6 @@ class GfxTransitions;
 class GfxFrameout;
 class Audio32;
 class Video32;
-class GfxTransitions32;
 class GfxCursor32;
 #endif
 
@@ -384,7 +383,6 @@ public:
 	Audio32 *_audio32;
 	Video32 *_video32;
 	GfxFrameout *_gfxFrameout; // kFrameout and the like for 32-bit gfx
-	GfxTransitions32 *_gfxTransitions32;
 #endif
 
 	AudioPlayer *_audio;

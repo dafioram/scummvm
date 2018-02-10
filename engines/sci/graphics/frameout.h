@@ -30,6 +30,7 @@
 #include "sci/graphics/plane32.h"
 #include "sci/graphics/remap32.h"
 #include "sci/graphics/screen_item32.h"
+#include "sci/graphics/transitions32.h"
 
 namespace Sci {
 typedef Common::Array<DrawList> ScreenItemListList;
@@ -47,7 +48,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan, GfxTransitions32 *transitions);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, SegManager *segMan);
 	~GfxFrameout();
 
 	void clear();
@@ -89,9 +90,9 @@ public:
 	GfxCursor32 _cursor;
 	GfxPalette32 _palette;
 	GfxRemap32 _remapper;
+	GfxTransitions32 _transitions;
 
 private:
-	GfxTransitions32 *_transitions;
 	SegManager *_segMan;
 
 	/**
@@ -239,6 +240,11 @@ public:
 	 * Throttles the engine as necessary to maintain 60fps output.
 	 */
 	void throttle();
+
+	/**
+	 * Throttles the engine by arbitrary number of milliseconds.
+	 */
+	void throttle(const uint ms);
 
 	/**
 	 * Updates the internal screen buffer for the next frame. If
