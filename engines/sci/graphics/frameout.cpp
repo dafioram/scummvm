@@ -99,6 +99,9 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::D
 	case GID_PHANTASMAGORIA2:
 	case GID_TORIN:
 	case GID_RAMA:
+#ifdef ENABLE_SCI32S2
+	case GID_SHIVERS2:
+#endif
 		_scriptWidth = 640;
 		_scriptHeight = 480;
 		break;
