@@ -345,7 +345,11 @@ void Sci0SoundManager::setSoundVolumes(const uint8 volume) {
 }
 
 Sci0PlayStrategy Sci0SoundManager::initSound(Sci0Sound &sound) {
+#if __cplusplus < 201103L
+	Common::fill(_hardwareChannels.begin(), _hardwareChannels.end(), HardwareChannel());
+#else
 	_hardwareChannels = {};
+#endif
 
 	const uint8 headerSize = getHeaderSize();
 	_state = PlayState(headerSize);

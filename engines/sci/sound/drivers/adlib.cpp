@@ -111,7 +111,7 @@ AdLibDriver::AdLibDriver(ResourceManager &resMan, SciVersion version) :
 			}
 		}
 		for (; i < _programs.size(); ++i) {
-			_programs[i] = {};
+			_programs[i] = Program();
 		}
 	}
 

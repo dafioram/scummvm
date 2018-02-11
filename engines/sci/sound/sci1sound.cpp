@@ -63,7 +63,7 @@ Sci1SoundManager::Sci1SoundManager(ResourceManager &resMan, SegManager &segMan, 
 	_playlist(),
 	_sampleList(),
 	_nextObjectId(0) {
-	Common::fill(_newChannelVolumes.begin(), _newChannelVolumes.end(), kNoVolumeChange);
+	Common::fill(_newChannelVolumes.begin(), _newChannelVolumes.end(), uint8(kNoVolumeChange));
 
 	uint32 deviceFlags;
 #ifdef ENABLE_SCI32
@@ -403,7 +403,12 @@ void Sci1SoundManager::remapHardwareChannels() {
 }
 
 Sci1SoundManager::HardwareChannels Sci1SoundManager::makeChannelMap(const uint8 minChannelNo, const uint8 maxChannelNo) const {
+#if __cplusplus < 201103L
+	HardwareChannels committedChannels;
+	Common::fill(committedChannels.begin(), committedChannels.end(), HardwareChannel());
+#else
 	HardwareChannels committedChannels = {};
+#endif
 	int committedFreeVoices = _driver->getNumVoices();
 	// loopDoNodes
 	for (uint i = 0, basePriority = 0; i < _playlist.size(); ++i, basePriority += Sci1Sound::kNumChannels) {
