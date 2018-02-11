@@ -661,7 +661,7 @@ public:
 #pragma mark -
 #pragma mark Debugging
 public:
-	void printAudioList(Console *con) const;
+	void printAudioList(GUI::Debugger *con) const;
 };
 
 } // End of namespace Sci

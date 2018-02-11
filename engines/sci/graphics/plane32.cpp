@@ -154,7 +154,7 @@ void Plane::convertGameRectToPlaneRect() {
 	mulru(_planeRect, ratioX, ratioY, 1);
 }
 
-void Plane::printDebugInfo(Console *con) const {
+void Plane::printDebugInfo(GUI::Debugger *con) const {
 	const char *name;
 	if (_object.isNumber()) {
 		name = "-scummvm-";

@@ -2,6 +2,7 @@ MODULE := engines/sci
 
 MODULE_OBJS := \
 	console.o \
+	debugger.o \
 	decompressor.o \
 	detection.o \
 	event.o \

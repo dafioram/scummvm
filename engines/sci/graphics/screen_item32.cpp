@@ -497,7 +497,7 @@ CelObj &ScreenItem::getCelObj() const {
 	return *_celObj;
 }
 
-void ScreenItem::printDebugInfo(Console *con) const {
+void ScreenItem::printDebugInfo(GUI::Debugger *con) const {
 	const char *name;
 	if (_object.isNumber()) {
 		name = "-scummvm-";

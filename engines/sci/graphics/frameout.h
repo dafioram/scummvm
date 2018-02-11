@@ -428,12 +428,12 @@ private:
 #pragma mark -
 #pragma mark Debugging
 public:
-	void printPlaneList(Console *con) const;
-	void printVisiblePlaneList(Console *con) const;
-	void printPlaneListInternal(Console *con, const PlaneList &planeList) const;
-	void printPlaneItemList(Console *con, const reg_t planeObject) const;
-	void printVisiblePlaneItemList(Console *con, const reg_t planeObject) const;
-	void printPlaneItemListInternal(Console *con, const ScreenItemList &screenItemList) const;
+	void printPlaneList(GUI::Debugger *con) const;
+	void printVisiblePlaneList(GUI::Debugger *con) const;
+	void printPlaneListInternal(GUI::Debugger *con, const PlaneList &planeList) const;
+	void printPlaneItemList(GUI::Debugger *con, const reg_t planeObject) const;
+	void printVisiblePlaneItemList(GUI::Debugger *con, const reg_t planeObject) const;
+	void printPlaneItemListInternal(GUI::Debugger *con, const ScreenItemList &screenItemList) const;
 };
 
 } // End of namespace Sci

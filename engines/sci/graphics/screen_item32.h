@@ -356,7 +356,7 @@ public:
 	 */
 	CelObj &getCelObj() const;
 
-	void printDebugInfo(Console *con) const;
+	void printDebugInfo(GUI::Debugger *con) const;
 
 	/**
 	 * Updates the properties of the screen item from a VM object.

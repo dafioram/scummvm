@@ -23,21 +23,22 @@
 #ifndef SCI_S2_DEBUGGER_H
 #define SCI_S2_DEBUGGER_H
 
-#include "gui/debugger.h"
+#include "sci/debugger.h"
 
 namespace Sci {
 
-class S2Debugger : public GUI::Debugger {
-public:
-	S2Debugger() : GUI::Debugger() {
-		registerCmd("help", WRAP_METHOD(S2Debugger, cmdHelp));
-	}
+class Audio32;
+class GfxFrameout;
+class ResourceManager;
 
-private:
-	bool cmdHelp(int argc, const char **argv) {
-		debugPrintf("Hello world!");
-		return true;
-	}
+class S2Debugger : public Debugger {
+public:
+	S2Debugger(ResourceManager *resMan);
+
+	void run(GfxFrameout *frameout, Audio32 *audio);
+
+protected:
+	virtual bool cmdHelp(int argc, const char **argv) override;
 };
 
 } // End of namespace Sci

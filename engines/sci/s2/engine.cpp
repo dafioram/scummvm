@@ -36,9 +36,9 @@ S2Engine::S2Engine(OSystem &system, const GameMetadata &metadata) :
 	_metadata(metadata),
 	_resourceManager(metadata),
 	_features(&_resourceManager, nullptr, nullptr),
+	_debugger(&_resourceManager),
 	_eventManager(false, &_debugger, nullptr, nullptr),
-	_timeManager(system, *this, _eventManager),
-	_debugger() {
+	_timeManager(system, *this, _eventManager) {
 	g_SciBE = false;
 	g_Sci11BE = false;
 	g_Sci32BE = false;
@@ -53,6 +53,7 @@ Common::Error S2Engine::run() {
 	_resourceManager.run();
 	_audioManager.reset(new Audio32(&_resourceManager, nullptr, &_features, &_timeManager));
 	_graphicsManager.reset(new GfxFrameout(&_resourceManager, &_features, &_debugger, &_timeManager, &_eventManager, _audioManager.get(), nullptr));
+	_debugger.run(_graphicsManager.get(), _audioManager.get());
 
 	while (!shouldQuit()) {
 		_timeManager.sleep(16);

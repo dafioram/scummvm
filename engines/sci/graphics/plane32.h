@@ -302,7 +302,7 @@ public:
 		}
 	}
 
-	void printDebugInfo(Console *con) const;
+	void printDebugInfo(GUI::Debugger *con) const;
 
 	/**
 	 * Compares the properties of the current plane against the properties of

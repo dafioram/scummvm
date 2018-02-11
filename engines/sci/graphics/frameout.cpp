@@ -1384,22 +1384,22 @@ void GfxFrameout::remapMarkRedraw() {
 #pragma mark -
 #pragma mark Debugging
 
-void GfxFrameout::printPlaneListInternal(Console *con, const PlaneList &planeList) const {
+void GfxFrameout::printPlaneListInternal(GUI::Debugger *con, const PlaneList &planeList) const {
 	for (PlaneList::const_iterator it = planeList.begin(); it != planeList.end(); ++it) {
 		Plane *p = *it;
 		p->printDebugInfo(con);
 	}
 }
 
-void GfxFrameout::printPlaneList(Console *con) const {
+void GfxFrameout::printPlaneList(GUI::Debugger *con) const {
 	printPlaneListInternal(con, _planes);
 }
 
-void GfxFrameout::printVisiblePlaneList(Console *con) const {
+void GfxFrameout::printVisiblePlaneList(GUI::Debugger *con) const {
 	printPlaneListInternal(con, _visiblePlanes);
 }
 
-void GfxFrameout::printPlaneItemListInternal(Console *con, const ScreenItemList &screenItemList) const {
+void GfxFrameout::printPlaneItemListInternal(GUI::Debugger *con, const ScreenItemList &screenItemList) const {
 	ScreenItemList::size_type i = 0;
 	for (ScreenItemList::const_iterator sit = screenItemList.begin(); sit != screenItemList.end(); sit++) {
 		ScreenItem *screenItem = *sit;
@@ -1408,7 +1408,7 @@ void GfxFrameout::printPlaneItemListInternal(Console *con, const ScreenItemList 
 	}
 }
 
-void GfxFrameout::printPlaneItemList(Console *con, const reg_t planeObject) const {
+void GfxFrameout::printPlaneItemList(GUI::Debugger *con, const reg_t planeObject) const {
 	Plane *p = _planes.findByObject(planeObject);
 
 	if (p == nullptr) {
@@ -1419,7 +1419,7 @@ void GfxFrameout::printPlaneItemList(Console *con, const reg_t planeObject) cons
 	printPlaneItemListInternal(con, p->_screenItemList);
 }
 
-void GfxFrameout::printVisiblePlaneItemList(Console *con, const reg_t planeObject) const {
+void GfxFrameout::printVisiblePlaneItemList(GUI::Debugger *con, const reg_t planeObject) const {
 	Plane *p = _visiblePlanes.findByObject(planeObject);
 
 	if (p == nullptr) {

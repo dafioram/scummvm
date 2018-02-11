@@ -25,7 +25,7 @@
 #ifndef SCI_CONSOLE_H
 #define SCI_CONSOLE_H
 
-#include "gui/debugger.h"
+#include "sci/debugger.h"
 #include "sci/engine/vm.h"
 #include "sci/resource/manager.h"
 
@@ -37,17 +37,17 @@ struct List;
 reg_t disassemble(EngineState *s, reg32_t pos, const Object *obj, bool printBWTag, bool printBytecode);
 bool isJumpOpcode(EngineState *s, reg_t pos, reg_t& jumpOffset);
 
-class Console : public GUI::Debugger {
+class Console : public Debugger {
 public:
 	Console(SciEngine *engine);
-	virtual ~Console();
 
 private:
-	virtual void preEnter();
-	virtual void postEnter();
+	virtual void preEnter() override;
+	virtual void postEnter() override;
 
 	// General
-	bool cmdHelp(int argc, const char **argv);
+	virtual bool cmdHelp(int argc, const char **argv) override;
+
 	// Kernel
 //	bool cmdClasses(int argc, const char **argv);	// TODO
 	bool cmdOpcodes(int argc, const char **argv);
@@ -64,18 +64,6 @@ private:
 	bool cmdParse(int argc, const char **argv);
 	bool cmdSetParseNodes(int argc, const char **argv);
 	bool cmdSaid(int argc, const char **argv);
-	// Resources
-	bool cmdDiskDump(int argc, const char **argv);
-	void cmdDiskDumpWorker(ResourceType resourceType, int resourceNumber, uint32 resourceTuple);
-	bool cmdHexDump(int argc, const char **argv);
-	bool cmdResourceId(int argc, const char **argv);
-	bool cmdResourceInfo(int argc, const char **argv);
-	bool cmdResourceTypes(int argc, const char **argv);
-	bool cmdList(int argc, const char **argv);
-	bool cmdResourceIntegrityDump(int argc, const char **argv);
-	bool cmdAllocList(int argc, const char **argv);
-	bool cmdHexgrep(int argc, const char **argv);
-	bool cmdVerifyScripts(int argc, const char **argv);
 	// Game
 	bool cmdSaveGame(int argc, const char **argv);
 	bool cmdRestoreGame(int argc, const char **argv);
@@ -95,10 +83,6 @@ private:
 	bool cmdPlayVideo(int argc, const char **argv);
 	bool cmdAnimateList(int argc, const char **argv);
 	bool cmdWindowList(int argc, const char **argv);
-	bool cmdPlaneList(int argc, const char **argv);
-	bool cmdVisiblePlaneList(int argc, const char **argv);
-	bool cmdPlaneItemList(int argc, const char **argv);
-	bool cmdVisiblePlaneItemList(int argc, const char **argv);
 	bool cmdSavedBits(int argc, const char **argv);
 	bool cmdShowSavedBits(int argc, const char **argv);
 	// Segments
@@ -121,8 +105,6 @@ private:
 	bool cmdStopAllSounds(int argc, const char **argv);
 	bool cmdSfx01Header(int argc, const char **argv);
 	bool cmdSfx01Track(int argc, const char **argv);
-	bool cmdAudioList(int argc, const char **argv);
-	bool cmdAudioDump(int argc, const char **argv);
 	// Script
 	bool cmdAddresses(int argc, const char **argv);
 	bool cmdRegisters(int argc, const char **argv);
@@ -141,6 +123,7 @@ private:
 	bool cmdGo(int argc, const char **argv);
 	bool cmdLogKernel(int argc, const char **argv);
 	bool cmdMapVocab994(int argc, const char **argv);
+	bool cmdVerifyScripts(int argc, const char **argv);
 	// Breakpoints
 	bool cmdBreakpointList(int argc, const char **argv);
 	bool cmdBreakpointDelete(int argc, const char **argv);
@@ -167,9 +150,6 @@ private:
 	bool cmdViewActiveObject(int argc, const char **argv);
 	bool cmdViewAccumulatorObject(int argc, const char **argv);
 
-	bool parseInteger(const char *argument, int &result);
-	bool parseResourceNumber36(const char *userParameter, uint16 &resourceNumber, uint32 &resourceTuple);
-
 	void printBasicVarInfo(reg_t variable);
 
 	bool segmentInfo(int nr);
@@ -193,8 +173,6 @@ private:
 	void printArray(reg_t reg);
 	void printBitmap(reg_t reg);
 #endif
-
-	void writeIntegrityDumpLine(const Common::String &statusName, const Common::String &resourceName, Common::WriteStream &out, Common::ReadStream *const data, const int size, const bool writeHash);
 
 	SciEngine *_engine;
 	DebugState &_debugState;

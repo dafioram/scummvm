@@ -1328,7 +1328,7 @@ void Audio32::kernelPanOff(const int argc, const reg_t *const argv) {
 #pragma mark -
 #pragma mark Debugging
 
-void Audio32::printAudioList(Console *con) const {
+void Audio32::printAudioList(GUI::Debugger *con) const {
 	Common::StackLock lock(_mutex);
 	for (int i = 0; i < _numActiveChannels; ++i) {
 		const AudioChannel &channel = _channels[i];
