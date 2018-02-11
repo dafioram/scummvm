@@ -87,7 +87,7 @@ Debugger::~Debugger() {
 
 
 // Initialisation Functions
-int Debugger::getCharsPerLine() {
+int Debugger::getCharsPerLine() const {
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	const int charsPerLine = _debuggerDialog->getCharsPerLine();
 #elif defined(USE_READLINE)
@@ -100,7 +100,7 @@ int Debugger::getCharsPerLine() {
 	return charsPerLine;
 }
 
-int Debugger::debugPrintf(const char *format, ...) {
+int Debugger::debugPrintf(const char *format, ...) const {
 	va_list	argptr;
 
 	va_start(argptr, format);
@@ -115,7 +115,7 @@ int Debugger::debugPrintf(const char *format, ...) {
 	return count;
 }
 
-void Debugger::debugPrintColumns(const Common::StringArray &list) {
+void Debugger::debugPrintColumns(const Common::StringArray &list) const {
 	uint maxLength = 0;
 	uint i, j;
 

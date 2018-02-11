@@ -42,11 +42,11 @@ public:
 	Debugger();
 	virtual ~Debugger();
 
-	int getCharsPerLine();
+	int getCharsPerLine() const;
 
-	int debugPrintf(const char *format, ...) GCC_PRINTF(2, 3);
+	int debugPrintf(const char *format, ...) const GCC_PRINTF(2, 3);
 
-	void debugPrintColumns(const Common::StringArray &list);
+	void debugPrintColumns(const Common::StringArray &list) const;
 
 	/**
 	 * The onFrame() method should be invoked by the engine at regular

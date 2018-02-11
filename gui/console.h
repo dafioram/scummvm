@@ -154,7 +154,7 @@ public:
 		_completionCallbackRefCon = refCon;
 	}
 
-	int getCharsPerLine() {
+	int getCharsPerLine() const {
 		return _pageWidth;
 	}
 
