@@ -23,12 +23,19 @@
 #ifndef SCI_RESOURCE_PATCHER_H
 #define SCI_RESOURCE_PATCHER_H
 
+#include "common/scummsys.h"
+
+#ifdef HAVE_CPP11
+#include <initializer_list>
+#endif
 #include "common/language.h"
 #include "sci/sci.h"
 #include "sci/resource/manager.h"
 #include "sci/resource/source.h"
 
 namespace Sci {
+
+#ifdef HAVE_CPP11
 
 enum ResourcePatchOp {
 	// Using high bytes to make it less likely that accidental raw data will be
@@ -43,6 +50,9 @@ enum ResourcePatchOp {
 	kInsertFill,
 	kEndOfPatch
 };
+
+using PatchOp = std::initializer_list<byte>;
+using Patch = std::initializer_list<const PatchOp>;
 
 struct GameResourcePatch {
 	/**
@@ -64,7 +74,7 @@ struct GameResourcePatch {
 	/**
 	 * Patch instructions to apply to the resource.
 	 */
-	const byte *patchData;
+	Patch patchData;
 
 	/**
 	 * Set to true if the patch resource is actually a new resource, rather than
@@ -76,7 +86,7 @@ struct GameResourcePatch {
 /**
  * A basic class for generating patched resource data at runtime.
  */
-class ResourcePatcher : public ResourceSource {
+class ResourcePatcher final : public IndexOnlyResourceSource {
 public:
 	ResourcePatcher(const SciGameId gameId, const Common::Language gameLanguage);
 
@@ -95,13 +105,6 @@ public:
 	 * would fail, and so they would never actually be loaded.
 	 */
 	virtual bool scanSource(ResourceManager *resMan) override;
-
-	/**
-	 * Load a resource. Since resources using this source are patched explicitly
-	 * after they get loaded by any other resource source, this method does
-	 * nothing.
-	 */
-	virtual void loadResource(const ResourceManager *resMan, Resource *res) const override {}
 
 private:
 	struct PatchSizes {
@@ -133,7 +136,7 @@ private:
 	/**
 	 * Calculates expected and extra data sizes from the patch data.
 	 */
-	PatchSizes calculatePatchSizes(const byte *patchData) const;
+	PatchSizes calculatePatchSizes(const Patch &patchData) const;
 
 	/**
 	 * Reads an block size from the patch data, validates it, and advances the
@@ -141,6 +144,18 @@ private:
 	 */
 	int32 readBlockSize(const byte * &patchData) const;
 };
+
+#else
+class ResourcePatcher : public IndexOnlyResourceSource {
+public:
+	ResourcePatcher(const SciGameId gameId, const Common::Language gameLanguage) :
+		IndexOnlyResourceSource(kSourceScummVM, "-scummvm-") {}
+	virtual ~ResourcePatcher() {}
+	bool applyPatch(Resource &resource) const { return false; }
+	virtual bool scanSource(ResourceManager *resMan) override { return true; }
+};
+#endif
+
 } // End of namespace Sci
 
 #endif

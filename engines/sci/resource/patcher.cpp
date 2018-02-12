@@ -21,6 +21,8 @@
  */
 
 #include "common/scummsys.h"
+
+#ifdef HAVE_CPP11
 #include "common/textconsole.h"
 #include "sci/sci.h"
 #include "sci/resource/manager.h"
@@ -30,13 +32,11 @@ namespace Sci {
 
 // Start of internal resource patcher macros. Please do not use these directly
 // in resource patches.
-#define _NUMARGS(...) (sizeof((int[]){__VA_ARGS__})/sizeof(int))
 #ifdef SCUMM_LITTLE_ENDIAN
 #define _PACKINT32(n) (((uint32)n) & 0xFF), (((uint32)n) >> 8 & 0xFF), (((uint32)n) >> 16 & 0xFF), (((uint32)n) >> 24 & 0xFF)
 #else
 #define _PACKINT32(n) (((uint32)n) >> 24 & 0xFF), (((uint32)n) >> 16 & 0xFF), (((uint32)n) >> 8 & 0xFF), (((uint32)n) & 0xFF)
 #endif
-#define _BYTEOP(op, ...) op, _PACKINT32(_NUMARGS(__VA_ARGS__)), __VA_ARGS__
 #define _NUMBEROP(op, type, value) op, sizeof(type), _PACKINT32(value)
 #define _FILLOP(op, numBytes, value) op, _PACKINT32(numBytes), value
 // End of internal resource patcher macros
@@ -44,51 +44,45 @@ namespace Sci {
 /**
  * Advances the current position by `numBytes` bytes without changing any data.
  */
-#define SKIP(numBytes) kSkipBytes, _PACKINT32(numBytes)
+#define SKIP(numBytes) { kSkipBytes, _PACKINT32(numBytes) }
 
 /**
  * Replaces data at the current position.
  */
-#define REPLACE(...) _BYTEOP(kReplaceBytes, __VA_ARGS__)
+#define REPLACE(...) { kReplaceBytes, __VA_ARGS__ }
 
 /**
  * Inserts new data at the current position.
  */
-#define INSERT(...) _BYTEOP(kInsertBytes, __VA_ARGS__)
+#define INSERT(...) { kInsertBytes, __VA_ARGS__ }
 
 /**
  * Replaces a number of the given type at the current position with the given
  * value.
  */
-#define REPLACE_NUMBER(type, value) _NUMBEROP(kReplaceNumber, type, value)
+#define REPLACE_NUMBER(type, value) { _NUMBEROP(kReplaceNumber, type, value) }
 
 /**
  * Adjusts a number of the given type at the current position by the given
  * delta.
  */
-#define ADJUST_NUMBER(type, delta) _NUMBEROP(kAdjustNumber, type, delta)
+#define ADJUST_NUMBER(type, delta) { _NUMBEROP(kAdjustNumber, type, delta) }
 
 /**
  * Inserts a number of the given type at the current position with the given
  * value.
  */
-#define INSERT_NUMBER(type, value) _NUMBEROP(kInsertNumber, type, value)
+#define INSERT_NUMBER(type, value) { _NUMBEROP(kInsertNumber, type, value) }
 
 /**
  * Replaces N bytes at the current position with the given value.
  */
-#define REPLACE_FILL(value, numBytes) _FILLOP(kReplaceFill, numBytes, value)
+#define REPLACE_FILL(value, numBytes) { _FILLOP(kReplaceFill, numBytes, value) }
 
 /**
  * Inserts N bytes at the current position with the given value.
  */
-#define INSERT_FILL(value, numBytes) _FILLOP(kInsertFill, numBytes, value)
-
-/**
- * A required marker indicating that the end of the patch data has been reached
- * and no new patch operations will occur.
- */
-#define END kEndOfPatch
+#define INSERT_FILL(value, numBytes) { _FILLOP(kInsertFill, numBytes, value) }
 
 #pragma mark -
 #pragma mark Phantasmagoria
@@ -98,10 +92,9 @@ namespace Sci {
 // shadows to become tan, and many of the other background colors to end up a
 // little bit off. View 64001 renders fine using the existing palette created by
 // the background image, so just disable the embedded palette.
-static const byte phant1View64001Palette[] = {
+static const Patch phant1View64001Palette = {
 	SKIP(8),
-	REPLACE_NUMBER(uint32, 0),
-	END
+	REPLACE_NUMBER(uint32, 0)
 };
 
 #pragma mark -
@@ -110,7 +103,7 @@ static const byte phant1View64001Palette[] = {
 // Police Quest 4 can support speech+subtitles mode but it includes no view that
 // can be used to show that this mode is active in the UI, so we have to add our
 // own.
-static const byte pq4EnhancedAudioToggleView[] = {
+static const Patch pq4EnhancedAudioToggleView = {
 	INSERT_NUMBER(uint16,  16), // header size
 	INSERT_NUMBER(uint8,    1), // loop count
 	INSERT(0x00, 0x01),         // unused
@@ -373,8 +366,7 @@ static const byte pq4EnhancedAudioToggleView[] = {
 	0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
 	0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
 	0x04, 0x04, 0x04, 0x04, 0x04
-	),
-	END
+	)
 };
 
 #pragma mark -
@@ -389,7 +381,7 @@ static const GameResourcePatch resourcePatches[] = {
 #pragma mark ResourcePatcher
 
 ResourcePatcher::ResourcePatcher(const SciGameId gameId, const Common::Language gameLanguage) :
-	ResourceSource(kSourceScummVM, "-scummvm-") {
+	IndexOnlyResourceSource(kSourceScummVM, "-scummvm-") {
 	for (int i = 0; i < ARRAYSIZE(resourcePatches); ++i) {
 		const GameResourcePatch &patch = resourcePatches[i];
 		if (patch.gameId == gameId &&
@@ -465,9 +457,9 @@ void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch 
 		oldData = nullptr;
 	}
 
-	const byte *patchData = patch.patchData;
-	ResourcePatchOp op;
-	while ((op = static_cast<ResourcePatchOp>(*patchData++)) != kEndOfPatch) {
+	for (const auto &patchOp : patch.patchData) {
+		auto patchData = patchOp.begin();
+		ResourcePatchOp op = ResourcePatchOp(int(*patchData++));
 		switch (op) {
 		case kSkipBytes: {
 			const int32 skipSize = readBlockSize(patchData);
@@ -495,7 +487,7 @@ void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch 
 			const uint8 width = *patchData++;
 			assert(width == 1 || width == 2 || width == 4);
 
-			int32 value = *reinterpret_cast<const int32 *>(patchData);
+			int32 value = READ_UINT32(patchData);
 			switch (width) {
 			case 1:
 				if (op == kAdjustNumber) {
@@ -540,6 +532,8 @@ void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch 
 		default:
 			error("Invalid control code %02x in patch data", op);
 		}
+
+		assert(patchData == patchOp.end());
 	}
 
 	if (target != source) {
@@ -549,12 +543,13 @@ void ResourcePatcher::patchResource(Resource &resource, const GameResourcePatch 
 	delete[] oldData;
 }
 
-ResourcePatcher::PatchSizes ResourcePatcher::calculatePatchSizes(const byte *patchData) const {
+ResourcePatcher::PatchSizes ResourcePatcher::calculatePatchSizes(const Patch &patch) const {
 	int32 deltaSize = 0;
 	uint32 dataSize = 0;
 
-	ResourcePatchOp op;
-	while ((op = static_cast<ResourcePatchOp>(*patchData++)) != kEndOfPatch) {
+	for (const auto &patchOp : patch) {
+		auto patchData = patchOp.begin();
+		ResourcePatchOp op = ResourcePatchOp(int(*patchData++));
 		switch (op) {
 		case kSkipBytes:
 		case kReplaceBytes:
@@ -604,6 +599,8 @@ ResourcePatcher::PatchSizes ResourcePatcher::calculatePatchSizes(const byte *pat
 		default:
 			error("Invalid control code %02x in patch data", op);
 		}
+
+		assert(patchData == patchOp.end());
 	}
 
 	PatchSizes sizes;
@@ -613,9 +610,12 @@ ResourcePatcher::PatchSizes ResourcePatcher::calculatePatchSizes(const byte *pat
 }
 
 int32 ResourcePatcher::readBlockSize(const byte * &patchData) const {
-	const int32 blockSize = *reinterpret_cast<const int32 *>(patchData);
+	const int32 blockSize = READ_UINT32(patchData);
 	assert(blockSize >= 1);
 	patchData += sizeof(int32);
 	return blockSize;
 }
+
 } // End of namespace Sci
+
+#endif
