@@ -332,7 +332,7 @@ int QuickTimeParser::readMVHD(Atom atom) {
 	debug(0, "time scale = %i\n", _timeScale);
 
 	// duration
-	_duration = (version == 1) ? (_fd->readUint32BE(), _fd->readUint32BE()) : _fd->readUint32BE();
+	_duration = (version == 1) ? (void(_fd->readUint32BE()), _fd->readUint32BE()) : _fd->readUint32BE();
 	_fd->readUint32BE(); // preferred scale
 
 	_fd->readUint16BE(); // preferred volume
@@ -397,7 +397,7 @@ int QuickTimeParser::readTKHD(Atom atom) {
 
 	/* track->id = */_fd->readUint32BE(); // track id (NOT 0 !)
 	_fd->readUint32BE(); // reserved
-	track->duration = (version == 1) ? (_fd->readUint32BE(), _fd->readUint32BE()) : _fd->readUint32BE(); // highlevel (considering edits) duration in movie timebase
+	track->duration = (version == 1) ? (void(_fd->readUint32BE()), _fd->readUint32BE()) : _fd->readUint32BE(); // highlevel (considering edits) duration in movie timebase
 	_fd->readUint32BE(); // reserved
 	_fd->readUint32BE(); // reserved
 
@@ -513,7 +513,7 @@ int QuickTimeParser::readMDHD(Atom atom) {
 	}
 
 	track->timeScale = _fd->readUint32BE();
-	track->mediaDuration = (version == 1) ? (_fd->readUint32BE(), _fd->readUint32BE()) : _fd->readUint32BE(); // duration
+	track->mediaDuration = (version == 1) ? (void(_fd->readUint32BE()), _fd->readUint32BE()) : _fd->readUint32BE(); // duration
 
 	_fd->readUint16BE(); // language
 	_fd->readUint16BE(); // quality
