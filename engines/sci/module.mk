@@ -114,7 +114,29 @@ ifdef ENABLE_SCI32S2
 MODULE_OBJS += \
 	resource/sources/pe.o \
 	resource/sources/solvolume.o \
+	s2/cursor.o \
 	s2/debugger.o \
+	s2/interface.o \
+	s2/inventory_manager.o \
+	s2/movie_manager.o \
+	s2/phone_manager.o \
+	s2/room.o \
+	s2/room_manager.o \
+	s2/scoring_manager.o \
+	s2/sound_manager.o \
+	s2/system/glcue.o \
+	s2/system/glcursor.o \
+	s2/system/glevent.o \
+	s2/system/globject.o \
+	s2/system/glplane.o \
+	s2/system/glplane_manager.o \
+	s2/system/glquit_handler.o \
+	s2/system/glscript.o \
+	s2/system/glset.o \
+	s2/system/glsound_manager.o \
+	s2/system/gltarget.o \
+	s2/system/gltimer.o \
+	s2/system/gluser.o \
 	s2/engine.o
 endif
 endif
