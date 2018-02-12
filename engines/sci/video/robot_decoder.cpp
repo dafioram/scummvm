@@ -714,9 +714,7 @@ void RobotDecoder::showFrame(const uint16 frameNo, const uint16 newX, const uint
 			}
 
 			if (_screenItemList[i] == nullptr) {
-				CelInfo32 celInfo;
-				celInfo.type = kCelTypeMem;
-				celInfo.bitmap = _celHandles[i].bitmapId;
+				CelInfo32 celInfo = CelInfo32::makeBitmap(_celHandles[i].bitmapId);
 				ScreenItem *screenItem = new ScreenItem(_planeId, celInfo);
 				_screenItemList[i] = screenItem;
 				screenItem->_position = Common::Point(_screenItemX[i], _screenItemY[i]);
@@ -1384,8 +1382,7 @@ void RobotDecoder::doVersion5(const bool shouldSubmitAudio) {
 		}
 
 		if (_screenItemList[i] == nullptr) {
-			CelInfo32 celInfo;
-			celInfo.bitmap = _celHandles[i].bitmapId;
+			CelInfo32 celInfo = CelInfo32::makeBitmap(_celHandles[i].bitmapId);
 			ScreenItem *screenItem = new ScreenItem(_planeId, celInfo, position, _scaleInfo);
 			_screenItemList[i] = screenItem;
 

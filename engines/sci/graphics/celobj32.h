@@ -103,6 +103,37 @@ struct CelInfo32 {
 		celNo(0),
 		bitmap(NULL_REG) {}
 
+	static CelInfo32 makeView(const GuiResourceId resourceId, const int16 loopNo, const int16 celNo) {
+		CelInfo32 info;
+		info.type = kCelTypeView;
+		info.resourceId = resourceId;
+		info.loopNo = loopNo;
+		info.celNo = celNo;
+		return info;
+	}
+
+	static CelInfo32 makePic(const GuiResourceId resourceId, const int16 celNo) {
+		CelInfo32 info;
+		info.type = kCelTypePic;
+		info.resourceId = resourceId;
+		info.celNo = celNo;
+		return info;
+	}
+
+	static CelInfo32 makeBitmap(const reg_t bitmap) {
+		CelInfo32 info;
+		info.type = kCelTypeMem;
+		info.bitmap = bitmap;
+		return info;
+	}
+
+	static CelInfo32 makeColor(const uint8 color) {
+		CelInfo32 info;
+		info.type = kCelTypeColor;
+		info.color = color;
+		return info;
+	}
+
 	// This is the equivalence criteria used by CelObj::searchCache in at least
 	// SSCI SQ6. Notably, it does not check the color field.
 	inline bool operator==(const CelInfo32 &other) {

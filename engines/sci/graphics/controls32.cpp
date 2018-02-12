@@ -132,10 +132,7 @@ reg_t GfxControls32::kernelEditText(const reg_t controlObject) {
 	plane->changePic();
 	_gfxFrameout->addPlane(plane);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeMem;
-	celInfo.bitmap = editor.bitmap;
-
+	CelInfo32 celInfo = CelInfo32::makeBitmap(editor.bitmap);
 	ScreenItem *screenItem = new ScreenItem(plane->_object, celInfo, Common::Point(), ScaleInfo());
 	plane->_screenItemList.add(screenItem);
 
@@ -426,10 +423,7 @@ void ScrollWindow::show() {
 	}
 
 	if (_screenItem == nullptr) {
-		CelInfo32 celInfo;
-		celInfo.type = kCelTypeMem;
-		celInfo.bitmap = _bitmap;
-
+		CelInfo32 celInfo = CelInfo32::makeBitmap(_bitmap);
 		_screenItem = new ScreenItem(_plane, celInfo, _position, ScaleInfo());
 	}
 

@@ -40,9 +40,7 @@ reg_t GfxPaint32::kernelAddLine(const reg_t planeObject, const Common::Point &st
 	Common::Rect gameRect;
 	reg_t bitmapId = makeLineBitmap(startPoint, endPoint, priority, color, style, pattern, thickness, gameRect);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeMem;
-	celInfo.bitmap = bitmapId;
+	CelInfo32 celInfo = CelInfo32::makeBitmap(bitmapId);
 	// SSCI stores the line color on `celInfo`, even though this is not a
 	// `kCelTypeColor`, as a hack so that `kUpdateLine` can get the originally
 	// used color

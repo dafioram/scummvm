@@ -414,9 +414,7 @@ void GfxTransitions32::configure21EarlyHorizontalWipe(PlaneShowStyle &showStyle,
 	const int divisions = showStyle.divisions;
 	showStyle.screenItems.reserve(divisions);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeColor;
-	celInfo.color = showStyle.color;
+	CelInfo32 celInfo = CelInfo32::makeColor(showStyle.color);
 
 	for (int i = 0; i < divisions; ++i) {
 		Common::Rect rect;
@@ -441,9 +439,7 @@ void GfxTransitions32::configure21EarlyHorizontalShutter(PlaneShowStyle &showSty
 	const int numScreenItems = showStyle.numEdges * showStyle.divisions;
 	showStyle.screenItems.reserve(numScreenItems);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeColor;
-	celInfo.color = showStyle.color;
+	CelInfo32 celInfo = CelInfo32::makeColor(showStyle.color);
 
 	const int width = showStyle.width;
 	const int divisions = showStyle.divisions;
@@ -482,9 +478,7 @@ void GfxTransitions32::configure21EarlyIris(PlaneShowStyle &showStyle, const int
 	const int numScreenItems = showStyle.numEdges * showStyle.divisions;
 	showStyle.screenItems.reserve(numScreenItems);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeColor;
-	celInfo.color = showStyle.color;
+	CelInfo32 celInfo = CelInfo32::makeColor(showStyle.color);
 
 	const int width = showStyle.width;
 	const int height = showStyle.height;
@@ -554,10 +548,8 @@ void GfxTransitions32::configure21EarlyDissolve(PlaneShowStyle &showStyle, const
 	target.fillRect(Common::Rect(bitmap.getWidth(), bitmap.getHeight()), kDefaultSkipColor);
 	target.copyRectToSurface(source, 0, 0, gameRect);
 
-	CelInfo32 celInfo;
-	celInfo.type = kCelTypeMem;
-	celInfo.bitmap = bitmapId;
 
+	CelInfo32 celInfo = CelInfo32::makeBitmap(bitmapId);
 	showStyle.bitmapScreenItem = new ScreenItem(showStyle.plane, celInfo, Common::Point(0, 0), ScaleInfo());
 	showStyle.bitmapScreenItem->_priority = priority;
 	showStyle.bitmapScreenItem->_fixedPriority = true;
