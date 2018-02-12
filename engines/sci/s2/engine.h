@@ -72,7 +72,6 @@ public:
 
 private:
 	OSystem &_system;
-	GameMetadata _metadata;
 	ResourceManager _resourceManager;
 	GameFeatures _features;
 	S2Debugger _debugger;

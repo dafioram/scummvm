@@ -37,7 +37,6 @@ S2Engine::S2Engine(OSystem &system, const GameMetadata &metadata) :
 	Engine(&system),
 	// System
 	_system(system),
-	_metadata(metadata),
 	// Kernel
 	_resourceManager(metadata),
 	_features(&_resourceManager, nullptr, nullptr),
