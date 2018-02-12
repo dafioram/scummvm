@@ -176,7 +176,7 @@ VideoPlayer::EventFlags VideoPlayer::checkForEvent(const EventFlags flags) {
 	event = _eventMan->getSciEvent(kSciEventKeyDown | kSciEventPeek);
 	if ((flags & kEventFlagEscapeKey) && event.type == kSciEventKeyDown) {
 		if (getSciVersion() < SCI_VERSION_3) {
-			while ((event = _eventMan->getSciEvent(kSciEventKeyDown)),
+			while (void(event = _eventMan->getSciEvent(kSciEventKeyDown)),
 				   event.type != kSciEventNone) {
 				if (event.character == kSciKeyEsc) {
 					return kEventFlagEscapeKey;
