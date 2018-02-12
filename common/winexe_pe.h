@@ -84,10 +84,10 @@ public:
 	const Array<WinResourceID> getLangList(const WinResourceID &type, const WinResourceID &name) const;
 
 	/** Return a stream to the specified resource, taking the first language found (or 0 if non-existent). */
-	SeekableReadStream *getResource(const WinResourceID &type, const WinResourceID &name);
+	SeekableReadStream *getResource(const WinResourceID &type, const WinResourceID &name) const;
 
 	/** Return a stream to the specified resource (or 0 if non-existent). */
-	SeekableReadStream *getResource(const WinResourceID &type, const WinResourceID &name, const WinResourceID &lang);
+	SeekableReadStream *getResource(const WinResourceID &type, const WinResourceID &name, const WinResourceID &lang) const;
 
 private:
 	struct Section {

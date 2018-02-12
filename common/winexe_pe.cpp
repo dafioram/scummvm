@@ -220,7 +220,7 @@ const Array<WinResourceID> PEResources::getLangList(const WinResourceID &type, c
 	return array;
 }
 
-SeekableReadStream *PEResources::getResource(const WinResourceID &type, const WinResourceID &name) {
+SeekableReadStream *PEResources::getResource(const WinResourceID &type, const WinResourceID &name) const {
 	Array<WinResourceID> langList = getLangList(type, name);
 
 	if (langList.empty())
@@ -231,7 +231,7 @@ SeekableReadStream *PEResources::getResource(const WinResourceID &type, const Wi
 	return _exe->readStream(resource.size);
 }
 
-SeekableReadStream *PEResources::getResource(const WinResourceID &type, const WinResourceID &name, const WinResourceID &lang) {
+SeekableReadStream *PEResources::getResource(const WinResourceID &type, const WinResourceID &name, const WinResourceID &lang) const {
 	if (!_exe || !_resources.contains(type))
 		return 0;
 

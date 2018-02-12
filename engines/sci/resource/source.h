@@ -50,6 +50,7 @@ enum ResSourceType {
 #endif
 #ifdef ENABLE_SCI32S2
 	kSourceSolVolume,		///< Shivers 2 bitmap volume
+	kSourcePE,				///< Shivers 2 executable
 #endif
 	kSourceScummVM			///< Built-in resource patcher
 };

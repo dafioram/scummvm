@@ -40,6 +40,7 @@
 #include "sci/resource/sources/chunk32.h"
 #endif
 #ifdef ENABLE_SCI32S2
+#include "sci/resource/sources/pe.h"
 #include "sci/resource/sources/solvolume.h"
 #endif
 
@@ -297,8 +298,9 @@ void ResourceManager::run() {
 		}
 
 #ifdef ENABLE_SCI32S2
-		if (Common::File::exists("s2res.sol")) {
+		if (Common::File::exists("rshivers.exe") && Common::File::exists("s2res.sol")) {
 			addSource(new SolVolumeResourceSource("s2res.sol"));
+			addSource(new PEResourceSource("rshivers.exe"));
 		}
 	#endif
 	}
