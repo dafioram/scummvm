@@ -24,6 +24,9 @@
 #define COMMON_ALGORITHM_H
 
 #include "common/scummsys.h"
+#ifdef HAVE_CPP11
+#include <utility>
+#endif
 #include "common/func.h"
 #include "common/util.h"
 
@@ -53,6 +56,28 @@ Out copy_backward(In first, In last, Out dst) {
 	while (first != last)
 		*--dst = *--last;
 	return dst;
+}
+
+template<class In, class Out>
+Out move(In first, In last, Out dst) {
+#ifdef HAVE_CPP11
+	while (first != last)
+		*dst++ = std::move(*first++);
+	return dst;
+#else
+	return copy(first, last, dst);
+#endif
+}
+
+template<class In, class Out>
+Out move_backward(In first, In last, Out dst) {
+#ifdef HAVE_CPP11
+	while (first != last)
+		*--dst = std::move(*--last);
+	return dst;
+#else
+	return copy_backward(first, last, dst);
+#endif
 }
 
 /**

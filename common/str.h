@@ -123,6 +123,11 @@ public:
 	/** Construct a string consisting of the given character. */
 	explicit String(char c);
 
+#ifdef HAVE_CPP11
+	String(String &&str);
+	String &operator=(String &&str);
+#endif
+
 	~String();
 
 	String &operator=(const char *str);

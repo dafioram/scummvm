@@ -62,12 +62,54 @@ public:
 		clear();
 	}
 
+#ifdef HAVE_CPP11
+	List(List<t_T> &&other) {
+		if (other._anchor._prev == &other._anchor) {
+			_anchor._prev = &_anchor;
+		} else {
+			_anchor._prev = other._anchor._prev;
+			_anchor._prev->_next = &_anchor;
+		}
+		if (other._anchor._next == &other._anchor) {
+			_anchor._next = &_anchor;
+		} else {
+			_anchor._next = other._anchor._next;
+			_anchor._next->_prev = &_anchor;
+		}
+		other._anchor._prev = other._anchor._next = &other._anchor;
+	}
+
+	List &operator=(List<t_T> &&other) {
+		clear();
+		if (other._anchor._prev == &other._anchor) {
+			_anchor._prev = &_anchor;
+		} else {
+			_anchor._prev = other._anchor._prev;
+			_anchor._prev->_next = &_anchor;
+		}
+		if (other._anchor._next == &other._anchor) {
+			_anchor._next = &_anchor;
+		} else {
+			_anchor._next = other._anchor._next;
+			_anchor._next->_prev = &_anchor;
+		}
+		other._anchor._prev = other._anchor._next = &other._anchor;
+		return *this;
+	}
+#endif
+
 	/**
 	 * Inserts element before pos.
 	 */
 	void insert(iterator pos, const t_T &element) {
 		insert(pos._node, element);
 	}
+
+#ifdef HAVE_CPP11
+	void insert(iterator pos, t_T &&element) {
+		insert(pos._node, element);
+	}
+#endif
 
 	/**
 	 * Inserts the elements from first to last before pos.
@@ -126,10 +168,34 @@ public:
 		insert(_anchor._next, element);
 	}
 
+#ifdef HAVE_CPP11
+	void push_front(t_T &&element) {
+		insert(_anchor._next, std::move(element));
+	}
+
+	template <typename ... Args>
+	t_T &emplace_front(Args && ...args) {
+		insert(_anchor._next, std::move(t_T(std::forward<Args>(args)...)));
+		return front();
+	}
+#endif
+
 	/** Appends element to the end of the list. */
 	void push_back(const t_T &element) {
 		insert(&_anchor, element);
 	}
+
+#ifdef HAVE_CPP11
+	void push_back(t_T &&element) {
+		insert(&_anchor, std::move(element));
+	}
+
+	template <typename ... Args>
+	t_T &emplace_back(Args && ...args) {
+		insert(&_anchor, std::move(t_T(std::forward<Args>(args)...)));
+		return back();
+	}
+#endif
 
 	/** Removes the first element of the list. */
 	void pop_front() {
@@ -253,6 +319,18 @@ protected:
 		newNode->_prev->_next = newNode;
 		newNode->_next->_prev = newNode;
 	}
+
+#ifdef HAVE_CPP11
+	void insert(NodeBase *pos, t_T &&element) {
+		ListInternal::NodeBase *newNode = new Node(std::move(element));
+		assert(newNode);
+
+		newNode->_next = pos;
+		newNode->_prev = pos->_prev;
+		newNode->_prev->_next = newNode;
+		newNode->_next->_prev = newNode;
+	}
+#endif
 };
 
 } // End of namespace Common

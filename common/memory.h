@@ -24,6 +24,9 @@
 #define COMMON_MEMORY_H
 
 #include "common/scummsys.h"
+#ifdef HAVE_CPP11
+#include <utility>
+#endif
 
 namespace Common {
 
@@ -37,6 +40,22 @@ Type *uninitialized_copy(In first, In last, Type *dst) {
 	while (first != last)
 		new ((void *)dst++) Type(*first++);
 	return dst;
+}
+
+/**
+ * Moves data from the range [first, last) to [dst, dst + (last - first)).
+ * It requires the range [dst, dst + (last - first)) to be valid and
+ * uninitialized.
+ */
+template<class In, class Type>
+Type *uninitialized_move(In first, In last, Type *dst) {
+#ifdef HAVE_CPP11
+	while (first != last)
+		new ((void *)dst++) Type(std::move(*first++));
+	return dst;
+#else
+	return uninitialized_copy(first, last, dst);
+#endif
 }
 
 /**

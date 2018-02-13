@@ -99,6 +99,45 @@ String::String(char c)
 	_size = (c == 0) ? 0 : 1;
 }
 
+#ifdef HAVE_CPP11
+String::String(String &&str) :
+	_size(str._size) {
+	if (str.isStorageIntern()) {
+		memcpy(_storage, str._storage, _size + 1);
+		_str = _storage;
+	} else {
+		_str = str._str;
+		_extern._refCount = str._extern._refCount;
+		_extern._capacity = str._extern._capacity;
+		str._str = str._storage;
+		str._storage[0] = '\0';
+		str._size = 0;
+	}
+}
+
+String &String::operator=(String &&str) {
+	if (&str == this)
+		return *this;
+
+	decRefCount(_extern._refCount);
+	if (str.isStorageIntern()) {
+		_size = str._size;
+		_str = _storage;
+		memcpy(_str, str._str, _size + 1);
+	} else {
+		_extern._refCount = str._extern._refCount;
+		_extern._capacity = str._extern._capacity;
+		_size = str._size;
+		_str = str._str;
+		str._str = str._storage;
+	}
+
+	str._storage[0] = '\0';
+	str._size = 0;
+	return *this;
+}
+#endif
+
 String::~String() {
 	decRefCount(_extern._refCount);
 }

@@ -84,6 +84,16 @@ public:
 		}
 	}
 
+#ifdef HAVE_CPP11
+	Array(Array<T> &&other) :
+		_storage(other._storage),
+		_size(other._size),
+		_capacity(other._capacity) {
+		other._storage = nullptr;
+		other._size = other._capacity = 0;
+	}
+#endif
+
 	/**
 	 * Construct an array by copying data from a regular array.
 	 */
@@ -210,6 +220,18 @@ public:
 		return *this;
 	}
 
+#ifdef HAVE_CPP11
+	Array<T> &operator=(Array<T> &&other) {
+		freeStorage(_storage, _size);
+		_storage = other._storage;
+		_size = other._size;
+		_capacity = other._capacity;
+		other._storage = nullptr;
+		other._size = other._capacity = 0;
+		return *this;
+	}
+#endif
+
 	size_type size() const {
 		return _size;
 	}
@@ -222,7 +244,7 @@ public:
 	}
 
 	iterator erase(iterator pos) {
-		copy(pos + 1, _storage + _size, pos);
+		move(pos + 1, _storage + _size, pos);
 		_size--;
 		// We also need to destroy the last object properly here.
 		_storage[_size].~T();
@@ -274,7 +296,7 @@ public:
 
 		if (oldStorage) {
 			// Copy old data
-			uninitialized_copy(oldStorage, oldStorage + _size, _storage);
+			uninitialized_move(oldStorage, oldStorage + _size, _storage);
 			freeStorage(oldStorage, _size);
 		}
 	}
@@ -349,30 +371,30 @@ protected:
 
 				pos = _storage + idx;
 
-				// Copy the data from the old storage till the position where
+				// Move the data from the old storage till the position where
 				// we insert new data
-				uninitialized_copy(oldStorage, oldStorage + idx, _storage);
+				uninitialized_move(oldStorage, oldStorage + idx, _storage);
 				// Copy the data we insert
 				uninitialized_copy(first, last, pos);
-				// Afterwards copy the old data from the position where we
+				// Afterwards move the old data from the position where we
 				// insert.
-				uninitialized_copy(oldStorage + idx, oldStorage + _size, pos + n);
+				uninitialized_move(oldStorage + idx, oldStorage + _size, pos + n);
 
 				freeStorage(oldStorage, _size);
 			} else if (idx + n <= _size) {
 				// Make room for the new elements by shifting back
 				// existing ones.
 				// 1. Move a part of the data to the uninitialized area
-				uninitialized_copy(_storage + _size - n, _storage + _size, _storage + _size);
+				uninitialized_move(_storage + _size - n, _storage + _size, _storage + _size);
 				// 2. Move a part of the data to the initialized area
-				copy_backward(pos, _storage + _size - n, _storage + _size);
+				move_backward(pos, _storage + _size - n, _storage + _size);
 
 				// Insert the new elements.
 				copy(first, last, pos);
 			} else {
-				// Copy the old data from the position till the end to the new
+				// Move the old data from the position till the end to the new
 				// place.
-				uninitialized_copy(pos, _storage + _size, _storage + idx + n);
+				uninitialized_move(pos, _storage + _size, _storage + idx + n);
 
 				// Copy a part of the new data to the position inside the
 				// initialized space.

@@ -24,6 +24,9 @@
 #define COMMON_LIST_INTERN_H
 
 #include "common/scummsys.h"
+#ifdef HAVE_CPP11
+#include <utility>
+#endif
 
 namespace Common {
 
@@ -40,6 +43,9 @@ namespace ListInternal {
 	struct Node : public NodeBase {
 		T _data;
 
+#ifdef HAVE_CPP11
+		Node(T &&x) : _data(std::move(x)) {}
+#endif
 		Node(const T &x) : _data(x) {}
 	};
 

@@ -26,6 +26,10 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
+#ifdef HAVE_CPP11
+#include <utility>
+#endif
+
 /**
  * Check whether a given pointer is aligned correctly.
  * Note that 'alignment' must be a power of two!
@@ -52,9 +56,13 @@ template<typename T> inline T CLIP(T v, T amin, T amax)
 		{ if (v < amin) return amin; else if (v > amax) return amax; else return v; }
 
 /**
- * Template method which swaps the vaulues of its two parameters.
+ * Template method which swaps the values of its two parameters.
  */
+#ifdef HAVE_CPP11
+template<typename T> inline void SWAP(T &a, T &b) { T tmp(std::move(a)); a = std::move(b); b = std::move(tmp); }
+#else
 template<typename T> inline void SWAP(T &a, T &b) { T tmp = a; a = b; b = tmp; }
+#endif
 
 /**
  * Macro which determines the number of entries in a fixed size array.

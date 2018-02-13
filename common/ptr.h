@@ -123,6 +123,31 @@ public:
 
 	~SharedPtr() { decRef(); }
 
+#ifdef HAVE_CPP11
+	template <class T2 = T>
+	SharedPtr(SharedPtr<T2> &&r) :
+		_refCount(r._refCount),
+		_deletion(r._deletion),
+		_pointer(r._pointer) {
+		r._refCount = nullptr;
+		r._deletion = nullptr;
+		r._pointer = nullptr;
+	}
+	template <class T2 = T>
+	SharedPtr &operator=(SharedPtr<T2> &&r) {
+		if (r._refCount != _refCount) {
+			decRef();
+		}
+		_refCount = r._refCount;
+		_deletion = r._deletion;
+		_pointer = r._pointer;
+		r._refCount = nullptr;
+		r._deletion = nullptr;
+		r._pointer = nullptr;
+		return *this;
+	}
+#endif
+
 	SharedPtr &operator=(const SharedPtr &r) {
 		if (r._refCount)
 			++(*r._refCount);
@@ -235,6 +260,16 @@ public:
 
 	explicit ScopedPtr(PointerType o = 0) : _pointer(o) {}
 
+#ifdef HAVE_CPP11
+	ScopedPtr(ScopedPtr &&other) :
+		_pointer(other.release()) {}
+
+	ScopedPtr &operator=(ScopedPtr &&other) {
+		reset(other.release());
+		return *this;
+	}
+#endif
+
 	ReferenceType operator*() const { return *_pointer; }
 	PointerType operator->() const { return _pointer; }
 
@@ -291,6 +326,19 @@ public:
 	~DisposablePtr() {
 		if (_dispose) D()(_pointer);
 	}
+
+#ifdef HAVE_CPP11
+	DisposablePtr(DisposablePtr &&other) :
+		_pointer(other._pointer) {
+		other.reset();
+	}
+
+	DisposablePtr &operator=(DisposablePtr &&other) {
+		reset(other._pointer, other._dispose);
+		other.reset();
+		return *this;
+	}
+#endif
 
 	ReferenceType operator*() const { return *_pointer; }
 	PointerType operator->() const { return _pointer; }
