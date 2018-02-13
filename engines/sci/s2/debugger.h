@@ -27,15 +27,12 @@
 
 namespace Sci {
 
-class Audio32;
-class GfxFrameout;
-class ResourceManager;
+class S2Game;
+class S2Kernel;
 
 class S2Debugger : public Debugger {
 public:
-	S2Debugger(ResourceManager *resMan);
-
-	void run(GfxFrameout *frameout, Audio32 *audio);
+	S2Debugger(S2Kernel &kernel, S2Game &game);
 
 protected:
 	virtual bool cmdHelp(int argc, const char **argv) override;

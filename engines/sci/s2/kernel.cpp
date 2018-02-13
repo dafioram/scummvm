@@ -20,51 +20,18 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLCURSOR_H
-#define SCI_S2_SYSTEM_GLCURSOR_H
-
-#include "sci/s2/system/globject.h"
-#include "sci/s2/system/types.h"
-
-namespace Common { struct Point; }
+#include "common/system.h"
+#include "sci/s2/debugger.h"
+#include "sci/s2/kernel.h"
 
 namespace Sci {
 
-class GfxCursor32;
-
-class GLCursor : public GLObject {
-public:
-	GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo);
-
-	void setHighlightCelRes(const GLCelRes &celInfo);
-	void setHandsOffCelRes(const GLCelRes &celInfo);
-	Common::Point getPosition() const { return _position; }
-	void setPosition(const Common::Point &position);
-	void show();
-	void hide();
-
-protected:
-	GfxCursor32 &_kernelCursor;
-
-private:
-	enum State {
-		kNormalState      = 0,
-		kHiddenState      = 1,
-		kWaitState        = 2,
-		kHandsOffState    = 4,
-		kRestrictedState  = 8,
-		kHighlightedState = 16
-	};
-
-	GLCelRes _normalCel;
-	GLCelRes _waitCel;
-	GLCelRes _handsOffCel;
-	GLCelRes _highlightCel;
-
-	Common::Point _position;
-	int _state;
-};
+S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata) :
+	resourceManager(metadata),
+	features(&resourceManager),
+	eventManager(false),
+	timeManager(system, engine, eventManager),
+	audioMixer(&resourceManager, &features, &timeManager),
+	graphicsManager(&resourceManager, &features, &timeManager, &eventManager, &audioMixer) {}
 
 } // End of namespace Sci
-
-#endif

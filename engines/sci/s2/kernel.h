@@ -20,51 +20,34 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLCURSOR_H
-#define SCI_S2_SYSTEM_GLCURSOR_H
+#ifndef SCI_S2_KERNEL_H
+#define SCI_S2_KERNEL_H
 
-#include "sci/s2/system/globject.h"
-#include "sci/s2/system/types.h"
+#include "sci/sound/audio32.h"
+#include "sci/engine/features.h"
+#include "sci/graphics/frameout.h"
+#include "sci/resource/manager.h"
+#include "sci/event.h"
+#include "sci/sci.h"
+#include "sci/time.h"
 
-namespace Common { struct Point; }
+class OSystem;
 
 namespace Sci {
-
-class GfxCursor32;
-
-class GLCursor : public GLObject {
+class S2Kernel {
 public:
-	GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo);
+	S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata);
 
-	void setHighlightCelRes(const GLCelRes &celInfo);
-	void setHandsOffCelRes(const GLCelRes &celInfo);
-	Common::Point getPosition() const { return _position; }
-	void setPosition(const Common::Point &position);
-	void show();
-	void hide();
+	// In SSCI, this was Win32 LoadMessage
+	Common::String getMessage(const uint16 resourceNo) const;
 
-protected:
-	GfxCursor32 &_kernelCursor;
-
-private:
-	enum State {
-		kNormalState      = 0,
-		kHiddenState      = 1,
-		kWaitState        = 2,
-		kHandsOffState    = 4,
-		kRestrictedState  = 8,
-		kHighlightedState = 16
-	};
-
-	GLCelRes _normalCel;
-	GLCelRes _waitCel;
-	GLCelRes _handsOffCel;
-	GLCelRes _highlightCel;
-
-	Common::Point _position;
-	int _state;
+	ResourceManager resourceManager;
+	GameFeatures features;
+	EventManager eventManager;
+	TimeManager timeManager;
+	Audio32 audioMixer;
+	GfxFrameout graphicsManager;
 };
-
 } // End of namespace Sci
 
 #endif

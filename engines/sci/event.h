@@ -159,14 +159,16 @@ class GfxFrameout;
 
 class EventManager {
 public:
-	EventManager(bool fontIsExtended, GUI::Debugger *debugger, EngineState *engineState, GfxScreen *screen);
+	EventManager(bool fontIsExtended, GfxScreen *screen = nullptr, EngineState *engineState = nullptr);
 
 	void updateScreen();
 	SciEvent getSciEvent(SciEventType mask);
 	void flushEvents();
 
+	void attachDebugger(GUI::Debugger *debugger) { _debugger = debugger; }
+
 #ifdef ENABLE_SCI32
-	void attachTo(GfxFrameout *frameout) { _gfxFrameout = frameout; }
+	void attachRenderer(GfxFrameout *frameout) { _gfxFrameout = frameout; }
 #endif
 
 private:

@@ -75,7 +75,7 @@ public:
 	}
 
 #ifdef ENABLE_SCI32
-	void attachTo(GfxFrameout *frameout) { _gfxFrameout = frameout; }
+	void attachRenderer(GfxFrameout *frameout) { _gfxFrameout = frameout; }
 #endif
 
 private:

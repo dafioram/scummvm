@@ -111,112 +111,8 @@ ResourceManager::ResourceManager(const GameMetadata &metadata) :
 	_memoryLocked(0),
 	_memoryLRU(0),
 	_maxMemoryLRU(0),
-	_audioMapSCI1(nullptr) {}
+	_audioMapSCI1(nullptr) {
 
-ResourceManager::ResourceManager(const Common::FSList &fslist) :
-	_detectionMode(true),
-	_patcher(nullptr),
-#ifdef ENABLE_SCI32
-	_multiDiscAudio(false),
-#endif
-	_maxMemoryLRU(0),
-	_memoryLocked(0),
-	_memoryLRU(0) {
-	_game.id = GID_INVALID;
-	_game.isCD = false;
-	_game.isDemo = false;
-	_game.language = Common::UNK_LANG;
-	_game.platform = Common::kPlatformUnknown;
-
-	ResourceSource *map = nullptr;
-	Common::Array<ResourceSource *> sci21Maps;
-
-#ifdef ENABLE_SCI32
-	ResourceSource *sci21PatchMap = nullptr;
-	const Common::FSNode *sci21PatchRes = nullptr;
-#endif
-
-	// First, find resource.map
-	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
-		if (file->isDirectory())
-			continue;
-
-		Common::String filename = file->getName();
-		filename.toLowercase();
-
-		if (filename.contains("resource.map"))
-			map = addExternalMap(file);
-
-		if (filename.contains("resmap.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			uint number = atoi(dot + 1);
-
-			// We need to store each of these maps for use later on
-			if (number >= sci21Maps.size())
-				sci21Maps.resize(number + 1);
-
-			sci21Maps[number] = addExternalMap(file, number);
-		}
-
-#ifdef ENABLE_SCI32
-		// SCI2.1 resource patches
-		if (filename.contains("resmap.pat"))
-			sci21PatchMap = addExternalMap(file, kResPatVolumeNumber);
-
-		if (filename.contains("ressci.pat"))
-			sci21PatchRes = file;
-#endif
-	}
-
-	if (!map && sci21Maps.empty()) {
-		init();
-		return;
-	}
-
-#ifdef ENABLE_SCI32
-	if (sci21PatchMap && sci21PatchRes)
-		addSource(new VolumeResourceSource(sci21PatchRes->getName(), sci21PatchMap, kResPatVolumeNumber, sci21PatchRes));
-#endif
-
-	// Now find all the resource.0?? files
-	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
-		if (file->isDirectory())
-			continue;
-
-		Common::String filename = file->getName();
-		filename.toLowercase();
-
-		if (filename.contains("resource.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			int number = atoi(dot + 1);
-
-			addSource(new VolumeResourceSource(file->getName(), map, number, file));
-		} else if (filename.contains("ressci.0")) {
-			const char *dot = strrchr(filename.c_str(), '.');
-			int number = atoi(dot + 1);
-
-			// Match this volume to its own map
-			addSource(new VolumeResourceSource(file->getName(), sci21Maps[number], number, file));
-		}
-	}
-
-	// This function is only called by the advanced detector, and we don't really need
-	// to add a patch directory or message.map here
-
-	init();
-}
-
-ResourceManager::~ResourceManager() {
-	for (ResourceMap::iterator it = _resMap.begin(); it != _resMap.end(); ++it) {
-		delete it->_value;
-	}
-
-	Common::for_each(_sources.begin(), _sources.end(), Common::DefaultDeleter<ResourceSource>());
-
-	Common::for_each(_volumeFiles.begin(), _volumeFiles.end(), Common::DefaultDeleter<Common::File>());
-}
-
-void ResourceManager::run() {
 	if (Common::File::exists("resource.map")) {
 		// SCI0-SCI2 file naming scheme
 		ResourceSource *map = addExternalMap("resource.map");
@@ -320,6 +216,109 @@ void ResourceManager::run() {
 	_patcher = new ResourcePatcher(_game.id, _game.language);
 	addSource(_patcher);
 	init();
+}
+
+ResourceManager::ResourceManager(const Common::FSList &fslist) :
+	_detectionMode(true),
+	_patcher(nullptr),
+#ifdef ENABLE_SCI32
+	_multiDiscAudio(false),
+#endif
+	_maxMemoryLRU(0),
+	_memoryLocked(0),
+	_memoryLRU(0) {
+	_game.id = GID_INVALID;
+	_game.isCD = false;
+	_game.isDemo = false;
+	_game.language = Common::UNK_LANG;
+	_game.platform = Common::kPlatformUnknown;
+
+	ResourceSource *map = nullptr;
+	Common::Array<ResourceSource *> sci21Maps;
+
+#ifdef ENABLE_SCI32
+	ResourceSource *sci21PatchMap = nullptr;
+	const Common::FSNode *sci21PatchRes = nullptr;
+#endif
+
+	// First, find resource.map
+	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+		if (file->isDirectory())
+			continue;
+
+		Common::String filename = file->getName();
+		filename.toLowercase();
+
+		if (filename.contains("resource.map"))
+			map = addExternalMap(file);
+
+		if (filename.contains("resmap.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			uint number = atoi(dot + 1);
+
+			// We need to store each of these maps for use later on
+			if (number >= sci21Maps.size())
+				sci21Maps.resize(number + 1);
+
+			sci21Maps[number] = addExternalMap(file, number);
+		}
+
+#ifdef ENABLE_SCI32
+		// SCI2.1 resource patches
+		if (filename.contains("resmap.pat"))
+			sci21PatchMap = addExternalMap(file, kResPatVolumeNumber);
+
+		if (filename.contains("ressci.pat"))
+			sci21PatchRes = file;
+#endif
+	}
+
+	if (!map && sci21Maps.empty()) {
+		init();
+		return;
+	}
+
+#ifdef ENABLE_SCI32
+	if (sci21PatchMap && sci21PatchRes)
+		addSource(new VolumeResourceSource(sci21PatchRes->getName(), sci21PatchMap, kResPatVolumeNumber, sci21PatchRes));
+#endif
+
+	// Now find all the resource.0?? files
+	for (Common::FSList::const_iterator file = fslist.begin(); file != fslist.end(); ++file) {
+		if (file->isDirectory())
+			continue;
+
+		Common::String filename = file->getName();
+		filename.toLowercase();
+
+		if (filename.contains("resource.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			int number = atoi(dot + 1);
+
+			addSource(new VolumeResourceSource(file->getName(), map, number, file));
+		} else if (filename.contains("ressci.0")) {
+			const char *dot = strrchr(filename.c_str(), '.');
+			int number = atoi(dot + 1);
+
+			// Match this volume to its own map
+			addSource(new VolumeResourceSource(file->getName(), sci21Maps[number], number, file));
+		}
+	}
+
+	// This function is only called by the advanced detector, and we don't really need
+	// to add a patch directory or message.map here
+
+	init();
+}
+
+ResourceManager::~ResourceManager() {
+	for (ResourceMap::iterator it = _resMap.begin(); it != _resMap.end(); ++it) {
+		delete it->_value;
+	}
+
+	Common::for_each(_sources.begin(), _sources.end(), Common::DefaultDeleter<ResourceSource>());
+
+	Common::for_each(_volumeFiles.begin(), _volumeFiles.end(), Common::DefaultDeleter<Common::File>());
 }
 
 void ResourceManager::init() {

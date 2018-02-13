@@ -21,12 +21,15 @@
  */
 
 #include "common/rect.h"
+#include "sci/graphics/cursor32.h"
 #include "sci/s2/system/glcursor.h"
 
 namespace Sci {
 
-GLCursor::GLCursor(const GLCelRes &celInfo, const bool show) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+GLCursor::GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo) :
+	_kernelCursor(kernelCursor) {
+	_normalCel = _waitCel = _handsOffCel = _highlightCel = celInfo;
+	_kernelCursor.setView(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
 }
 
 void GLCursor::setHighlightCelRes(const GLCelRes &celInfo) {
@@ -37,12 +40,21 @@ void GLCursor::setHandsOffCelRes(const GLCelRes &celInfo) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void GLCursor::setPosition(const Common::Point &point) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void GLCursor::setPosition(const Common::Point &position) {
+	_position = position;
+	_kernelCursor.setPosition(position);
 }
 
 void GLCursor::show() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_state &= ~kHiddenState;
+	setNeedsEvent(true);
+	_kernelCursor.show();
+}
+
+void GLCursor::hide() {
+	_state |= kHiddenState;
+	setNeedsEvent(false);
+	_kernelCursor.hide();
 }
 
 } // End of namespace Sci

@@ -55,16 +55,16 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan = nullptr);
 	~GfxFrameout();
 
 	void clear();
 
-private:
 	/**
-	 * Whether or not the game should render at a resolution above 320x240.
+	 * Attaches a debugger to receive updates when a new frame is sent to the
+	 * system.
 	 */
-	bool _isHiRes;
+	void attachDebugger(GUI::Debugger *debugger) { _debugger = debugger; }
 
 public:
 	/**
@@ -73,6 +73,13 @@ public:
 	 */
 	inline bool isHiRes() const { return _isHiRes; }
 
+private:
+	/**
+	 * Whether or not the game should render at a resolution above 320x240.
+	 */
+	bool _isHiRes;
+
+public:
 	/**
 	 * Gets the x-resolution used by game scripts.
 	 */
@@ -93,6 +100,7 @@ public:
 	 */
 	inline int16 getScreenHeight() const { return _currentBuffer.h; }
 
+public:
 	GfxCursor32 _cursor;
 	GfxPalette32 _palette;
 	GfxRemap32 _remapper;

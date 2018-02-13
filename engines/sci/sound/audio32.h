@@ -175,7 +175,7 @@ enum AudioChannelIndex {
  */
 class Audio32 : public Audio::AudioStream, public Common::Serializable {
 public:
-	Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features, TimeManager *timeMan);
+	Audio32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, GuestAdditions *guestAdditions = nullptr);
 	~Audio32();
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s);

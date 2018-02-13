@@ -293,7 +293,6 @@ extern void showScummVMDialog(const Common::String &message);
 Common::Error SciEngine::run() {
 	_resMan = new ResourceManager(_metadata);
 	assert(_resMan);
-	_resMan->run();
 
 	// Game version must be detected for these to be set properly, so they must
 	// be set after ResourceManager has done its thing and set the SCI version
@@ -345,16 +344,13 @@ Common::Error SciEngine::run() {
 
 	_gamestate = new EngineState(segMan);
 
-	// Requires _gamestate to be initialized
-	_console = new Console(this);
-
 	_guestAdditions = new GuestAdditions(_gamestate, _features, _kernel);
-	_eventMan = new EventManager(_features->detectFontExtended(), _console, _gamestate, _gfxScreen);
+	_eventMan = new EventManager(_features->detectFontExtended(), _gfxScreen, _gamestate);
 	_timeMan.reset(new TimeManager(*g_system, *this, *_eventMan));
 
 #ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
-		_audio32 = new Audio32(_resMan, _guestAdditions, _features, _timeMan.get());
+		_audio32 = new Audio32(_resMan, _features, _timeMan.get(), _guestAdditions);
 	} else
 #endif
 		_audio = new AudioPlayer(_resMan);
@@ -487,6 +483,9 @@ Common::Error SciEngine::run() {
 		                  "advised to remove this patch from your game folder in order to avoid "
 		                  "having unexpected errors and/or issues later on."));
 	}
+
+	_console = new Console(this);
+	_eventMan->attachDebugger(_console);
 
 	runGame();
 
@@ -646,7 +645,8 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _console, _timeMan.get(), _eventMan, _audio32, _gamestate->_segMan);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _timeMan.get(), _eventMan, _audio32, _gamestate->_segMan);
+		_gfxFrameout->attachDebugger(_console);
 		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _timeMan.get(), _gamestate->_segMan, _gfxFrameout);
 	} else {
 #endif

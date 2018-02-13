@@ -28,21 +28,31 @@
 
 namespace Sci {
 
+class GfxCursor32;
+
 class S2Cursor : public GLCursor {
 public:
-	S2Cursor();
+	enum Cel {
+		kNormalCel    = 0,
+		kHighlightCel = 1,
+		kWaitCel      = 2,
+		kForwardCel   = 3,
+		kBackCel      = 4
+	};
+
+	S2Cursor(GfxCursor32 &kernelCursor);
 
 private:
-	enum State {
+	enum InventoryState {
 		kNormal,
-		kActiveInventory,
-		kActivePrayerStick
+		kInventory,
+		kPrayerStick
 	};
 
 	GLCelRes _normalCel;
 	GLCelRes _prayerStickNormalCel;
 	GLCelRes _inventoryCel;
-	int _state;
+	int _inventoryState;
 };
 
 } // End of namespace Sci

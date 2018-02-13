@@ -37,10 +37,14 @@ public:
 
 	bool loadRoom(const int roomNo);
 	bool initRoom(const int roomNo);
+	void disposeRoom(const int roomNo);
+	void unloadRoom();
+	void unloadGlobalRoom();
 
 private:
 	bool _isSaved;
 	int _currentRoomNo;
+	int _currentGlobalRoomNo;
 };
 
 } // End of namespace Sci

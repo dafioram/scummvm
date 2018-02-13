@@ -24,18 +24,17 @@
 #include "sci/graphics/frameout.h"
 #include "sci/resource/manager.h"
 #include "sci/s2/debugger.h"
+#include "sci/s2/game.h"
+#include "sci/s2/kernel.h"
 
 namespace Sci {
 
-S2Debugger::S2Debugger(ResourceManager *resMan) :
-	Debugger(resMan, nullptr, nullptr, nullptr) {
+S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
+	Debugger(&kernel.resourceManager, &kernel.graphicsManager, &kernel.audioMixer, nullptr) {
 
 	registerCmd("go", WRAP_METHOD(S2Debugger, cmdExit));
-}
 
-void S2Debugger::run(GfxFrameout *frameout, Audio32 *audio) {
-	_gfxFrameout = frameout;
-	_audio32 = audio;
+	kernel.graphicsManager.attachDebugger(this);
 }
 
 bool S2Debugger::cmdHelp(int argc, const char **argv) {

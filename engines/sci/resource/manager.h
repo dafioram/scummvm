@@ -83,9 +83,10 @@ public:
 
 	~ResourceManager();
 
+	/**
+	 * Gets metadata about the game currently loaded into the resource manager.
+	 */
 	const GameMetadata &getGameMetadata() const { return _game; }
-
-	void run();
 
 private:
 	/**

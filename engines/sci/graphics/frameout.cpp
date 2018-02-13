@@ -61,7 +61,7 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::Debugger *debugger, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, timeMan, this),
 	_remapper(features, this),
@@ -72,7 +72,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::D
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),
-	_debugger(debugger),
+	_debugger(nullptr),
 	_timeMan(timeMan),
 	_throttleState(0),
 	_remapOccurred(false),
@@ -91,6 +91,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::D
 	}
 	initGraphics(_currentBuffer.w, _currentBuffer.h);
 	_cursor.init(_currentBuffer);
+	_eventMan->attachRenderer(this);
 
 	switch (game.id) {
 	case GID_HOYLE5:
@@ -119,8 +120,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, GUI::D
 		break;
 	}
 
-	eventMan->attachTo(this);
-	timeMan->attachTo(this);
+	timeMan->attachRenderer(this);
 	CelObj::init(resMan, _features, this, _segMan);
 	Plane::init(_features, this, _segMan);
 	ScreenItem::init(resMan, _features, this, _segMan);
@@ -1151,7 +1151,9 @@ void GfxFrameout::updateScreen(const int delta) {
 
 	_lastScreenUpdateTick = now;
 	g_system->updateScreen();
-	_debugger->onFrame();
+	if (_debugger) {
+		_debugger->onFrame();
+	}
 }
 
 void GfxFrameout::kernelFrameOut(const bool shouldShowBits) {

@@ -148,7 +148,7 @@ private:
 
 #pragma mark -
 
-Audio32::Audio32(ResourceManager *resMan, GuestAdditions *guestAdditions, GameFeatures *features, TimeManager *timeMan) :
+Audio32::Audio32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, GuestAdditions *guestAdditions) :
 	_resMan(resMan),
 	_guestAdditions(guestAdditions),
 	_timeMan(timeMan),

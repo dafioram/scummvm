@@ -108,13 +108,14 @@ static const MouseEventConversion mouseEventMappings[] = {
 	{ Common::EVENT_MBUTTONUP   , kSciEventMouseRelease }
 };
 
-EventManager::EventManager(bool fontIsExtended, GUI::Debugger *debugger, EngineState *engineState, GfxScreen *screen) :
+EventManager::EventManager(bool fontIsExtended, GfxScreen *screen, EngineState *engineState) :
 	_fontIsExtended(fontIsExtended),
-	_debugger(debugger),
+	_debugger(nullptr),
 	_engineState(engineState),
 	_gfxScreen(screen)
 #ifdef ENABLE_SCI32
-	, _hotRectanglesActive(false)
+	, _gfxFrameout(nullptr),
+	_hotRectanglesActive(false)
 #endif
 	{}
 

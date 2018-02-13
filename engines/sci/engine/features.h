@@ -52,7 +52,7 @@ enum MessageTypeSyncStrategy {
 
 class GameFeatures {
 public:
-	GameFeatures(ResourceManager *resMan, SegManager *segMan, Kernel *kernel);
+	GameFeatures(ResourceManager *resMan, SegManager *segMan = nullptr, Kernel *kernel = nullptr);
 
 	/**
 	 * Autodetects the DoSound type

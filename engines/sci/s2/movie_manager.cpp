@@ -24,4 +24,8 @@
 
 namespace Sci {
 
+void S2MovieManager::stopRobot(const bool) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 } // End of namespace Sci

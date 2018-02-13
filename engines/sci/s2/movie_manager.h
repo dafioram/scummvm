@@ -27,7 +27,10 @@
 
 namespace Sci {
 
-class S2MovieManager : public GLObject {};
+class S2MovieManager : public GLObject {
+public:
+	void stopRobot(const bool);
+};
 
 } // End of namespace Sci
 

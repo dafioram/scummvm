@@ -38,4 +38,8 @@ bool S2RoomManager::initRoom(const int roomNo) {
 	return true;
 }
 
+void S2RoomManager::unloadGlobalRoom() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 } // End of namespace Sci
