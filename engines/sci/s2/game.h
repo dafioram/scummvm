@@ -45,12 +45,17 @@ class S2Kernel;
 /** This class combines the functionality of S2Game and GLGame from SSCI. */
 class S2Game {
 public:
+#pragma mark -
+#pragma mark ScummVM extensions
 	S2Game(Engine &engine, S2Kernel &kernel);
 
 	/**
 	 * Runs the game. Returns once the game has finished.
 	 */
 	void run();
+
+	bool canSaveNow() const;
+	bool canLoadNow() const;
 
 private:
 	Engine &_engine;

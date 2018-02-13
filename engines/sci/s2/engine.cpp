@@ -55,4 +55,24 @@ GUI::Debugger *S2Engine::getDebugger() {
 	return _debugger.get();
 }
 
+bool S2Engine::hasFeature(const EngineFeature f) const {
+	switch (f) {
+	case Engine::kSupportsRTL:
+	case Engine::kSupportsSubtitleOptions:
+	case Engine::kSupportsSavingDuringRuntime:
+	case Engine::kSupportsLoadingDuringRuntime:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool S2Engine::canSaveGameStateCurrently() {
+	return _game->canSaveNow();
+}
+
+bool S2Engine::canLoadGameStateCurrently() {
+	return _game->canLoadNow();
+}
+
 } // End of namespace Sci

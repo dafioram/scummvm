@@ -44,6 +44,9 @@ public:
 	virtual void initializePath(const Common::FSNode &gamePath) override;
 	virtual Common::Error run() override;
 	virtual GUI::Debugger *getDebugger() override;
+	virtual bool hasFeature(const EngineFeature f) const override;
+	virtual bool canSaveGameStateCurrently() override;
+	virtual bool canLoadGameStateCurrently() override;
 
 private:
 	OSystem &_system;

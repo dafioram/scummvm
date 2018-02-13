@@ -44,6 +44,39 @@ void S2Game::run() {
 	_roomManager.unloadGlobalRoom();
 }
 
+bool S2Game::canSaveNow() const {
+	// TODO: The room list conditions come from the game's save-before-quit
+	// confirmation code. The hands on test exists since the user would not
+	// normally be able to save the game when it is non-interactable. In the
+	// case a user quit the game via the OS, it looks like it would intercept
+	// the WM_SYSCOMMAND/SC_CLOSE message and hold the window open until it got
+	// back to the main game loop and exited through the shouldQuit flag. There
+	// may be some additional conditions which need to be checked, like the
+	// state of the game's UI, and that cannot be done until the game is
+	// actually running
+	if (!_user.getIsHandsOn()) {
+		return false;
+	}
+	const int currentRoomNo = _roomManager.getCurrentRoom();
+	if (currentRoomNo >= 2000) {
+		switch (currentRoomNo) {
+		case 26721:
+		case 26850:
+		case 26900:
+		case 26901:
+			break;
+		default:
+			return true;
+		}
+	}
+	return false;
+}
+
+bool S2Game::canLoadNow() const {
+	// TODO: Figure out these conditions
+	return true;
+}
+
 void S2Game::play() {
 	GLQuitHandler quitHandler;
 

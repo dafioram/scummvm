@@ -28,6 +28,11 @@ void GLUser::doIt() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+bool GLUser::getIsHandsOn() const {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return false;
+}
+
 void GLUser::setIsHandsOn(const bool enable) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
