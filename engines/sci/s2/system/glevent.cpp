@@ -25,11 +25,13 @@
 
 namespace Sci {
 
+EventManager *GLEvent::_eventManager = nullptr;
+
 void GLEvent::localize(const AbsGLPlane &plane) {
 	if (_plane) {
-		_plane->toGlobal(point);
+		_plane->toGlobal(_mousePosition);
 	}
-	plane.toLocal(point);
+	plane.toLocal(_mousePosition);
 	_plane = &plane;
 }
 
@@ -38,7 +40,7 @@ void GLEvent::globalize() {
 		return;
 	}
 
-	_plane->toGlobal(point);
+	_plane->toGlobal(_mousePosition);
 	_plane = nullptr;
 }
 

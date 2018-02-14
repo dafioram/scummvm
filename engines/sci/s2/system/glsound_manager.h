@@ -23,12 +23,28 @@
 #ifndef SCI_S2_SYSTEM_GLSOUND_MANAGER_H
 #define SCI_S2_SYSTEM_GLSOUND_MANAGER_H
 
+#include "common/list.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/glsound.h"
 
 namespace Sci {
 
+class Audio32;
+class ResourceManager;
+class S2Game;
+
 class GLSoundManager : public GLObject {
+public:
+	GLSoundManager(S2Game &game, ResourceManager &resourceManager, Audio32 &mixer);
+
 	void doIt();
+	void stop();
+
+private:
+	S2Game &_game;
+	ResourceManager &_resourceManager;
+	Audio32 &_mixer;
+	Common::List<GLSound> _sounds;
 };
 
 } // End of namespace Sci

@@ -23,6 +23,8 @@
 #include "common/system.h"
 #include "sci/s2/debugger.h"
 #include "sci/s2/kernel.h"
+#include "sci/s2/system/glevent.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
 
@@ -32,6 +34,9 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	eventManager(false),
 	timeManager(system, engine, eventManager),
 	audioMixer(&resourceManager, &features, &timeManager),
-	graphicsManager(&resourceManager, &features, &timeManager, &eventManager, &audioMixer) {}
+	graphicsManager(&resourceManager, &features, &timeManager, &eventManager, &audioMixer) {
+	GLEvent::init(&eventManager);
+	AbsGLPlane::init(&graphicsManager);
+}
 
 } // End of namespace Sci

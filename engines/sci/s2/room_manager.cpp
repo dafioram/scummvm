@@ -20,25 +20,104 @@
  *
  */
 
+#include "sci/s2/game.h"
+#include "sci/s2/kernel.h"
+#include "sci/s2/room.h"
 #include "sci/s2/room_manager.h"
+#include "sci/s2/rooms/1000.h"
+#include "sci/s2/system/glpanorama.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
 
-S2RoomManager::S2RoomManager() :
+S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
+	_kernel(kernel),
+	_game(game),
+	_isSaved(true),
+	_previousRoomNo(0),
 	_currentRoomNo(0),
-	_isSaved(true) {}
+	_currentGlobalRoomNo(0),
+	_lastSoundRoomNo(0) {}
+
+S2RoomManager::~S2RoomManager() {
+	_game.getExtras().remove(this);
+	if (_plane && _planeIsVisible) {
+		_game.getPlanes().remove(*_plane);
+		_planeIsVisible = false;
+		// TODO: Dtor was called explicitly here regardless of visibility; make
+		// sure it has no side effects which are important
+	}
+	if (_panorama && _planeIsVisible) {
+		_game.getUser().getOrphans().remove(_panorama.get());
+		_game.getExtras().remove(_panorama.get());
+		// TODO: Dtor was called explicitly here regardless of visibility; make
+		// sure it has no side effects which are important
+	}
+}
 
 bool S2RoomManager::loadRoom(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	// In SSCI this loaded DLLs
+	switch (roomNo) {
+	case 1000:
+		_currentRoom.reset(new S2Room1000(_kernel, _game));
+		break;
+	case 6000:
+	case 10000:
+	case 11000:
+	case 12000:
+	case 13000:
+	case 14000:
+	case 15000:
+	case 16000:
+	case 17000:
+	case 18000:
+	case 19000:
+	case 20000:
+	case 21000:
+	case 22000:
+	case 23000:
+	case 24000:
+	case 25000:
+	case 26000:
+	case 27000:
+	case 28000:
+	case 30000:
+	default:
+		error("Invalid room %d", roomNo);
+	}
+
 	return true;
 }
 
-bool S2RoomManager::initRoom(const int roomNo) {
+void S2RoomManager::initRoom(const int roomNo) {
+	assert(_currentRoom);
+	_kernel.eventManager.flushEvents();
+	_previousRoomNo = _currentRoomNo;
+	_currentRoomNo = roomNo;
+	_currentRoom->init(roomNo);
+}
+
+void S2RoomManager::activateRoom() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
-	return true;
+}
+
+void S2RoomManager::deactivateRoom() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2RoomManager::unloadGlobalRoom() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2RoomManager::drawPan(const uint16 resourceNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 

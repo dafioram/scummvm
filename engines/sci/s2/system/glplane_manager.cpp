@@ -20,12 +20,25 @@
  *
  */
 
+#include "sci/s2/system/glevent.h"
+#include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glplane_manager.h"
 
 namespace Sci {
 
 void GLPlaneManager::doIt() {
+	for (auto &plane : _planes) {
+		plane->getCast().doIt();
+	}
+}
+
+void GLPlaneManager::remove(AbsGLPlane &plane) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+bool GLPlaneManager::handleEvent(GLEvent &event) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return false;
 }
 
 } // End of namespace Sci

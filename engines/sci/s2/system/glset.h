@@ -28,11 +28,14 @@
 
 namespace Sci {
 
+// TODO: This seems like it should not be accepting null pointers, in which case
+// the methods ought to be receiving references instead
 template <typename T>
 class GLSetAsArray : public Common::Array<T *> {
-	typedef Common::Array<T *> Parent;
+	using Parent = Common::Array<T *>;
 
 public:
+	using Common::Array<T *>::Array;
 	using typename Parent::iterator;
 	using typename Parent::const_iterator;
 	using typename Parent::value_type;

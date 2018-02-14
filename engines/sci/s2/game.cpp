@@ -22,19 +22,34 @@
 
 #include "engines/engine.h"
 #include "sci/s2/game.h"
+#include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glquit_handler.h"
 #include "sci/s2/kernel.h"
 
 namespace Sci {
+S2Game *S2Game::instance = nullptr;
+
 S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
 	_engine(engine),
 	_kernel(kernel),
+	_user(*this),
 	_cursor(kernel.graphicsManager._cursor),
+	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
+	_movieManager(kernel, *this),
+	_roomManager(kernel, *this),
 	_flags(),
-	_volume(127) {}
+	_volume(127) {
+	assert(!instance);
+	instance = this;
+}
 
 void S2Game::run() {
 	init();
+
+	_interface.disableButtons();
+	_roomManager.loadRoom(1000);
+	_roomManager.initRoom(1000);
+
 	play();
 
 	// TODO: A save-before-quit confirmation dialogue was shown here; add this
@@ -77,11 +92,15 @@ bool S2Game::canLoadNow() const {
 	return true;
 }
 
+void S2Game::addCue(GLObject *const cuee, GLObject *const cuer, const bool flag) {
+	_extras.push_front(new GLCue(cuee, cuer, flag));
+}
+
 void S2Game::play() {
 	GLQuitHandler quitHandler;
 
 	_extras.push_front(&_soundManager);
-	_user._primaDonnas.push_back(&quitHandler);
+	_user.getPrimaDonnas().push_back(&quitHandler);
 
 	_user.setIsHandsOn(true);
 
@@ -89,7 +108,7 @@ void S2Game::play() {
 		doIt();
 	}
 
-	_user._primaDonnas.remove(&quitHandler);
+	_user.getPrimaDonnas().remove(&quitHandler);
 	_extras.remove(&_soundManager);
 }
 
@@ -137,10 +156,6 @@ void S2Game::init() {
 	//   been omitted
 
 	_kernel.audioMixer.setAttenuatedMixing(false);
-
-	_interface.disableButtons();
-	_roomManager.loadRoom(1000);
-	_roomManager.initRoom(1000);
 }
 
 } // End of namespace Sci

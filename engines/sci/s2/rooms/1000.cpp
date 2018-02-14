@@ -20,8 +20,53 @@
  *
  */
 
+#include "common/textconsole.h"
+#include "sci/s2/game.h"
 #include "sci/s2/rooms/1000.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
+
+void S2Room1000::init(const int roomNo) {
+	switch (roomNo) {
+	case 1000:
+		_game.getRoomManager().drawPan(10400);
+		_game.getRoomManager().drawPic(1, true);
+		_script.reset(new GLScript(GLScript::makeHandler(this, &S2Room1000::logoScript)));
+		break;
+	case 1010:
+	case 1015:
+	case 1020:
+	case 1500:
+	case 1600:
+		warning("TODO: Room %d", roomNo);
+		break;
+	}
+}
+
+void S2Room1000::dispose(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2Room1000::doIt() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+bool S2Room1000::handleEvent(GLEvent &event) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return false;
+}
+
+void S2Room1000::logoScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_game.getMovieManager().play(1000, nullptr, GLPoint(0, 0));
+		script.setTicks(1);
+		break;
+	case 1:
+		_game.getRoomManager().loadGlobalRoom(4000, true);
+		break;
+	}
+}
 
 } // End of namespace Sci

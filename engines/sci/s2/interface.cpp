@@ -24,6 +24,13 @@
 
 namespace Sci {
 
+S2Interface::S2Interface() :
+	_isCaptioningOn(false) {}
+
+void S2Interface::putText(const uint16 messageNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2Interface::disableButtons() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

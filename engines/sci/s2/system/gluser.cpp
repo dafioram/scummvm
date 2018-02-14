@@ -20,21 +20,58 @@
  *
  */
 
+#include "sci/s2/system/glgame.h"
 #include "sci/s2/system/gluser.h"
 
 namespace Sci {
 
-void GLUser::doIt() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+GLUser::GLUser(GLGame &game) :
+	_game(game),
+	_state(0) {
+	_hogs.reserve(10);
+	_primaDonnas.reserve(10);
+	_orphans.reserve(10);
 }
 
-bool GLUser::getIsHandsOn() const {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void GLUser::doIt() {
+	_event.refresh();
+
+	_mousePosition = _event.getMousePosition();
+
+	if ((getHandlesNulls() || _event.getType() != kSciEventNone) &&
+		(getIsHandsOn() || handleHandsOff(_event))) {
+
+		handleEvent(_event);
+	}
+}
+
+bool GLUser::handleEvent(GLEvent &event) {
+	if (_hogs.empty()) {
+		_primaDonnas.handleEvent(event) ||
+		_game.getPlanes().handleEvent(event) ||
+		_orphans.handleEvent(event);
+	} else {
+		processHogs(event);
+	}
+
+	return event.isClaimed();
+}
+
+bool GLUser::handleHandsOff(GLEvent &event) {
+	event.claim();
 	return false;
 }
 
-void GLUser::setIsHandsOn(const bool enable) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+bool GLUser::processHogs(GLEvent &event) {
+	if (getHogsAreModal()) {
+		while (!_hogs.handleEvent(event)) {
+			event.refresh();
+		}
+	} else {
+		_hogs.handleEvent(event);
+	}
+
+	return event.isClaimed();
 }
 
 } // End of namespace Sci

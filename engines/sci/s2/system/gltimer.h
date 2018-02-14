@@ -27,7 +27,9 @@
 
 namespace Sci {
 
-class GLTimer : public GLCue {};
+class GLTimer : public GLCue {
+	
+};
 
 } // End of namespace Sci
 

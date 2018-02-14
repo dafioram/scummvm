@@ -27,7 +27,12 @@
 
 namespace Sci {
 
-class GLQuitHandler : public GLTarget {};
+class GLEvent;
+
+class GLQuitHandler : public GLTarget {
+public:
+	virtual bool handleEvent(GLEvent &event) override;
+};
 
 } // End of namespace Sci
 

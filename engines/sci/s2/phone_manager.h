@@ -27,7 +27,15 @@
 
 namespace Sci {
 
-class S2PhoneManager : public GLScript {};
+class S2PhoneManager : public GLScript {
+public:
+	S2PhoneManager();
+
+	void cancelCall();
+
+private:
+	void changeState(GLScript &script, const int state);
+};
 
 } // End of namespace Sci
 

@@ -23,11 +23,13 @@
 #ifndef SCI_S2_SYSTEM_TYPES_H
 #define SCI_S2_SYSTEM_TYPES_H
 
+#include "common/rect.h"
 #include "sci/graphics/celobj32.h"
 
 namespace Sci {
 
-typedef CelInfo32 GLCelRes;
+using GLCelRes = CelInfo32;
+using GLPoint = Common::Point;
 
 } // End of namespace Sci
 

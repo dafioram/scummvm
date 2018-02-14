@@ -21,7 +21,10 @@
  */
 
 #include "sci/s2/room.h"
+#include "sci/s2/system/glscript.h"
 
 namespace Sci {
+
+S2Room::~S2Room() {}
 
 } // End of namespace Sci

@@ -116,28 +116,43 @@ MODULE_OBJS += \
 	resource/sources/solvolume.o \
 	s2/cursor.o \
 	s2/debugger.o \
+	s2/engine.o \
+	s2/exit.o \
+	s2/game.o \
+	s2/hotspot.o \
 	s2/interface.o \
 	s2/inventory_manager.o \
+	s2/kernel.o \
 	s2/movie_manager.o \
 	s2/phone_manager.o \
 	s2/room.o \
 	s2/room_manager.o \
 	s2/scoring_manager.o \
 	s2/sound_manager.o \
+	s2/rooms/1000.o \
+	s2/system/glcast.o \
+	s2/system/glcel.o \
 	s2/system/glcue.o \
 	s2/system/glcursor.o \
 	s2/system/glevent.o \
+	s2/system/glevent_handler_set.o \
+	s2/system/glfeature.o \
+	s2/system/glmovie.o \
+	s2/system/glmovie_player.o \
 	s2/system/globject.o \
+	s2/system/glpanorama.o \
 	s2/system/glplane.o \
 	s2/system/glplane_manager.o \
+	s2/system/glpoly.o \
 	s2/system/glquit_handler.o \
+	s2/system/glscreen_item.o \
 	s2/system/glscript.o \
 	s2/system/glset.o \
+	s2/system/glsound.o \
 	s2/system/glsound_manager.o \
 	s2/system/gltarget.o \
 	s2/system/gltimer.o \
-	s2/system/gluser.o \
-	s2/engine.o
+	s2/system/gluser.o
 endif
 endif
 

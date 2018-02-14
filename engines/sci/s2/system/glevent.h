@@ -29,17 +29,22 @@
 namespace Sci {
 
 class AbsGLPlane;
-class GLPoint;
 
 class GLEvent {
 public:
-	typedef SciEventType EventType;
+	using EventType = SciEventType;
 
-	SciEventType type;
-	uint16 message;
-	SciKeyModifiers modifiers;
-	bool claimed;
-	Common::Point point;
+	static void init(EventManager *eventManager) {
+		_eventManager = eventManager;
+	}
+
+	SciEventType getType() const { return _type; }
+	uint16 getMessage() const { return _message; }
+	SciKeyModifiers getKeyModifiers() const { return _modifiers; }
+	const Common::Point &getMousePosition() const { return _mousePosition; }
+	bool isClaimed() const { return _claimed; }
+
+	void claim() { _claimed = true; }
 
 	void refresh() {
 		refresh(kSciEventAny);
@@ -47,12 +52,12 @@ public:
 
 	void refresh(const SciEventType mask) {
 		const SciEvent event = _eventManager->getSciEvent(mask);
-		type = event.type;
-		message = event.character;
-		modifiers = event.modifiers;
-		claimed = false;
+		_type = event.type;
+		_message = event.character;
+		_modifiers = event.modifiers;
+		_claimed = false;
 		_plane = nullptr;
-		point = event.mousePos;
+		_mousePosition = event.mousePos;
 	}
 
 	void localize(const AbsGLPlane &plane);
@@ -61,6 +66,11 @@ public:
 private:
 	static EventManager *_eventManager;
 
+	SciEventType _type;
+	uint16 _message;
+	SciKeyModifiers _modifiers;
+	bool _claimed;
+	Common::Point _mousePosition;
 	const AbsGLPlane *_plane;
 };
 

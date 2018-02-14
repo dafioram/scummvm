@@ -20,10 +20,24 @@
  *
  */
 
+#include "common/textconsole.h"
 #include "sci/s2/system/glscript.h"
 
 namespace Sci {
 
+GLScript::GLScript(ChangeStateHandler callback, const int initialState) :
+	_changeState(callback),
+	_state(initialState - 1) {
 
+	cue();
+}
+
+void GLScript::cue() {
+	_changeState(*this, ++_state);
+}
+
+void GLScript::setTicks(const uint32 ticks) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
 
 } // End of namespace Sci

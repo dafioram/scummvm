@@ -70,6 +70,27 @@ _gameRect(gameRect) {
 	_screenRect = _planeRect;
 }
 
+Plane::Plane(const PlanePictureCodes type, const uint8 backColor, const Common::Rect &gameRect, const int16 priority, const Common::Point &vanishingPoint, const uint16 pictureNo, const bool mirrored) :
+	_creationId(_nextCreationId++),
+	_pictureId(type),
+	_mirrored(mirrored),
+	_back(backColor),
+	_object(make_reg(0, _nextObjectId++)),
+	_priority(priority),
+	_vanishingPoint(vanishingPoint),
+	_redrawAllCount(_gfxFrameout->getScreenCount()),
+	_created(_gfxFrameout->getScreenCount()),
+	_updated(0),
+	_deleted(0),
+	_moved(0),
+	_gameRect(gameRect) {
+	convertGameRectToPlaneRect();
+	setType();
+	if (_type == kPlaneTypePicture || _type == kPlaneTypeTransparentPicture) {
+		_pictureId = pictureNo;
+	}
+}
+
 Plane::Plane(reg_t object) :
 _creationId(_nextCreationId++),
 _type(kPlaneTypeColored),

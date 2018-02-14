@@ -24,4 +24,17 @@
 
 namespace Sci {
 
+// TODO: This triggers UB because `this` does not have a fully initialised
+// vtable so it ends up being captured as GLScript's vtable instead
+S2PhoneManager::S2PhoneManager() :
+	GLScript(GLScript::makeHandler(this, &S2PhoneManager::changeState)) {}
+
+void S2PhoneManager::cancelCall() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2PhoneManager::changeState(Sci::GLScript &script, const int state) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 } // End of namespace Sci

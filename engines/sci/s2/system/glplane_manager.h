@@ -28,6 +28,7 @@
 namespace Sci {
 
 class AbsGLPlane;
+class GLEvent;
 
 class GLPlaneManager {
 public:
@@ -35,6 +36,7 @@ public:
 	void remove(AbsGLPlane &plane);
 	void update(AbsGLPlane &plane);
 	void doIt();
+	bool handleEvent(GLEvent &event);
 
 private:
 	GLSetAsArray<AbsGLPlane> _planes;

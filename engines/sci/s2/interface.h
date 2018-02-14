@@ -29,7 +29,15 @@ namespace Sci {
 
 class S2Interface : public GLObject {
 public:
+	S2Interface();
+
+	void putText(const uint16 messageNo);
+	bool getIsCaptioningOn() const { return _isCaptioningOn; }
+
 	void disableButtons();
+
+private:
+	bool _isCaptioningOn;
 };
 
 } // End of namespace Sci

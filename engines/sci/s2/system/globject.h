@@ -44,14 +44,14 @@ public:
 	virtual ~GLObject() {}
 
 	inline bool getIsScreenItem() const { return _flags & kIsScreenItem; }
-	inline void setIsScreenItem(const bool set) { updateFlags(set, kIsScreenItem); }
+	inline void setIsScreenItem(const bool set) { updateFlags(kIsScreenItem, set); }
 
 	inline bool getNeedsDoIt() const { return _flags & kNeedsDoIt; }
-	inline void setNeedsDoIt(const bool set) { updateFlags(set, kNeedsDoIt); }
+	inline void setNeedsDoIt(const bool set) { updateFlags(kNeedsDoIt, set); }
 	virtual void doIt() { error("DoIt not allowed for this class"); }
 
 	inline bool getNeedsEvent() const { return _flags & kNeedsEvent; }
-	inline void setNeedsEvent(const bool set) { updateFlags(set, kNeedsEvent); }
+	inline void setNeedsEvent(const bool set) { updateFlags(kNeedsEvent, set); }
 	virtual bool handleEvent(GLEvent &event) { error("HandleEvent not allowed for this class"); }
 
 	virtual void cue(GLCue &) {}
@@ -59,7 +59,7 @@ public:
 private:
 	int _flags;
 
-	inline void updateFlags(const bool set, const Flag value) {
+	inline void updateFlags(const Flag value, const bool set) {
 		if (set) {
 			_flags |= value;
 		} else {

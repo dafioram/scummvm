@@ -48,6 +48,9 @@ public:
 #pragma mark -
 #pragma mark ScummVM extensions
 	S2Game(Engine &engine, S2Kernel &kernel);
+	~S2Game() { instance = nullptr; }
+
+	static S2Game *instance;
 
 	/**
 	 * Runs the game. Returns once the game has finished.
@@ -63,6 +66,17 @@ private:
 
 #pragma mark -
 #pragma mark GLGame
+public:
+	GLPlaneManager &getPlanes() { return _planes; }
+	GLUser &getUser() { return _user; }
+	S2Cursor &getCursor() { return _cursor; }
+	GLSetAsArray<GLObject> &getExtras() { return _extras; }
+
+	// In SSCI, GLCue added itself to the extras list in its constructor; we use
+	// a separate function on S2Game instead so it does not look like we are
+	// leaking at the call site
+	void addCue(GLObject *const cuee, GLObject *const cuer = nullptr, const bool flag = false);
+
 private:
 	void play();
 	void doIt();
@@ -74,15 +88,22 @@ private:
 
 #pragma mark -
 #pragma mark S2Game
+public:
+	S2SoundManager &getSoundManager() { return _soundManager; }
+	S2RoomManager &getRoomManager() { return _roomManager; }
+	S2Interface &getInterface() { return _interface; }
+	S2PhoneManager &getPhoneManager() { return _phoneManager; }
+	S2MovieManager &getMovieManager() { return _movieManager; }
+
 private:
 	void init();
 
 	S2SoundManager _soundManager;
 	S2RoomManager _roomManager;
 	S2Interface _interface;
+	S2PhoneManager _phoneManager;
 	S2MovieManager _movieManager;
 	S2InventoryManager _inventoryManager;
-	S2PhoneManager _phoneManager;
 	GameFlags _flags;
 
 	int _volume; // ?

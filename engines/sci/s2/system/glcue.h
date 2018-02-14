@@ -27,7 +27,15 @@
 
 namespace Sci {
 
-class GLCue : public GLObject {};
+class GLCue : public GLObject {
+public:
+	GLCue(GLObject *const cuee = nullptr, GLObject *const cuer = nullptr, const bool flag = nullptr);
+
+private:
+	GLObject *_cuee;
+	GLObject *_cuer;
+	bool _flag;
+};
 
 } // End of namespace Sci
 

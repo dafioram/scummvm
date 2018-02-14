@@ -23,28 +23,60 @@
 #ifndef SCI_S2_ROOM_MANAGER_H
 #define SCI_S2_ROOM_MANAGER_H
 
+#include "common/ptr.h"
 #include "common/scummsys.h"
+#include "sci/s2/exit.h"
+#include "sci/s2/hotspot.h"
+#include "sci/s2/system/glcel.h"
 #include "sci/s2/system/globject.h"
 
 namespace Sci {
 
+class GLPanorama;
+class GLPicturePlane;
+class S2Game;
+class S2Kernel;
+class S2Room;
+
 class S2RoomManager : public GLObject {
 public:
-	S2RoomManager();
+	S2RoomManager(S2Kernel &kernel, S2Game &game);
+	virtual ~S2RoomManager();
 
 	int getCurrentRoom() const { return _currentRoomNo; }
 	bool getIsSaved() const { return _isSaved; }
 
 	bool loadRoom(const int roomNo);
-	bool initRoom(const int roomNo);
+	void initRoom(const int roomNo);
 	void disposeRoom(const int roomNo);
 	void unloadRoom();
+	void activateRoom();
+	void deactivateRoom();
+
+	void loadGlobalRoom(const int roomNo, const bool fullscreen);
 	void unloadGlobalRoom();
 
+	void drawPan(const uint16 resourceNo);
+	void drawPic(const uint16 resourceNo, const bool fullscreen);
+
+	int getLastSoundRoomNo() const { return _lastSoundRoomNo; }
+	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
+
 private:
+	S2Kernel &_kernel;
+	S2Game &_game;
 	bool _isSaved;
+	int _previousRoomNo;
 	int _currentRoomNo;
 	int _currentGlobalRoomNo;
+	int _lastSoundRoomNo;
+	Common::ScopedPtr<S2Room> _currentRoom;
+	Common::ScopedPtr<GLPicturePlane> _plane;
+	bool _planeIsVisible;
+	Common::ScopedPtr<GLPanorama> _panorama;
+	Common::Array<S2Exit> _exits;
+	Common::Array<S2Hotspot> _hotspots;
+	Common::Array<GLCel> _cels;
 };
 
 } // End of namespace Sci

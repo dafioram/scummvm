@@ -27,7 +27,18 @@
 
 namespace Sci {
 
-class S2SoundManager : public GLSoundManager {};
+class S2SoundManager : public GLSoundManager {
+public:
+	using GLSoundManager::GLSoundManager;
+
+	int getRoomNo() const { return _roomNo; }
+
+	void createAmbient(const int roomNo);
+	void deleteAmbient(const int roomNo);
+
+private:
+	int _roomNo;
+};
 
 } // End of namespace Sci
 

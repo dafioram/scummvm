@@ -253,7 +253,7 @@ enum GameFlag {
 	kNumGameFlags
 };
 
-typedef Common::FixedArray<bool, kNumGameFlags> GameFlags;
+using GameFlags = Common::FixedArray<bool, kNumGameFlags>;
 
 } // End of namespace Sci
 

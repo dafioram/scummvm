@@ -23,12 +23,20 @@
 #ifndef SCI_S2_ENGINE_H
 #define SCI_S2_ENGINE_H
 
+#include "sci/s2/room.h"
+
 namespace Sci {
 
-class Room1000 {
+class S2Room1000 : public S2Room {
 public:
-	void enter(const int roomNo);
-	
+	using S2Room::S2Room;
+	virtual void init(const int roomNo) override;
+	virtual void dispose(const int roomNo) override;
+	virtual void doIt() override;
+	virtual bool handleEvent(GLEvent &event) override;
+
+private:
+	void logoScript(GLScript &script, const int state);
 };
 
 } // End of namespace Sci

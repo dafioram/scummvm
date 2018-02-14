@@ -23,11 +23,33 @@
 #ifndef SCI_S2_SYSTEM_GLSCRIPT_H
 #define SCI_S2_SYSTEM_GLSCRIPT_H
 
+#undef abort
+#include <functional>
 #include "sci/s2/system/gltimer.h"
 
 namespace Sci {
 
-class GLScript : public GLTimer {};
+class GLScript : public GLTimer {
+public:
+	using ChangeStateHandler = std::function<void(GLScript &, int)>;
+
+	template <typename T, typename U>
+	static ChangeStateHandler makeHandler(T object, U fn) {
+		using namespace std::placeholders;
+		return std::bind(fn, object, _1, _2);
+	}
+
+	GLScript(ChangeStateHandler callback, const int initialState = 0);
+
+	void cue();
+	virtual void cue(GLCue &) override { cue(); }
+
+	void setTicks(const uint32 ticks);
+
+private:
+	ChangeStateHandler _changeState;
+	int _state;
+};
 
 } // End of namespace Sci
 

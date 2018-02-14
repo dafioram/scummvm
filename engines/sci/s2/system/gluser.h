@@ -23,18 +23,57 @@
 #ifndef SCI_S2_SYSTEM_GLUSER_H
 #define SCI_S2_SYSTEM_GLUSER_H
 
+#include "sci/s2/system/glevent.h"
+#include "sci/s2/system/glevent_handler_set.h"
 #include "sci/s2/system/globject.h"
-#include "sci/s2/system/glset.h"
 
 namespace Sci {
 
+class S2Game;
+using GLGame = S2Game;
+
 class GLUser : public GLObject {
 public:
-	void doIt();
-	bool getIsHandsOn() const;
-	void setIsHandsOn(const bool enable);
+	GLUser(GLGame &game);
 
-	GLSetAsArray<GLObject> _primaDonnas;
+	bool getIsHandsOn() const { return _state & kIsHandsOn; }
+	void setIsHandsOn(const bool set) { updateState(kIsHandsOn, set); }
+	bool getHandlesNulls() const { return _state & kHandlesNulls; }
+	void setHandlesNulls(const bool set) { updateState(kHandlesNulls, set); }
+	bool getHogsAreModal() const { return _state & kHogsAreModal; }
+	void setHogsAreModal(const bool set) { updateState(kHogsAreModal, set); }
+
+	virtual void doIt() override;
+	virtual bool handleEvent(GLEvent &event) override;
+
+	GLEventHandlerSet &getPrimaDonnas() { return _primaDonnas; }
+	GLEventHandlerSet &getOrphans() { return _orphans; }
+
+private:
+	enum State {
+		kIsHandsOn    = 1,
+		kHandlesNulls = 2,
+		kHogsAreModal = 4
+	};
+
+	bool handleHandsOff(GLEvent &event);
+	bool processHogs(GLEvent &event);
+
+	inline void updateState(const State value, const bool set) {
+		if (set) {
+			_state |= value;
+		} else {
+			_state &= ~value;
+		}
+	}
+
+	GLGame &_game;
+	Common::Point _mousePosition;
+	GLEvent _event;
+	GLEventHandlerSet _hogs;
+	GLEventHandlerSet _primaDonnas;
+	GLEventHandlerSet _orphans;
+	int _state;
 };
 
 } // End of namespace Sci

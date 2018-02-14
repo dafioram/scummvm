@@ -24,4 +24,9 @@
 
 namespace Sci {
 
+GLCue::GLCue(GLObject *const cuee, GLObject *const cuer, const bool flag) :
+	_cuee(cuee),
+	_cuer(cuer),
+	_flag(flag) {}
+
 } // End of namespace Sci

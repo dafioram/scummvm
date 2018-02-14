@@ -264,6 +264,8 @@ public:
 	// picture ID a parameter instead.
 	Plane(const Common::Rect &gameRect, PlanePictureCodes pictureId = kPlanePicColored);
 
+	Plane(const PlanePictureCodes type, const uint8 backColor, const Common::Rect &gameRect, const int16 priority, const Common::Point &vanishingPoint, const uint16 pictureNo, const bool mirrored);
+
 	Plane(const reg_t object);
 
 	Plane(const Plane &other);

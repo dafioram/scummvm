@@ -44,9 +44,9 @@ public:
 
 private:
 	enum InventoryState {
-		kNormal,
-		kInventory,
-		kPrayerStick
+		kNormal      = 0,
+		kInventory   = 1,
+		kPrayerStick = 2
 	};
 
 	GLCelRes _normalCel;

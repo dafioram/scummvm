@@ -23,13 +23,37 @@
 #ifndef SCI_S2_MOVIE_MANAGER_H
 #define SCI_S2_MOVIE_MANAGER_H
 
+#undef abort
+#include <functional>
+#include "sci/s2/system/glmovie.h"
+#include "sci/s2/system/glmovie_player.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
+class S2Game;
+class S2Kernel;
+
 class S2MovieManager : public GLObject {
 public:
+	using Captioner = std::function<void(S2MovieManager &)>;
+
+	S2MovieManager(S2Kernel &kernel, S2Game &game);
+
 	void stopRobot(const bool);
+	void play(const uint16 movieNo, Captioner captioner = nullptr, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
+
+private:
+	S2Kernel &_kernel;
+	S2Game &_game;
+
+	GLMoviePlayer _player;
+	GLVmdMovie _movie;
+
+	bool _preventSkip;
+	bool _useHalfScreen;
+	int _frameNo;
 };
 
 } // End of namespace Sci

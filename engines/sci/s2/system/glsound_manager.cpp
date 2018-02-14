@@ -20,11 +20,47 @@
  *
  */
 
+#include "sci/s2/game.h"
+#include "sci/s2/kernel.h"
 #include "sci/s2/system/glsound_manager.h"
 
 namespace Sci {
 
+GLSoundManager::GLSoundManager(S2Game &game, ResourceManager &resourceManager, Audio32 &mixer) :
+	_game(game),
+	_resourceManager(resourceManager),
+	_mixer(mixer) {}
+
 void GLSoundManager::doIt() {
+	for (auto sound = _sounds.begin(); sound != _sounds.end(); ) {
+		const auto state = sound->getState();
+		if (state == GLSound::State::Finished || state == GLSound::State::Fading) {
+			const auto volume = _mixer.getVolume(sound->getResourceNo());
+			int16 finishedVolume;
+			if (state == GLSound::State::Fading) {
+				finishedVolume = sound->getVolume();
+			} else {
+				finishedVolume = 0;
+			}
+
+			if (volume == finishedVolume) {
+				if (sound->getCaller()) {
+					_game.addCue(sound->getCaller(), this);
+				}
+
+				if (sound->getResource()) {
+					_resourceManager.unlockResource(sound->getResource());
+				}
+
+				sound = _sounds.erase(sound);
+			} else {
+				++sound;
+			}
+		}
+	}
+}
+
+void GLSoundManager::stop() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 

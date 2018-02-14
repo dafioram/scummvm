@@ -20,8 +20,17 @@
  *
  */
 
+#include "sci/s2/system/glevent.h"
 #include "sci/s2/system/glquit_handler.h"
 
 namespace Sci {
+
+bool GLQuitHandler::handleEvent(GLEvent &event) {
+	if (event.getType() == kSciEventQuit) {
+		event.claim();
+	}
+
+	return event.isClaimed();
+}
 
 } // End of namespace Sci
