@@ -21,12 +21,35 @@
  */
 
 #include "sci/s2/system/glcue.h"
+#include "sci/s2/game.h"
 
 namespace Sci {
 
-GLCue::GLCue(GLObject *const cuee, GLObject *const cuer, const bool flag) :
-	_cuee(cuee),
-	_cuer(cuer),
-	_flag(flag) {}
+GLExtras *GLCue::_extras = nullptr;
+
+GLCue::GLCue(GLObject *const cuee, GLObject *const cuer, const int data, void *const dataPointer) :
+	GLObject() {
+	init(cuee, cuer, data, dataPointer);
+}
+
+void GLCue::init(GLObject *const cuee, GLObject *const cuer, const int data, void *const dataPointer) {
+	_cuee = cuee;
+	_cuer = cuer;
+	_data = data;
+	_dataPointer = dataPointer;
+	_extras->push_back(this);
+}
+
+void GLCue::doIt() {
+	if (check()) {
+		cue();
+	}
+}
+
+void GLCue::cue() {
+	_cuee->cue(*this);
+	_extras->remove(this);
+	delete this;
+}
 
 } // End of namespace Sci

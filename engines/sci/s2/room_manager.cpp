@@ -106,6 +106,62 @@ void S2RoomManager::deactivateRoom() {
 }
 
 void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
+	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth() - 1,
+									  _kernel.graphicsManager.getScriptHeight() - 1);
+
+	if (!_currentGlobalRoomNo) {
+		_game.getMovieManager().pauseRobot();
+		_game.getPhoneManager().cancelCall();
+		_game.getInterface().putText(0);
+		_lastSoundRoomNo = _game.getSoundManager().getRoomNo();
+		_lastNonGlobalRoomNo = getCurrentRoom();
+		_game.getSoundManager().deleteAmbient(_lastSoundRoomNo);
+		_game.getSoundManager().stop();
+		_game.getSoundManager().play(30004, true, 0);
+		_game.getSoundManager().fade(30004, 80, 15, 12, false);
+		if (roomNo >= 4200 && roomNo <= 4240 && _plane && _planeIsVisible) {
+			_game.getPlanes().remove(*_plane);
+			_plane.reset();
+			_planeIsVisible = false;
+		}
+		deactivateRoom();
+
+		if (fullscreen) {
+			_game.getInterface().hide();
+			_globalPlane.reset(new GLPicturePlane(fullscreenRect, roomNo, 200));
+		} else {
+			_globalPlane.reset(new GLPicturePlane(fullscreenRect, 1, 3));
+			_globalPlane->addPicAt(roomNo, 64, 0);
+		}
+		_game.getPlanes().add(*_globalPlane);
+	} else {
+		disposeGlobalRoom();
+		const auto planeRect(_globalPlane->getRect());
+		if (fullscreen && planeRect.height() != _kernel.graphicsManager.getScriptHeight()) {
+			_game.getPlanes().remove(*_globalPlane);
+			_globalPlane.reset(new GLPicturePlane(fullscreenRect, roomNo, 200));
+			_game.getPlanes().add(*_globalPlane);
+		} else if (!fullscreen) {
+			if (planeRect.height() == _kernel.graphicsManager.getScriptHeight()) {
+				_game.getPlanes().remove(*_globalPlane);
+				_game.getInterface().show();
+				_globalPlane.reset(new GLPicturePlane(fullscreenRect, 1, 3));
+				_globalPlane->addPicAt(roomNo, 64, 0);
+			} else {
+				_globalPlane->addPicAt(roomNo, 64, 0);
+			}
+		}
+	}
+
+	_currentGlobalRoomNo = roomNo;
+	initGlobalRoom(roomNo);
+}
+
+void S2RoomManager::initGlobalRoom(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2RoomManager::disposeGlobalRoom() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 

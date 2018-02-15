@@ -39,14 +39,16 @@ public:
 		return std::bind(fn, object, _1, _2);
 	}
 
-	GLScript(ChangeStateHandler callback, const int initialState = 0);
+	GLScript(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
+	virtual void cue() override;
 
-	void cue();
-	virtual void cue(GLCue &) override { cue(); }
-
-	void setTicks(const uint32 ticks);
+protected:
+	GLScript() : GLTimer() {}
+	void init(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
 
 private:
+	using GLCue::init;
+
 	ChangeStateHandler _changeState;
 	int _state;
 };

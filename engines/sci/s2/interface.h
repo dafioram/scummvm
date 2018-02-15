@@ -31,6 +31,8 @@ class S2Interface : public GLObject {
 public:
 	S2Interface();
 
+	void show();
+	void hide();
 	void putText(const uint16 messageNo);
 	bool getIsCaptioningOn() const { return _isCaptioningOn; }
 

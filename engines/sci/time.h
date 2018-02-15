@@ -34,6 +34,12 @@ class GfxFrameout;
 
 class TimeManager {
 public:
+	enum TimeType {
+		k12HourTime    = 1,
+		k24HourTime    = 2,
+		kDaysSince1980 = 3
+	};
+
 	TimeManager(OSystem &system, Engine &engine, EventManager &eventMan);
 
 	inline void reset() {
@@ -52,6 +58,11 @@ public:
 	 * Enables throttling on the next call to `throttle`.
 	 */
 	inline void enableNextThrottle() { _throttleNextCall = true; }
+
+	/**
+	 * Gets the current system date/time.
+	 */
+	uint32 getSystemDate(const TimeType type = k12HourTime) const;
 
 	/**
 	 * Conditionally delays execution so that at least `ms` milliseconds are

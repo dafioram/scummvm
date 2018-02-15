@@ -25,11 +25,14 @@
 
 #include "common/rect.h"
 #include "sci/graphics/celobj32.h"
+#include "sci/s2/system/globject.h"
+#include "sci/s2/system/glset.h"
 
 namespace Sci {
 
 using GLCelRes = CelInfo32;
 using GLPoint = Common::Point;
+using GLExtras = GLSetAsArray<GLObject>;
 
 } // End of namespace Sci
 

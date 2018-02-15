@@ -27,9 +27,8 @@ namespace Sci {
 
 VMDPlayer *GLVmdMovie::_kernelPlayer = nullptr;
 
-AbsGLMovie::AbsGLMovie(const uint16 movieNo) : _movieNo(movieNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+AbsGLMovie::AbsGLMovie(const uint16 movieNo) :
+	_movieNo(movieNo) {}
 
 VideoPlayer::EventFlags GLVmdMovie::play() {
 	if (_kernelPlayer->getStatus() == VMDPlayer::kVMDNotOpen) {

@@ -23,6 +23,7 @@
 #ifndef SCI_S2_SOUND_MANAGER_H
 #define SCI_S2_SOUND_MANAGER_H
 
+#include "sci/engine/vm_types.h"
 #include "sci/s2/system/glsound_manager.h"
 
 namespace Sci {

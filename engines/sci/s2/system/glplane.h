@@ -43,12 +43,13 @@ public:
 	virtual ~AbsGLPlane();
 
 	reg_t getId() const { return _plane->_object; }
+	const Common::Rect &getRect() const { return _plane->_gameRect; }
 	GLCast &getCast() { return _cast; }
 
 	void toGlobal(Common::Point &point) const;
 	void toLocal(Common::Point &point) const;
 
-private:
+protected:
 	static GfxFrameout *_graphicsManager;
 
 	// This plane object is owned by GfxFrameout
@@ -57,7 +58,12 @@ private:
 	bool _isDirty;
 };
 
-class GLPicturePlane : public AbsGLPlane {};
+class GLPicturePlane : public AbsGLPlane {
+public:
+	GLPicturePlane(const Common::Rect &rect, const uint16 resourceNo, const int16 priority, const bool mirrored = false, const GLPoint &vanishingPoint = GLPoint(0, 0));
+
+	void addPicAt(const uint16 resourceNo, const int16 x, const int16 y, const bool mirrorX = false, const bool deleteDuplicate = true);
+};
 
 class GLTransparentPlane : public AbsGLPlane {
 public:

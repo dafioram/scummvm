@@ -42,6 +42,26 @@ TimeManager::TimeManager(OSystem &system, Engine &engine, EventManager &eventMan
 #endif
 	{}
 
+uint32 TimeManager::getSystemDate(const TimeType type) const {
+	TimeDate now;
+	g_system->getTimeAndDate(now);
+	switch (type) {
+	case k12HourTime: {
+		uint hour = now.tm_hour;
+		if (hour == 0) {
+			hour = 12;
+		} else if (hour > 12) {
+			hour -= 12;
+		}
+		return (hour << 12) | (now.tm_min << 6) | now.tm_sec;
+	}
+	case k24HourTime:
+		return (now.tm_hour << 11) | (now.tm_min << 5) | (now.tm_sec >> 1);
+	case kDaysSince1980:
+		return ((now.tm_year - 80) << 9) | ((now.tm_mon + 1) << 5) | now.tm_mday;
+	}
+}
+
 void TimeManager::throttle(const uint32 ms, const bool enableNext) {
 	if (_throttleNextCall) {
 		const uint32 now = _system.getMillis();

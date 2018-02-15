@@ -29,6 +29,7 @@
 
 namespace Sci {
 
+// TODO: Get rid of this silly abstraction, it is not needed
 class AbsGLMovie : public GLObject {
 public:
 	AbsGLMovie(const uint16 movieNo = 0);

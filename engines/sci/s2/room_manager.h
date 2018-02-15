@@ -54,6 +54,8 @@ public:
 	void deactivateRoom();
 
 	void loadGlobalRoom(const int roomNo, const bool fullscreen);
+	void initGlobalRoom(const int roomNo);
+	void disposeGlobalRoom();
 	void unloadGlobalRoom();
 
 	void drawPan(const uint16 resourceNo);
@@ -66,17 +68,24 @@ private:
 	S2Kernel &_kernel;
 	S2Game &_game;
 	bool _isSaved;
+
 	int _previousRoomNo;
 	int _currentRoomNo;
-	int _currentGlobalRoomNo;
-	int _lastSoundRoomNo;
+
 	Common::ScopedPtr<S2Room> _currentRoom;
+
+	int _lastSoundRoomNo;
+
 	Common::ScopedPtr<GLPicturePlane> _plane;
 	bool _planeIsVisible;
 	Common::ScopedPtr<GLPanorama> _panorama;
 	Common::Array<S2Exit> _exits;
 	Common::Array<S2Hotspot> _hotspots;
 	Common::Array<GLCel> _cels;
+
+	Common::ScopedPtr<GLPicturePlane> _globalPlane;
+	int _currentGlobalRoomNo;
+	int _lastNonGlobalRoomNo;
 };
 
 } // End of namespace Sci

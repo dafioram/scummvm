@@ -31,6 +31,14 @@ GLSoundManager::GLSoundManager(S2Game &game, ResourceManager &resourceManager, A
 	_resourceManager(resourceManager),
 	_mixer(mixer) {}
 
+void GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void GLSoundManager::fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopOnFade, GLObject *const caller, const reg_t soundNode) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void GLSoundManager::doIt() {
 	for (auto sound = _sounds.begin(); sound != _sounds.end(); ) {
 		const auto state = sound->getState();
@@ -45,7 +53,7 @@ void GLSoundManager::doIt() {
 
 			if (volume == finishedVolume) {
 				if (sound->getCaller()) {
-					_game.addCue(sound->getCaller(), this);
+					new GLCue(sound->getCaller(), this);
 				}
 
 				if (sound->getResource()) {

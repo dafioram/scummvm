@@ -37,6 +37,10 @@ S2MovieManager::S2MovieManager(S2Kernel &kernel, S2Game &game) :
 	GLVmdMovie::init(&kernel.graphicsManager._video.getVMDPlayer());
 }
 
+void S2MovieManager::pauseRobot() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2MovieManager::stopRobot(const bool) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
@@ -60,7 +64,13 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 
 	{
 		GLTransparentPlane plane(Common::Rect(_kernel.graphicsManager.getScriptWidth() - 1, _kernel.graphicsManager.getScriptHeight() - 1), 4);
-		_kernel.graphicsManager._video.getVMDPlayer().setPlane(200, plane.getId());
+
+		// HACK: Allow HQ video as long as there is no captioning (since the
+		// captions need to composite on top of the video); normally this was
+		// always 200
+		const int16 planePriority = captioner ? 200 : 0;
+
+		_kernel.graphicsManager._video.getVMDPlayer().setPlane(planePriority, plane.getId());
 
 		if ((keepRoom && forceDoublePixels) || !_useHalfScreen) {
 			const int flags = VMDPlayer::kPlayFlagDoublePixels | VMDPlayer::kPlayFlagBlackLines;

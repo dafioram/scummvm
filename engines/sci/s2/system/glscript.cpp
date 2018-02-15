@@ -25,19 +25,23 @@
 
 namespace Sci {
 
-GLScript::GLScript(ChangeStateHandler callback, const int initialState) :
+GLScript::GLScript(ChangeStateHandler callback, const int initialState, const int data, void *const dataPointer) :
+	GLTimer(nullptr, nullptr, data, dataPointer),
 	_changeState(callback),
 	_state(initialState - 1) {
 
 	cue();
 }
 
-void GLScript::cue() {
-	_changeState(*this, ++_state);
+void GLScript::init(ChangeStateHandler callback, const int initialState, const int data, void *const dataPointer) {
+	_changeState = callback;
+	_state = initialState - 1;
+	GLCue::init(nullptr, nullptr, data, dataPointer);
+	cue();
 }
 
-void GLScript::setTicks(const uint32 ticks) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void GLScript::cue() {
+	_changeState(*this, ++_state);
 }
 
 } // End of namespace Sci

@@ -41,6 +41,7 @@ public:
 
 	S2MovieManager(S2Kernel &kernel, S2Game &game);
 
+	void pauseRobot();
 	void stopRobot(const bool);
 	void play(const uint16 movieNo, Captioner captioner = nullptr, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
 

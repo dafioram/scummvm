@@ -30,6 +30,7 @@ namespace Sci {
 class S2PhoneManager : public GLScript {
 public:
 	S2PhoneManager();
+	void init();
 
 	void cancelCall();
 

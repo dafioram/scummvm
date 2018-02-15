@@ -32,6 +32,10 @@ void GLPlaneManager::doIt() {
 	}
 }
 
+void GLPlaneManager::add(AbsGLPlane &plane) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void GLPlaneManager::remove(AbsGLPlane &plane) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

@@ -41,6 +41,8 @@ S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
 	_volume(127) {
 	assert(!instance);
 	instance = this;
+	GLCue::init(&_extras);
+	_phoneManager.init();
 }
 
 void S2Game::run() {
@@ -90,10 +92,6 @@ bool S2Game::canSaveNow() const {
 bool S2Game::canLoadNow() const {
 	// TODO: Figure out these conditions
 	return true;
-}
-
-void S2Game::addCue(GLObject *const cuee, GLObject *const cuer, const bool flag) {
-	_extras.push_front(new GLCue(cuee, cuer, flag));
 }
 
 void S2Game::play() {

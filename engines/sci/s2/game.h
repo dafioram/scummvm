@@ -34,6 +34,7 @@
 #include "sci/s2/system/glplane_manager.h"
 #include "sci/s2/system/glset.h"
 #include "sci/s2/system/gluser.h"
+#include "sci/s2/system/types.h"
 
 class Engine;
 
@@ -70,12 +71,7 @@ public:
 	GLPlaneManager &getPlanes() { return _planes; }
 	GLUser &getUser() { return _user; }
 	S2Cursor &getCursor() { return _cursor; }
-	GLSetAsArray<GLObject> &getExtras() { return _extras; }
-
-	// In SSCI, GLCue added itself to the extras list in its constructor; we use
-	// a separate function on S2Game instead so it does not look like we are
-	// leaking at the call site
-	void addCue(GLObject *const cuee, GLObject *const cuer = nullptr, const bool flag = false);
+	GLExtras &getExtras() { return _extras; }
 
 private:
 	void play();
@@ -84,7 +80,7 @@ private:
 	GLPlaneManager _planes;
 	GLUser _user;
 	S2Cursor _cursor;
-	GLSetAsArray<GLObject> _extras;
+	GLExtras _extras;
 
 #pragma mark -
 #pragma mark S2Game

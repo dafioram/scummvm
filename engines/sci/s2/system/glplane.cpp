@@ -72,6 +72,13 @@ AbsGLPlane::~AbsGLPlane() {
 	_graphicsManager->deletePlane(*_plane);
 }
 
+GLPicturePlane::GLPicturePlane(const Common::Rect &rect, const uint16 resourceNo, const int16 priority, const bool mirrored, const GLPoint &vanishingPoint) :
+	AbsGLPlane(kPlaneTypePicture, rect, priority, vanishingPoint, 0, resourceNo, mirrored) {}
+
+void GLPicturePlane::addPicAt(const uint16 resourceNo, const int16 x, const int16 y, const bool mirrorX, const bool deleteDuplicate) {
+	_plane->addPic(resourceNo, Common::Point(x, y), mirrorX, deleteDuplicate);
+}
+
 GLTransparentPlane::GLTransparentPlane(const Common::Rect &rect, const int16 priority) :
 	AbsGLPlane(kPlaneTypeTransparent, rect, priority, GLPoint(0, 0), 0) {}
 

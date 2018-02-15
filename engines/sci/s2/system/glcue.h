@@ -24,17 +24,34 @@
 #define SCI_S2_SYSTEM_GLCUE_H
 
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
+class S2Game;
+
 class GLCue : public GLObject {
 public:
-	GLCue(GLObject *const cuee = nullptr, GLObject *const cuer = nullptr, const bool flag = nullptr);
+	static void init(GLExtras *extras) { _extras = extras; }
+
+	GLCue(GLObject *const cuee, GLObject *const cuer = nullptr, const int data = 0, void *const dataPointer = nullptr);
+
+	void doIt() override;
+	virtual void cue();
+	virtual void cue(GLCue &) override { cue(); }
+	virtual bool check() { return true; }
+
+protected:
+	GLCue() : GLObject() {}
+	void init(GLObject *const cuee, GLObject *const cuer, const int data, void *const dataPointer);
 
 private:
+	static GLExtras *_extras;
+
 	GLObject *_cuee;
 	GLObject *_cuer;
-	bool _flag;
+	int _data;
+	void *_dataPointer;
 };
 
 } // End of namespace Sci
