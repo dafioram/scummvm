@@ -20,10 +20,23 @@
  *
  */
 
+#ifndef SCI_S2_ROOMS_GLOBAL_H
+#define SCI_S2_ROOMS_GLOBAL_H
+
 #include "sci/s2/room.h"
 
 namespace Sci {
 
-// TODO: Delete this file if nothing common ends up in it
+class S2GlobalRoom : public S2Room {
+public:
+	using S2Room::S2Room;
+	virtual void init(const int roomNo) override;
+	virtual void dispose(const int roomNo) override;
+	virtual void doIt() override {}
+	virtual bool handleEvent(GLEvent &event) override;
+
+};
 
 } // End of namespace Sci
+
+#endif

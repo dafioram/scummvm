@@ -20,10 +20,21 @@
  *
  */
 
-#include "sci/s2/room.h"
+#include "common/textconsole.h"
+#include "sci/s2/rooms/global.h"
 
 namespace Sci {
 
-// TODO: Delete this file if nothing common ends up in it
+void S2GlobalRoom::init(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2GlobalRoom::dispose(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+bool S2GlobalRoom::handleEvent(GLEvent &event) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
 
 } // End of namespace Sci

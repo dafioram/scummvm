@@ -24,18 +24,18 @@
 #define SCI_S2_ROOM_H
 
 #include "common/ptr.h"
+#include "sci/s2/system/glscript.h"
 
 namespace Sci {
 
 class S2Game;
 class S2Kernel;
 class GLEvent;
-class GLScript;
 
 class S2Room {
 public:
 	S2Room(S2Kernel &kernel, S2Game &game) : _kernel(kernel), _game(game) {}
-	virtual ~S2Room();
+	virtual ~S2Room() {}
 	virtual void init(const int roomNo) = 0;
 	virtual void dispose(const int roomNo) = 0;
 	virtual void doIt() = 0;

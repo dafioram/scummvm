@@ -25,6 +25,7 @@
 #include "sci/s2/room.h"
 #include "sci/s2/room_manager.h"
 #include "sci/s2/rooms/1000.h"
+#include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glplane.h"
 
@@ -109,6 +110,16 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth() - 1,
 									  _kernel.graphicsManager.getScriptHeight() - 1);
 
+	// In SSCI the global room always existed and was baked into the main
+	// executable image; we treat it more like a regular room and so it needs to
+	// be initialised once when something tries to use it
+	// TODO: It may be possible to delete the global room in unloadGlobalRoom to
+	// avoid some extra deinitialisation code; check this once the room is
+	// actually implemented
+	if (!_globalRoom) {
+		_globalRoom.reset(new S2GlobalRoom(_kernel, _game));
+	}
+
 	if (!_currentGlobalRoomNo) {
 		_game.getMovieManager().pauseRobot();
 		_game.getPhoneManager().cancelCall();
@@ -135,7 +146,7 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 		}
 		_game.getPlanes().add(*_globalPlane);
 	} else {
-		disposeGlobalRoom();
+		_globalRoom->dispose(_currentGlobalRoomNo);
 		const auto planeRect(_globalPlane->getRect());
 		if (fullscreen && planeRect.height() != _kernel.graphicsManager.getScriptHeight()) {
 			_game.getPlanes().remove(*_globalPlane);
@@ -154,15 +165,7 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 	}
 
 	_currentGlobalRoomNo = roomNo;
-	initGlobalRoom(roomNo);
-}
-
-void S2RoomManager::initGlobalRoom(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
-void S2RoomManager::disposeGlobalRoom() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_globalRoom->init(roomNo);
 }
 
 void S2RoomManager::unloadGlobalRoom() {

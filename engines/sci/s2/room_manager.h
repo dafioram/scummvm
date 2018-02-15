@@ -35,6 +35,7 @@ namespace Sci {
 class GLPanorama;
 class GLPicturePlane;
 class S2Game;
+class S2GlobalRoom;
 class S2Kernel;
 class S2Room;
 
@@ -54,8 +55,6 @@ public:
 	void deactivateRoom();
 
 	void loadGlobalRoom(const int roomNo, const bool fullscreen);
-	void initGlobalRoom(const int roomNo);
-	void disposeGlobalRoom();
 	void unloadGlobalRoom();
 
 	void drawPan(const uint16 resourceNo);
@@ -83,6 +82,7 @@ private:
 	Common::Array<S2Hotspot> _hotspots;
 	Common::Array<GLCel> _cels;
 
+	Common::ScopedPtr<S2GlobalRoom> _globalRoom;
 	Common::ScopedPtr<GLPicturePlane> _globalPlane;
 	int _currentGlobalRoomNo;
 	int _lastNonGlobalRoomNo;
