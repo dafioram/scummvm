@@ -24,6 +24,16 @@
 #define SCI_S2_MOVIE_MANAGER_H
 
 #undef abort
+#undef FILE
+#undef time
+#undef mktime
+#undef localtime
+#undef gmtime
+#undef getdate
+#undef asctime
+#undef difftime
+#undef ctime
+#undef clock
 #include <functional>
 #include "sci/s2/system/glmovie.h"
 #include "sci/s2/system/glmovie_player.h"

@@ -24,6 +24,16 @@
 #define SCI_S2_SYSTEM_GLSCRIPT_H
 
 #undef abort
+#undef FILE
+#undef time
+#undef mktime
+#undef localtime
+#undef gmtime
+#undef getdate
+#undef asctime
+#undef difftime
+#undef ctime
+#undef clock
 #include <functional>
 #include "sci/s2/system/gltimer.h"
 
