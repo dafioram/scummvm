@@ -645,7 +645,7 @@ void SciEngine::initGraphics() {
 		// SCI32 graphic objects creation
 		_gfxCompare = new GfxCompare(_gamestate->_segMan, _gfxCache, nullptr, _gfxCoordAdjuster);
 		_gfxPaint32 = new GfxPaint32(_gamestate->_segMan);
-		_gfxFrameout = new GfxFrameout(_resMan, _features, _timeMan.get(), _eventMan, _audio32, _gamestate->_segMan);
+		_gfxFrameout = new GfxFrameout(_resMan, _features, _timeMan.get(), _eventMan, _audio32, _gamestate->_segMan, _gamestate->_segMan);
 		_gfxFrameout->attachDebugger(_console);
 		_gfxControls32 = new GfxControls32(_eventMan, _resMan, _timeMan.get(), _gamestate->_segMan, _gfxFrameout);
 	} else {

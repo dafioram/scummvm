@@ -34,6 +34,7 @@
 #include "graphics/transparent_surface.h" // for TransparentSurface
 #include "sci/console.h"                 // for Console
 #include "sci/engine/features.h"         // for GameFeatures
+#include "sci/engine/segment.h"          // for BitmapProvider
 #include "sci/engine/state.h"            // for EngineState
 #include "sci/engine/vm_types.h"         // for reg_t
 #include "sci/event.h"                   // for SciEvent, EventManager, SCI_...
@@ -494,7 +495,7 @@ uint16 AVIPlayer::getDuration() const {
 #pragma mark -
 #pragma mark VMDPlayer
 
-VMDPlayer::VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
+VMDPlayer::VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, BitmapProvider *segMan) :
 	VideoPlayer(timeMan, eventMan, frameout, new Video::AdvancedVMDDecoder(Audio::Mixer::kSFXSoundType)),
 	_resMan(resMan),
 	_features(features),
@@ -592,9 +593,8 @@ void VMDPlayer::init(int16 x, const int16 y, const PlayFlags flags, const int16 
 #endif
 	_stretchVertical = flags & kPlayFlagStretchVertical;
 
-	setDrawRect(x, y,
-				(_decoder->getWidth() << _doublePixels),
-				(_decoder->getHeight() << (_doublePixels || _stretchVertical)));
+	_drawRect.left = x;
+	_drawRect.top = y;
 }
 
 VMDPlayer::IOStatus VMDPlayer::close() {
@@ -703,6 +703,10 @@ VMDPlayer::EventFlags VMDPlayer::playUntilEvent(const EventFlags flags, const ui
 			_blackoutPlane = new Plane(_blackoutRect);
 			_gfxFrameout->addPlane(_blackoutPlane);
 		}
+
+		setDrawRect(_drawRect.left, _drawRect.top,
+					(_decoder->getWidth() << _doublePixels),
+					(_decoder->getHeight() << (_doublePixels || _stretchVertical)));
 
 		if (shouldUseCompositing()) {
 			_isComposited = true;
@@ -1013,7 +1017,7 @@ void VMDPlayer::restrictPalette(const uint8 startColor, const int16 endColor) {
 #pragma mark -
 #pragma mark DuckPlayer
 
-DuckPlayer::DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, SegManager *segMan) :
+DuckPlayer::DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout) :
 	VideoPlayer(timeMan, eventMan, frameout, new Video::AVIDecoder()),
 	_plane(nullptr),
 	_status(kDuckClosed),

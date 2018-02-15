@@ -30,6 +30,7 @@
 #include "sci/event.h"
 #include "sci/sci.h"
 #include "sci/time.h"
+#include "sci/s2/bitmap_manager.h"
 
 class OSystem;
 
@@ -46,6 +47,7 @@ public:
 	EventManager eventManager;
 	TimeManager timeManager;
 	Audio32 audioMixer;
+	BitmapManager bitmapManager;
 	GfxFrameout graphicsManager;
 };
 } // End of namespace Sci

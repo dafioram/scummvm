@@ -75,6 +75,7 @@ Plane::Plane(const PlanePictureCodes type, const uint8 backColor, const Common::
 	_pictureId(type),
 	_mirrored(mirrored),
 	_back(backColor),
+	_priorityChanged(0),
 	_object(make_reg(0, _nextObjectId++)),
 	_priority(priority),
 	_vanishingPoint(vanishingPoint),
@@ -880,6 +881,14 @@ void Plane::update(const reg_t object) {
 
 	_mirrored = readSelectorValue(_segMan, object, SELECTOR(mirrored));
 	_back = readSelectorValue(_segMan, object, SELECTOR(back));
+}
+
+void Plane::addScreenItem(ScreenItem &screenItem) {
+	_screenItemList.add(&screenItem);
+}
+
+void Plane::updateScreenItem(ScreenItem &screenItem) {
+	screenItem.update();
 }
 
 void Plane::scrollScreenItems(const int16 deltaX, const int16 deltaY, const bool scrollPics) {

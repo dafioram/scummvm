@@ -324,6 +324,17 @@ public:
 	void update(const reg_t object);
 
 	/**
+	 * Adds the given screen item to this plane. The passed object becomes owned
+	 * by this plane.
+	 */
+	void addScreenItem(ScreenItem &screenItem);
+
+	/**
+	 * Updates the given screen item in this plane.
+	 */
+	void updateScreenItem(ScreenItem &screenItem);
+
+	/**
 	 * Modifies the position of all non-pic screen items by the given delta. If
 	 * `scrollPics` is true, pic items are also repositioned.
 	 */

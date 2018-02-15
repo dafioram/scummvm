@@ -910,6 +910,15 @@ struct ArrayTable : public SegmentObjTable<SciArray> {
 #pragma mark -
 #pragma mark Bitmaps
 
+class SciBitmap;
+class BitmapProvider {
+public:
+	virtual ~BitmapProvider() {}
+	virtual SciBitmap *allocateBitmap(reg_t *addr, const int16 width, const int16 height, const uint8 skipColor, const int16 originX, const int16 originY, const int16 xResolution, const int16 yResolution, const uint32 paletteSize, const bool remap, const bool gc) = 0;
+	virtual SciBitmap *lookupBitmap(const reg_t addr) = 0;
+	virtual void freeBitmap(const reg_t addr) = 0;
+};
+
 enum {
 	kDefaultSkipColor = 250
 };

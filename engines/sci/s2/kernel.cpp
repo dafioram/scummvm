@@ -34,7 +34,7 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	eventManager(false),
 	timeManager(system, engine, eventManager),
 	audioMixer(&resourceManager, &features, &timeManager),
-	graphicsManager(&resourceManager, &features, &timeManager, &eventManager, &audioMixer) {
+	graphicsManager(&resourceManager, &features, &timeManager, &eventManager, &audioMixer, &bitmapManager) {
 	GLEvent::init(&eventManager);
 	AbsGLPlane::init(&graphicsManager);
 }

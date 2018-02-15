@@ -84,10 +84,10 @@ const CelScalerTable &CelScaler::getScalerTable(const Ratio &scaleX, const Ratio
 ResourceManager *CelObj::_resMan = nullptr;
 GfxFrameout *CelObj::_gfxFrameout = nullptr;
 GameFeatures *CelObj::_features = nullptr;
-SegManager *CelObj::_segMan = nullptr;
+BitmapProvider *CelObj::_segMan = nullptr;
 bool CelObj::_drawBlackLines = false;
 
-void CelObj::init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) {
+void CelObj::init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, BitmapProvider *segMan) {
 	CelObj::deinit();
 	_resMan = resMan;
 	_features = features;

@@ -32,7 +32,7 @@
 #include "common/substream.h"        // for SeekableSubReadStreamEndian
 #include "common/textconsole.h"      // for error, warning
 #include "common/types.h"            // for Flag::NO, Flag::YES
-#include "sci/engine/seg_manager.h"  // for SegManager
+#include "sci/engine/segment.h"      // for BitmapProvider
 #include "sci/graphics/celobj32.h"   // for Ratio, ::kLowResX, ::kLowResY
 #include "sci/graphics/frameout.h"   // for GfxFrameout
 #include "sci/graphics/text32.h"     // for BitmapResource
@@ -339,7 +339,7 @@ int RobotAudioStream::readBuffer(Audio::st_sample_t *outBuffer, int numSamples) 
 
 Audio32 *RobotDecoder::_audio32 = nullptr;
 
-RobotDecoder::RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
+RobotDecoder::RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, BitmapProvider *segMan) :
 	_delayTime(this),
 	_timeMan(timeMan),
 	_gfxFrameout(frameout),

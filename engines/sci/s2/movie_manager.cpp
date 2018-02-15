@@ -75,19 +75,21 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 		// Ignored cache size set here
 		_movie.showCursor(false);
 
-		int playFlags = VMDPlayer::kEventFlagToFrame;
+		int playFlags = VMDPlayer::kEventFlagNone;
 		if (!_preventSkip) {
 			playFlags |= VMDPlayer::kEventFlagMouseDown;
 		}
 
 		if (captioner && _game.getInterface().getIsCaptioningOn()) {
-			VMDPlayer::EventFlags flag;
+			VMDPlayer::EventFlags result;
+			playFlags |= VMDPlayer::kEventFlagToFrame;
 			do {
 				captioner(*this);
 				_movie.setMovieEvent(VMDPlayer::EventFlags(playFlags), _frameNo);
-				flag = _player.play(_movie);
-			} while (flag == VMDPlayer::kEventFlagEnd && _frameNo != 9999);
+				result = _player.play(_movie);
+			} while (result == VMDPlayer::kEventFlagEnd && _frameNo != 9999);
 		} else {
+			playFlags |= VMDPlayer::kEventFlagEnd;
 			_movie.setMovieEvent(VMDPlayer::EventFlags(playFlags), _frameNo);
 			_player.play(_movie);
 		}
@@ -104,7 +106,7 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 	_kernel.eventManager.flushEvents();
 	_movie.showCursor(true);
 	_frameNo = 5;
-	_kernel.graphicsManager.frameOut(true);
+	_kernel.graphicsManager.kernelFrameOut(true);
 }
 
 } // End of namespace Sci

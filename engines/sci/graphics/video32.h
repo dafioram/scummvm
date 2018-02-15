@@ -40,13 +40,13 @@ class AdvancedVMDDecoder;
 }
 namespace Sci {
 class Audio32;
+class BitmapProvider;
 class EventManager;
 class GameFeatures;
 class GfxFrameout;
 class Plane;
 class ResourceManager;
 class ScreenItem;
-class SegManager;
 class SEQDecoder;
 struct Palette;
 
@@ -309,14 +309,14 @@ public:
 		kVMDFinished = 5
 	};
 
-	VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan);
+	VMDPlayer(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, BitmapProvider *segMan);
 	virtual ~VMDPlayer();
 
 private:
 	ResourceManager *_resMan;
 	GameFeatures *_features;
 	Audio32 *_audio32;
-	SegManager *_segMan;
+	BitmapProvider *_segMan;
 
 #pragma mark -
 #pragma mark VMDPlayer - Playback
@@ -643,7 +643,7 @@ public:
 		kDuckPaused  = 3
 	};
 
-	DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, SegManager *segMan);
+	DuckPlayer(TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout);
 
 	/**
 	 * Opens a stream to a Duck resource.
@@ -727,12 +727,12 @@ private:
  */
 class Video32 : public Common::Serializable {
 public:
-	Video32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan) :
+	Video32(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, GfxFrameout *frameout, Audio32 *audio, BitmapProvider *segMan) :
 		_SEQPlayer(timeMan, eventMan, frameout),
 		_AVIPlayer(timeMan, eventMan, frameout),
 		_VMDPlayer(resMan, features, timeMan, eventMan, frameout, audio, segMan),
 		_robotPlayer(timeMan, frameout, audio, segMan),
-		_duckPlayer(timeMan, eventMan, frameout, segMan) {}
+		_duckPlayer(timeMan, eventMan, frameout) {}
 
 	void beforeSaveLoadWithSerializer(Common::Serializer &ser);
 	virtual void saveLoadWithSerializer(Common::Serializer &ser);

@@ -43,7 +43,7 @@ int16 GfxText32::_yResolution = 0;
 int16 GfxText32::_scriptWidth = 0;
 int16 GfxText32::_scriptHeight = 0;
 
-GfxText32::GfxText32(ResourceManager *resMan, SegManager *segMan) :
+GfxText32::GfxText32(ResourceManager *resMan, BitmapProvider *segMan) :
 	_resMan(resMan),
 	_segMan(segMan),
 	// SSCI did not initialise height, so we intentionally do not do so also

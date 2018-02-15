@@ -55,7 +55,7 @@ class ResourceManager;
 class GfxText32 {
 private:
 	ResourceManager *_resMan;
-	SegManager *_segMan;
+	BitmapProvider *_segMan;
 
 	/**
 	 * The size of the x-dimension of the coordinate system used by the game
@@ -153,7 +153,7 @@ private:
 	int16 getTextWidth(const uint index, uint length) const;
 
 public:
-	GfxText32(ResourceManager *resMan, SegManager *segMan);
+	GfxText32(ResourceManager *resMan, BitmapProvider *segMan);
 
 	/**
 	 * Initialises static GfxText32 members.

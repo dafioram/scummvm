@@ -61,14 +61,14 @@
 
 namespace Sci {
 
-GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan) :
+GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, BitmapProvider *bitmapProvider, SegManager *segMan) :
 	_isHiRes(detectHiRes(resMan->getGameMetadata())),
 	_palette(resMan, features, timeMan, this),
 	_remapper(features, this),
 	_cursor(resMan, features, this),
 	_transitions(features, timeMan, this, segMan),
-	_text(resMan, segMan),
-	_video(resMan, features, timeMan, eventMan, this, audio, segMan),
+	_text(resMan, bitmapProvider),
+	_video(resMan, features, timeMan, eventMan, this, audio, bitmapProvider),
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),
@@ -121,7 +121,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeMa
 	}
 
 	timeMan->attachRenderer(this);
-	CelObj::init(resMan, _features, this, _segMan);
+	CelObj::init(resMan, _features, this, bitmapProvider);
 	Plane::init(_features, this, _segMan);
 	ScreenItem::init(resMan, _features, this, _segMan);
 	GfxText32::init(_scriptWidth, _scriptHeight);
@@ -176,17 +176,15 @@ void GfxFrameout::addScreenItem(ScreenItem &screenItem) const {
 	if (plane == nullptr) {
 		error("GfxFrameout::addScreenItem: Could not find plane %04x:%04x for screen item %04x:%04x", PRINT_REG(screenItem._plane), PRINT_REG(screenItem._object));
 	}
-	plane->_screenItemList.add(&screenItem);
+	plane->addScreenItem(screenItem);
 }
 
 void GfxFrameout::updateScreenItem(ScreenItem &screenItem) const {
-	// TODO: In SCI3+ this will need to go through Plane
-//	Plane *plane = _planes.findByObject(screenItem._plane);
-//	if (plane == nullptr) {
-//		error("GfxFrameout::updateScreenItem: Could not find plane %04x:%04x for screen item %04x:%04x", PRINT_REG(screenItem._plane), PRINT_REG(screenItem._object));
-//	}
-
-	screenItem.update();
+	Plane *plane = _planes.findByObject(screenItem._plane);
+	if (plane == nullptr) {
+		error("GfxFrameout::updateScreenItem: Could not find plane %04x:%04x for screen item %04x:%04x", PRINT_REG(screenItem._plane), PRINT_REG(screenItem._object));
+	}
+	plane->updateScreenItem(screenItem);
 }
 
 void GfxFrameout::deleteScreenItem(ScreenItem &screenItem) {

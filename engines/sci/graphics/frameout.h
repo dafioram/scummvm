@@ -55,7 +55,7 @@ class GfxFrameout {
 	friend class GfxTransitions32;
 
 public:
-	GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, SegManager *segMan = nullptr);
+	GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeManager *timeMan, EventManager *eventMan, Audio32 *audio, BitmapProvider *bitmapProvider, SegManager *segMan = nullptr);
 	~GfxFrameout();
 
 	void clear();

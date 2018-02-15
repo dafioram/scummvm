@@ -268,11 +268,11 @@ public:
 #pragma mark -
 #pragma mark CelObj
 
+class BitmapProvider;
 class ScreenItem;
 class ResourceManager;
 class GfxFrameout;
 class GameFeatures;
-class SegManager;
 struct MAPPER_Map;
 struct MAPPER_NoMap;
 /**
@@ -301,10 +301,9 @@ protected:
 	static GameFeatures *_features;
 
 	/**
-	 * A pointer to the currently active SegManager instance. This will be null
-	 * for non-interpreted games.
+	 * A pointer to the currently active BitmapProvider instance.
 	 */
-	static SegManager *_segMan;
+	static class BitmapProvider *_segMan;
 
 	/**
 	 * When true, every second line of the cel will be rendered as a black line.
@@ -400,7 +399,7 @@ public:
 	/**
 	 * Initialises static CelObj members.
 	 */
-	static void init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan);
+	static void init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, BitmapProvider *segMan);
 
 	/**
 	 * Frees static CelObj members.

@@ -20,30 +20,29 @@
  *
  */
 
-#ifndef SCI_S2_DEBUGGER_H
-#define SCI_S2_DEBUGGER_H
-
-#include "sci/debugger.h"
+#include "sci/engine/segment.h"
+#include "sci/s2/bitmap_manager.h"
 
 namespace Sci {
 
-class S2Game;
-class S2Kernel;
+SciBitmap *BitmapManager::allocateBitmap(reg_t *addr, const int16 width, const int16 height, const uint8 skipColor, const int16 originX, const int16 originY, const int16 xResolution, const int16 yResolution, const uint32 paletteSize, const bool remap, const bool gc) {
+	uint offset = _table.allocEntry();
+	*addr = make_reg(0, offset + 1);
+	SciBitmap &bitmap = _table.at(offset);
+	bitmap.create(width, height, skipColor, originX, originY, xResolution, yResolution, paletteSize, remap, gc);
+	return &bitmap;
+}
 
-class S2Debugger : public Debugger {
-public:
-	S2Debugger(S2Kernel &kernel, S2Game &game);
+SciBitmap *BitmapManager::lookupBitmap(const reg_t addr) {
+	const uint32 index = addr.getOffset() - 1;
+	if (!_table.isValidEntry(index)) {
+		return nullptr;
+	}
+	return &_table.at(index);
+}
 
-protected:
-	virtual bool cmdHelp(int argc, const char **argv) override;
-
-private:
-	bool cmdBitmapInfo(int argc, const char **argv);
-
-	S2Kernel &_kernel;
-	S2Game &_game;
-};
+void BitmapManager::freeBitmap(const reg_t addr) {
+	_table.freeEntry(addr.getOffset() - 1);
+}
 
 } // End of namespace Sci
-
-#endif

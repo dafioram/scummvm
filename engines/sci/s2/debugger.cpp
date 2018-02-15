@@ -30,19 +30,57 @@
 namespace Sci {
 
 S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
-	Debugger(&kernel.resourceManager, &kernel.graphicsManager, &kernel.audioMixer, nullptr) {
+	Debugger(&kernel.resourceManager, &kernel.graphicsManager, &kernel.audioMixer, nullptr),
+	_kernel(kernel),
+	_game(game) {
 
 	registerCmd("go", WRAP_METHOD(S2Debugger, cmdExit));
+	registerCmd("bitmap_info", WRAP_METHOD(S2Debugger, cmdBitmapInfo));
 
+	kernel.eventManager.attachDebugger(this);
 	kernel.graphicsManager.attachDebugger(this);
 }
 
 bool S2Debugger::cmdHelp(int argc, const char **argv) {
 	debugPrintf("Resources:\n");
 	printResourcesHelp();
+	debugPrintf("\nGraphics:\n");
+	debugPrintf("bitmap_info - Get information about an in-memory bitmap\n");
+	printGraphicsHelp();
 	debugPrintf("\n");
 	debugPrintf("Music/SFX:\n");
 	printAudioHelp();
+	return true;
+}
+
+bool S2Debugger::cmdBitmapInfo(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Display information about an in-memory bitmap.\n");
+		debugPrintf("Usage: %s <address>\n", argv[0]);
+		debugPrintf("Check the \"addresses\" command on how to use addresses\n");
+		return true;
+	}
+
+	reg_t id = NULL_REG;
+
+	if (parse_reg_t(nullptr, argv[1], &id, false)) {
+		debugPrintf("Invalid address passed.\n");
+		debugPrintf("Check the \"addresses\" command on how to use addresses\n");
+		return true;
+	}
+
+	if (id.isNull()) {
+		debugPrintf("Invalid address.\n");
+		return true;
+	}
+
+	SciBitmap *bitmap = _kernel.bitmapManager.lookupBitmap(id);
+	if (!bitmap) {
+		debugPrintf("Not a valid bitmap.\n");
+		return true;
+	}
+
+	debugPrintf("%s\n", bitmap->toString().c_str());
 	return true;
 }
 

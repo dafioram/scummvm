@@ -46,7 +46,11 @@ enum ScriptLoadType {
 
 class Script;
 
+#ifdef ENABLE_SCI32
+class SegManager : public BitmapProvider, public Common::Serializable {
+#else
 class SegManager : public Common::Serializable {
+#endif
 	friend class Console;
 public:
 	/**
@@ -61,7 +65,7 @@ public:
 
 	void resetSegMan();
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	virtual void saveLoadWithSerializer(Common::Serializer &ser) override;
 
 	// 1. Scripts
 
@@ -449,9 +453,9 @@ public:
 	void freeArray(reg_t addr);
 	bool isArray(reg_t addr) const;
 
-	SciBitmap *allocateBitmap(reg_t *addr, const int16 width, const int16 height, const uint8 skipColor = kDefaultSkipColor, const int16 originX = 0, const int16 originY = 0, const int16 xResolution = kLowResX, const int16 yResolution = kLowResY, const uint32 paletteSize = 0, const bool remap = false, const bool gc = true);
-	SciBitmap *lookupBitmap(reg_t addr);
-	void freeBitmap(reg_t addr);
+	virtual SciBitmap *allocateBitmap(reg_t *addr, const int16 width, const int16 height, const uint8 skipColor = kDefaultSkipColor, const int16 originX = 0, const int16 originY = 0, const int16 xResolution = kLowResX, const int16 yResolution = kLowResY, const uint32 paletteSize = 0, const bool remap = false, const bool gc = true) override;
+	virtual SciBitmap *lookupBitmap(reg_t addr) override;
+	virtual void freeBitmap(reg_t addr) override;
 #endif
 
 	const Common::Array<SegmentObj *> &getSegments() const { return _heap; }

@@ -51,9 +51,8 @@ public:
 private:
 	static GfxFrameout *_graphicsManager;
 
-	// TODO: AbsGLPlane destructor should be calling to GfxFrameout to delete
-	// the plane
-	Common::ScopedPtr<Plane> _plane;
+	// This plane object is owned by GfxFrameout
+	Plane *_plane;
 	GLCast _cast;
 	bool _isDirty;
 };

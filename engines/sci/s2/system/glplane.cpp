@@ -58,22 +58,18 @@ AbsGLPlane::AbsGLPlane(const PlaneType type, const Common::Rect &rect, int16 pri
 	}
 
 	Common::Rect exclusiveRect(rect);
-	++exclusiveRect.left;
+	++exclusiveRect.right;
 	++exclusiveRect.bottom;
 
-	_plane.reset(new Plane(pictureType, color, exclusiveRect, priority, vanishingPoint, pictureNo, mirrored));
+	_plane = new Plane(pictureType, color, exclusiveRect, priority, vanishingPoint, pictureNo, mirrored);
 
 	_cast = GLCast();
-	_graphicsManager->addPlane(_plane.get());
+	_graphicsManager->addPlane(_plane);
 	_plane->changePic();
 }
 
 AbsGLPlane::~AbsGLPlane() {
-	// TODO: How could there be no plane, since it is created in the
-	// constructor? Can it actually just be made a member of AbsGLPlane?
-	if (_plane) {
-		_graphicsManager->deletePlane(*_plane);
-	}
+	_graphicsManager->deletePlane(*_plane);
 }
 
 GLTransparentPlane::GLTransparentPlane(const Common::Rect &rect, const int16 priority) :

@@ -20,28 +20,24 @@
  *
  */
 
-#ifndef SCI_S2_DEBUGGER_H
-#define SCI_S2_DEBUGGER_H
+#ifndef SCI_S2_BITMAP_MANAGER_H
+#define SCI_S2_BITMAP_MANAGER_H
 
-#include "sci/debugger.h"
+#include "sci/engine/segment.h"
+#include "sci/engine/vm_types.h"
 
 namespace Sci {
 
-class S2Game;
-class S2Kernel;
+class SciBitmap;
 
-class S2Debugger : public Debugger {
+class BitmapManager : public BitmapProvider {
 public:
-	S2Debugger(S2Kernel &kernel, S2Game &game);
-
-protected:
-	virtual bool cmdHelp(int argc, const char **argv) override;
+	virtual SciBitmap *allocateBitmap(reg_t *addr, const int16 width, const int16 height, const uint8 skipColor, const int16 originX, const int16 originY, const int16 xResolution, const int16 yResolution, const uint32 paletteSize, const bool remap, const bool gc) override;
+	virtual SciBitmap *lookupBitmap(const reg_t addr) override;
+	virtual void freeBitmap(const reg_t addr) override;
 
 private:
-	bool cmdBitmapInfo(int argc, const char **argv);
-
-	S2Kernel &_kernel;
-	S2Game &_game;
+	BitmapTable _table;
 };
 
 } // End of namespace Sci

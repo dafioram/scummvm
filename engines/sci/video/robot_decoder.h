@@ -36,7 +36,7 @@
 namespace Common { class SeekableSubReadStreamEndian; }
 namespace Sci {
 class Plane;
-class SegManager;
+class BitmapProvider;
 
 // There were 3 different Robot video versions, used in the following games:
 // - v4: PQ:SWAT demo
@@ -448,7 +448,7 @@ class TimeManager;
  */
 class RobotDecoder {
 public:
-	RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, SegManager *segMan);
+	RobotDecoder(TimeManager *timeMan, GfxFrameout *frameout, Audio32 *audio, BitmapProvider *segMan);
 	~RobotDecoder();
 
 	GuiResourceId getResourceId() const {
@@ -460,7 +460,7 @@ private:
 
 	TimeManager *_timeMan;
 	GfxFrameout *_gfxFrameout;
-	SegManager *_segMan;
+	BitmapProvider *_segMan;
 
 	/**
 	 * The ID of the currently loaded robot.

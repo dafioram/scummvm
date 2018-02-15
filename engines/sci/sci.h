@@ -98,7 +98,6 @@ class GfxTransitions;
 #ifdef ENABLE_SCI32
 class GfxFrameout;
 class Audio32;
-class Video32;
 class GfxCursor32;
 #endif
 

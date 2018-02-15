@@ -41,6 +41,9 @@ S2Engine::S2Engine(OSystem &system, const GameMetadata &metadata) :
 void S2Engine::initializePath(const Common::FSNode &gamePath) {
 	Engine::initializePath(gamePath);
 	SearchMan.addSubDirectoryMatching(gamePath, "data");
+	SearchMan.addSubDirectoryMatching(gamePath, "movies");
+	SearchMan.addSubDirectoryMatching(gamePath, "patches");
+	SearchMan.addSubDirectoryMatching(gamePath, "robots");
 }
 
 Common::Error S2Engine::run() {
