@@ -257,6 +257,10 @@ int Debugger::parse_reg_t(EngineState *s, const char *str, reg_t *dest, bool may
 		}
 
 		if (charsForceObject) {
+			if (!s) {
+				return 1;
+			}
+
 			// We assume now that input is object name
 			// Object by name: "?OBJ" or "?OBJ.INDEX" or "?OBJ.INDEX+OFFSET" or "?OBJ.INDEX-OFFSET"
 			// The (optional) index can be used to distinguish multiple object with the same name.
