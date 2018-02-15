@@ -23,12 +23,12 @@
 #ifndef SCI_GRAPHICS_VIDEO32_H
 #define SCI_GRAPHICS_VIDEO32_H
 
+#include "common/scummsys.h"      // for int16, uint8, uint16, int32, USE_RGB_COLOR
 #ifdef USE_RGB_COLOR
 #include "common/config-manager.h" // for ConfMan
 #endif
 #include "common/ptr.h"
 #include "common/rect.h"          // for Rect
-#include "common/scummsys.h"      // for int16, uint8, uint16, int32
 #include "common/str.h"           // for String
 #include "sci/engine/vm_types.h"  // for reg_t
 #include "sci/video/robot_decoder.h" // for RobotDecoder
