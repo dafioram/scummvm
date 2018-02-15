@@ -51,19 +51,19 @@ GameFeatures *Plane::_features = nullptr;
 SegManager *Plane::_segMan = nullptr;
 
 Plane::Plane(const Common::Rect &gameRect, PlanePictureCodes pictureId) :
-_creationId(_nextCreationId++),
-_pictureId(pictureId),
-_mirrored(false),
-_type(kPlaneTypeColored),
-_back(0),
-_priorityChanged(false),
-_object(make_reg(0, _nextObjectId++)),
-_redrawAllCount(_gfxFrameout->getScreenCount()),
-_created(_gfxFrameout->getScreenCount()),
-_updated(0),
-_deleted(0),
-_moved(0),
-_gameRect(gameRect) {
+	_creationId(_nextCreationId++),
+	_pictureId(pictureId),
+	_mirrored(false),
+	_type(kPlaneTypeColored),
+	_back(0),
+	_priorityChanged(0),
+	_object(make_reg(0, _nextObjectId++)),
+	_redrawAllCount(_gfxFrameout->getScreenCount()),
+	_created(_gfxFrameout->getScreenCount()),
+	_updated(0),
+	_deleted(0),
+	_moved(0),
+	_gameRect(gameRect) {
 	convertGameRectToPlaneRect();
 	_priority = MAX(10000, _gfxFrameout->getPlanes().getTopPlanePriority() + 1);
 	setType();
@@ -89,18 +89,19 @@ Plane::Plane(const PlanePictureCodes type, const uint8 backColor, const Common::
 	if (_type == kPlaneTypePicture || _type == kPlaneTypeTransparentPicture) {
 		_pictureId = pictureNo;
 	}
+	_screenRect = _planeRect;
 }
 
 Plane::Plane(reg_t object) :
-_creationId(_nextCreationId++),
-_type(kPlaneTypeColored),
-_priorityChanged(false),
-_object(object),
-_redrawAllCount(_gfxFrameout->getScreenCount()),
-_created(_gfxFrameout->getScreenCount()),
-_updated(0),
-_deleted(0),
-_moved(0) {
+	_creationId(_nextCreationId++),
+	_type(kPlaneTypeColored),
+	_priorityChanged(0),
+	_object(object),
+	_redrawAllCount(_gfxFrameout->getScreenCount()),
+	_created(_gfxFrameout->getScreenCount()),
+	_updated(0),
+	_deleted(0),
+	_moved(0) {
 	_vanishingPoint.x = readSelectorValue(_segMan, object, SELECTOR(vanishingX));
 	_vanishingPoint.y = readSelectorValue(_segMan, object, SELECTOR(vanishingY));
 
@@ -128,17 +129,17 @@ _moved(0) {
 }
 
 Plane::Plane(const Plane &other) :
-_creationId(other._creationId),
-_pictureId(other._pictureId),
-_mirrored(other._mirrored),
-_type(other._type),
-_back(other._back),
-_object(other._object),
-_priority(other._priority),
-_planeRect(other._planeRect),
-_gameRect(other._gameRect),
-_screenRect(other._screenRect),
-_screenItemList(other._screenItemList) {}
+	_creationId(other._creationId),
+	_pictureId(other._pictureId),
+	_mirrored(other._mirrored),
+	_type(other._type),
+	_back(other._back),
+	_object(other._object),
+	_priority(other._priority),
+	_planeRect(other._planeRect),
+	_gameRect(other._gameRect),
+	_screenRect(other._screenRect),
+	_screenItemList(other._screenItemList) {}
 
 void Plane::operator=(const Plane &other) {
 	_creationId = other._creationId;
