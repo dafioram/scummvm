@@ -42,6 +42,8 @@ public:
 
 	S2Cursor(GfxCursor32 &kernelCursor);
 
+	bool hasInventory() const { return _inventoryState & kInventory; }
+
 private:
 	enum InventoryState {
 		kNormal      = 0,

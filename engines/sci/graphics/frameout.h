@@ -155,6 +155,12 @@ public:
 	 */
 	void deleteScreenItem(ScreenItem &screenItem, const reg_t plane);
 
+	/**
+	 * Gets the visible bounds of the given screen item in the given plane.
+	 * Returns true on success.
+	 */
+	bool getNowSeenRect(const reg_t planeObject, const reg_t screenItemObject, Common::Rect &result) const;
+
 	void kernelAddScreenItem(const reg_t object);
 	void kernelUpdateScreenItem(const reg_t object);
 	void kernelDeleteScreenItem(const reg_t object);
@@ -176,6 +182,11 @@ public:
 	 * `GraphicsMgr.screen`.
 	 */
 	void addPlane(Plane *plane);
+
+	/**
+	 * Updates an existing plane with properties from the given VM object.
+	 */
+	void updatePlane(Plane &plane);
 
 	/**
 	 * Deletes a plane within the current plane list.
@@ -205,11 +216,6 @@ private:
 	 * @note This field is on `GraphicsMgr.screen` in SSCI.
 	 */
 	PlaneList _planes;
-
-	/**
-	 * Updates an existing plane with properties from the given VM object.
-	 */
-	void updatePlane(Plane &plane);
 
 #pragma mark -
 #pragma mark Pics

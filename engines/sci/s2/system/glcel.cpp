@@ -20,8 +20,47 @@
  *
  */
 
+#include "sci/graphics/frameout.h"
 #include "sci/s2/system/glcel.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
+
+GLCel::GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
+	GLScreenItem(plane, viewNo, loopNo, celNo, position, priority, scaleInfo),
+	GLFeature(plane),
+	_cycler(nullptr),
+	_cycleTicks(6),
+	_moveTicks(6),
+	_stepSize(3, 3) {
+	GLFeature::setIsScreenItem(true);
+	GLFeature::setNeedsDoIt(true);
+	GLFeature::setNeedsEvent(true);
+	// SSCI called setBounds here but the underlying ScreenItem will never be
+	// part of the graphics system yet so this call would always fail
+	GLFeature::init();
+}
+
+void GLCel::show() {
+	getPlane().getCast().addEventHandler(*this);
+	GLScreenItem::show();
+}
+
+void GLCel::hide() {
+	getPlane().getCast().removeEventHandler(*this);
+	GLScreenItem::hide();
+}
+
+void GLCel::update() {
+	GLScreenItem::update();
+	setBounds();
+}
+
+void GLCel::setBounds() {
+	Common::Rect bounds;
+	if (getNowSeenRect(bounds)) {
+		setRect(bounds);
+	}
+}
 
 } // End of namespace Sci

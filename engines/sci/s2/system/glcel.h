@@ -23,12 +23,35 @@
 #ifndef SCI_S2_SYSTEM_GLCEL_H
 #define SCI_S2_SYSTEM_GLCEL_H
 
+#include "sci/graphics/screen_item32.h"
 #include "sci/s2/system/glfeature.h"
 #include "sci/s2/system/glscreen_item.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class GLCel : public GLScreenItem, public GLFeature {};
+class AbsGLPlane;
+class GLCycler;
+
+
+class GLCel : public GLScreenItem, public GLFeature {
+public:
+	GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo = ScaleInfo());
+
+	virtual void show() override;
+	virtual void hide() override;
+
+protected:
+	virtual void update() override;
+	void setBounds();
+
+private:
+	GLCycler *_cycler;
+
+	int _cycleTicks;
+	int _moveTicks;
+	GLPoint _stepSize;
+};
 
 } // End of namespace Sci
 

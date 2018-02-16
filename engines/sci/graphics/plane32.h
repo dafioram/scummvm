@@ -352,12 +352,6 @@ private:
 	inline void addPicInternal(const GuiResourceId pictureId, const Common::Point *position, const bool mirrorX);
 
 	/**
-	 * Marks all screen items to be deleted that are within this plane and match
-	 * the given picture ID.
-	 */
-	void deletePic(const GuiResourceId pictureId);
-
-	/**
 	 * Marks all screen items to be deleted that are within this plane and are
 	 * picture cels.
 	 */
@@ -379,10 +373,33 @@ public:
 
 	/**
 	 * Marks all screen items to be deleted that are within this plane and match
+	 * the given picture ID.
+	 */
+	void deletePic(const GuiResourceId pictureId);
+
+	/**
+	 * Marks all screen items to be deleted that are within this plane and match
 	 * the given picture ID, then sets the picture ID of the plane to the new
 	 * picture ID without adding any screen items.
 	 */
 	void deletePic(const GuiResourceId oldPictureId, const GuiResourceId newPictureId);
+
+#ifdef ENABLE_SCI32S2
+	GuiResourceId getPictureId() const { return _pictureId; }
+
+	/**
+	 * Sets the picture to the given picture ID and marks it as having changed
+	 * without changing any screen items.
+	 * @note In SSCI this function did not exist; Shivers 2 just directly
+	 * accessed members of the plane which were public in SSCI.
+	 */
+	void setPic(const GuiResourceId newPictureId) {
+		if (_pictureId != newPictureId) {
+			_pictureId = newPictureId;
+			_pictureChanged = true;
+		}
+	}
+#endif
 
 #pragma mark -
 #pragma mark Plane - Rendering

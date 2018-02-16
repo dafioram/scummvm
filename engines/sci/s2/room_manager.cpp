@@ -35,25 +35,75 @@ S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
 	_kernel(kernel),
 	_game(game),
 	_isSaved(true),
+	_roomIsActive(true),
+	_autoHighlight(true),
 	_previousRoomNo(0),
 	_currentRoomNo(0),
+	_nextRoomNo(0),
+	_lastSoundRoomNo(0),
+	_pictureIsVisible(false),
+	_currentPictureNo(0),
+	_panoramaIsVisible(false),
 	_currentGlobalRoomNo(0),
-	_lastSoundRoomNo(0) {}
+	_lastNonGlobalRoomNo(0) {
+	game.getExtras().push_back(this);
+	game.getUser().getOrphans().push_back(this);
+}
 
 S2RoomManager::~S2RoomManager() {
 	_game.getExtras().remove(this);
-	if (_plane && _planeIsVisible) {
-		_game.getPlanes().remove(*_plane);
-		_planeIsVisible = false;
+	if (_picture && _pictureIsVisible) {
+		_game.getPlanes().remove(*_picture);
+		_pictureIsVisible = false;
 		// TODO: Dtor was called explicitly here regardless of visibility; make
 		// sure it has no side effects which are important
 	}
-	if (_panorama && _planeIsVisible) {
+	if (_panorama && _pictureIsVisible) {
 		_game.getUser().getOrphans().remove(_panorama.get());
 		_game.getExtras().remove(_panorama.get());
 		// TODO: Dtor was called explicitly here regardless of visibility; make
 		// sure it has no side effects which are important
 	}
+}
+
+void S2RoomManager::doIt() {
+	if (!_currentRoomNo) {
+		return;
+	}
+
+	if (_nextRoomNo) {
+		newRoom(_nextRoomNo);
+		_nextRoomNo = 0;
+	} else { 
+		if (_pictureIsVisible && !_game.getCursor().hasInventory()) {
+			if (_game.getUser().getIsHandsOn()) {
+				if (_game.getCursor().isHandsOff()) {
+					_game.getCursor().goHandsOn();
+				}
+				checkMouse();
+			} else if (!_game.getCursor().isHandsOff()) {
+				_game.getCursor().endHighlight();
+				_game.getCursor().goHandsOff();
+			}
+		}
+
+		if (_currentRoom) {
+			_currentRoom->doIt();
+		}
+	}
+}
+
+bool S2RoomManager::handleEvent(GLEvent &event) {
+	if (_currentGlobalRoomNo) {
+		_globalRoom->handleEvent(event);
+		return true;
+	}
+
+	return _currentRoom->handleEvent(event);
+}
+
+void S2RoomManager::newRoom(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 bool S2RoomManager::loadRoom(const int roomNo) {
@@ -99,10 +149,12 @@ void S2RoomManager::initRoom(const int roomNo) {
 }
 
 void S2RoomManager::activateRoom() {
+	_roomIsActive = true;
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2RoomManager::deactivateRoom() {
+	_roomIsActive = false;
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
@@ -130,10 +182,10 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 		_game.getSoundManager().stop();
 		_game.getSoundManager().play(30004, true, 0);
 		_game.getSoundManager().fade(30004, 80, 15, 12, false);
-		if (roomNo >= 4200 && roomNo <= 4240 && _plane && _planeIsVisible) {
-			_game.getPlanes().remove(*_plane);
-			_plane.reset();
-			_planeIsVisible = false;
+		if (roomNo >= 4200 && roomNo <= 4240 && _picture && _pictureIsVisible) {
+			_game.getPlanes().remove(*_picture);
+			_picture.reset();
+			_pictureIsVisible = false;
 		}
 		deactivateRoom();
 
@@ -177,7 +229,117 @@ void S2RoomManager::drawPan(const uint16 resourceNo) {
 }
 
 void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (fullscreen) {
+		_game.getInterface().hide();
+	} else {
+		_game.getInterface().show();
+	}
+
+	if (_panorama && _panoramaIsVisible) {
+		_game.getExtras().remove(_panorama.get());
+		_game.getUser().getOrphans().remove(_panorama.get());
+		warning("TODO: Finish clearing panorama");
+		_panoramaIsVisible = false;
+	}
+
+	if (!_picture) {
+		const Common::Rect fullscreenRect(0, 0,
+										  _kernel.graphicsManager.getScriptWidth() - 1,
+										  _kernel.graphicsManager.getScriptHeight() - 1);
+		if (fullscreen) {
+			_picture.reset(new GLPicturePlane(fullscreenRect, resourceNo));
+		} else {
+			_picture.reset(new GLPicturePlane(fullscreenRect, 1));
+			_picture->addPicAt(resourceNo, 64, 0);
+		}
+	} else if (resourceNo != _currentPictureNo) {
+		if (fullscreen) {
+			_picture->setPic(resourceNo, true);
+		} else {
+			// In SSCI this called through the kernel; for consistency this is
+			// changed to use a plane method instead
+			_picture->deletePic(_currentPictureNo);
+
+			if (_picture->getPicNo() != 1) {
+				_picture->setPic(1);
+			}
+			_picture->addPicAt(resourceNo, 64, 0);
+		}
+	}
+
+	if (!_pictureIsVisible) {
+		_picture->setPriority(2, true);
+		_game.getPlanes().add(*_picture);
+		_pictureIsVisible = true;
+	} else {
+		_picture->repaint();
+	}
+
+	_currentPictureNo = resourceNo;
+}
+
+void S2RoomManager::checkMouse() {
+	if (!_roomIsActive) {
+		return;
+	}
+
+	Common::Point mousePosition = _game.getUser().getMousePosition();
+	bool hit = false;
+	if (_picture->checkIsOnMe(mousePosition)) {
+		GLCelRes highlightedCel = _game.getCursor().getHighlightedCelRes();
+		const auto localMousePosition(_picture->toLocal(mousePosition));
+
+		for (const auto &exit : _exits) {
+			if ((exit.getCursorCel() != 1 || _autoHighlight) &&
+				exit.getIsEnabled() &&
+				exit.checkIsOnMe(localMousePosition) &&
+				exit.getCursorCel() != 0) {
+				hit = true;
+
+				if (highlightedCel.celNo != exit.getCursorCel()) {
+					highlightedCel.celNo = exit.getCursorCel();
+					_game.getCursor().setHighlightedCelRes(highlightedCel);
+				}
+
+				break;
+			}
+		}
+
+		if (!hit && _autoHighlight) {
+			for (const auto &hotspot : _hotspots) {
+				if (hotspot.getIsEnabled() && hotspot.checkIsOnMe(localMousePosition)) {
+					hit = true;
+
+					if (highlightedCel.celNo != 1) {
+						highlightedCel.celNo = 1;
+						_game.getCursor().setHighlightedCelRes(highlightedCel);
+					}
+
+					break;
+				}
+			}
+			if (!hit) {
+				for (const auto &cel : _cels) {
+					if (cel.checkIsOnMe(localMousePosition)) {
+						hit = true;
+
+						if (highlightedCel.celNo != 1) {
+							highlightedCel.celNo = 1;
+							_game.getCursor().setHighlightedCelRes(highlightedCel);
+						}
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (hit && !_game.getCursor().isHighlighted()) {
+		_game.getCursor().beginHighlight();
+	} else if (!hit && _game.getCursor().isHighlighted()) {
+		_game.getCursor().endHighlight();
+	}
 }
 
 } // End of namespace Sci

@@ -47,6 +47,10 @@ public:
 	int getCurrentRoom() const { return _currentRoomNo; }
 	bool getIsSaved() const { return _isSaved; }
 
+	void doIt() override;
+	bool handleEvent(GLEvent &event) override;
+
+	void newRoom(const int roomNo);
 	bool loadRoom(const int roomNo);
 	void initRoom(const int roomNo);
 	void disposeRoom(const int roomNo);
@@ -54,6 +58,7 @@ public:
 	void activateRoom();
 	void deactivateRoom();
 
+	GLPicturePlane *getGlobalPlane() const { return _globalPlane.get(); }
 	void loadGlobalRoom(const int roomNo, const bool fullscreen);
 	void unloadGlobalRoom();
 
@@ -64,26 +69,35 @@ public:
 	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
 
 private:
+	void checkMouse();
+
 	S2Kernel &_kernel;
 	S2Game &_game;
 	bool _isSaved;
+	bool _roomIsActive;
+	bool _autoHighlight;
 
 	int _previousRoomNo;
 	int _currentRoomNo;
+	int _nextRoomNo;
 
 	Common::ScopedPtr<S2Room> _currentRoom;
 
 	int _lastSoundRoomNo;
 
-	Common::ScopedPtr<GLPicturePlane> _plane;
-	bool _planeIsVisible;
+	Common::ScopedPtr<GLPicturePlane> _picture;
+	bool _pictureIsVisible;
+	uint16 _currentPictureNo;
 	Common::ScopedPtr<GLPanorama> _panorama;
+	bool _panoramaIsVisible;
 	Common::Array<S2Exit> _exits;
 	Common::Array<S2Hotspot> _hotspots;
 	Common::Array<GLCel> _cels;
 
-	Common::ScopedPtr<S2GlobalRoom> _globalRoom;
+	// Keep these in order; `_globalPlane` must be destroyed *after*
+	// `_globalRoom` (or else changed to use a SharedPtr)
 	Common::ScopedPtr<GLPicturePlane> _globalPlane;
+	Common::ScopedPtr<S2GlobalRoom> _globalRoom;
 	int _currentGlobalRoomNo;
 	int _lastNonGlobalRoomNo;
 };

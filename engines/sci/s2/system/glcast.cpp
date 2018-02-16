@@ -22,11 +22,67 @@
 
 #include "common/textconsole.h"
 #include "sci/s2/system/glcast.h"
+#include "sci/s2/system/glevent.h"
+#include "sci/s2/system/globject.h"
+#include "sci/s2/system/glscreen_item.h"
+#include "sci/s2/system/gltarget.h"
 
 namespace Sci {
 
+void GLCast::add(GLObject &object) {
+	if (object.getIsScreenItem()) {
+		_screenItems.push_back(&static_cast<GLScreenItem &>(object));
+	}
+	if (object.getNeedsDoIt()) {
+		_doIts.push_back(&object);
+	}
+	if (object.getNeedsEvent()) {
+		_eventHandlers.push_back(&static_cast<GLTarget &>(object));
+	}
+}
+
+void GLCast::remove(GLObject &object) {
+	// SSCI did not check whether things were screen items or targets before
+	// passing pointers in; we do this to avoid UB. (It also checked to see if
+	// the list contained the element before trying to remove the element, which
+	// is not necessary.)
+	if (object.getIsScreenItem()) {
+		_screenItems.remove(&static_cast<GLScreenItem &>(object));
+	}
+	_doIts.remove(&object);
+	if (object.getNeedsEvent()) {
+		_eventHandlers.remove(&static_cast<GLTarget &>(object));
+	}
+}
+
 void GLCast::doIt() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	for (auto &object : _doIts) {
+		object->doIt();
+	}
+}
+
+bool GLCast::handleEvent(GLEvent &event) {
+	for (auto &target : _eventHandlers) {
+		target->handleEvent(event);
+		if (event.isClaimed()) {
+			break;
+		}
+	}
+
+	return event.isClaimed();
+}
+
+void GLCast::addEventHandler(GLTarget &target) {
+	target.setNeedsEvent(true);
+	_eventHandlers.push_back(&target);
+}
+
+void GLCast::removeEventHandler(GLTarget &target) {
+	// Check for existence moved down from call sites
+	if (_eventHandlers.contains(&target)) {
+		target.setNeedsEvent(false);
+		_eventHandlers.remove(&target);
+	}
 }
 
 } // End of namespace Sci

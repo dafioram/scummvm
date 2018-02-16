@@ -25,6 +25,7 @@
 #include "sci/s2/kernel.h"
 #include "sci/s2/system/glevent.h"
 #include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glscreen_item.h"
 #include "sci/s2/system/gltimer.h"
 
 namespace Sci {
@@ -39,6 +40,7 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	GLEvent::init(&eventManager);
 	AbsGLPlane::init(&graphicsManager);
 	GLTimer::init(&timeManager);
+	GLScreenItem::init(&graphicsManager);
 }
 
 } // End of namespace Sci

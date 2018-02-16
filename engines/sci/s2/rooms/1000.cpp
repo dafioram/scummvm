@@ -48,10 +48,6 @@ void S2Room1000::dispose(const int roomNo) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room1000::doIt() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
 bool S2Room1000::handleEvent(GLEvent &event) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 	return false;

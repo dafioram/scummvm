@@ -24,10 +24,31 @@
 #define SCI_S2_SYSTEM_GLPOLY_H
 
 #include "sci/s2/system/gltarget.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class GLPoly : public GLTarget {};
+class GLPoly : public GLTarget {
+public:
+	using PointsList = Common::Array<GLPoint>;
+
+	GLPoly(AbsGLPlane &plane);
+	GLPoly(AbsGLPlane &plane, const PointsList &points);
+	virtual ~GLPoly();
+
+	virtual bool checkIsOnMe(const GLPoint &point) const override;
+
+protected:
+	// TODO: Could probably be just moved into S2Exit along with ~GLPoly
+	// since S2Hotspot is the only other subclass and it does not use this
+	// functionality
+	void init();
+
+private:
+	PointsList _points;
+	int16 _priority = -9999;
+	uint8 _color = 0;
+};
 
 } // End of namespace Sci
 

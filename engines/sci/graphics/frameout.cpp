@@ -217,6 +217,31 @@ void GfxFrameout::deleteScreenItem(ScreenItem &screenItem, const reg_t planeObje
 	deleteScreenItem(screenItem, *plane);
 }
 
+bool GfxFrameout::getNowSeenRect(const reg_t planeObject, const reg_t screenItemObject, Common::Rect &result) const {
+	const Plane *plane = _planes.findByObject(planeObject);
+	if (plane == nullptr) {
+		error("getNowSeenRect: Plane %04x:%04x not found for screen item %04x:%04x", PRINT_REG(planeObject), PRINT_REG(screenItemObject));
+	}
+
+	const ScreenItem *screenItem = plane->_screenItemList.findByObject(screenItemObject);
+	if (screenItem == nullptr) {
+		// MGDX is assumed to use the older getNowSeenRect since it was released
+		// before SQ6, but this has not been verified since it cannot be
+		// disassembled at the moment (Phar Lap Windows-only release)
+		// (See also kSetNowSeen32)
+		if (_features->missingScreenItemIsError()) {
+			error("getNowSeenRect: Unable to find screen item %04x:%04x", PRINT_REG(screenItemObject));
+		}
+
+		warning("getNowSeenRect: Unable to find screen item %04x:%04x", PRINT_REG(screenItemObject));
+		return false;
+	}
+
+	result = screenItem->getNowSeenRect(*plane);
+
+	return true;
+}
+
 void GfxFrameout::kernelAddScreenItem(const reg_t object) {
 	const reg_t planeObject = readSelector(_segMan, object, SELECTOR(plane));
 
@@ -1308,28 +1333,7 @@ void GfxFrameout::updateMousePositionForRendering() const {
 
 bool GfxFrameout::getNowSeenRect(const reg_t screenItemObject, Common::Rect &result) const {
 	const reg_t planeObject = readSelector(_segMan, screenItemObject, SELECTOR(plane));
-	const Plane *plane = _planes.findByObject(planeObject);
-	if (plane == nullptr) {
-		error("getNowSeenRect: Plane %04x:%04x not found for screen item %04x:%04x", PRINT_REG(planeObject), PRINT_REG(screenItemObject));
-	}
-
-	const ScreenItem *screenItem = plane->_screenItemList.findByObject(screenItemObject);
-	if (screenItem == nullptr) {
-		// MGDX is assumed to use the older getNowSeenRect since it was released
-		// before SQ6, but this has not been verified since it cannot be
-		// disassembled at the moment (Phar Lap Windows-only release)
-		// (See also kSetNowSeen32)
-		if (_features->missingScreenItemIsError()) {
-			error("getNowSeenRect: Unable to find screen item %04x:%04x", PRINT_REG(screenItemObject));
-		}
-
-		warning("getNowSeenRect: Unable to find screen item %04x:%04x", PRINT_REG(screenItemObject));
-		return false;
-	}
-
-	result = screenItem->getNowSeenRect(*plane);
-
-	return true;
+	return getNowSeenRect(planeObject, screenItemObject, result);
 }
 
 bool GfxFrameout::kernelSetNowSeen(const reg_t screenItemObject) const {

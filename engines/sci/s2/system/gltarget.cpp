@@ -20,8 +20,31 @@
  *
  */
 
+#include "sci/s2/system/glevent.h"
 #include "sci/s2/system/gltarget.h"
 
 namespace Sci {
+
+GLUser *GLTarget::_user = nullptr;
+
+GLTarget::GLTarget() :
+	GLObject(),
+	_plane(nullptr),
+	_mouseHandler(nullptr) {}
+
+GLTarget::GLTarget(AbsGLPlane &plane) :
+	GLObject(),
+	_plane(&plane),
+	_mouseHandler(nullptr) {}
+
+bool GLTarget::handleEvent(GLEvent &event) {
+	if (event.getType() == kSciEventMouse && checkIsOnMe(event.getMousePosition())) {
+		if (_mouseHandler) {
+			_mouseHandler(event, *this);
+		}
+		event.claim();
+	}
+	return event.isClaimed();
+}
 
 } // End of namespace Sci

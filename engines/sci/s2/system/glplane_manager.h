@@ -39,6 +39,9 @@ public:
 	bool handleEvent(GLEvent &event);
 
 private:
+	/**
+	 * The list of currently displayed planes in decreasing order of priority.
+	 */
 	GLSetAsArray<AbsGLPlane> _planes;
 };
 

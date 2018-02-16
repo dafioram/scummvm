@@ -36,17 +36,29 @@ class GLCursor : public GLObject {
 public:
 	GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo);
 
-	void setHighlightCelRes(const GLCelRes &celInfo);
+	const GLCelRes &getHighlightedCelRes() { return _highlightedCel; }
+	void setHighlightedCelRes(const GLCelRes &celInfo);
 	void setHandsOffCelRes(const GLCelRes &celInfo);
 	Common::Point getPosition() const { return _position; }
 	void setPosition(const Common::Point &position);
 	void show();
 	void hide();
 
+	const bool isHighlighted() const { return _state & kHighlightedState; }
+	const bool isHandsOff() const { return _state & kHandsOffState; }
+
+	void goHandsOn();
+	void goHandsOff();
+
+	void beginHighlight();
+	void endHighlight();
+
 protected:
 	GfxCursor32 &_kernelCursor;
 
 private:
+	void updateKernel(const GLCelRes &celInfo) const;
+
 	enum State {
 		kNormalState      = 0,
 		kHiddenState      = 1,
@@ -59,7 +71,7 @@ private:
 	GLCelRes _normalCel;
 	GLCelRes _waitCel;
 	GLCelRes _handsOffCel;
-	GLCelRes _highlightCel;
+	GLCelRes _highlightedCel;
 
 	Common::Point _position;
 	int _state;

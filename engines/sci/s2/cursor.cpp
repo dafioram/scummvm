@@ -27,9 +27,12 @@ namespace Sci {
 static const GLCelRes defaultCel = GLCelRes::makeView(99, 0, S2Cursor::kNormalCel);
 
 S2Cursor::S2Cursor(GfxCursor32 &kernelCursor) :
-	GLCursor(kernelCursor, defaultCel) {
-	_normalCel = _prayerStickNormalCel = _inventoryCel = defaultCel;
-	setHighlightCelRes(GLCelRes::makeView(99, 0, kHighlightCel));
+	GLCursor(kernelCursor, defaultCel),
+	_normalCel(defaultCel),
+	_prayerStickNormalCel(defaultCel),
+	_inventoryCel(defaultCel),
+	_inventoryState(0) {
+	setHighlightedCelRes(GLCelRes::makeView(99, 0, kHighlightCel));
 	setHandsOffCelRes(GLCelRes::makeView(99, 0, kWaitCel));
 	setPosition(Common::Point(319, 191));
 }

@@ -32,7 +32,7 @@ public:
 	using S2Room::S2Room;
 	virtual void init(const int roomNo) override;
 	virtual void dispose(const int roomNo) override;
-	virtual void doIt() override;
+	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:

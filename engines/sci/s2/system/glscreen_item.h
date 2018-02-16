@@ -23,11 +23,52 @@
 #ifndef SCI_S2_SYSTEM_GLSCREEN_ITEM_H
 #define SCI_S2_SYSTEM_GLSCREEN_ITEM_H
 
+#include "common/ptr.h"
+#include "sci/graphics/screen_item32.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class GLScreenItem : public GLObject {};
+class AbsGLPlane;
+class GfxFrameout;
+class SciBitmap;
+
+class GLScreenItem : public GLObject {
+public:
+	GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
+	~GLScreenItem();
+
+	static void init(GfxFrameout *graphicsManager) { _graphicsManager = graphicsManager; }
+
+	AbsGLPlane &getPlane() const { assert(_plane); return *_plane; }
+	bool getIsVisible() const { return _isVisible; }
+
+	virtual void show();
+	virtual void hide();
+
+protected:
+	const bool hasVLC() const { return !_bitmap; }
+	void load(const GLCelRes &celInfo, const bool shouldUpdate = false);
+	virtual void update();
+	void forceUpdate();
+	bool getNowSeenRect(Common::Rect &result) const;
+
+private:
+	static GfxFrameout *_graphicsManager;
+
+	// TODO: WTF are multiple redundant copies of this information being stored?
+	int	 _viewNo;
+	int16 _loopNo;
+	int16 _celNo;
+	GLCelRes _celInfo;
+	SciBitmap *_bitmap;
+	GLPoint _position;
+	AbsGLPlane *_plane;
+	Common::ScopedPtr<ScreenItem> _screenItem;
+	bool _isDirty;
+	bool _isVisible;
+};
 
 } // End of namespace Sci
 

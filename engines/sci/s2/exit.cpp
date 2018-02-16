@@ -24,4 +24,28 @@
 
 namespace Sci {
 
+GLPoint S2Exit::_defaultPoly[] = {
+	{  64,  0 }, { 575,   0 }, { 575, 383 }, {  64, 383 }, {  64,  0 },
+	{ 144, 80 }, { 144, 303 }, { 494, 303 }, { 494,  80 }, { 144, 80 }
+};
+
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const int16 cursorCel) :
+	S2Exit(plane, targetRoomNo, PointsList(_defaultPoly, ARRAYSIZE(_defaultPoly)), cursorCel) {}
+
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const int16 cursorCel) :
+	S2Exit(plane, targetRoomNo, rectToPoints(rect), cursorCel) {}
+
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const int16 cursorCel) :
+	GLPoly(plane, PointsList(_defaultPoly, ARRAYSIZE(_defaultPoly))),
+	_isEnabled(true),
+	_targetRoomNo(targetRoomNo),
+	_cursorCel(cursorCel) {
+	GLPoly::init();
+}
+
+bool S2Exit::checkIsOnMe(const GLPoint &point) const {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return false;
+}
+
 } // End of namespace Sci

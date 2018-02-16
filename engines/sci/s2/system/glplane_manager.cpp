@@ -33,16 +33,32 @@ void GLPlaneManager::doIt() {
 }
 
 void GLPlaneManager::add(AbsGLPlane &plane) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const auto lowerPlane = Common::find_if(_planes.begin(), _planes.end(), [&](const AbsGLPlane *const candidate) {
+		return candidate->getPriority() < plane.getPriority();
+	});
+	if (lowerPlane == _planes.end()) {
+		_planes.insert_at(0, &plane);
+	} else {
+		_planes.insert(lowerPlane, &plane);
+	}
 }
 
 void GLPlaneManager::remove(AbsGLPlane &plane) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_planes.remove(&plane);
 }
 
 bool GLPlaneManager::handleEvent(GLEvent &event) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-	return false;
+	for (auto &plane : _planes) {
+		if (plane->checkIsOnMe(event.getMousePosition())) {
+			event.localize(*plane);
+			if (plane->getCast().handleEvent(event)) {
+				break;
+			}
+			event.globalize();
+		}
+	}
+
+	return event.isClaimed();
 }
 
 } // End of namespace Sci

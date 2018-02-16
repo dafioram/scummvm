@@ -23,11 +23,28 @@
 #ifndef SCI_S2_SYSTEM_GLCAST_H
 #define SCI_S2_SYSTEM_GLCAST_H
 
+#include "sci/s2/system/glset.h"
+
 namespace Sci {
+
+class GLEvent;
+class GLObject;
+class GLTarget;
+class GLScreenItem;
 
 class GLCast {
 public:
+	void add(GLObject &object);
+	void remove(GLObject &object);
 	void doIt();
+	bool handleEvent(GLEvent &event);
+	void addEventHandler(GLTarget &target);
+	void removeEventHandler(GLTarget &target);
+
+private:
+	GLSetAsArray<GLObject> _doIts;
+	GLSetAsArray<GLTarget> _eventHandlers;
+	GLSetAsArray<GLScreenItem> _screenItems;
 };
 
 } // End of namespace Sci

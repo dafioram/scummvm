@@ -23,6 +23,7 @@
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
 #include "sci/s2/system/glsound_manager.h"
+#include "sci/s2/system/glsound.h"
 
 namespace Sci {
 
@@ -32,11 +33,42 @@ GLSoundManager::GLSoundManager(S2Game &game, ResourceManager &resourceManager, A
 	_mixer(mixer) {}
 
 void GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const ResourceId resourceId(kResourceTypeAudio, soundNo);
+	if (_mixer.getVolume(resourceId, soundNode) != -1) {
+		return;
+	}
+
+	_mixer.play(kNoExistingChannel, resourceId, !paused, loop, volume, soundNode, false);
+
+	GLSound sound(soundNo, GLSound::State::PlayingForever, volume);
+	_sounds.push_front(sound);
 }
 
-void GLSoundManager::fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopOnFade, GLObject *const caller, const reg_t soundNode) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void GLSoundManager::fade(const uint16 soundNo, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade, GLObject *const caller, const reg_t soundNode) {
+	_mixer.fadeChannel(ResourceId(kResourceTypeAudio, soundNo), soundNode, targetVolume, speed, steps, stopAfterFade);
+	if (caller) {
+		GLSound sound(soundNo, GLSound::State::Fading, targetVolume, caller);
+		_sounds.push_front(sound);
+	}
+}
+
+void GLSoundManager::stop() {
+	_mixer.stop(kAllChannels);
+}
+
+void GLSoundManager::stop(const int soundNo, const reg_t soundNode) {
+	if (soundNo == kAllChannels) {
+		_mixer.stop(kAllChannels);
+	} else {
+		for (auto &sound : _sounds) {
+			if (sound.getResourceNo() == soundNo && sound.getCaller()) {
+				sound.setCaller(nullptr);
+				break;
+			}
+		}
+	}
+
+	_mixer.stop(ResourceId(kResourceTypeAudio, soundNo), soundNode);
 }
 
 void GLSoundManager::doIt() {
@@ -61,15 +93,11 @@ void GLSoundManager::doIt() {
 				}
 
 				sound = _sounds.erase(sound);
-			} else {
-				++sound;
+				continue;
 			}
 		}
+		++sound;
 	}
-}
-
-void GLSoundManager::stop() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 } // End of namespace Sci

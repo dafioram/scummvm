@@ -43,14 +43,32 @@ public:
 	virtual ~AbsGLPlane();
 
 	reg_t getId() const { return _plane->_object; }
-	const Common::Rect &getRect() const { return _plane->_gameRect; }
+
+	int16 getPriority() const { return _plane->_priority; }
+	void setPriority(const int16 priority, const bool shouldUpdate = false);
+
+	Common::Rect getRect() const {
+		Common::Rect inclusiveRect(_plane->_gameRect);
+		--inclusiveRect.right;
+		--inclusiveRect.bottom;
+		return inclusiveRect;
+	}
+
 	GLCast &getCast() { return _cast; }
 
-	void toGlobal(Common::Point &point) const;
-	void toLocal(Common::Point &point) const;
+	Common::Point toGlobal(const Common::Point &point) const;
+	Common::Point toLocal(const Common::Point &point) const;
+
+	bool checkIsOnMe(const Common::Point &point) const {
+		return _plane->_gameRect.contains(point);
+	}
+
+	void repaint();
 
 protected:
 	static GfxFrameout *_graphicsManager;
+
+	void update();
 
 	// This plane object is owned by GfxFrameout
 	Plane *_plane;
@@ -60,7 +78,11 @@ protected:
 
 class GLPicturePlane : public AbsGLPlane {
 public:
-	GLPicturePlane(const Common::Rect &rect, const uint16 resourceNo, const int16 priority, const bool mirrored = false, const GLPoint &vanishingPoint = GLPoint(0, 0));
+	GLPicturePlane(const Common::Rect &rect, const uint16 resourceNo, const int16 priority = -9999, const bool mirrored = false, const GLPoint &vanishingPoint = GLPoint(0, 0));
+
+	uint16 getPicNo() const { return _plane->getPictureId(); }
+	void setPic(const uint16 picNo, const bool shouldUpdate = false);
+	void deletePic(const uint16 picNo);
 
 	void addPicAt(const uint16 resourceNo, const int16 x, const int16 y, const bool mirrorX = false, const bool deleteDuplicate = true);
 };

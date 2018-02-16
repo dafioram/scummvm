@@ -27,17 +27,27 @@
 namespace Sci {
 
 GLCursor::GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo) :
-	_kernelCursor(kernelCursor) {
-	_normalCel = _waitCel = _handsOffCel = _highlightCel = celInfo;
-	_kernelCursor.setView(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
+	_kernelCursor(kernelCursor),
+	_normalCel(celInfo),
+	_waitCel(celInfo),
+	_handsOffCel(celInfo),
+	_highlightedCel(celInfo),
+	_state(0) {
+	updateKernel(celInfo);
 }
 
-void GLCursor::setHighlightCelRes(const GLCelRes &celInfo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void GLCursor::setHighlightedCelRes(const GLCelRes &celInfo) {
+	_highlightedCel = celInfo;
+	if (isHighlighted()) {
+		updateKernel(celInfo);
+	}
 }
 
 void GLCursor::setHandsOffCelRes(const GLCelRes &celInfo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_handsOffCel = celInfo;
+	if (isHandsOff()) {
+		updateKernel(celInfo);
+	}
 }
 
 void GLCursor::setPosition(const Common::Point &position) {
@@ -55,6 +65,38 @@ void GLCursor::hide() {
 	_state |= kHiddenState;
 	setNeedsEvent(false);
 	_kernelCursor.hide();
+}
+
+void GLCursor::goHandsOn() {
+	if (isHandsOff()) {
+		_state &= ~kHandsOffState;
+		updateKernel(_normalCel);
+	}
+}
+
+void GLCursor::goHandsOff() {
+	if (!isHandsOff()) {
+		_state |= kHandsOffState;
+		updateKernel(_handsOffCel);
+	}
+}
+
+void GLCursor::beginHighlight() {
+	if (!isHighlighted()) {
+		_state |= kHighlightedState;
+		updateKernel(_highlightedCel);
+	}
+}
+
+void GLCursor::endHighlight() {
+	if (isHighlighted()) {
+		_state &= ~kHighlightedState;
+		updateKernel(_normalCel);
+	}
+}
+
+void GLCursor::updateKernel(const GLCelRes &celInfo) const {
+	_kernelCursor.setView(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
 }
 
 } // End of namespace Sci

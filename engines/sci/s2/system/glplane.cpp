@@ -63,7 +63,6 @@ AbsGLPlane::AbsGLPlane(const PlaneType type, const Common::Rect &rect, int16 pri
 
 	_plane = new Plane(pictureType, color, exclusiveRect, priority, vanishingPoint, pictureNo, mirrored);
 
-	_cast = GLCast();
 	_graphicsManager->addPlane(_plane);
 	_plane->changePic();
 }
@@ -72,8 +71,46 @@ AbsGLPlane::~AbsGLPlane() {
 	_graphicsManager->deletePlane(*_plane);
 }
 
+void AbsGLPlane::setPriority(const int16 priority, const bool shouldUpdate) {
+	_plane->_priority = priority;
+	_isDirty = true;
+	if (shouldUpdate) {
+		update();
+	}
+}
+
+Common::Point AbsGLPlane::toGlobal(const Common::Point &point) const {
+	return Common::Point(point.x + _plane->_gameRect.left, point.y + _plane->_gameRect.top);
+}
+
+Common::Point AbsGLPlane::toLocal(const Common::Point &point) const {
+	return Common::Point(point.x - _plane->_gameRect.left, point.y - _plane->_gameRect.top);
+}
+
+void AbsGLPlane::repaint() {
+	_graphicsManager->directFrameOut(_plane->_screenRect);
+}
+
+void AbsGLPlane::update() {
+	_graphicsManager->updatePlane(*_plane);
+	_isDirty = false;
+}
+
 GLPicturePlane::GLPicturePlane(const Common::Rect &rect, const uint16 resourceNo, const int16 priority, const bool mirrored, const GLPoint &vanishingPoint) :
 	AbsGLPlane(kPlaneTypePicture, rect, priority, vanishingPoint, 0, resourceNo, mirrored) {}
+
+void GLPicturePlane::setPic(const uint16 picNo, const bool shouldUpdate) {
+	_plane->setPic(picNo);
+	_isDirty = true;
+
+	if (shouldUpdate) {
+		update();
+	}
+}
+
+void GLPicturePlane::deletePic(const uint16 picNo) {
+	_plane->deletePic(picNo);
+}
 
 void GLPicturePlane::addPicAt(const uint16 resourceNo, const int16 x, const int16 y, const bool mirrorX, const bool deleteDuplicate) {
 	_plane->addPic(resourceNo, Common::Point(x, y), mirrorX, deleteDuplicate);
@@ -81,13 +118,5 @@ void GLPicturePlane::addPicAt(const uint16 resourceNo, const int16 x, const int1
 
 GLTransparentPlane::GLTransparentPlane(const Common::Rect &rect, const int16 priority) :
 	AbsGLPlane(kPlaneTypeTransparent, rect, priority, GLPoint(0, 0), 0) {}
-
-void AbsGLPlane::toGlobal(Common::Point &point) const {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
-void AbsGLPlane::toLocal(Common::Point &point) const {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
 
 } // End of namespace Sci

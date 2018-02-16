@@ -23,11 +23,34 @@
 #ifndef SCI_S2_SYSTEM_GLTARGET_H
 #define SCI_S2_SYSTEM_GLTARGET_H
 
+#undef abort
+#include <functional>
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class GLTarget : public GLObject {};
+class AbsGLPlane;
+class GLUser;
+
+class GLTarget : public GLObject {
+public:
+	using EventHandler = std::function<void(GLEvent &, GLTarget &)>;
+
+	GLTarget();
+	GLTarget(AbsGLPlane &plane);
+
+	static void init(GLUser *user) { _user = user; }
+
+	virtual bool handleEvent(GLEvent &event) override;
+	virtual bool checkIsOnMe(const GLPoint &point) const { return false; }
+
+protected:
+	static GLUser *_user;
+
+	AbsGLPlane *_plane;
+	EventHandler _mouseHandler;
+};
 
 } // End of namespace Sci
 

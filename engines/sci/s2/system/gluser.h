@@ -43,6 +43,8 @@ public:
 	bool getHogsAreModal() const { return _state & kHogsAreModal; }
 	void setHogsAreModal(const bool set) { updateState(kHogsAreModal, set); }
 
+	const Common::Point &getMousePosition() const { return _mousePosition; }
+
 	virtual void doIt() override;
 	virtual bool handleEvent(GLEvent &event) override;
 

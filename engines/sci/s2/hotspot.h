@@ -27,7 +27,25 @@
 
 namespace Sci {
 
-class S2Hotspot : public GLPoly {};
+class GLEvent;
+
+class S2Hotspot : public GLPoly {
+public:
+	bool getIsEnabled() const { return _isEnabled; }
+
+	void enable();
+	void disable();
+
+	bool handleEvent(GLEvent &event);
+
+	const EventHandler &getMouseUpHandler() const { return _mouseUpHandler; }
+	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }
+
+private:
+	bool _isEnabled;
+	EventHandler _mouseUpHandler;
+
+};
 
 } // End of namespace Sci
 

@@ -23,9 +23,14 @@
 #ifndef SCI_S2_ROOMS_GLOBAL_H
 #define SCI_S2_ROOMS_GLOBAL_H
 
+#include "common/array.h"
+#include "common/ptr.h"
 #include "sci/s2/room.h"
+#include "sci/s2/button.h"
 
 namespace Sci {
+
+class GLPicturePlane;
 
 class S2GlobalRoom : public S2Room {
 public:
@@ -35,6 +40,16 @@ public:
 	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
 
+private:
+	void initMainMenu();
+
+	GLPicturePlane *_plane;
+	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
+
+	template <typename ...Args>
+	S2Button &addButton(Args && ...args) {
+		return *_buttons.emplace_back(new S2Button(args...));
+	}
 };
 
 } // End of namespace Sci

@@ -21,7 +21,26 @@
  */
 
 #include "sci/s2/system/glfeature.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
+
+GLFeature::GLFeature(AbsGLPlane &plane) :
+	GLTarget(plane) {}
+
+GLFeature::~GLFeature() {
+	_plane->getCast().removeEventHandler(*this);
+}
+
+void GLFeature::init() {
+	_plane->getCast().addEventHandler(*this);
+}
+
+bool GLFeature::checkIsOnMe(const GLPoint &position) const {
+	Common::Rect exclusiveRect(_bounds);
+	++exclusiveRect.right;
+	++exclusiveRect.bottom;
+	return exclusiveRect.contains(position);
+}
 
 } // End of namespace Sci

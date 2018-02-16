@@ -20,30 +20,36 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
-
-#include "sci/s2/system/gltarget.h"
+#include "sci/s2/button.h"
+#include "sci/s2/system/glplane.h"
+#include "sci/s2/system/gluser.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+S2Button::S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority) :
+	GLButton(plane, viewNo, loopNo, celNo, position, priority),
+	_autoHighlight(false) {}
 
-class GLFeature : public GLTarget {
-public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+void S2Button::setAutoHighlight(const bool set) {
+	if (!set && _autoHighlight && getIsHighlighted()) {
+		dim();
+	}
+	_autoHighlight = set;
+}
 
-protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+void S2Button::doIt() {
+	if (!_autoHighlight || !getIsEnabled() || getIsDepressed() || !getIsVisible()) {
+		return;
+	}
 
-private:
-	Common::Rect _bounds;
-};
+	const auto mousePosition(getPlane().toLocal(_user->getMousePosition()));
+	const bool isOnMe = checkIsOnMe(mousePosition);
+	if (!getIsHighlighted() && isOnMe) {
+		highlight();
+	} else if (getIsHighlighted() && !isOnMe) {
+		dim();
+	}
+}
 
 } // End of namespace Sci
-
-#endif

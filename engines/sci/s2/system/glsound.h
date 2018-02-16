@@ -49,6 +49,14 @@ public:
 		Fading         = 5
 	};
 
+	GLSound(const uint16 soundNo, const State state, const int16 volume, GLObject *const caller = nullptr, const int16 pan = 50, const int somePercent = 100) :
+		_caller(caller),
+		_resource(nullptr),
+		_state(state),
+		_resourceNo(soundNo),
+		_volume(volume),
+		_somePercent(somePercent) {}
+
 	uint16 getResourceNo() const { return _resourceNo; }
 	State getState() const { return _state; }
 	int16 getVolume() const { return _volume; }
@@ -62,6 +70,7 @@ private:
 	State _state;
 	uint16 _resourceNo;
 	int16 _volume;
+	int16 _somePercent;
 };
 
 class GLWaitNode : public GLNode {

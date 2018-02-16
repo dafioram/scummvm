@@ -21,12 +21,28 @@
  */
 
 #include "common/textconsole.h"
+#include "sci/event.h"
+#include "sci/s2/button.h"
+#include "sci/s2/game.h"
+#include "sci/s2/kernel.h"
 #include "sci/s2/rooms/global.h"
+#include "sci/s2/system/glplane.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
 void S2GlobalRoom::init(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_plane = _game.getRoomManager().getGlobalPlane();
+	_game.getInterface().putText(0);
+	_kernel.eventManager.flushEvents();
+
+	switch (roomNo) {
+	case 4000:
+		initMainMenu();
+		break;
+	default:
+		error("Unknown global room %d", roomNo);
+	}
 }
 
 void S2GlobalRoom::dispose(const int roomNo) {
@@ -35,6 +51,20 @@ void S2GlobalRoom::dispose(const int roomNo) {
 
 bool S2GlobalRoom::handleEvent(GLEvent &event) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
+	event.claim();
+	return true;
+}
+
+void S2GlobalRoom::initMainMenu() {
+	auto &button = addButton(*_plane, 4000, 0, 0, GLPoint(0, 479), 202);
+	button.setHighlightedFace(4000, 0, 2);
+	button.setDepressedFace(4000, 0, 2);
+	button.enable();
+	button.setAutoHighlight(true);
+	button.setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+		_game.getSoundManager().play(10913, false, 100);
+		warning("TODO: New game handler");
+	});
 }
 
 } // End of namespace Sci

@@ -20,28 +20,27 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_BUTTON_H
+#define SCI_S2_BUTTON_H
 
-#include "sci/s2/system/gltarget.h"
+#include "sci/s2/system/glbutton.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
 class AbsGLPlane;
 
-class GLFeature : public GLTarget {
+class S2Button : public GLButton {
 public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+	S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority);
+
+	bool getAutoHighlight() const { return _autoHighlight; }
+	void setAutoHighlight(const bool set);
+
+	void doIt() override;
 
 protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
-
-private:
-	Common::Rect _bounds;
+	bool _autoHighlight;
 };
 
 } // End of namespace Sci

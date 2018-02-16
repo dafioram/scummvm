@@ -21,7 +21,38 @@
  */
 
 #include "sci/s2/hotspot.h"
+#include "sci/s2/system/glevent.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
+
+bool S2Hotspot::handleEvent(GLEvent &event) {
+	if (_isEnabled && event.getType() == kSciEventMouseRelease) {
+		event.localize(*_plane);
+		if (checkIsOnMe(event.getMousePosition())) {
+			if (_mouseUpHandler) {
+				_mouseUpHandler(event, *this);
+			}
+			event.claim();
+		} else {
+			event.globalize();
+		}
+	}
+	return event.isClaimed();
+}
+
+void S2Hotspot::enable() {
+	if (!_isEnabled) {
+		_plane->getCast().add(*this);
+		_isEnabled = true;
+	}
+}
+
+void S2Hotspot::disable() {
+	if (_isEnabled) {
+		_plane->getCast().remove(*this);
+		_isEnabled = false;
+	}
+}
 
 } // End of namespace Sci

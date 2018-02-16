@@ -42,6 +42,7 @@ S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
 	assert(!instance);
 	instance = this;
 	GLCue::init(&_extras);
+	GLTarget::init(&_user);
 	_phoneManager.init();
 }
 
