@@ -21,6 +21,7 @@
  */
 
 #include "sci/s2/system/glbutton.h"
+#include "sci/s2/system/glevent.h"
 
 namespace Sci {
 GLButton::GLButton(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority) :
@@ -36,6 +37,18 @@ GLButton::GLButton(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, c
 	setHighlightedFace(viewNo, loopNo);
 }
 
+bool GLButton::handleEvent(GLEvent &event) {
+	if (event.getType() & kSciEventMouse) {
+		if (getSelectHandler()) {
+			getSelectHandler()(event, *this);
+		} else {
+			generalSelect(event);
+		}
+	}
+
+	return event.isClaimed();
+}
+
 void GLButton::enable(const bool shouldUpdate) {
 	_isEnabled = true;
 	changeCel(_enabledCel, shouldUpdate);
@@ -46,6 +59,16 @@ void GLButton::disable(const bool shouldUpdate) {
 	changeCel(_disabledCel, shouldUpdate);
 }
 
+void GLButton::press(const bool shouldUpdate) {
+	_isDepressed = true;
+	changeCel(_depressedCel, shouldUpdate);
+}
+
+void GLButton::release(const bool shouldUpdate) {
+	_isDepressed = false;
+	changeCel(_enabledCel, shouldUpdate);
+}
+
 void GLButton::highlight(const bool shouldUpdate) {
 	_isHighlighted = true;
 	changeCel(_highlightedCel, shouldUpdate);
@@ -54,6 +77,23 @@ void GLButton::highlight(const bool shouldUpdate) {
 void GLButton::dim(const bool shouldUpdate) {
 	_isHighlighted = false;
 	changeCel(_enabledCel, shouldUpdate);
+}
+
+void GLButton::generalSelect(GLEvent &event) {
+	if (_isEnabled && checkIsOnMe(event.getMousePosition())) {
+		if (event.getType() == kSciEventMousePress) {
+			press();
+		} else if (event.getType() == kSciEventMouseRelease && _isDepressed) {
+			release();
+			if (_mouseUpHandler) {
+				_mouseUpHandler(event, *this);
+			}
+		}
+		event.claim();
+	} else if (event.getType() == kSciEventMouseRelease && _isDepressed) {
+		release();
+		event.claim();
+	}
 }
 
 void GLButton::setEnabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {

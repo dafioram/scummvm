@@ -30,17 +30,17 @@ GLUser *GLTarget::_user = nullptr;
 GLTarget::GLTarget() :
 	GLObject(),
 	_plane(nullptr),
-	_mouseHandler(nullptr) {}
+	_selectHandler(nullptr) {}
 
 GLTarget::GLTarget(AbsGLPlane &plane) :
 	GLObject(),
 	_plane(&plane),
-	_mouseHandler(nullptr) {}
+	_selectHandler(nullptr) {}
 
 bool GLTarget::handleEvent(GLEvent &event) {
-	if (event.getType() == kSciEventMouse && checkIsOnMe(event.getMousePosition())) {
-		if (_mouseHandler) {
-			_mouseHandler(event, *this);
+	if ((event.getType() & kSciEventMouse) && checkIsOnMe(event.getMousePosition())) {
+		if (_selectHandler) {
+			_selectHandler(event, *this);
 		}
 		event.claim();
 	}

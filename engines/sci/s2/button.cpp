@@ -20,16 +20,22 @@
  *
  */
 
+#include "sci/sound/audio32.h"
 #include "sci/s2/button.h"
+#include "sci/s2/sound_manager.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/gluser.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
+S2SoundManager *S2Button::_soundManager = nullptr;
+
 S2Button::S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority) :
 	GLButton(plane, viewNo, loopNo, celNo, position, priority),
-	_autoHighlight(false) {}
+	_autoHighlight(false),
+	_inClickGesture(false),
+	_mouseUpSoundNo(0) {}
 
 void S2Button::setAutoHighlight(const bool set) {
 	if (!set && _autoHighlight && getIsHighlighted()) {
@@ -49,6 +55,45 @@ void S2Button::doIt() {
 		highlight();
 	} else if (getIsHighlighted() && !isOnMe) {
 		dim();
+	}
+}
+
+void S2Button::generalSelect(GLEvent &event) {
+	if (!getIsEnabled() || !getIsVisible()) {
+		return;
+	}
+
+	// There was some extra stuff for additional callback functions (for mouse
+	// down and shift+mouse), but they never appeared to be used so are not
+	// implemented
+	if (checkIsOnMe(event.getMousePosition())) {
+		if (event.getType() == kSciEventMousePress) {
+			if (event.getKeyModifiers() != kSciKeyModShift) {
+				_inClickGesture = true;
+			}
+			event.claim();
+		} else if (event.getType() == kSciEventMouseRelease) {
+			if (event.getKeyModifiers() == kSciKeyModShift) {
+				event.claim();
+			} else if (event.getKeyModifiers() != kSciKeyModShift && _inClickGesture) {
+				_inClickGesture = false;
+				if (!getIsDepressed()) {
+					if (_mouseUpSoundNo) {
+						_soundManager->play(_mouseUpSoundNo, false, Audio32::kMaxVolume);
+					}
+					press();
+					if (getMouseUpHandler()) {
+						getMouseUpHandler()(event, *this);
+					}
+					event.claim();
+				}
+			}
+		}
+	}
+
+	if (event.getType() == kSciEventMouseRelease && event.getKeyModifiers() != kSciKeyModShift && _inClickGesture) {
+		_inClickGesture = false;
+		event.claim();
 	}
 }
 

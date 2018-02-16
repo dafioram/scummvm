@@ -29,10 +29,13 @@
 namespace Sci {
 
 class AbsGLPlane;
+class S2SoundManager;
 
 class S2Button : public GLButton {
 public:
 	S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority);
+
+	static void init(S2SoundManager *soundManager) { _soundManager = soundManager; }
 
 	bool getAutoHighlight() const { return _autoHighlight; }
 	void setAutoHighlight(const bool set);
@@ -40,7 +43,14 @@ public:
 	void doIt() override;
 
 protected:
+	virtual void generalSelect(GLEvent &event) override;
+
+private:
+	static S2SoundManager *_soundManager;
+
 	bool _autoHighlight;
+	bool _inClickGesture;
+	uint16 _mouseUpSoundNo;
 };
 
 } // End of namespace Sci

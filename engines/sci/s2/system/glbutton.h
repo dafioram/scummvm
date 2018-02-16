@@ -47,6 +47,8 @@ public:
 
 	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }
 
+	virtual bool handleEvent(GLEvent &event) override;
+
 	void enable(const bool shouldUpdate = true);
 	void disable(const bool shouldUpdate = true);
 
@@ -55,6 +57,9 @@ protected:
 	void release(const bool shouldUpdate = true);
 	void highlight(const bool shouldUpdate = true);
 	void dim(const bool shouldUpdate = true);
+
+	const EventHandler &getMouseUpHandler() const { return _mouseUpHandler; }
+	virtual void generalSelect(GLEvent &event);
 
 private:
 	void changeCel(const GLCelRes &celInfo, const bool shouldUpdate);

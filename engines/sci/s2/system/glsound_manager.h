@@ -24,12 +24,12 @@
 #define SCI_S2_SYSTEM_GLSOUND_MANAGER_H
 
 #include "common/list.h"
+#include "sci/sound/audio32.h"
 #include "sci/s2/system/globject.h"
 #include "sci/s2/system/glsound.h"
 
 namespace Sci {
 
-class Audio32;
 class ResourceManager;
 class S2Game;
 
@@ -37,7 +37,7 @@ class GLSoundManager : public GLObject {
 public:
 	GLSoundManager(S2Game &game, ResourceManager &resourceManager, Audio32 &mixer);
 
-	void play(const uint16 soundNo, const bool loop = false, const int16 volume = 127, const bool paused = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
+	void play(const uint16 soundNo, const bool loop = false, const int16 volume = Audio32::kMaxVolume, const bool paused = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
 	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopOnFade = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
 	void stop();
 	void stop(const int soundNo, const reg_t soundNode = NULL_REG);

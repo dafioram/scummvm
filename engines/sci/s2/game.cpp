@@ -21,14 +21,13 @@
  */
 
 #include "engines/engine.h"
+#include "sci/s2/button.h"
 #include "sci/s2/game.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glquit_handler.h"
 #include "sci/s2/kernel.h"
 
 namespace Sci {
-S2Game *S2Game::instance = nullptr;
-
 S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
 	_engine(engine),
 	_kernel(kernel),
@@ -38,11 +37,10 @@ S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
 	_movieManager(kernel, *this),
 	_roomManager(kernel, *this),
 	_flags(),
-	_volume(127) {
-	assert(!instance);
-	instance = this;
+	_volume(Audio32::kMaxVolume) {
 	GLCue::init(&_extras);
 	GLTarget::init(&_user);
+	S2Button::init(&_soundManager);
 	_phoneManager.init();
 }
 

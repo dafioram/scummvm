@@ -49,9 +49,6 @@ public:
 #pragma mark -
 #pragma mark ScummVM extensions
 	S2Game(Engine &engine, S2Kernel &kernel);
-	~S2Game() { instance = nullptr; }
-
-	static S2Game *instance;
 
 	/**
 	 * Runs the game. Returns once the game has finished.

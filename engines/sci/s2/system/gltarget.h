@@ -52,14 +52,18 @@ public:
 
 	static void init(GLUser *user) { _user = user; }
 
+	void setSelectHandler(const EventHandler &handler) { _selectHandler = handler; }
+
 	virtual bool handleEvent(GLEvent &event) override;
 	virtual bool checkIsOnMe(const GLPoint &point) const { return false; }
 
 protected:
+	const EventHandler &getSelectHandler() const { return _selectHandler; }
+
 	static GLUser *_user;
 
 	AbsGLPlane *_plane;
-	EventHandler _mouseHandler;
+	EventHandler _selectHandler;
 };
 
 } // End of namespace Sci
