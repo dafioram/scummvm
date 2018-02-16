@@ -118,6 +118,26 @@ public:
 			insert_aux(end(), &element, &element + 1);
 	}
 
+#ifdef HAVE_CPP11
+	void push_back(T &&element) {
+		if (_size + 1 > _capacity) {
+			reserve(_size + 1);
+		}
+
+		new ((void *)&_storage[_size++]) T(std::move(element));
+	}
+
+	template <typename ...Args>
+	T &emplace_back(Args && ...args) {
+		if (_size + 1 > _capacity) {
+			reserve(_size + 1);
+		}
+
+		new ((void *)&_storage[_size++]) T(std::forward<Args>(args)...);
+		return back();
+	}
+#endif
+
 	void push_back(const Array<T> &array) {
 		if (_size + array.size() <= _capacity) {
 			uninitialized_copy(array.begin(), array.end(), end());
