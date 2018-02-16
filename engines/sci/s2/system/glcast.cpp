@@ -73,8 +73,10 @@ bool GLCast::handleEvent(GLEvent &event) {
 }
 
 void GLCast::addEventHandler(GLTarget &target) {
-	target.setNeedsEvent(true);
-	_eventHandlers.push_back(&target);
+	if (!_eventHandlers.contains(&target)) {
+		target.setNeedsEvent(true);
+		_eventHandlers.push_back(&target);
+	}
 }
 
 void GLCast::removeEventHandler(GLTarget &target) {

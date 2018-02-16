@@ -771,7 +771,7 @@ bool SciMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameD
 
 #ifdef ENABLE_SCI32S2
 			if (g->gameidEnum == GID_SHIVERS2) {
-				*engine = new S2Engine(*syst, metadata);
+				*engine = new S2Engine(*syst, desc->gameId, metadata);
 			} else
 #endif
 				*engine = new SciEngine(syst, desc, metadata);

@@ -20,7 +20,7 @@
  *
  */
 
-#include "engines/engine.h"
+#include "sci/s2/engine.h"
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
 #include "sci/s2/system/glcue.h"
@@ -28,9 +28,10 @@
 #include "sci/s2/kernel.h"
 
 namespace Sci {
-S2Game::S2Game(Engine &engine, S2Kernel &kernel) :
+S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_engine(engine),
 	_kernel(kernel),
+	_rng(""),
 	_user(*this),
 	_cursor(kernel.graphicsManager._cursor),
 	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
@@ -60,6 +61,14 @@ void S2Game::run() {
 	_roomManager.unloadGlobalRoom();
 }
 
+void S2Game::quit() {
+	_engine.quitGame();
+}
+
+bool S2Game::hasSaveGames() const {
+	return !_engine.listSaves().empty();
+}
+
 bool S2Game::canSaveNow() const {
 	// TODO: The room list conditions come from the game's save-before-quit
 	// confirmation code. The hands on test exists since the user would not
@@ -73,7 +82,7 @@ bool S2Game::canSaveNow() const {
 	if (!_user.getIsHandsOn()) {
 		return false;
 	}
-	const int currentRoomNo = _roomManager.getCurrentRoom();
+	const int currentRoomNo = _roomManager.getCurrentRoomNo();
 	if (currentRoomNo >= 2000) {
 		switch (currentRoomNo) {
 		case 26721:

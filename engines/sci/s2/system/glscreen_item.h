@@ -44,6 +44,8 @@ public:
 	AbsGLPlane &getPlane() const { assert(_plane); return *_plane; }
 	bool getIsVisible() const { return _isVisible; }
 
+	virtual void doIt() override {}
+
 	virtual void show();
 	virtual void hide();
 

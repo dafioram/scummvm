@@ -44,7 +44,7 @@ public:
 	S2RoomManager(S2Kernel &kernel, S2Game &game);
 	virtual ~S2RoomManager();
 
-	int getCurrentRoom() const { return _currentRoomNo; }
+	int getCurrentRoomNo() const { return _currentRoomNo; }
 	bool getIsSaved() const { return _isSaved; }
 
 	void doIt() override;
@@ -67,6 +67,8 @@ public:
 
 	int getLastSoundRoomNo() const { return _lastSoundRoomNo; }
 	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
+
+	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
 
 private:
 	void checkMouse();

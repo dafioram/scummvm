@@ -27,6 +27,7 @@
 #include "common/ptr.h"
 #include "sci/s2/room.h"
 #include "sci/s2/button.h"
+#include "sci/s2/system/glcel.h"
 
 namespace Sci {
 
@@ -41,15 +42,27 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
-	void initMainMenu();
-
+	// TODO: These probably are common to all rooms
 	GLPicturePlane *_plane;
 	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
+	Common::Array<Common::ScopedPtr<GLCel>> _cels;
 
 	template <typename ...Args>
 	S2Button &addButton(Args && ...args) {
-		return *_buttons.emplace_back(new S2Button(args...));
+		auto &button = *_buttons.emplace_back(new S2Button(args...));
+		button.setAutoHighlight(true);
+		return button;
 	}
+
+	template <typename ...Args>
+	GLCel &addCel(Args && ...args) {
+		return *_cels.emplace_back(new GLCel(args...));
+	}
+
+private:
+	void initMainMenu();
+
+	int _lastRoomBeforeRestore;
 };
 
 } // End of namespace Sci

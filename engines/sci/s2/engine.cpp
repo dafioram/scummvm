@@ -21,6 +21,7 @@
  */
 
 #include "common/error.h"
+#include "common/savefile.h"
 #include "common/system.h"
 #include "sci/s2/debugger.h"
 #include "sci/s2/engine.h"
@@ -29,9 +30,10 @@
 
 namespace Sci {
 
-S2Engine::S2Engine(OSystem &system, const GameMetadata &metadata) :
+S2Engine::S2Engine(OSystem &system, const char *gameId, const GameMetadata &metadata) :
 	Engine(&system),
 	_system(system),
+	_gameId(gameId),
 	_metadata(metadata) {
 	g_SciBE = false;
 	g_Sci11BE = false;
@@ -76,6 +78,10 @@ bool S2Engine::canSaveGameStateCurrently() {
 
 bool S2Engine::canLoadGameStateCurrently() {
 	return _game->canLoadNow();
+}
+
+Common::StringArray S2Engine::listSaves() {
+	return getSaveFileManager()->listSavefiles(_gameId + ".###");
 }
 
 } // End of namespace Sci

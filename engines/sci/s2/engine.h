@@ -25,6 +25,7 @@
 
 #include "common/error.h"
 #include "common/ptr.h"
+#include "common/str.h"
 #include "engines/engine.h"
 #include "sci/sci.h"
 
@@ -40,16 +41,18 @@ class S2Game;
 
 class S2Engine : public Engine {
 public:
-	S2Engine(OSystem &system, const GameMetadata &metadata);
+	S2Engine(OSystem &system, const char *gameId, const GameMetadata &metadata);
 	virtual void initializePath(const Common::FSNode &gamePath) override;
 	virtual Common::Error run() override;
 	virtual GUI::Debugger *getDebugger() override;
 	virtual bool hasFeature(const EngineFeature f) const override;
 	virtual bool canSaveGameStateCurrently() override;
 	virtual bool canLoadGameStateCurrently() override;
+	Common::StringArray listSaves();
 
 private:
 	OSystem &_system;
+	Common::String _gameId;
 	GameMetadata _metadata;
 	Common::ScopedPtr<S2Debugger> _debugger;
 	Common::ScopedPtr<S2Kernel> _kernel;

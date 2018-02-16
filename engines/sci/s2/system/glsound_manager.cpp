@@ -32,16 +32,20 @@ GLSoundManager::GLSoundManager(S2Game &game, ResourceManager &resourceManager, A
 	_resourceManager(resourceManager),
 	_mixer(mixer) {}
 
-void GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
+uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
 	const ResourceId resourceId(kResourceTypeAudio, soundNo);
 	if (_mixer.getVolume(resourceId, soundNode) != -1) {
-		return;
+		return 0;
 	}
 
-	_mixer.play(kNoExistingChannel, resourceId, !paused, loop, volume, soundNode, false);
+	const uint16 length = _mixer.play(kNoExistingChannel, resourceId, !paused, loop, volume, soundNode, false);
 
 	GLSound sound(soundNo, GLSound::State::PlayingForever, volume);
 	_sounds.push_front(sound);
+
+	// SSCI did not return length, but we do so that we can wait for samples
+	// more easily
+	return length;
 }
 
 void GLSoundManager::fade(const uint16 soundNo, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade, GLObject *const caller, const reg_t soundNode) {

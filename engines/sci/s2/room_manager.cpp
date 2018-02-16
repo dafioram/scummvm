@@ -177,7 +177,7 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 		_game.getPhoneManager().cancelCall();
 		_game.getInterface().putText(0);
 		_lastSoundRoomNo = _game.getSoundManager().getRoomNo();
-		_lastNonGlobalRoomNo = getCurrentRoom();
+		_lastNonGlobalRoomNo = getCurrentRoomNo();
 		_game.getSoundManager().deleteAmbient(_lastSoundRoomNo);
 		_game.getSoundManager().stop();
 		_game.getSoundManager().play(30004, true, 0);

@@ -23,6 +23,7 @@
 #ifndef SCI_S2_GAME_H
 #define SCI_S2_GAME_H
 
+#include "common/random.h"
 #include "sci/s2/cursor.h"
 #include "sci/s2/flags.h"
 #include "sci/s2/interface.h"
@@ -41,6 +42,7 @@ class Engine;
 namespace Sci {
 
 class GLObject;
+class S2Engine;
 class S2Kernel;
 
 /** This class combines the functionality of S2Game and GLGame from SSCI. */
@@ -48,19 +50,28 @@ class S2Game {
 public:
 #pragma mark -
 #pragma mark ScummVM extensions
-	S2Game(Engine &engine, S2Kernel &kernel);
+	S2Game(S2Engine &engine, S2Kernel &kernel);
 
 	/**
 	 * Runs the game. Returns once the game has finished.
 	 */
 	void run();
 
+	void quit();
+
+	bool hasSaveGames() const;
 	bool canSaveNow() const;
 	bool canLoadNow() const;
 
+	uint getRandomNumber(const uint low, const uint high) {
+		return _rng.getRandomNumberRng(low, high);
+	}
+
 private:
-	Engine &_engine;
+	S2Engine &_engine;
 	S2Kernel &_kernel;
+
+	Common::RandomSource _rng;
 
 #pragma mark -
 #pragma mark GLGame
