@@ -44,8 +44,8 @@ public:
 	void show();
 	void hide();
 
-	const bool isHighlighted() const { return _state & kHighlightedState; }
-	const bool isHandsOff() const { return _state & kHandsOffState; }
+	bool isHighlighted() const { return _state & kHighlightedState; }
+	bool isHandsOff() const { return _state & kHandsOffState; }
 
 	void goHandsOn();
 	void goHandsOff();

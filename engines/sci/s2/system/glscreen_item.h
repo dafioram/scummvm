@@ -48,7 +48,7 @@ public:
 	virtual void hide();
 
 protected:
-	const bool hasVLC() const { return !_bitmap; }
+	bool hasVLC() const { return !_bitmap; }
 	void load(const GLCelRes &celInfo, const bool shouldUpdate = false);
 	virtual void update();
 	void forceUpdate();
