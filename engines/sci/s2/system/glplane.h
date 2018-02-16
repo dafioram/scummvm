@@ -40,6 +40,7 @@ public:
 	}
 
 	AbsGLPlane(const PlaneType type, const Common::Rect &rect, const int16 priority, const GLPoint &vanishingPoint, const uint8 color, const int pictureNo = 0, const bool mirror = false);
+	AbsGLPlane(const AbsGLPlane &) = delete;
 	virtual ~AbsGLPlane();
 
 	reg_t getId() const { return _plane->_object; }
