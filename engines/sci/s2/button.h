@@ -33,12 +33,14 @@ class S2SoundManager;
 
 class S2Button : public GLButton {
 public:
-	S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority);
+	S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999);
 
 	static void init(S2SoundManager *soundManager) { _soundManager = soundManager; }
 
 	bool getAutoHighlight() const { return _autoHighlight; }
 	void setAutoHighlight(const bool set);
+
+	void setMouseUpSoundNo(const uint16 soundNo) { _mouseUpSoundNo = soundNo; }
 
 	void doIt() override;
 
@@ -49,7 +51,6 @@ private:
 	static S2SoundManager *_soundManager;
 
 	bool _autoHighlight;
-	bool _inClickGesture;
 	uint16 _mouseUpSoundNo;
 };
 

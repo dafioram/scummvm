@@ -37,10 +37,7 @@ void GLFeature::init() {
 }
 
 bool GLFeature::checkIsOnMe(const GLPoint &position) const {
-	Common::Rect exclusiveRect(_bounds);
-	++exclusiveRect.right;
-	++exclusiveRect.bottom;
-	return exclusiveRect.contains(position);
+	return _bounds.contains(position);
 }
 
 } // End of namespace Sci

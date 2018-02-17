@@ -34,7 +34,6 @@ S2SoundManager *S2Button::_soundManager = nullptr;
 S2Button::S2Button(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority) :
 	GLButton(plane, viewNo, loopNo, celNo, position, priority),
 	_autoHighlight(false),
-	_inClickGesture(false),
 	_mouseUpSoundNo(0) {}
 
 void S2Button::setAutoHighlight(const bool set) {
@@ -66,33 +65,30 @@ void S2Button::generalSelect(GLEvent &event) {
 	// There was some extra stuff for additional callback functions (for mouse
 	// down and shift+mouse), but they never appeared to be used so are not
 	// implemented
-	if (checkIsOnMe(event.getMousePosition())) {
+	if (!event.isClaimed() && checkIsOnMe(event.getMousePosition())) {
 		if (event.getType() == kSciEventMousePress) {
 			if (event.getKeyModifiers() != kSciKeyModShift) {
-				_inClickGesture = true;
+				press();
 			}
 			event.claim();
 		} else if (event.getType() == kSciEventMouseRelease) {
-			if (event.getKeyModifiers() == kSciKeyModShift) {
-				event.claim();
-			} else if (event.getKeyModifiers() != kSciKeyModShift && _inClickGesture) {
-				_inClickGesture = false;
-				if (!getIsDepressed()) {
-					if (_mouseUpSoundNo) {
-						_soundManager->play(_mouseUpSoundNo, false, Audio32::kMaxVolume);
-					}
-					press();
-					if (getMouseUpHandler()) {
-						getMouseUpHandler()(event, *this);
-					}
-					event.claim();
+			if (event.getKeyModifiers() != kSciKeyModShift && getIsDepressed()) {
+				if (_mouseUpSoundNo) {
+					_soundManager->play(_mouseUpSoundNo, false, Audio32::kMaxVolume);
+				}
+				release();
+				dim();
+				if (getMouseUpHandler()) {
+					getMouseUpHandler()(event, *this);
 				}
 			}
+			event.claim();
 		}
 	}
 
-	if (event.getType() == kSciEventMouseRelease && event.getKeyModifiers() != kSciKeyModShift && _inClickGesture) {
-		_inClickGesture = false;
+	if (event.getType() == kSciEventMouseRelease && event.getKeyModifiers() != kSciKeyModShift && getIsDepressed()) {
+		release();
+		dim();
 		event.claim();
 	}
 }

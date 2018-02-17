@@ -20,30 +20,53 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_CONTROL_H
+#define SCI_S2_CONTROL_H
 
-#include "sci/s2/system/gltarget.h"
-#include "sci/s2/system/types.h"
+#include "common/array.h"
+#include "common/ptr.h"
+#include "common/rect.h"
+#include "sci/s2/system/globject.h"
+#include "sci/s2/system/glset.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+class GLCel;
+class GLEvent;
+class GLUser;
+class S2TextButton;
 
-class GLFeature : public GLTarget {
+class S2Control : public GLObject {
 public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+	S2Control();
+	virtual ~S2Control();
 
-	const Common::Rect &getRect() const { return _bounds; }
+	static void init(GLUser *user) { _user = user; }
+
+	void show();
+	void hide();
+
+	bool handleEvent(GLEvent &event) override;
+	void doIt() override {}
+
+	// Ownership is transferred
+	void addCel(GLCel &cel);
+	// Ownership is transferred
+	void addButton(S2TextButton &button);
 
 protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+	virtual void controlEvent(GLEvent &event, GLCel &cel) {}
+	virtual void controlEvent(GLEvent &event, S2TextButton &button) {}
+	virtual void setRect(const Common::Rect &rect);
 
 private:
-	Common::Rect _bounds;
+	static GLUser *_user;
+
+	Common::Rect _boundingBox;
+	int16 _priority;
+	bool _isVisible;
+	Common::Array<Common::ScopedPtr<GLCel>> _cels;
+	GLSetAsArray<S2TextButton> _buttons;
 };
 
 } // End of namespace Sci

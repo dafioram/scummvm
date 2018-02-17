@@ -42,6 +42,7 @@
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
 #include "sci/engine/vm.h"
+#include "sci/graphics/bitmap32.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
 #include "sci/graphics/cursor32.h"
@@ -69,6 +70,7 @@ GfxFrameout::GfxFrameout(ResourceManager *resMan, GameFeatures *features, TimeMa
 	_transitions(features, timeMan, this, segMan),
 	_text(resMan, bitmapProvider),
 	_video(resMan, features, timeMan, eventMan, this, audio, bitmapProvider),
+	_bitmap(bitmapProvider, &_text),
 	_eventMan(eventMan),
 	_segMan(segMan),
 	_features(features),

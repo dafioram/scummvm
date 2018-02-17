@@ -20,30 +20,15 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_TEXT_BUTTON_H
+#define SCI_S2_TEXT_BUTTON_H
 
-#include "sci/s2/system/gltarget.h"
-#include "sci/s2/system/types.h"
+#include "sci/s2/system/glcel.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+class S2TextButton : public GLCel {
 
-class GLFeature : public GLTarget {
-public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
-
-	const Common::Rect &getRect() const { return _bounds; }
-
-protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
-
-private:
-	Common::Rect _bounds;
 };
 
 } // End of namespace Sci

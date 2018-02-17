@@ -43,6 +43,7 @@ public:
 	SciKeyModifiers getKeyModifiers() const { return _modifiers; }
 	const Common::Point &getMousePosition() const { return _mousePosition; }
 	bool isClaimed() const { return _claimed; }
+	const AbsGLPlane *getPlane() const { return _plane; }
 
 	void claim() { _claimed = true; }
 

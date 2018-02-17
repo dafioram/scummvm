@@ -24,6 +24,7 @@
 #define SCI_GRAPHICS_FRAMEOUT_H
 
 #include "engines/util.h"                // for initGraphics
+#include "sci/graphics/bitmap32.h"
 #include "sci/graphics/controls32.h"
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/palette32.h"
@@ -106,6 +107,7 @@ public:
 	GfxRemap32 _remapper;
 	GfxTransitions32 _transitions;
 	GfxText32 _text;
+	GfxBitmap32 _bitmap;
 	Video32 _video;
 
 private:

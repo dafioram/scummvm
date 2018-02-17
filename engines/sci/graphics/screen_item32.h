@@ -251,6 +251,10 @@ public:
 	ScreenItem(const ScreenItem &other);
 	void operator=(const ScreenItem &);
 
+#ifdef ENABLE_SCI32S2
+	ScreenItem *clone();
+#endif
+
 	inline bool operator<(const ScreenItem &other) const {
 		if (_priority < other._priority) {
 			return true;
@@ -340,6 +344,14 @@ public:
 		}
 
 		return false;
+	}
+
+	/**
+	 * Fixes the priority of the screen item to the given value.
+	 */
+	void setPriority(const int16 priority) {
+		_priority = priority;
+		_fixedPriority = true;
 	}
 
 	/**

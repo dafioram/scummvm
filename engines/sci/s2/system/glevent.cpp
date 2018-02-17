@@ -29,9 +29,9 @@ EventManager *GLEvent::_eventManager = nullptr;
 
 void GLEvent::localize(const AbsGLPlane &plane) {
 	if (_plane) {
-		_plane->toGlobal(_mousePosition);
+		_mousePosition = _plane->toGlobal(_mousePosition);
 	}
-	plane.toLocal(_mousePosition);
+	_mousePosition = plane.toLocal(_mousePosition);
 	_plane = &plane;
 }
 
@@ -40,7 +40,7 @@ void GLEvent::globalize() {
 		return;
 	}
 
-	_plane->toGlobal(_mousePosition);
+	_mousePosition = _plane->toGlobal(_mousePosition);
 	_plane = nullptr;
 }
 

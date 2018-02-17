@@ -41,6 +41,7 @@ public:
 
 	AbsGLPlane(const PlaneType type, const Common::Rect &rect, const int16 priority, const GLPoint &vanishingPoint, const uint8 color, const int pictureNo = 0, const bool mirror = false);
 	AbsGLPlane(const AbsGLPlane &) = delete;
+	AbsGLPlane &operator=(const AbsGLPlane &) = delete;
 	virtual ~AbsGLPlane();
 
 	reg_t getId() const { return _plane->_object; }
@@ -48,12 +49,8 @@ public:
 	int16 getPriority() const { return _plane->_priority; }
 	void setPriority(const int16 priority, const bool shouldUpdate = false);
 
-	Common::Rect getRect() const {
-		Common::Rect inclusiveRect(_plane->_gameRect);
-		--inclusiveRect.right;
-		--inclusiveRect.bottom;
-		return inclusiveRect;
-	}
+	const Common::Rect &getRect() const { return _plane->_gameRect; }
+	void setRect(const Common::Rect &rect, const bool shouldUpdate = false);
 
 	GLCast &getCast() { return _cast; }
 
@@ -92,7 +89,12 @@ class GLTransparentPlane : public AbsGLPlane {
 public:
 	// This constructor signature is reduced vs SSCI, which had a bunch of
 	// unused stuff
-	GLTransparentPlane(const Common::Rect &rect, const int16 priority);
+	GLTransparentPlane(const Common::Rect &rect, const int16 priority = -9999);
+};
+
+class GLColoredPlane : public AbsGLPlane {
+public:
+	GLColoredPlane(const Common::Rect &rect, const uint8 color, const int16 priority = -9999);
 };
 
 } // End of namespace Sci

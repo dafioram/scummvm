@@ -150,6 +150,21 @@ void ScreenItem::operator=(const ScreenItem &other) {
 	_drawBlackLines = other._drawBlackLines;
 }
 
+#ifdef ENABLE_SCI32S2
+ScreenItem *ScreenItem::clone() {
+	ScreenItem *clonedItem = new ScreenItem(_plane, _celInfo, _position, _scale);
+	clonedItem->_priority = _priority;
+	clonedItem->_fixedPriority = _fixedPriority;
+	clonedItem->_z = _z;
+	clonedItem->_useInsetRect = _useInsetRect;
+	if (_useInsetRect) {
+		clonedItem->_insetRect = _insetRect;
+	}
+	clonedItem->_mirrorX = _mirrorX;
+	return clonedItem;
+}
+#endif
+
 void ScreenItem::init(ResourceManager *resMan, GameFeatures *features, GfxFrameout *frameout, SegManager *segMan) {
 	_nextObjectId = 20000;
 	_nextCreationId = 0;

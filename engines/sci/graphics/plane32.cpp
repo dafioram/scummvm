@@ -222,8 +222,7 @@ void Plane::addPicInternal(const GuiResourceId pictureId, const Common::Point *p
 		ScreenItem *screenItem = new ScreenItem(_object, celObj->_info);
 		screenItem->_pictureId = pictureId;
 		screenItem->_mirrorX = mirrorX;
-		screenItem->_priority = celObj->_priority;
-		screenItem->_fixedPriority = true;
+		screenItem->setPriority(celObj->_priority);
 		if (position != nullptr) {
 			screenItem->_position = *position + celObj->_relativePosition;
 		} else {
@@ -854,6 +853,13 @@ void Plane::sync(const Plane *other, const Common::Rect &screenRect) {
 	// into the function. We don't do that just to avoid the extra indirection
 	clipScreenRect(screenRect);
 }
+
+#ifdef ENABLE_SCI32S2
+void Plane::setGameRect(const Common::Rect &rect) {
+	_gameRect = rect;
+	convertGameRectToPlaneRect();
+}
+#endif
 
 void Plane::update(const reg_t object) {
 	_vanishingPoint.x = readSelectorValue(_segMan, object, SELECTOR(vanishingX));

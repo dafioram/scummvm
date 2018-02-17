@@ -21,6 +21,7 @@
  */
 
 #include "sci/graphics/frameout.h"
+#include "sci/s2/bitmap.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glscreen_item.h"
 
@@ -28,21 +29,27 @@ namespace Sci {
 
 GfxFrameout *GLScreenItem::_graphicsManager = nullptr;
 
-GLScreenItem::GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
+GLScreenItem::GLScreenItem(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
 	GLObject(),
-	_viewNo(viewNo),
-	_loopNo(loopNo),
-	_celNo(celNo),
-	_bitmap(nullptr),
+	_celInfo(celInfo),
 	_position(position),
 	_plane(&plane),
-	_screenItem(new ScreenItem(plane.getId(), CelInfo32::makeView(viewNo, loopNo, celNo), position, scaleInfo)),
+	_screenItem(new ScreenItem(plane.getId(), celInfo, position, scaleInfo)),
 	_isDirty(false),
 	_isVisible(false) {
+	if (priority != -9999) {
+		_screenItem->setPriority(priority);
+	}
 	setNeedsDoIt(true);
 	setIsScreenItem(true);
 	plane.getCast().add(*this);
 }
+
+GLScreenItem::GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
+	GLScreenItem(plane, GLCelRes::makeView(viewNo, loopNo, celNo), position, priority, scaleInfo) {}
+
+GLScreenItem::GLScreenItem(AbsGLPlane &plane, S2Bitmap &bitmap, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
+	GLScreenItem(plane, GLCelRes::makeBitmap(bitmap.getHandle()), position, priority, scaleInfo) {}
 
 GLScreenItem::~GLScreenItem() {
 	if (_screenItem && _isVisible) {
@@ -69,15 +76,13 @@ void GLScreenItem::hide() {
 		return;
 	}
 
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	ScreenItem *clonedItem = _screenItem->clone();
 	_graphicsManager->deleteScreenItem(*_screenItem.release());
+	_screenItem.reset(clonedItem);
 	_isVisible = false;
 }
 
 void GLScreenItem::load(const GLCelRes &celInfo, const bool shouldUpdate) {
-	_viewNo = celInfo.resourceId;
-	_loopNo = celInfo.loopNo;
-	_celNo = celInfo.celNo;
 	_celInfo = celInfo;
 	_screenItem->_celInfo = celInfo;
 	_isDirty = true;
@@ -106,12 +111,7 @@ void GLScreenItem::forceUpdate() {
 }
 
 bool GLScreenItem::getNowSeenRect(Common::Rect &result) const {
-	const bool success = _graphicsManager->getNowSeenRect(_plane->getId(), _screenItem->_object, result);
-	if (success) {
-		--result.right;
-		--result.bottom;
-	}
-	return success;
+	return _graphicsManager->getNowSeenRect(_plane->getId(), _screenItem->_object, result);
 }
 
 } // End of namespace Sci

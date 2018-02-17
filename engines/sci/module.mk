@@ -93,6 +93,7 @@ MODULE_OBJS := \
 ifdef ENABLE_SCI32
 MODULE_OBJS += \
 	engine/kgraphics32.o \
+	graphics/bitmap32.o \
 	graphics/celobj32.o \
 	graphics/controls32.o \
 	graphics/frameout.o \
@@ -114,10 +115,13 @@ ifdef ENABLE_SCI32S2
 MODULE_OBJS += \
 	resource/sources/pe.o \
 	resource/sources/solvolume.o \
+	s2/bitmap.o \
 	s2/bitmap_manager.o \
 	s2/button.o \
+	s2/control.o \
 	s2/cursor.o \
 	s2/debugger.o \
+	s2/dialog.o \
 	s2/engine.o \
 	s2/exit.o \
 	s2/game.o \
@@ -125,6 +129,7 @@ MODULE_OBJS += \
 	s2/interface.o \
 	s2/inventory_manager.o \
 	s2/kernel.o \
+	s2/message_box.o \
 	s2/movie_manager.o \
 	s2/phone_manager.o \
 	s2/room.o \

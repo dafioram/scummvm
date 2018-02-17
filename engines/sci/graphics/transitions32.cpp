@@ -423,8 +423,7 @@ void GfxTransitions32::configure21EarlyHorizontalWipe(PlaneShowStyle &showStyle,
 		rect.right = showStyle.width * (i + 1) / divisions;
 		rect.bottom = showStyle.height;
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 	}
 
 	if (showStyle.fadeUp) {
@@ -454,16 +453,14 @@ void GfxTransitions32::configure21EarlyHorizontalShutter(PlaneShowStyle &showSty
 		const int16 leftLeft = rect.left;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 
 		// Right
 		rect.left = width - rect.right;
 		rect.right = width - leftLeft;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 	}
 
 	if (showStyle.fadeUp) {
@@ -496,8 +493,7 @@ void GfxTransitions32::configure21EarlyIris(PlaneShowStyle &showStyle, const int
 		const int16 topBottom = rect.bottom;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 
 		// Bottom
 		rect.top = height - rect.bottom;
@@ -505,8 +501,7 @@ void GfxTransitions32::configure21EarlyIris(PlaneShowStyle &showStyle, const int
 		const int16 bottomTop = rect.top;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 
 		// Left
 		rect.top = topBottom;
@@ -515,16 +510,14 @@ void GfxTransitions32::configure21EarlyIris(PlaneShowStyle &showStyle, const int
 		const int16 leftLeft = rect.left;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 
 		// Right
 		rect.left = width - rect.right;
 		rect.right = width - leftLeft;
 
 		showStyle.screenItems.push_back(new ScreenItem(showStyle.plane, celInfo, rect));
-		showStyle.screenItems.back()->_priority = priority;
-		showStyle.screenItems.back()->_fixedPriority = true;
+		showStyle.screenItems.back()->setPriority(priority);
 	}
 
 	if (showStyle.fadeUp) {
@@ -551,8 +544,7 @@ void GfxTransitions32::configure21EarlyDissolve(PlaneShowStyle &showStyle, const
 
 	CelInfo32 celInfo = CelInfo32::makeBitmap(bitmapId);
 	showStyle.bitmapScreenItem = new ScreenItem(showStyle.plane, celInfo, Common::Point(0, 0), ScaleInfo());
-	showStyle.bitmapScreenItem->_priority = priority;
-	showStyle.bitmapScreenItem->_fixedPriority = true;
+	showStyle.bitmapScreenItem->setPriority(priority);
 
 	_gfxFrameout->addScreenItem(*showStyle.bitmapScreenItem);
 }

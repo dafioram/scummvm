@@ -57,11 +57,7 @@ AbsGLPlane::AbsGLPlane(const PlaneType type, const Common::Rect &rect, int16 pri
 		priority = _graphicsManager->getPlanes().getTopSciPlanePriority() + 1;
 	}
 
-	Common::Rect exclusiveRect(rect);
-	++exclusiveRect.right;
-	++exclusiveRect.bottom;
-
-	_plane = new Plane(pictureType, color, exclusiveRect, priority, vanishingPoint, pictureNo, mirrored);
+	_plane = new Plane(pictureType, color, rect, priority, vanishingPoint, pictureNo, mirrored);
 
 	_graphicsManager->addPlane(_plane);
 	_plane->changePic();
@@ -73,6 +69,14 @@ AbsGLPlane::~AbsGLPlane() {
 
 void AbsGLPlane::setPriority(const int16 priority, const bool shouldUpdate) {
 	_plane->_priority = priority;
+	_isDirty = true;
+	if (shouldUpdate) {
+		update();
+	}
+}
+
+void AbsGLPlane::setRect(const Common::Rect &rect, const bool shouldUpdate) {
+	_plane->setGameRect(rect);
 	_isDirty = true;
 	if (shouldUpdate) {
 		update();
@@ -118,5 +122,8 @@ void GLPicturePlane::addPicAt(const uint16 resourceNo, const int16 x, const int1
 
 GLTransparentPlane::GLTransparentPlane(const Common::Rect &rect, const int16 priority) :
 	AbsGLPlane(kPlaneTypeTransparent, rect, priority, GLPoint(0, 0), 0) {}
+
+GLColoredPlane::GLColoredPlane(const Common::Rect &rect, const uint8 color, const int16 priority) :
+	AbsGLPlane(kPlaneTypeColored, rect, priority, GLPoint(0, 0), color) {}
 
 } // End of namespace Sci

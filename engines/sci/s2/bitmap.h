@@ -20,30 +20,35 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_BITMAP_H
+#define SCI_S2_BITMAP_H
 
-#include "sci/s2/system/gltarget.h"
-#include "sci/s2/system/types.h"
+#include "common/scummsys.h"
+#include "sci/engine/vm_types.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+class GfxBitmap32;
+class SciBitmap;
 
-class GLFeature : public GLTarget {
+class S2Bitmap {
 public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+	static void init(GfxBitmap32 *bitmapManager) { _bitmapManager = bitmapManager; }
 
-	const Common::Rect &getRect() const { return _bounds; }
+	S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap = false);
 
-protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+	~S2Bitmap();
+
+	reg_t getHandle() const { return _handle; }
+
+	void drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y);
+
+	void drawText(const Common::String &text, const Common::Rect &textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const uint16 fontId, TextAlign alignment = kTextAlignDefault, const int16 borderColor = -1, const bool dimmed = false);
 
 private:
-	Common::Rect _bounds;
+	static GfxBitmap32 *_bitmapManager;
+
+	reg_t _handle;
 };
 
 } // End of namespace Sci

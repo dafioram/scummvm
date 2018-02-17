@@ -25,6 +25,7 @@
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
+#include "sci/s2/message_box.h"
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/types.h"
@@ -118,12 +119,18 @@ void S2GlobalRoom::initMainMenu() {
 		_game.getRoomManager().loadGlobalRoom(4020, true);
 	});
 
-	// Unfortunately, the Internet Archive does not have a saved copy of the
-	// web site for this game, so this button cannot be enabled unless someone
-	// happens to have downloaded it at the time.
 	button = &addButton(*_plane, 4000, 2, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 2, 2);
 	button->setDepressedFace(4000, 2, 2);
+	button->enable();
+	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+		const char *text = "Unfortunately, Internet Archive does not have a "
+			"saved copy of the Shivers 2 web site. If you do, please get in "
+			"touch!";
+
+		S2MessageBox message(text, S2MessageBox::Type::OK);
+		message.createS2Dialog();
+	});
 
 	button = &addButton(*_plane, 4000, 3, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 3, 1);

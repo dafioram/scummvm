@@ -20,8 +20,10 @@
  *
  */
 
-#include "sci/s2/engine.h"
 #include "sci/s2/button.h"
+#include "sci/s2/control.h"
+#include "sci/s2/dialog.h"
+#include "sci/s2/engine.h"
 #include "sci/s2/game.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glquit_handler.h"
@@ -42,6 +44,8 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	GLCue::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);
+	S2Control::init(&_user);
+	S2Dialog::init(&_user);
 	_phoneManager.init();
 }
 

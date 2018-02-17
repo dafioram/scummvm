@@ -47,8 +47,7 @@ reg_t GfxPaint32::kernelAddLine(const reg_t planeObject, const Common::Point &st
 	celInfo.color = color;
 
 	ScreenItem *screenItem = new ScreenItem(planeObject, celInfo, gameRect);
-	screenItem->_priority = priority;
-	screenItem->_fixedPriority = true;
+	screenItem->setPriority(priority);
 
 	plane->_screenItemList.add(screenItem);
 

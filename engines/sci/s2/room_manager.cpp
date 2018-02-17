@@ -159,8 +159,8 @@ void S2RoomManager::deactivateRoom() {
 }
 
 void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
-	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth() - 1,
-									  _kernel.graphicsManager.getScriptHeight() - 1);
+	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth(),
+									  _kernel.graphicsManager.getScriptHeight());
 
 	// In SSCI the global room always existed and was baked into the main
 	// executable image; we treat it more like a regular room and so it needs to
@@ -244,8 +244,8 @@ void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {
 
 	if (!_picture) {
 		const Common::Rect fullscreenRect(0, 0,
-										  _kernel.graphicsManager.getScriptWidth() - 1,
-										  _kernel.graphicsManager.getScriptHeight() - 1);
+										  _kernel.graphicsManager.getScriptWidth(),
+										  _kernel.graphicsManager.getScriptHeight());
 		if (fullscreen) {
 			_picture.reset(new GLPicturePlane(fullscreenRect, resourceNo));
 		} else {

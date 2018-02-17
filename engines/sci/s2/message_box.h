@@ -20,30 +20,43 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_MESSAGE_BOX_H
+#define SCI_S2_MESSAGE_BOX_H
 
-#include "sci/s2/system/gltarget.h"
+#include "common/ptr.h"
+#include "sci/s2/bitmap.h"
+#include "sci/s2/button.h"
+#include "sci/s2/control.h"
+#include "sci/s2/dialog.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class AbsGLPlane;
-
-class GLFeature : public GLTarget {
+class S2MessageBox : public S2Dialog {
 public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+	enum class Type {
+		OK       = 0,
+		OKCancel = 1,
+		YesNo    = 4
+	};
 
-	const Common::Rect &getRect() const { return _bounds; }
+	S2MessageBox(const Common::String &message, Type type, GLPoint position = GLPoint(640, 480), const uint8 backColor = 235);
 
-protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+	static void init(GfxText32 *textManager) { _textManager = textManager; }
+
+	virtual void show() override;
+	virtual void hide() override;
 
 private:
-	Common::Rect _bounds;
+	virtual void dialogEvent(GLEvent &event, S2Control &control) override;
+
+	static GfxText32 *_textManager;
+
+	Type _type;
+	Common::ScopedPtr<S2Bitmap> _bitmap;
+	Common::ScopedPtr<GLScreenItem> _screenItem;
+	Common::FixedArray<S2Control *, 2> _controls;
+	Common::FixedArray<S2Button *, 2> _buttons;
 };
 
 } // End of namespace Sci

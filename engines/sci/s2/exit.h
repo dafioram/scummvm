@@ -50,9 +50,15 @@ private:
 	static GLPoint _defaultPoly[10];
 
 	PointsList rectToPoints(const Common::Rect &rect) const {
+		// In order to match the poly dimensions for rectangles in SSCI, the
+		// rectangle coordinates need to be converted from BR-exclusive to
+		// BR-inclusive
+		const int16 right = rect.right - 1;
+		const int16 bottom = rect.bottom - 1;
+
 		const GLPoint points[] = {
-			{ rect.left, rect.top }, { rect.right, rect.top },
-			{ rect.right, rect.bottom }, { rect.left, rect.bottom }
+			{ rect.left, rect.top }, { right, rect.top },
+			{ right, bottom }, { rect.left, bottom }
 		};
 		return PointsList(points, ARRAYSIZE(points));
 	}

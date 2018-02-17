@@ -316,6 +316,13 @@ public:
 	 */
 	void sync(const Plane *other, const Common::Rect &screenRect);
 
+#ifdef ENABLE_SCI32S2
+	/**
+	 * Sets the display rectangle for the plane.
+	 */
+	void setGameRect(const Common::Rect &rect);
+#endif
+
 	/**
 	 * Updates the plane to match the state of the plane object from the VM.
 	 *

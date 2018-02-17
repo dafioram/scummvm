@@ -20,32 +20,27 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
-
-#include "sci/s2/system/gltarget.h"
-#include "sci/s2/system/types.h"
+#include "sci/graphics/bitmap32.h"
+#include "sci/s2/bitmap.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+GfxBitmap32 *S2Bitmap::_bitmapManager = nullptr;
 
-class GLFeature : public GLTarget {
-public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+S2Bitmap::S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap) {
+	_bitmapManager->create(&_handle, width, height, skipColor, backColor, 0, 0, 640, 480, 0, remap, false);
+}
 
-	const Common::Rect &getRect() const { return _bounds; }
+S2Bitmap::~S2Bitmap() {
+	_bitmapManager->destroy(_handle);
+}
 
-protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+void S2Bitmap::drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y) {
+	_bitmapManager->drawView(_handle, viewNo, loopNo, celNo, x, y, -1, -1);
+}
 
-private:
-	Common::Rect _bounds;
-};
+void S2Bitmap::drawText(const Common::String &text, const Common::Rect &textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const uint16 fontId, TextAlign alignment, const int16 borderColor, const bool dimmed) {
+	_bitmapManager->drawText(_handle, text, textRect, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed);
+}
 
 } // End of namespace Sci
-
-#endif

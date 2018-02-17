@@ -63,7 +63,7 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 	_movie = GLVmdMovie(movieNo);
 
 	{
-		GLTransparentPlane plane(Common::Rect(_kernel.graphicsManager.getScriptWidth() - 1, _kernel.graphicsManager.getScriptHeight() - 1), 4);
+		GLTransparentPlane plane(Common::Rect(_kernel.graphicsManager.getScriptWidth(), _kernel.graphicsManager.getScriptHeight()), 4);
 
 		// HACK: Allow HQ video as long as there is no captioning (since the
 		// captions need to composite on top of the video); normally this was

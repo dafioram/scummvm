@@ -32,17 +32,20 @@ namespace Sci {
 
 class AbsGLPlane;
 class GfxFrameout;
-class SciBitmap;
+class S2Bitmap;
 
 class GLScreenItem : public GLObject {
 public:
+	GLScreenItem(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 	GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
+	GLScreenItem(AbsGLPlane &plane, S2Bitmap &bitmap, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 	~GLScreenItem();
 
 	static void init(GfxFrameout *graphicsManager) { _graphicsManager = graphicsManager; }
 
 	AbsGLPlane &getPlane() const { assert(_plane); return *_plane; }
 	bool getIsVisible() const { return _isVisible; }
+	int16 getPriority() const { return _screenItem->_priority; }
 
 	virtual void doIt() override {}
 
@@ -50,7 +53,7 @@ public:
 	virtual void hide();
 
 protected:
-	bool hasVLC() const { return !_bitmap; }
+	bool hasVLC() const { return _celInfo.type == kCelTypeView; }
 	void load(const GLCelRes &celInfo, const bool shouldUpdate = false);
 	virtual void update();
 	void forceUpdate();
@@ -59,12 +62,8 @@ protected:
 private:
 	static GfxFrameout *_graphicsManager;
 
-	// TODO: WTF are multiple redundant copies of this information being stored?
-	int	 _viewNo;
-	int16 _loopNo;
-	int16 _celNo;
 	GLCelRes _celInfo;
-	SciBitmap *_bitmap;
+	S2Bitmap *_bitmap;
 	GLPoint _position;
 	AbsGLPlane *_plane;
 	Common::ScopedPtr<ScreenItem> _screenItem;

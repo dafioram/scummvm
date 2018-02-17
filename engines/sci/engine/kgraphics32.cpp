@@ -47,6 +47,7 @@
 #include "sci/graphics/text16.h"
 #include "sci/graphics/view.h"
 #ifdef ENABLE_SCI32
+#include "sci/graphics/bitmap32.h"
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/celobj32.h"
 #include "sci/graphics/controls32.h"
@@ -654,50 +655,35 @@ reg_t kBitmapCreate(EngineState *s, int argc, reg_t *argv) {
 	bool useRemap = argc > 6 ? argv[6].toSint16() : false;
 
 	reg_t bitmapId;
-	SciBitmap &bitmap = *s->_segMan->allocateBitmap(&bitmapId, width, height, skipColor, 0, 0, xResolution, yResolution, 0, useRemap, true);
-	memset(bitmap.getPixels(), backColor, width * height);
+	g_sci->_gfxFrameout->_bitmap.create(&bitmapId, width, height, skipColor, backColor, 0, 0, xResolution, yResolution, 0, useRemap, true);
 	return bitmapId;
 }
 
 reg_t kBitmapDestroy(EngineState *s, int argc, reg_t *argv) {
 	if (s->_segMan->isValidAddr(argv[0], SEG_TYPE_BITMAP)) {
-		s->_segMan->freeBitmap(argv[0]);
+		g_sci->_gfxFrameout->_bitmap.destroy(argv[0]);
 	}
 	return s->r_acc;
 }
 
 reg_t kBitmapDrawView(EngineState *s, int argc, reg_t *argv) {
-	SciBitmap &bitmap = *s->_segMan->lookupBitmap(argv[0]);
-	CelObjView view(argv[1].toUint16(), argv[2].toSint16(), argv[3].toSint16());
-
+	const reg_t bitmapId = argv[0];
+	const uint16 viewNo = argv[1].toUint16();
+	const int16 loopNo = argv[2].toSint16();
+	const int16 celNo = argv[3].toSint16();
 	const int16 x = argc > 4 ? argv[4].toSint16() : 0;
 	const int16 y = argc > 5 ? argv[5].toSint16() : 0;
 	const int16 alignX = argc > 7 ? argv[7].toSint16() : -1;
 	const int16 alignY = argc > 8 ? argv[8].toSint16() : -1;
 
-	Common::Point position(
-		x == -1 ? bitmap.getOrigin().x : x,
-		y == -1 ? bitmap.getOrigin().y : y
-	);
-
-	position.x -= alignX == -1 ? view._origin.x : alignX;
-	position.y -= alignY == -1 ? view._origin.y : alignY;
-
-	Common::Rect drawRect(
-		position.x,
-		position.y,
-		position.x + view._width,
-		position.y + view._height
-	);
-	drawRect.clip(Common::Rect(bitmap.getWidth(), bitmap.getHeight()));
-	view.draw(bitmap.getBuffer(), drawRect, position, view._mirrorX);
+	g_sci->_gfxFrameout->_bitmap.drawView(bitmapId, viewNo, loopNo, celNo, x, y, alignX, alignY);
 	return s->r_acc;
 }
 
 reg_t kBitmapDrawText(EngineState *s, int argc, reg_t *argv) {
 	// called e.g. from TextButton::createBitmap() in Torin's Passage, script 64894
 
-	SciBitmap &bitmap = *s->_segMan->lookupBitmap(argv[0]);
+	const reg_t bitmapId = argv[0];
 	Common::String text = s->_segMan->getString(argv[1]);
 	Common::Rect textRect(
 		argv[2].toSint16(),
@@ -713,13 +699,7 @@ reg_t kBitmapDrawText(EngineState *s, int argc, reg_t *argv) {
 	int16 borderColor = argv[11].toSint16();
 	bool dimmed = argv[12].toUint16();
 
-	textRect.clip(Common::Rect(bitmap.getWidth(), bitmap.getHeight()));
-
-	reg_t textBitmapObject = g_sci->_gfxFrameout->_text.createFontBitmap(textRect.width(), textRect.height(), Common::Rect(textRect.width(), textRect.height()), text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, false, false);
-	CelObjMem textCel(textBitmapObject);
-	textCel.draw(bitmap.getBuffer(), textRect, Common::Point(textRect.left, textRect.top), false);
-	s->_segMan->freeBitmap(textBitmapObject);
-
+	g_sci->_gfxFrameout->_bitmap.drawText(bitmapId, text, textRect, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed);
 	return s->r_acc;
 }
 

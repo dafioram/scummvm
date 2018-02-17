@@ -20,30 +20,55 @@
  *
  */
 
-#ifndef SCI_S2_SYSTEM_GLFEATURE_H
-#define SCI_S2_SYSTEM_GLFEATURE_H
+#ifndef SCI_S2_DIALOG_H
+#define SCI_S2_DIALOG_H
 
-#include "sci/s2/system/gltarget.h"
-#include "sci/s2/system/types.h"
+#include "sci/s2/system/globject.h"
+#include "sci/s2/system/glplane.h"
 
 namespace Sci {
 
-class AbsGLPlane;
+class GfxFrameout;
+class GLEvent;
+class GLUser;
+class S2Control;
 
-class GLFeature : public GLTarget {
+class S2Dialog : public GLColoredPlane, public GLObject {
 public:
-	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
-	bool checkIsOnMe(const GLPoint &position) const;
+	enum class Result {
+		None   = 0,
+		OK     = 1,
+		Cancel = 2,
+		Yes    = 3,
+		No     = 4
+	};
 
-	const Common::Rect &getRect() const { return _bounds; }
+	S2Dialog(const Common::Rect &rect, const uint8 color);
+	virtual ~S2Dialog();
+
+	static void init(GfxFrameout *graphicsManager) { _graphicsManager = graphicsManager; }
+	static void init(GLUser *user) { _user = user; }
+
+	Result createS2Dialog();
+
+	bool handleEvent(GLEvent &event) override;
+	void doIt() override {}
 
 protected:
-	void init();
-	void setRect(const Common::Rect &bounds) { _bounds = bounds; }
+	void addControl(S2Control &control);
+	virtual void show();
+	virtual void hide();
+
+	Result _result;
 
 private:
-	Common::Rect _bounds;
+	virtual void dialogEvent(GLEvent &event, S2Control &control) = 0;
+
+	static GfxFrameout *_graphicsManager;
+	static GLUser *_user;
+
+	GLSetAsArray<S2Control> _controls;
+	bool _isModeless;
 };
 
 } // End of namespace Sci
