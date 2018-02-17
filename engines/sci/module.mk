@@ -134,6 +134,7 @@ MODULE_OBJS += \
 	s2/phone_manager.o \
 	s2/room.o \
 	s2/room_manager.o \
+	s2/savegame.o \
 	s2/scoring_manager.o \
 	s2/sound_manager.o \
 	s2/rooms/1000.o \
@@ -161,7 +162,8 @@ MODULE_OBJS += \
 	s2/system/glsound_manager.o \
 	s2/system/gltarget.o \
 	s2/system/gltimer.o \
-	s2/system/gluser.o
+	s2/system/gluser.o \
+	s2/system/glvr_plane.o
 endif
 endif
 

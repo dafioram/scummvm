@@ -33,6 +33,8 @@ namespace Common { struct Point; }
 
 namespace Sci {
 
+class GLScreenItem;
+
 class AbsGLPlane {
 public:
 	static void init(GfxFrameout *graphicsManager) {
@@ -95,6 +97,13 @@ public:
 class GLColoredPlane : public AbsGLPlane {
 public:
 	GLColoredPlane(const Common::Rect &rect, const uint8 color, const int16 priority = -9999);
+};
+
+class GLOpaquePlane : public AbsGLPlane {
+public:
+	// This constructor signature is reduced vs SSCI, which had a bunch of
+	// unused stuff
+	GLOpaquePlane(const Common::Rect &rect, const uint8 color, const int16 priority = -9999);
 };
 
 } // End of namespace Sci

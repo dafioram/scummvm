@@ -23,11 +23,26 @@
 #ifndef SCI_S2_SYSTEM_GLPANORAMA_H
 #define SCI_S2_SYSTEM_GLPANORAMA_H
 
+#include "common/ptr.h"
 #include "sci/s2/system/globject.h"
 
 namespace Sci {
 
-class GLPanorama : public GLObject {};
+class GLVRPlane;
+
+class GLPanorama : public GLObject {
+public:
+	uint16 getResourceNo() const { return _resourceNo; }
+
+	// SSCI did not have a `force` parameter, it just meddled with an internal
+	// flag of the panorama object first when it wanted to force an update
+	void updatePanorama(const bool force = false);
+	GLVRPlane &getPlane() { return *_plane; }
+
+private:
+	uint16 _resourceNo;
+	Common::ScopedPtr<GLVRPlane> _plane;
+};
 
 } // End of namespace Sci
 

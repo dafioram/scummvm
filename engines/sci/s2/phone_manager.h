@@ -34,6 +34,8 @@ public:
 
 	void cancelCall();
 
+	void notifyRoomChange(const bool baseRoomChanged);
+
 private:
 	void changeState(GLScript &script, const int state);
 };

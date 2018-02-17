@@ -20,13 +20,10 @@
  *
  */
 
-#include "common/textconsole.h"
-#include "sci/s2/system/glpanorama.h"
+#include "sci/s2/savegame.h"
 
 namespace Sci {
 
-void GLPanorama::updatePanorama(const bool force) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+
 
 } // End of namespace Sci

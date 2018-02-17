@@ -20,12 +20,16 @@
  *
  */
 
-#include "common/textconsole.h"
-#include "sci/s2/system/glpanorama.h"
+#include "sci/s2/system/glvr_plane.h"
 
 namespace Sci {
 
-void GLPanorama::updatePanorama(const bool force) {
+GLVRPlane::GLVRPlane(const Common::Rect &rect) :
+	GLOpaquePlane(rect, 0),
+	_bitmap(rect.width(), rect.height(), 0, 255),
+	_screenItem(*this, _bitmap, GLPoint(0, 0)) {}
+
+void GLVRPlane::updateScreen() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 

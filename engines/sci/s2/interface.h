@@ -23,13 +23,25 @@
 #ifndef SCI_S2_INTERFACE_H
 #define SCI_S2_INTERFACE_H
 
+#include "common/ptr.h"
+#include "common/rect.h"
+#include "sci/s2/bitmap.h"
+#include "sci/s2/button.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glscreen_item.h"
 
 namespace Sci {
 
+class S2Game;
+
 class S2Interface : public GLObject {
 public:
-	S2Interface();
+	S2Interface(S2Game &game);
+
+	void init();
+
+	void doIt() override;
 
 	void show();
 	void hide();
@@ -38,8 +50,33 @@ public:
 
 	void disableButtons();
 
+	void changeLife(const int amount);
+
 private:
+	S2Button *makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable = true) const;
+
+	bool _isHidden;
 	bool _isCaptioningOn;
+	int _healthRemaining;
+
+	S2Game &_game;
+	Common::ScopedPtr<GLColoredPlane> _background;
+	Common::ScopedPtr<GLTransparentPlane> _main;
+	Common::ScopedPtr<GLTransparentPlane> _captions;
+	Common::ScopedPtr<GLScreenItem> _toolbar;
+	Common::ScopedPtr<GLScreenItem> _health;
+	Common::ScopedPtr<GLScreenItem> _healthMask;
+
+	Common::ScopedPtr<S2Button> _internet;
+	Common::ScopedPtr<S2Button> _flashback;
+	Common::ScopedPtr<S2Button> _options;
+	Common::ScopedPtr<S2Button> _map;
+	Common::ScopedPtr<S2Button> _eye;
+
+	Common::String _caption;
+	Common::Rect _captionRect;
+	Common::ScopedPtr<S2Bitmap> _captionText;
+	Common::ScopedPtr<GLScreenItem> _captionUi;
 };
 
 } // End of namespace Sci

@@ -126,4 +126,7 @@ GLTransparentPlane::GLTransparentPlane(const Common::Rect &rect, const int16 pri
 GLColoredPlane::GLColoredPlane(const Common::Rect &rect, const uint8 color, const int16 priority) :
 	AbsGLPlane(kPlaneTypeColored, rect, priority, GLPoint(0, 0), color) {}
 
+GLOpaquePlane::GLOpaquePlane(const Common::Rect &rect, const uint8 color, const int16 priority) :
+	AbsGLPlane(kPlaneTypeOpaque, rect, priority, GLPoint(0, 0), color) {}
+
 } // End of namespace Sci

@@ -33,6 +33,13 @@ GLScript::GLScript(ChangeStateHandler callback, const int initialState, const in
 	cue();
 }
 
+GLScript::~GLScript() {
+	_extras->remove(this);
+	if (_cuer) {
+		_cuer->cue(*this);
+	}
+}
+
 void GLScript::init(ChangeStateHandler callback, const int initialState, const int data, void *const dataPointer) {
 	_changeState = callback;
 	_state = initialState - 1;

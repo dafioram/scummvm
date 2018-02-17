@@ -20,43 +20,24 @@
  *
  */
 
-#ifndef SCI_S2_BITMAP_H
-#define SCI_S2_BITMAP_H
+#ifndef SCI_S2_SYSTEM_GLVR_PLANE_H
+#define SCI_S2_SYSTEM_GLVR_PLANE_H
 
-#include "common/scummsys.h"
-#include "sci/engine/vm_types.h"
-#include "sci/graphics/text32.h"
-
-namespace Common {
-struct Rect;
-class String;
-}
+#include "sci/s2/bitmap.h"
+#include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glscreen_item.h"
 
 namespace Sci {
 
-class GfxBitmap32;
-class SciBitmap;
-
-class S2Bitmap {
+class GLVRPlane : public GLOpaquePlane {
 public:
-	static void init(GfxBitmap32 *bitmapManager) { _bitmapManager = bitmapManager; }
+	GLVRPlane(const Common::Rect &rect);
 
-	S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap = false);
-
-	~S2Bitmap();
-
-	reg_t getHandle() const { return _handle; }
-
-	void drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y);
-
-	void drawText(const Common::String &text, const Common::Rect &textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const uint16 fontId, TextAlign alignment = kTextAlignDefault, const int16 borderColor = -1, const bool dimmed = false);
-
-	void fill(const Common::Rect &rect, const uint8 color);
+	void updateScreen();
 
 private:
-	static GfxBitmap32 *_bitmapManager;
-
-	reg_t _handle;
+	S2Bitmap _bitmap;
+	GLScreenItem _screenItem;
 };
 
 } // End of namespace Sci

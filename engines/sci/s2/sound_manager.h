@@ -34,6 +34,7 @@ public:
 
 	int getRoomNo() const { return _roomNo; }
 
+	void stopAllSounds();
 	void createAmbient(const int roomNo);
 	void deleteAmbient(const int roomNo);
 

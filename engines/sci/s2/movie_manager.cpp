@@ -41,6 +41,10 @@ void S2MovieManager::pauseRobot() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+void S2MovieManager::resumeRobot() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2MovieManager::stopRobot(const bool) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

@@ -35,6 +35,7 @@ public:
 	void add(AbsGLPlane &plane);
 	void remove(AbsGLPlane &plane);
 	void update(AbsGLPlane &plane);
+	bool contains(AbsGLPlane &plane) const;
 	void doIt();
 	bool handleEvent(GLEvent &event);
 

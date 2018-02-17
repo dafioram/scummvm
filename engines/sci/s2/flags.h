@@ -253,7 +253,25 @@ enum GameFlag {
 	kNumGameFlags
 };
 
-using GameFlags = Common::FixedArray<bool, kNumGameFlags>;
+class GameFlags {
+public:
+	GameFlags() : _flags() {}
+
+	bool get(const GameFlag flag) const {
+		return _flags[flag];
+	}
+
+	void set(const GameFlag flag) {
+		_flags[flag] = true;
+	}
+
+	void clear(const GameFlag flag) {
+		_flags[flag] = false;
+	}
+
+private:
+	Common::FixedArray<bool, kNumGameFlags> _flags;
+};
 
 } // End of namespace Sci
 

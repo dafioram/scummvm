@@ -31,6 +31,7 @@
 #include "sci/s2/movie_manager.h"
 #include "sci/s2/phone_manager.h"
 #include "sci/s2/room_manager.h"
+#include "sci/s2/savegame.h"
 #include "sci/s2/sound_manager.h"
 #include "sci/s2/system/glplane_manager.h"
 #include "sci/s2/system/glset.h"
@@ -60,6 +61,7 @@ public:
 	void quit();
 
 	bool hasSaveGames() const;
+	Common::Array<S2SaveGameMetadata> getSaveGameList() const;
 	bool canSaveNow() const;
 	bool canLoadNow() const;
 
@@ -98,6 +100,11 @@ public:
 	S2Interface &getInterface() { return _interface; }
 	S2PhoneManager &getPhoneManager() { return _phoneManager; }
 	S2MovieManager &getMovieManager() { return _movieManager; }
+	S2InventoryManager &getInventoryManager() { return _inventoryManager; }
+	GameFlags &getFlags() { return _flags; }
+
+	const Common::String &getSaveGameName() const { return _saveGameName; }
+	void setSaveGameName(const Common::String &name) { _saveGameName = name; }
 
 private:
 	void init();
@@ -109,6 +116,8 @@ private:
 	S2MovieManager _movieManager;
 	S2InventoryManager _inventoryManager;
 	GameFlags _flags;
+
+	Common::String _saveGameName;
 
 	int _volume; // ?
 	int _field_54;

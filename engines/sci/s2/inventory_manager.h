@@ -23,9 +23,18 @@
 #ifndef SCI_S2_INVENTORY_MANAGER_H
 #define SCI_S2_INVENTORY_MANAGER_H
 
+#include "common/textconsole.h"
+
 namespace Sci {
 
-class S2InventoryManager {};
+class S2InventoryManager {
+public:
+	enum class PrayerStick {
+		None = 0
+	};
+
+	PrayerStick getPrayerStickId() const { warning("TODO: %s", __PRETTY_FUNCTION__); return PrayerStick::None; }
+};
 
 } // End of namespace Sci
 

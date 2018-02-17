@@ -37,6 +37,7 @@ public:
 
 private:
 	void logoScript(GLScript &script, const int state);
+	void openingScript(GLScript &script, const int state);
 };
 
 } // End of namespace Sci

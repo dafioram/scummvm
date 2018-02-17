@@ -20,14 +20,16 @@
  *
  */
 
+#include "common/savefile.h"
 #include "sci/s2/button.h"
 #include "sci/s2/control.h"
 #include "sci/s2/dialog.h"
 #include "sci/s2/engine.h"
 #include "sci/s2/game.h"
+#include "sci/s2/kernel.h"
+#include "sci/s2/savegame.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glquit_handler.h"
-#include "sci/s2/kernel.h"
 
 namespace Sci {
 S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
@@ -37,6 +39,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_user(*this),
 	_cursor(kernel.graphicsManager._cursor),
 	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
+	_interface(*this),
 	_movieManager(kernel, *this),
 	_roomManager(kernel, *this),
 	_flags(),
@@ -61,8 +64,12 @@ void S2Game::run() {
 	// TODO: A save-before-quit confirmation dialogue was shown here; add this
 	// if it feels like a good idea later
 
+	// Conditional checks that were here are moved into their respective
+	// functions
 	_movieManager.stopRobot(false);
 	_roomManager.unloadGlobalRoom();
+	_roomManager.disposeRoom(_roomManager.getCurrentRoomNo());
+	_roomManager.unloadRoom();
 }
 
 void S2Game::quit() {
@@ -71,6 +78,20 @@ void S2Game::quit() {
 
 bool S2Game::hasSaveGames() const {
 	return !_engine.listSaves().empty();
+}
+
+Common::Array<S2SaveGameMetadata> S2Game::getSaveGameList() const {
+	Common::Array<S2SaveGameMetadata> list;
+	for (const auto &gameFilename : _engine.listSaves()) {
+		Common::ScopedPtr<Common::InSaveFile> stream(_engine.getSaveFileManager()->openForLoading(gameFilename));
+		const auto version = stream->readByte();
+		const auto name = stream->readPascalString();
+		const auto ticksElapsed = stream->readUint32LE();
+		const auto timestamp = stream->readUint64LE();
+		const S2SaveGameMetadata metadata = { name, timestamp, ticksElapsed, version };
+		list.push_back(metadata);
+	}
+	return list;
 }
 
 bool S2Game::canSaveNow() const {
@@ -133,6 +154,7 @@ void S2Game::doIt() {
 
 void S2Game::init() {
 	_cursor.show();
+	_interface.init();
 
 	// SSCI had multiple heap allocations + instantiations here in this order:
 	// * S2Cursor

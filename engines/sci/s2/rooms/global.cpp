@@ -29,6 +29,7 @@
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/types.h"
+#include "sci/s2/savegame.h"
 
 namespace Sci {
 
@@ -50,7 +51,7 @@ void S2GlobalRoom::init(const int roomNo) {
 }
 
 void S2GlobalRoom::dispose(const int roomNo) {
-	switch (_game.getRoomManager().getCurrentGlobalRoomNo()) {
+	switch (roomNo) {
 	case 4120:
 		warning("TODO: Handle global 4120 dispose");
 		break;
@@ -95,9 +96,12 @@ bool S2GlobalRoom::handleEvent(GLEvent &event) {
 				_bitmaps[0]->drawText(_newGameName, _rects[0], 202, 255, 255, 503);
 				_screenItems[0]->forceUpdate();
 			} else if (key == kSciKeyEnter && _newGameName.size()) {
-				// SSCI did not check the size
+				// SSCI did not check the size of the game name before allowing
+				// this to trigger
 				startNewGame();
+				break;
 			}
+
 			if (_newGameName.size()) {
 				_buttons[0]->enable();
 			} else {
@@ -213,7 +217,17 @@ void S2GlobalRoom::initNewGame() {
 }
 
 void S2GlobalRoom::startNewGame() {
-	warning("New game time!");
+	for (const auto &metadata : _game.getSaveGameList()) {
+		if (_newGameName == metadata.name) {
+			S2MessageBox message("That name is already registered. Please type in a unique game name.", S2MessageBox::Type::OK);
+			message.createS2Dialog();
+			return;
+		}
+	}
+
+	_game.setSaveGameName(_newGameName);
+	_game.getRoomManager().unloadGlobalRoom();
+	_game.getRoomManager().newRoom(1010);
 }
 
 } // End of namespace Sci

@@ -35,6 +35,9 @@ void S2Room1000::init(const int roomNo) {
 		_script.reset(new GLScript(GLScript::makeHandler(this, &S2Room1000::logoScript)));
 		break;
 	case 1010:
+		_game.getRoomManager().drawPic(2);
+		_script.reset(new GLScript(GLScript::makeHandler(this, &S2Room1000::openingScript)));
+		break;
 	case 1015:
 	case 1020:
 	case 1500:
@@ -61,6 +64,18 @@ void S2Room1000::logoScript(GLScript &script, const int state) {
 		break;
 	case 1:
 		_game.getRoomManager().loadGlobalRoom(4000, true);
+		break;
+	}
+}
+
+void S2Room1000::openingScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_game.getMovieManager().play(1010, nullptr, GLPoint(64, 0));
+		script.setTicks(1);
+		break;
+	case 1:
+		_game.getRoomManager().setNextRoomNo(1015);
 		break;
 	}
 }

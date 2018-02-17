@@ -45,7 +45,7 @@ protected:
 	GLCue() : GLObject() {}
 	void init(GLObject *const cuee, GLObject *const cuer, const int data, void *const dataPointer);
 
-private:
+protected:
 	static GLExtras *_extras;
 
 	GLObject *_cuee;

@@ -41,8 +41,8 @@ public:
 	bool getIsDepressed() const { return _isDepressed; }
 
 	void setEnabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 0);
-	void setDisabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 2);
 	void setDepressedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 1);
+	void setDisabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 2);
 	void setHighlightedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 3);
 
 	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }

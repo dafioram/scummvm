@@ -47,6 +47,10 @@ void GLPlaneManager::remove(AbsGLPlane &plane) {
 	_planes.remove(&plane);
 }
 
+bool GLPlaneManager::contains(AbsGLPlane &plane) const {
+	return _planes.contains(&plane);
+}
+
 bool GLPlaneManager::handleEvent(GLEvent &event) {
 	for (auto &plane : _planes) {
 		if (plane->checkIsOnMe(event.getMousePosition())) {

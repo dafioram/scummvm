@@ -39,6 +39,10 @@ void S2PhoneManager::cancelCall() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+void S2PhoneManager::notifyRoomChange(const bool baseRoomChanged) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2PhoneManager::changeState(GLScript &script, const int state) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

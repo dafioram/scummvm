@@ -25,6 +25,10 @@
 
 namespace Sci {
 
+void S2SoundManager::stopAllSounds() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2SoundManager::createAmbient(const int roomNo) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

@@ -50,6 +50,9 @@ public:
 	}
 
 	GLScript(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
+
+	virtual ~GLScript();
+
 	virtual void cue() override;
 
 protected:

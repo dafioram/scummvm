@@ -47,6 +47,8 @@ public:
 	int getCurrentRoomNo() const { return _currentRoomNo; }
 	bool getIsSaved() const { return _isSaved; }
 
+	void setNextRoomNo(const int roomNo) { _nextRoomNo = roomNo; }
+
 	void doIt() override;
 	bool handleEvent(GLEvent &event) override;
 
@@ -63,7 +65,7 @@ public:
 	void unloadGlobalRoom();
 
 	void drawPan(const uint16 resourceNo);
-	void drawPic(const uint16 resourceNo, const bool fullscreen);
+	void drawPic(const uint16 resourceNo, const bool fullscreen = false);
 
 	int getLastSoundRoomNo() const { return _lastSoundRoomNo; }
 	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
@@ -71,6 +73,8 @@ public:
 	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
 
 private:
+	int getBaseRoomNumber(const int roomNo);
+
 	// If a button callback calls to load a new room it will cause a
 	// use-after-free. We can either switch everything to shared pointers to
 	// avoid disposing of objects early, or we can defer the load until the next
@@ -110,6 +114,8 @@ private:
 	int _nextGlobalRoomNo;
 	bool _nextGlobalRoomFullscreen;
 	int _lastNonGlobalRoomNo;
+
+	uint8 _numRoomTransitions;
 };
 
 } // End of namespace Sci

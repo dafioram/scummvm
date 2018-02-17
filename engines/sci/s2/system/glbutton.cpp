@@ -100,12 +100,12 @@ void GLButton::setEnabledFace(const uint16 viewNo, const int16 loopNo, const int
 	_enabledCel = GLCelRes::makeView(viewNo, loopNo, celNo);
 }
 
-void GLButton::setDisabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
-	_disabledCel = GLCelRes::makeView(viewNo, loopNo, celNo);
-}
-
 void GLButton::setDepressedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
 	_depressedCel = GLCelRes::makeView(viewNo, loopNo, celNo);
+}
+
+void GLButton::setDisabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
+	_disabledCel = GLCelRes::makeView(viewNo, loopNo, celNo);
 }
 
 void GLButton::setHighlightedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {

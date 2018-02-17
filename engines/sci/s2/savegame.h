@@ -20,13 +20,20 @@
  *
  */
 
-#include "common/textconsole.h"
-#include "sci/s2/system/glpanorama.h"
+#ifndef SCI_S2_SAVEGAME_H
+#define SCI_S2_SAVEGAME_H
+
+#include "common/str.h"
 
 namespace Sci {
 
-void GLPanorama::updatePanorama(const bool force) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+struct S2SaveGameMetadata {
+	Common::String name;
+	uint64 timestamp;
+	uint32 numTicksElapsed;
+	uint8 version;
+};
 
 } // End of namespace Sci
+
+#endif

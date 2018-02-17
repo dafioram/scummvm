@@ -28,6 +28,7 @@
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glvr_plane.h"
 
 namespace Sci {
 
@@ -46,7 +47,8 @@ S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
 	_panoramaIsVisible(false),
 	_currentGlobalRoomNo(0),
 	_nextGlobalRoomNo(0),
-	_lastNonGlobalRoomNo(0) {
+	_lastNonGlobalRoomNo(0),
+	_numRoomTransitions(0) {
 	game.getExtras().push_back(this);
 	game.getUser().getOrphans().push_back(this);
 }
@@ -110,11 +112,55 @@ bool S2RoomManager::handleEvent(GLEvent &event) {
 	return _currentRoom->handleEvent(event);
 }
 
-void S2RoomManager::newRoom(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2RoomManager::newRoom(int roomNo) {
+	if (_currentRoomNo != roomNo) {
+		const bool baseRoomChanged = getBaseRoomNumber(_currentRoomNo) != getBaseRoomNumber(roomNo);
+
+		_game.getCursor().endHighlight();
+		if (_currentRoom) {
+			_nextRoomNo = roomNo;
+			disposeRoom(_currentRoomNo);
+			if (baseRoomChanged) {
+				unloadRoom();
+			}
+		}
+
+		if (baseRoomChanged) {
+			if (!loadRoom(roomNo)) {
+				loadRoom(_currentRoomNo);
+				roomNo = _currentRoomNo;
+			}
+		}
+
+		_nextRoomNo = 0;
+		initRoom(roomNo);
+
+		if (_panoramaIsVisible) {
+			_panorama->updatePanorama();
+			_panorama->getPlane().updateScreen();
+		}
+
+		_game.getPhoneManager().notifyRoomChange(baseRoomChanged);
+		_isSaved = false;
+		if (++_numRoomTransitions == 5) {
+			_numRoomTransitions = 0;
+			if (_game.getInventoryManager().getPrayerStickId() != S2InventoryManager::PrayerStick::None) {
+				_game.getInterface().changeLife(-1);
+			}
+		}
+	}
+
+	if (_currentGlobalRoomNo != 0 && _currentGlobalRoomNo != 4200) {
+		unloadGlobalRoom();
+		if (_panoramaIsVisible) {
+			_panorama->getPlane().updateScreen();
+		}
+	}
 }
 
 bool S2RoomManager::loadRoom(const int roomNo) {
+	assert(!_currentRoom);
+
 	// In SSCI this loaded DLLs
 	switch (roomNo) {
 	case 1000:
@@ -156,14 +202,47 @@ void S2RoomManager::initRoom(const int roomNo) {
 	_currentRoom->init(roomNo);
 }
 
+void S2RoomManager::disposeRoom(const int roomNo) {
+	if (_currentRoom) {
+		_currentRoom->dispose(roomNo);
+	}
+}
+
+void S2RoomManager::unloadRoom() {
+	if (_currentRoom) {
+		_currentRoom.reset();
+	}
+}
+
 void S2RoomManager::activateRoom() {
 	_roomIsActive = true;
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_panoramaIsVisible) {
+		_game.getExtras().push_back(_panorama.get());
+		_game.getUser().getOrphans().push_back(_panorama.get());
+		_panorama->getPlane().setPriority(2, true);
+		_kernel.graphicsManager._palette.loadPalette(_panorama->getResourceNo());
+		_panorama->updatePanorama(true);
+	}
+	if (_pictureIsVisible) {
+		_picture->setPriority(2, true);
+		if (!_game.getPlanes().contains(*_picture)) {
+			_game.getPlanes().add(*_picture);
+			_picture->repaint();
+		}
+	}
 }
 
 void S2RoomManager::deactivateRoom() {
 	_roomIsActive = false;
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_panorama && _panoramaIsVisible) {
+		_game.getExtras().remove(_panorama.get());
+		_game.getUser().getOrphans().remove(_panorama.get());
+		_panorama->getPlane().setPriority(-1, true);
+	}
+	if (_picture && _pictureIsVisible) {
+		_picture->setPriority(-1, true);
+		_game.getPlanes().remove(*_picture);
+	}
 }
 
 void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
@@ -172,7 +251,33 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 }
 
 void S2RoomManager::unloadGlobalRoom() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (!_currentGlobalRoomNo) {
+		return;
+	}
+	_globalRoom->dispose(_currentGlobalRoomNo);
+	_game.getSoundManager().fade(30004, 0, 15, 12, true);
+	_game.getFlags().clear(kGameFlag44);
+	_game.getInterface().putText(0);
+	_game.getPlanes().remove(*_globalPlane);
+	_globalPlane.reset();
+	activateRoom();
+	_game.getMovieManager().resumeRobot();
+	_kernel.graphicsManager.kernelFrameOut(true);
+	_currentGlobalRoomNo = 0;
+	if (_lastNonGlobalRoomNo == _currentRoomNo) {
+		_game.getSoundManager().createAmbient(_lastSoundRoomNo);
+	} else {
+		_game.getSoundManager().stopAllSounds();
+		_game.getSoundManager().createAmbient(getBaseRoomNumber(_currentRoomNo) / 1000);
+	}
+}
+
+int S2RoomManager::getBaseRoomNumber(const int roomNo) {
+	if (roomNo < 30000) {
+		return roomNo / 1000 * 1000;
+	} else {
+		return (roomNo / 1000 - 20) * 1000;
+	}
 }
 
 void S2RoomManager::deferredLoadGlobalRoom(const int roomNo, const bool fullscreen) {
