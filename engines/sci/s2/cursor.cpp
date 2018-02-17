@@ -34,7 +34,7 @@ S2Cursor::S2Cursor(GfxCursor32 &kernelCursor) :
 	_inventoryState(0) {
 	setHighlightedCelRes(GLCelRes::makeView(99, 0, kHighlightCel));
 	setHandsOffCelRes(GLCelRes::makeView(99, 0, kWaitCel));
-	setPosition(Common::Point(319, 191));
+	setPosition(Common::Point(320, 192));
 }
 
 } // End of namespace Sci
