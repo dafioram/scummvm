@@ -43,4 +43,8 @@ void S2Bitmap::drawText(const Common::String &text, const Common::Rect &textRect
 	_bitmapManager->drawText(_handle, text, textRect, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed);
 }
 
+void S2Bitmap::fill(const Common::Rect &rect, const uint8 color) {
+	_bitmapManager->fillRect(_handle, rect, color);
+}
+
 } // End of namespace Sci

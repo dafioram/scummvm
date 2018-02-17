@@ -45,6 +45,7 @@ S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
 	_currentPictureNo(0),
 	_panoramaIsVisible(false),
 	_currentGlobalRoomNo(0),
+	_nextGlobalRoomNo(0),
 	_lastNonGlobalRoomNo(0) {
 	game.getExtras().push_back(this);
 	game.getUser().getOrphans().push_back(this);
@@ -67,6 +68,13 @@ S2RoomManager::~S2RoomManager() {
 }
 
 void S2RoomManager::doIt() {
+	if (_nextGlobalRoomNo) {
+		const int roomNo = _nextGlobalRoomNo;
+		_nextGlobalRoomNo = 0;
+		deferredLoadGlobalRoom(roomNo, _nextGlobalRoomFullscreen);
+		return;
+	}
+
 	if (!_currentRoomNo) {
 		return;
 	}
@@ -74,7 +82,7 @@ void S2RoomManager::doIt() {
 	if (_nextRoomNo) {
 		newRoom(_nextRoomNo);
 		_nextRoomNo = 0;
-	} else { 
+	} else {
 		if (_pictureIsVisible && !_game.getCursor().hasInventory()) {
 			if (_game.getUser().getIsHandsOn()) {
 				if (_game.getCursor().isHandsOff()) {
@@ -159,6 +167,15 @@ void S2RoomManager::deactivateRoom() {
 }
 
 void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
+	_nextGlobalRoomNo = roomNo;
+	_nextGlobalRoomFullscreen = fullscreen;
+}
+
+void S2RoomManager::unloadGlobalRoom() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2RoomManager::deferredLoadGlobalRoom(const int roomNo, const bool fullscreen) {
 	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth(),
 									  _kernel.graphicsManager.getScriptHeight());
 
@@ -200,7 +217,13 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 	} else {
 		_globalRoom->dispose(_currentGlobalRoomNo);
 		const auto planeRect(_globalPlane->getRect());
-		if (fullscreen && planeRect.height() != _kernel.graphicsManager.getScriptHeight()) {
+		// There was check here that appeared to be trying to avoid doing work
+		// if the global plane was already fullscreen, but it was broken due to
+		// an off-by-one error, so the check always failed in SSCI and the path
+		// was always taken. The "broken" behaviour is needed to get a new
+		// picture to display when switching between fullscreen global rooms, so
+		// the check is omitted entirely
+		if (fullscreen) {
 			_game.getPlanes().remove(*_globalPlane);
 			_globalPlane.reset(new GLPicturePlane(fullscreenRect, roomNo, 200));
 			_game.getPlanes().add(*_globalPlane);
@@ -218,10 +241,6 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 
 	_currentGlobalRoomNo = roomNo;
 	_globalRoom->init(roomNo);
-}
-
-void S2RoomManager::unloadGlobalRoom() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2RoomManager::drawPan(const uint16 resourceNo) {

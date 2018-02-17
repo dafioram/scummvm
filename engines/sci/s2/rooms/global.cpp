@@ -41,6 +41,9 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4000:
 		initMainMenu();
 		break;
+	case 4010:
+		initNewGame();
+		break;
 	default:
 		error("Unknown global room %d", roomNo);
 	}
@@ -64,12 +67,43 @@ void S2GlobalRoom::dispose(const int roomNo) {
 		warning("TODO: Handle global 11140 dispose");
 		break;
 	}
+
+	_buttons.clear();
+	_cels.clear();
+	_bitmaps.clear();
+	_screenItems.clear();
+	_rects.clear();
+	_newGameName.clear();
 }
 
 bool S2GlobalRoom::handleEvent(GLEvent &event) {
 	switch (_game.getRoomManager().getCurrentGlobalRoomNo()) {
 	case 4010:
-		warning("TODO: Handle global 4010 event");
+		if (event.getType() == kSciEventKeyDown) {
+			const uint16 key = event.getMessage();
+			if (key == kSciKeyBackspace || (key >= ' ' && key <= 'z')) {
+				if (key == kSciKeyBackspace) {
+					_newGameName.deleteLastChar();
+					_bitmaps[0]->fill(_rects[0], 255);
+					_screenItems[0]->forceUpdate();
+				} else if (_newGameName.size() >= 20) {
+					return true;
+				} else {
+					_newGameName += key;
+				}
+
+				_bitmaps[0]->drawText(_newGameName, _rects[0], 202, 255, 255, 503);
+				_screenItems[0]->forceUpdate();
+			} else if (key == kSciKeyEnter && _newGameName.size()) {
+				// SSCI did not check the size
+				startNewGame();
+			}
+			if (_newGameName.size()) {
+				_buttons[0]->enable();
+			} else {
+				_buttons[0]->disable();
+			}
+		}
 		break;
 	case 4020:
 		warning("TODO: Handle global 4020 event");
@@ -96,7 +130,7 @@ bool S2GlobalRoom::handleEvent(GLEvent &event) {
 }
 
 void S2GlobalRoom::initMainMenu() {
-	auto *button = &addButton(*_plane, 4000, 0, 0, GLPoint(0, 479), 202);
+	auto *button = &addButton(4000, 0, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 0, 2);
 	button->setDepressedFace(4000, 0, 2);
 	button->enable();
@@ -107,7 +141,7 @@ void S2GlobalRoom::initMainMenu() {
 		_game.getRoomManager().loadGlobalRoom(4010, true);
 	});
 
-	button = &addButton(*_plane, 4000, 1, 0, GLPoint(0, 479), 202);
+	button = &addButton(4000, 1, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 1, 2);
 	button->setDepressedFace(4000, 1, 2);
 	if (_game.hasSaveGames()) {
@@ -119,7 +153,7 @@ void S2GlobalRoom::initMainMenu() {
 		_game.getRoomManager().loadGlobalRoom(4020, true);
 	});
 
-	button = &addButton(*_plane, 4000, 2, 0, GLPoint(0, 479), 202);
+	button = &addButton(4000, 2, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 2, 2);
 	button->setDepressedFace(4000, 2, 2);
 	button->enable();
@@ -132,7 +166,7 @@ void S2GlobalRoom::initMainMenu() {
 		message.createS2Dialog();
 	});
 
-	button = &addButton(*_plane, 4000, 3, 0, GLPoint(0, 479), 202);
+	button = &addButton(4000, 3, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 3, 1);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
@@ -144,7 +178,7 @@ void S2GlobalRoom::initMainMenu() {
 		_game.getRoomManager().loadGlobalRoom(4400, true);
 	});
 
-	button = &addButton(*_plane, 4000, 4, 0, GLPoint(0, 479), 202);
+	button = &addButton(4000, 4, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 4, 2);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
@@ -154,7 +188,32 @@ void S2GlobalRoom::initMainMenu() {
 		_game.quit();
 	});
 
-	addCel(*_plane, 4000, 5, 4, GLPoint(0, 479), 201).show();
+	addCel(4000, 5, 4, GLPoint(0, 479), 201).show();
+}
+
+void S2GlobalRoom::initNewGame() {
+	auto *button = &addButton(4010, 0, 0, GLPoint(0, 479), 202);
+	button->setDisabledFace(4010, 0, 0);
+	button->setHighlightedFace(4010, 0, 1);
+	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+		startNewGame();
+	});
+
+	button = &addButton(4010, 1, 0, GLPoint(0, 479), 202);
+	button->setHighlightedFace(4010, 1, 1);
+	button->enable();
+	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+		_game.getSoundManager().play(10913, false, 100);
+		_game.getRoomManager().loadGlobalRoom(4000, true);
+	});
+
+	_rects.emplace_back(2, 2, 510, 21);
+	auto &bitmap = _bitmaps.emplace_back(new S2Bitmap(512, 22, 255, 255));
+	_screenItems.emplace_back(new GLScreenItem(*_plane, *bitmap, GLPoint(115, 135), 202))->show();
+}
+
+void S2GlobalRoom::startNewGame() {
+	warning("New game time!");
 }
 
 } // End of namespace Sci

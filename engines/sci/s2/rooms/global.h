@@ -25,9 +25,12 @@
 
 #include "common/array.h"
 #include "common/ptr.h"
+#include "common/rect.h"
 #include "sci/s2/room.h"
+#include "sci/s2/bitmap.h"
 #include "sci/s2/button.h"
 #include "sci/s2/system/glcel.h"
+#include "sci/s2/system/glscreen_item.h"
 
 namespace Sci {
 
@@ -42,25 +45,33 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
-	// TODO: These probably are common to all rooms
+	// TODO: Several of these probably are common to all rooms; evaluate all
+	// room DLLs to find the common ones
 	GLPicturePlane *_plane;
 	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
 	Common::Array<Common::ScopedPtr<GLCel>> _cels;
+	Common::Array<Common::ScopedPtr<S2Bitmap>> _bitmaps;
+	Common::Array<Common::ScopedPtr<GLScreenItem>> _screenItems;
+	Common::Array<Common::Rect> _rects;
+
+	Common::String _newGameName;
 
 	template <typename ...Args>
 	S2Button &addButton(Args && ...args) {
-		auto &button = *_buttons.emplace_back(new S2Button(args...));
+		auto &button = *_buttons.emplace_back(new S2Button(*_plane, args...));
 		button.setAutoHighlight(true);
 		return button;
 	}
 
 	template <typename ...Args>
 	GLCel &addCel(Args && ...args) {
-		return *_cels.emplace_back(new GLCel(args...));
+		return *_cels.emplace_back(new GLCel(*_plane, args...));
 	}
 
 private:
 	void initMainMenu();
+	void initNewGame();
+	void startNewGame();
 
 	int _lastRoomBeforeRestore;
 };

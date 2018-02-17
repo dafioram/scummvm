@@ -52,11 +52,12 @@ public:
 	virtual void show();
 	virtual void hide();
 
+	void forceUpdate();
+
 protected:
 	bool hasVLC() const { return _celInfo.type == kCelTypeView; }
 	void load(const GLCelRes &celInfo, const bool shouldUpdate = false);
 	virtual void update();
-	void forceUpdate();
 	bool getNowSeenRect(Common::Rect &result) const;
 
 private:

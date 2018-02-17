@@ -45,6 +45,8 @@ public:
 
 	void drawText(const reg_t bitmapId, const Common::String &text, Common::Rect textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const GuiResourceId fontId, TextAlign alignment, const int16 borderColor, const bool dimmed);
 
+	void fillRect(const reg_t bitmapId, const Common::Rect &rect, const uint8 color);
+
 private:
 	BitmapProvider *_provider;
 	GfxText32 *_gfxText32;

@@ -73,4 +73,9 @@ void GfxBitmap32::drawText(const reg_t bitmapId, const Common::String &text, Com
 	_provider->freeBitmap(textBitmapObject);
 }
 
+void GfxBitmap32::fillRect(const reg_t bitmapId, const Common::Rect &rect, const uint8 color) {
+	SciBitmap &bitmap = *_provider->lookupBitmap(bitmapId);
+	bitmap.getBuffer().fillRect(rect, color);
+}
+
 } // End of namespace Sci

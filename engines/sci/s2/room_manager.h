@@ -71,6 +71,12 @@ public:
 	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
 
 private:
+	// If a button callback calls to load a new room it will cause a
+	// use-after-free. We can either switch everything to shared pointers to
+	// avoid disposing of objects early, or we can defer the load until the next
+	// doIt loop when the event handler has cleared. We do the latter for now.
+	void deferredLoadGlobalRoom(const int roomNo, const bool fullscreen);
+
 	void checkMouse();
 
 	S2Kernel &_kernel;
@@ -101,6 +107,8 @@ private:
 	Common::ScopedPtr<GLPicturePlane> _globalPlane;
 	Common::ScopedPtr<S2GlobalRoom> _globalRoom;
 	int _currentGlobalRoomNo;
+	int _nextGlobalRoomNo;
+	bool _nextGlobalRoomFullscreen;
 	int _lastNonGlobalRoomNo;
 };
 

@@ -706,15 +706,14 @@ reg_t kBitmapDrawText(EngineState *s, int argc, reg_t *argv) {
 reg_t kBitmapDrawColor(EngineState *s, int argc, reg_t *argv) {
 	// called e.g. from TextView::init() and TextView::draw() in Torin's Passage, script 64890
 
-	SciBitmap &bitmap = *s->_segMan->lookupBitmap(argv[0]);
-	Common::Rect fillRect(
+	const Common::Rect rect(
 		argv[1].toSint16(),
 		argv[2].toSint16(),
 		argv[3].toSint16() + 1,
 		argv[4].toSint16() + 1
 	);
 
-	bitmap.getBuffer().fillRect(fillRect, argv[5].toSint16());
+	g_sci->_gfxFrameout->_bitmap.fillRect(argv[0], rect, argv[5].toSint16());
 	return s->r_acc;
 }
 
