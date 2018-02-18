@@ -208,12 +208,20 @@ public:
 
 	T remove_at(size_type idx) {
 		assert(idx < _size);
+#ifdef HAVE_CPP11
+		T tmp(std::move(_storage[idx]));
+#else
 		T tmp = _storage[idx];
-		copy(_storage + idx + 1, _storage + _size, _storage + idx);
+#endif
+		move(_storage + idx + 1, _storage + _size, _storage + idx);
 		_size--;
 		// We also need to destroy the last object properly here.
 		_storage[_size].~T();
+#ifdef HAVE_CPP11
+		return std::move(tmp);
+#else
 		return tmp;
+#endif
 	}
 
 	// TODO: insert, remove, ...
