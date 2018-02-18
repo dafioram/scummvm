@@ -42,6 +42,7 @@ private:
 	void logoScript(GLScript &script, const int state);
 	void openingScript(GLScript &script, const int state);
 	void checkInScript(GLScript &script, const int state);
+	void dreamMovieScript(GLScript &script, const int state);
 
 	void playRobot(GLScript &script, const uint16 robotNo);
 

@@ -57,6 +57,10 @@ void S2Room1000::init(const int roomNo) {
 		setScript(this, &S2Room1000::checkInScript);
 		break;
 	case 1020:
+		_game.getRoomManager().drawPic(2);
+		_game.getInterface().putText(0);
+		setScript(this, &S2Room1000::dreamMovieScript);
+		break;
 	case 1500:
 	case 1600:
 		warning("TODO: Room %d", roomNo);
@@ -216,6 +220,18 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 		}
 		_script.reset();
 		_game.getRoomManager().setNextRoomNo(1020);
+		break;
+	}
+}
+
+void S2Room1000::dreamMovieScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_game.getMovieManager().play(1020, nullptr, GLPoint(64, 0));
+		script.setTicks(1);
+		break;
+	case 1:
+		_game.getRoomManager().setNextRoomNo(10400);
 		break;
 	}
 }
