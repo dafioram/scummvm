@@ -31,6 +31,7 @@
 #include "sci/s2/message_box.h"
 #include "sci/s2/savegame.h"
 #include "sci/s2/system/glcue.h"
+#include "sci/s2/system/glcycler.h"
 #include "sci/s2/system/glquit_handler.h"
 
 namespace Sci {
@@ -49,6 +50,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_saveGameSlotNo(-1),
 	_volume(Audio32::kMaxVolume) {
 	GLCue::init(&_extras);
+	GLCycler::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);
 	S2Control::init(&_user);

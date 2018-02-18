@@ -33,7 +33,6 @@ namespace Sci {
 class AbsGLPlane;
 class GLCycler;
 
-
 class GLCel : public GLScreenItem, public GLFeature {
 public:
 	GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo = ScaleInfo());
@@ -46,6 +45,8 @@ public:
 
 	int getMoveSpeed() const { return _moveSpeed; }
 	void setMoveSpeed(const int numTicks) { _moveSpeed = numTicks; }
+
+	void setCycler(GLCycler *cycler) { _cycler = cycler; }
 
 protected:
 	virtual void update() override;

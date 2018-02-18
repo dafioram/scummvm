@@ -65,12 +65,17 @@ void GLScreenItem::setCelRes(const GLCelRes &celInfo, const bool shouldUpdate) {
 void GLScreenItem::setLoop(const int16 loopNo, const bool shouldUpdate) {
 	assert(_celInfo.type == kCelTypeView);
 	_celInfo.loopNo = loopNo;
-	_screenItem->_celInfo = _celInfo;
-	_screenItem->_celObj.reset();
-	_isDirty = true;
-	if (shouldUpdate) {
-		update();
-	}
+	load(_celInfo, shouldUpdate);
+}
+
+void GLScreenItem::setCel(const int16 celNo, const bool shouldUpdate) {
+	assert(_celInfo.type == kCelTypeView);
+	_celInfo.celNo = celNo;
+	load(_celInfo, shouldUpdate);
+}
+
+int16 GLScreenItem::getLastCel() const {
+	return CelObjView::getNumCels(_celInfo.resourceId, _celInfo.loopNo) - 1;
 }
 
 void GLScreenItem::show() {
@@ -99,7 +104,11 @@ void GLScreenItem::hide() {
 
 void GLScreenItem::load(const GLCelRes &celInfo, const bool shouldUpdate) {
 	_celInfo = celInfo;
-	_screenItem->_celInfo = celInfo;
+	// SSCI did not check for inequality, and also did not reset the celObj
+	if (_screenItem->_celInfo != celInfo) {
+		_screenItem->_celInfo = celInfo;
+		_screenItem->_celObj.reset();
+	}
 	_isDirty = true;
 	if (shouldUpdate) {
 		update();

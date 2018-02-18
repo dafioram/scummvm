@@ -29,24 +29,42 @@
 namespace Sci {
 
 class GLCel;
+class TimeManager;
 
 class GLCycler : public GLObject {
 public:
-	GLCycler() : GLObject() {
-		warning("TODO: %s", __PRETTY_FUNCTION__);
-	}
+	GLCycler() : GLObject() {}
 	GLCycler(GLCel &cel) : GLObject() {
-		warning("TODO: %s", __PRETTY_FUNCTION__);
 		add(cel);
 	}
 
-	int add(GLCel &cel, const bool start = false);
-	void start(GLObject * = nullptr);
+	static void init(TimeManager *timeManager) { _timeManager = timeManager; }
+	static void init(GLExtras *extras) { _extras = extras; }
+
+	int getDirection() const { return _direction; }
+
+	int add(GLCel &cel, const bool shouldStart = false);
+	void start();
+	void start(GLObject *caller);
 	void stop();
 
+	void cycleForward(const bool forward);
+
+	virtual void doIt() override;
+
+protected:
+	virtual int16 nextCel(GLCel &client);
+
 private:
+	static TimeManager *_timeManager;
+	static GLExtras *_extras;
+
+	void done();
+	void release();
+
 	GLObject *_caller = nullptr;
 	bool _isCycling = false;
+	// TODO: Rename 'finished' to match other APIs
 	bool _isComplete = false;
 	int _targetCel;
 	GLSetAsArray<GLCel> _cels;
@@ -55,7 +73,15 @@ private:
 	int _numCyclesCompleted = 0;
 };
 
-class GLPingPongCycler : public GLCycler {};
+class GLPingPongCycler : public GLCycler {
+public:
+	using GLCycler::GLCycler;
+
+private:
+	virtual int16 nextCel(GLCel &client) override;
+};
+
+
 
 } // End of namespace Sci
 

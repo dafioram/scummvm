@@ -54,10 +54,10 @@ protected:
 
 	template <typename ...Args>
 	GLCel &resetCel(const uint index, Args && ...args) {
-		if (_cels.size() == index) {
+		if (_cels.size() <= index) {
+			_cels.resize(index);
 			addCel(args...);
 		} else {
-			assert(_cels.size() > index);
 			_cels[index].reset(new GLCel(getPlane(), args...));
 			getPlane().getCast().remove(*_cels[index]);
 		}

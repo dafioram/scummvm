@@ -49,6 +49,9 @@ public:
 
 	void setCelRes(const GLCelRes &celInfo, const bool shouldUpdate = false);
 	void setLoop(const int16 loopNo, const bool shouldUpdate = false);
+	int16 getCel() const { return _celInfo.celNo; }
+	void setCel(const int16 celNo, const bool shouldUpdate = false);
+	int16 getLastCel() const;
 
 	virtual void doIt() override {}
 

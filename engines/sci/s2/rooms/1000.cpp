@@ -45,7 +45,12 @@ void S2Room1000::init(const int roomNo) {
 	case 1015:
 		_game.getRoomManager().drawPic(1910);
 		_game.getInterface().resetButtons();
-		if (_game.getSaveGameName() == "WACKY") {
+		// In SSCI the half-screen check happened on every step of the game
+		// script, but this would cause a null pointer dereference if the game
+		// started fullscreen and then switched to halfscreen by keyboard
+		// shortcut, so the entire check is just moved here to the room init
+		if (_game.getSaveGameName() == "WACKY" &&
+			_game.getMovieManager().getUseHalfScreen()) {
 			_isWacky = true;
 		}
 		_game.getSoundManager().play(31002, true, 70);
@@ -92,16 +97,15 @@ void S2Room1000::openingScript(GLScript &script, const int state) {
 }
 
 void S2Room1000::checkInScript(GLScript &script, const int state) {
-	const bool doWacky = _game.getMovieManager().getUseHalfScreen() && _isWacky;
 	switch (state) {
 	case 0:
 		resetHotspot();
 
 		resetCel(0, 1910, 0, 0, GLPoint(64, 383), 200);
 
-		if (doWacky) {
-			_cels.resize(2);
-			auto &wackyCel = addCel(1910, 3, 0, GLPoint(64, 383), 200);
+		if (_isWacky) {
+			auto &wackyCel = resetCel(2, 1910, 3, 0, GLPoint(64, 383), 200);
+			wackyCel.hide();
 			wackyCel.setCycleSpeed(12);
 			getPlane().getCast().remove(wackyCel);
 			_cycler.reset(new GLPingPongCycler());
@@ -140,7 +144,7 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 		break;
 	case 5:
 		_cels[0]->hide();
-		if (doWacky) {
+		if (_isWacky) {
 			_cycler->stop();
 			_cels[2]->hide();
 		}
@@ -155,7 +159,7 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 	case 7:
 		_cels[0]->show();
 		_game.getRoomManager().drawPic(1910);
-		if (doWacky) {
+		if (_isWacky) {
 			_cels[2]->show();
 			_cycler->start();
 		}
@@ -175,7 +179,7 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 	case 9:
 		script.setState(7);
 		script.setSeconds(5);
-		if (doWacky) {
+		if (_isWacky) {
 			_cycler->stop();
 			_cels[2]->setLoop(3);
 			_cycler->start();
@@ -186,7 +190,7 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 		break;
 	case 11:
 		_cels[0]->hide();
-		if (doWacky) {
+		if (_isWacky) {
 			_cycler->stop();
 			_cels[2]->hide();
 		}
@@ -197,14 +201,14 @@ void S2Room1000::checkInScript(GLScript &script, const int state) {
 	case 12:
 		_cels[0]->show();
 		_game.getRoomManager().drawPic(1910);
-		if (doWacky) {
+		if (_isWacky) {
 			_cels[2]->show();
 			_cycler->start();
 		}
 		playRobotOrSound(script, 1909, 41122, 0);
 		break;
 	case 13:
-		if (doWacky) {
+		if (_isWacky) {
 			_cycler.reset();
 		}
 		if (!_game.getMovieManager().getUseHalfScreen()) {
@@ -247,7 +251,7 @@ void S2Room1000::resetHotspot() {
 		}
 
 		if (_cels.size() > 1) {
-			_cels.remove_at(1);
+			_cels[1].reset();
 		}
 
 		if (_game.getMovieManager().getUseHalfScreen()) {
