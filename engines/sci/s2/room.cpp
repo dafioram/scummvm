@@ -21,8 +21,13 @@
  */
 
 #include "sci/s2/room.h"
+#include "sci/s2/game.h"
 
 namespace Sci {
+
+GLPicturePlane &S2Room::getPlane() const {
+	return _game.getRoomManager().getGamePlane();
+}
 
 // TODO: Delete this file if nothing common ends up in it
 

@@ -27,21 +27,27 @@
 #include "common/rect.h"
 #include "sci/s2/bitmap.h"
 #include "sci/s2/button.h"
-#include "sci/s2/system/globject.h"
+#include "sci/s2/inventory_object.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glscreen_item.h"
+#include "sci/s2/system/gltarget.h"
 
 namespace Sci {
 
+class GLEvent;
+class GLScript;
 class S2Game;
 
-class S2Interface : public GLObject {
+// In SSCI this was of type GLObject and then got treated like a GLTarget using
+// unsafe casts
+class S2Interface : public GLTarget {
 public:
 	S2Interface(S2Game &game);
 
 	void init();
 
-	void doIt() override;
+	virtual void doIt() override;
+	virtual bool handleEvent(GLEvent &event) override;
 
 	void show();
 	void hide();
@@ -49,14 +55,18 @@ public:
 	bool getIsCaptioningOn() const { return _isCaptioningOn; }
 
 	void disableButtons();
+	void resetButtons();
 
 	void changeLife(const int amount);
 
 private:
 	S2Button *makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable = true) const;
 
-	bool _isHidden;
-	bool _isCaptioningOn;
+	// In SSCI this was inverted
+	bool _isVisible;
+
+	bool _inputEnabled;
+
 	int _healthRemaining;
 
 	S2Game &_game;
@@ -77,6 +87,11 @@ private:
 	Common::Rect _captionRect;
 	Common::ScopedPtr<S2Bitmap> _captionText;
 	Common::ScopedPtr<GLScreenItem> _captionUi;
+	Common::ScopedPtr<GLScript> _captionScript;
+	bool _isCaptioningOn;
+	bool _hasCaptioningFinished;
+
+	Common::FixedArray<Common::ScopedPtr<S2InventoryObject>, 12> _inventory;
 };
 
 } // End of namespace Sci

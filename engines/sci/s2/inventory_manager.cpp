@@ -24,4 +24,16 @@
 
 namespace Sci {
 
+void S2InventoryManager::addItem(const Inventory item) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2InventoryManager::selectItem(const int slotNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2InventoryManager::unselectItem(const bool returnToInventory) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 } // End of namespace Sci

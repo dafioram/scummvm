@@ -24,13 +24,16 @@
 #define SCI_S2_ROOM_H
 
 #include "common/ptr.h"
+#include "sci/s2/kernel.h"
+#include "sci/s2/system/glcel.h"
+#include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glscript.h"
 
 namespace Sci {
 
+class GLEvent;
 class S2Game;
 class S2Kernel;
-class GLEvent;
 
 class S2Room {
 public:
@@ -42,9 +45,44 @@ public:
 	virtual bool handleEvent(GLEvent &event) = 0;
 
 protected:
+	virtual GLPicturePlane &getPlane() const;
+
+	template <typename ...Args>
+	GLCel &addCel(Args && ...args) {
+		return *_cels.emplace_back(new GLCel(getPlane(), args...));
+	}
+
+	template <typename ...Args>
+	GLCel &resetCel(const uint index, Args && ...args) {
+		if (_cels.size() == index) {
+			addCel(args...);
+		} else {
+			assert(_cels.size() > index);
+			_cels[index].reset(new GLCel(getPlane(), args...));
+			getPlane().getCast().remove(*_cels[index]);
+		}
+		_cels[index]->show();
+		return *_cels[index];
+	}
+
+	template <typename O, typename F, typename ... Args>
+	void setScript(O object, F function, Args && ...args) {
+		_script.reset(new GLScript(object, function, args...));
+	}
+
+	void resetState(const int newState) {
+		GLScript::ChangeStateHandler handler(_script->getChangeState());
+		_script.reset(new GLScript(handler, newState));
+	}
+
+	void flushEvents() const {
+		_kernel.eventManager.flushEvents();
+	}
+
 	S2Kernel &_kernel;
 	S2Game &_game;
 	Common::ScopedPtr<GLScript> _script;
+	Common::Array<Common::ScopedPtr<GLCel>> _cels;
 };
 
 } // End of namespace Sci

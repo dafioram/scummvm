@@ -31,6 +31,8 @@ class GLEvent;
 
 class S2Hotspot : public GLPoly {
 public:
+	S2Hotspot(AbsGLPlane &plane, const int16 x1, const int16 y1, const int16 x2, const int16 y2);
+
 	bool getIsEnabled() const { return _isEnabled; }
 
 	void enable();

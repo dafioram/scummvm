@@ -28,6 +28,7 @@
 #include "sci/s2/message_box.h"
 #include "sci/s2/system/glevent.h"
 #include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glrobot.h"
 #include "sci/s2/system/glscreen_item.h"
 #include "sci/s2/system/gltimer.h"
 
@@ -47,6 +48,7 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	S2MessageBox::init(&graphicsManager._text);
 	S2Dialog::init(&graphicsManager);
 	S2Bitmap::init(&graphicsManager._bitmap);
+	GLRobot::init(&graphicsManager);
 }
 
 Common::String S2Kernel::getMessage(const uint16 resourceNo) const {

@@ -63,6 +63,8 @@ enum SciKeyCode {
 	kSciKeyBackspace = 8,
 	kSciKeyTab       = '\t',
 	kSciKeyEnter     = 13,
+	kSciKeyCtrlS     = 19,
+	kSciKeyCtrlV     = 22,
 	kSciKeyEsc       = 27,
 	kSciKeyShiftTab  = 15 << 8,
 

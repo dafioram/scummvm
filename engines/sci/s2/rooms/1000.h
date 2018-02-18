@@ -23,7 +23,10 @@
 #ifndef SCI_S2_ENGINE_H
 #define SCI_S2_ENGINE_H
 
+#include "sci/s2/hotspot.h"
+#include "sci/s2/kernel.h"
 #include "sci/s2/room.h"
+#include "sci/s2/system/glcycler.h"
 
 namespace Sci {
 
@@ -38,6 +41,20 @@ public:
 private:
 	void logoScript(GLScript &script, const int state);
 	void openingScript(GLScript &script, const int state);
+	void checkInScript(GLScript &script, const int state);
+
+	void playRobot(GLScript &script, const uint16 robotNo);
+
+	void playRobotOrSound(GLScript &script, const uint16 robotNo, const uint16 soundNo, const int16 wackyLoop);
+
+	void resetHotspot();
+
+	bool _isWacky = false;
+	int _soundNo = 0;
+	bool _useAltMovie = false;
+
+	Common::ScopedPtr<S2Hotspot> _hotspot;
+	Common::ScopedPtr<GLCycler> _cycler;
 };
 
 } // End of namespace Sci

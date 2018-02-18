@@ -44,6 +44,8 @@ protected:
 	// functionality
 	void init();
 
+	void setPoints(const PointsList &points) { _points = points; }
+
 private:
 	PointsList _points;
 	int16 _priority = -9999;

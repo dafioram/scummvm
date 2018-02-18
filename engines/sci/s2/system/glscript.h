@@ -49,15 +49,31 @@ public:
 		return std::bind(fn, object, _1, _2);
 	}
 
+	template <typename T, typename U>
+	GLScript(T object, U fn, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr) :
+		GLScript(makeHandler(object, fn), initialState, data, dataPointer) {}
+
 	GLScript(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
 
 	virtual ~GLScript();
 
 	virtual void cue() override;
 
+	int getState() const { return _state; }
+	void setState(const int state) { _state = state; }
+
+	const ChangeStateHandler &getChangeState() const { return _changeState; }
+
 protected:
 	GLScript() : GLTimer() {}
-	void init(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
+
+	template <typename T, typename U>
+	void init(T object, U fn, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr) {
+		_changeState = makeHandler(object, fn);
+		_state = initialState - 1;
+		GLCue::init(nullptr, nullptr, data, dataPointer);
+		cue();
+	}
 
 private:
 	using GLCue::init;

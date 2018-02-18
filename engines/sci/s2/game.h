@@ -106,6 +106,8 @@ public:
 	const Common::String &getSaveGameName() const { return _saveGameName; }
 	void setSaveGameName(const Common::String &name) { _saveGameName = name; }
 
+	void save();
+
 private:
 	void init();
 
@@ -118,6 +120,7 @@ private:
 	GameFlags _flags;
 
 	Common::String _saveGameName;
+	int _saveGameSlotNo;
 
 	int _volume; // ?
 	int _field_54;

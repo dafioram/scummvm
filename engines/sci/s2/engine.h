@@ -49,6 +49,7 @@ public:
 	virtual bool canSaveGameStateCurrently() override;
 	virtual bool canLoadGameStateCurrently() override;
 	Common::StringArray listSaves();
+	virtual Common::Error saveGameState(const int slotNo, const Common::String &description) override;
 
 private:
 	OSystem &_system;

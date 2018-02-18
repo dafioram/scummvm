@@ -24,4 +24,17 @@
 
 namespace Sci {
 
+int GLCycler::add(GLCel &cel, const bool start) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return 0;
+}
+
+void GLCycler::start(GLObject *) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void GLCycler::stop() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 } // End of namespace Sci

@@ -41,15 +41,20 @@ public:
 	virtual void show() override;
 	virtual void hide() override;
 
+	int getCycleSpeed() const { return _cycleSpeed; }
+	void setCycleSpeed(const int numTicks) { _cycleSpeed = numTicks; }
+
+	int getMoveSpeed() const { return _moveSpeed; }
+	void setMoveSpeed(const int numTicks) { _moveSpeed = numTicks; }
+
 protected:
 	virtual void update() override;
 	void setBounds();
 
 private:
 	GLCycler *_cycler;
-
-	int _cycleTicks;
-	int _moveTicks;
+	int _cycleSpeed;
+	int _moveSpeed;
 	GLPoint _stepSize;
 };
 

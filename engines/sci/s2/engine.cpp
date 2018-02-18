@@ -84,4 +84,9 @@ Common::StringArray S2Engine::listSaves() {
 	return getSaveFileManager()->listSavefiles(_gameId + ".###");
 }
 
+Common::Error S2Engine::saveGameState(const int slotNo, const Common::String &description) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return Common::kNoError;
+}
+
 } // End of namespace Sci

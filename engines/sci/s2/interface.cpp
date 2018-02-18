@@ -24,15 +24,18 @@
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
 #include "sci/s2/interface.h"
+#include "sci/s2/message_box.h"
 #include "sci/s2/system/glplane.h"
 
 namespace Sci {
 
 S2Interface::S2Interface(S2Game &game) :
 	_game(game),
-	_isHidden(false),
+	_isVisible(false),
+	_inputEnabled(false),
+	_healthRemaining(100),
 	_isCaptioningOn(false),
-	_healthRemaining(100) {}
+	_hasCaptioningFinished(false) {}
 
 S2Button *S2Interface::makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable) const {
 	S2Button *button = new S2Button(*_main, 999, loopNo, 0, GLPoint(0, 479), 4);
@@ -79,20 +82,100 @@ void S2Interface::init() {
 	_captionUi.reset(new GLScreenItem(*_captions, *_captionText, GLPoint(64, 383 - 46), 255));
 	_captionUi->show();
 
-	// TODO: Inventory
-	warning("TODO: %s inventory", __PRETTY_FUNCTION__);
+	// TODO: Inventory table
+	for (int slotNo = 0; slotNo < _inventory.size(); ++slotNo) {
+		S2InventoryObject *object = new S2InventoryObject(*_main, 3000, 0, 0, Inventory::None, GLPoint(80 + 40 * slotNo, 392), 4, slotNo);
+		_inventory[slotNo].reset(object);
+		object->show();
+		object->enable();
+	}
+
+	_isVisible = true;
+	_game.getExtras().push_front(this);
+	_main->getCast().addEventHandler(*this);
 }
 
 void S2Interface::doIt() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	// There was internet chat stuff in here, omitted since there is no server
+	// for a chat
+
+	if (_hasCaptioningFinished && _captionScript && _captionScript->getState() >= 3) {
+		_captionScript.reset();
+	}
+}
+
+bool S2Interface::handleEvent(GLEvent &event) {
+	if (event.getType() != kSciEventKeyDown) {
+		return event.isClaimed();
+	}
+
+	switch (event.getMessage()) {
+	case kSciKeyEnter:
+		// There was chat stuff here, removed
+		break;
+	case kSciKeyTab:
+		if (!_game.getRoomManager().getCurrentGlobalRoomNo()) {
+			// internet was also disabled here, but it is always disabled
+			_flashback->disable();
+			_options->disable();
+			_game.getRoomManager().loadGlobalRoom(4130);
+		} else if (_game.getRoomManager().getCurrentGlobalRoomNo() == 4130){
+			_game.getRoomManager().unloadGlobalRoom();
+			resetButtons();
+		}
+		event.claim();
+		break;
+	case kSciKeyF2:
+		// this changed the panorama resolution; we always output the highest
+		// resolution
+		break;
+	case kSciKeyF3:
+		_isCaptioningOn = !_isCaptioningOn;
+		event.claim();
+		break;
+	case kSciKeyF4:
+		_game.getRoomManager().toggleAutoHighlight();
+		event.claim();
+		break;
+	case kSciKeyF5:
+		_game.getMovieManager().toggleUseHalfScreen();
+		event.claim();
+		break;
+	case kSciKeyF6:
+		// internet-related functionality
+		event.claim();
+		break;
+	case kSciKeyCtrlS:
+		_game.save();
+		event.claim();
+		break;
+	case kSciKeyCtrlV: {
+		Common::String version;
+		Common::File versionFile;
+		// SSCI read a version from the configuration file created by setup; we
+		// have no such file so use the standalone version file instead
+		if (versionFile.open("VERSION.TXT")) {
+			version = versionFile.readLine();
+		} else if (versionFile.open("VERSION")) {
+			version = versionFile.readLine();
+		}
+		if (!version.empty()) {
+			S2MessageBox message(versionFile.readLine(), S2MessageBox::Type::OK);
+			message.createS2Dialog();
+		}
+		event.claim();
+	}
+	}
+
+	return event.isClaimed();
 }
 
 void S2Interface::show() {
-	if (!_isHidden) {
+	if (_isVisible) {
 		return;
 	}
 
-	_isHidden = false;
+	_isVisible = true;
 	_toolbar->show();
 	_health->show();
 	_healthMask->show();
@@ -105,11 +188,11 @@ void S2Interface::show() {
 }
 
 void S2Interface::hide() {
-	if (_isHidden) {
+	if (!_isVisible) {
 		return;
 	}
 
-	_isHidden = true;
+	_isVisible = false;
 	_toolbar->hide();
 	_health->hide();
 	_healthMask->hide();
@@ -125,7 +208,17 @@ void S2Interface::putText(const uint16 messageNo) {
 }
 
 void S2Interface::disableButtons() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_flashback->disable();
+	_options->disable();
+	_map->disable();
+}
+
+void S2Interface::resetButtons() {
+	if (_game.getRoomManager().inInteractiveRoom()) {
+		_options->enable();
+		_map->enable();
+		_flashback->enable();
+	}
 }
 
 void S2Interface::changeLife(const int amount) {

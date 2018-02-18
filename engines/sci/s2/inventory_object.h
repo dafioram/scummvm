@@ -23,7 +23,33 @@
 #ifndef SCI_S2_INVENTORY_OBJECT_H
 #define SCI_S2_INVENTORY_OBJECT_H
 
+#include "sci/s2/system/glcel.h"
+#include "sci/s2/inventory.h"
+
 namespace Sci {
+
+class AbsGLPlane;
+class GLEvent;
+class S2Game;
+
+class S2InventoryObject : public GLCel {
+public:
+	S2InventoryObject(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, Inventory id, const GLPoint &position = GLPoint(0, 0), const int16 priority = -9999, const int slotNo = -1);
+
+	static void init(S2Game *game) { _game = game; }
+
+	bool getIsEnabled() const { return _isEnabled; }
+	void enable();
+	void disable();
+	virtual bool handleEvent(GLEvent &event) override;
+
+private:
+	static S2Game *_game;
+
+	Inventory _id;
+	bool _isEnabled;
+	int _slotNo;
+};
 
 } // End of namespace Sci
 

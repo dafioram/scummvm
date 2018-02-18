@@ -40,13 +40,6 @@ GLScript::~GLScript() {
 	}
 }
 
-void GLScript::init(ChangeStateHandler callback, const int initialState, const int data, void *const dataPointer) {
-	_changeState = callback;
-	_state = initialState - 1;
-	GLCue::init(nullptr, nullptr, data, dataPointer);
-	cue();
-}
-
 void GLScript::cue() {
 	_changeState(*this, ++_state);
 }

@@ -25,28 +25,63 @@
 #include "sci/s2/kernel.h"
 #include "sci/s2/movie_manager.h"
 #include "sci/s2/system/glplane.h"
+#include "sci/s2/system/glrobot.h"
 
 namespace Sci {
 
 S2MovieManager::S2MovieManager(S2Kernel &kernel, S2Game &game) :
 	_kernel(kernel),
 	_game(game),
+	_robotIsInitialized(false),
 	_preventSkip(false),
 	_useHalfScreen(false),
 	_frameNo(5) {
 	GLVmdMovie::init(&kernel.graphicsManager._video.getVMDPlayer());
 }
 
+void S2MovieManager::initRobot(const uint16 robotNo, AbsGLPlane &plane, const int16 priority, const GLPoint &position) {
+	_robot = GLRobot(robotNo, plane, priority, position);
+	_robotIsInitialized = true;
+}
+
+void S2MovieManager::playRobot(const bool isModal, const bool hideClient, const bool keepLastFrame) {
+	if (_robotIsInitialized) {
+		_robot.start(isModal, hideClient, keepLastFrame);
+		if (_game.getRoomManager().getCurrentGlobalRoomNo()) {
+			pauseRobot();
+		}
+	}
+}
+
 void S2MovieManager::pauseRobot() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_robotIsInitialized) {
+		_robot.pause();
+	}
 }
 
 void S2MovieManager::resumeRobot() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_robotIsInitialized) {
+		_robot.resume();
+	}
 }
 
-void S2MovieManager::stopRobot(const bool) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2MovieManager::stopRobot(const bool shouldCue) {
+	if (_robotIsInitialized) {
+		_robot.terminate(shouldCue);
+		_robotIsInitialized = false;
+	}
+}
+
+void S2MovieManager::setRobotCaller(GLObject &caller) {
+	if (_robotIsInitialized) {
+		_robot.setCaller(caller);
+	}
+}
+
+void S2MovieManager::setRobotClient(GLCel &cel) {
+	if (_robotIsInitialized) {
+		_robot.setClient(cel);
+	}
 }
 
 void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoint &position, const bool forceDoublePixels, const bool keepRoom) {

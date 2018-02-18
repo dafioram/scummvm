@@ -32,7 +32,7 @@ void S2PhoneManager::init() {
 	// the wrong vtable being used; because S2PhoneManager is an inline member
 	// of S2Game it also cannot be fully initialised immediately since GLCue has
 	// to be able to access the global game object
-	GLScript::init(GLScript::makeHandler(this, &S2PhoneManager::changeState));
+	GLScript::init(this, &S2PhoneManager::changeState);
 }
 
 void S2PhoneManager::cancelCall() {

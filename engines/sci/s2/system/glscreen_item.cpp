@@ -58,6 +58,17 @@ GLScreenItem::~GLScreenItem() {
 	_plane->getCast().remove(*this);
 }
 
+void GLScreenItem::setLoop(const int16 loopNo, const bool shouldUpdate) {
+	assert(_celInfo.type == kCelTypeView);
+	_celInfo.loopNo = loopNo;
+	_screenItem->_celInfo = _celInfo;
+	_screenItem->_celObj.reset();
+	_isDirty = true;
+	if (shouldUpdate) {
+		update();
+	}
+}
+
 void GLScreenItem::show() {
 	if (_isVisible) {
 		return;

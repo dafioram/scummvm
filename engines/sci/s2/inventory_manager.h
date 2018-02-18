@@ -24,16 +24,32 @@
 #define SCI_S2_INVENTORY_MANAGER_H
 
 #include "common/textconsole.h"
+#include "sci/s2/inventory.h"
 
 namespace Sci {
 
 class S2InventoryManager {
 public:
+	enum class State {
+		Normal = 0,
+		Placed = 1,
+		Taken  = 2,
+		InUse  = 4,
+		Used   = 8
+	};
+
 	enum class PrayerStick {
 		None = 0
 	};
 
 	PrayerStick getPrayerStickId() const { warning("TODO: %s", __PRETTY_FUNCTION__); return PrayerStick::None; }
+
+	void selectItem(const int slotNo);
+	void unselectItem(const bool returnToInventory);
+
+	void addItem(const Inventory item);
+
+	State getState(const Inventory item) const { warning("TODO: %s", __PRETTY_FUNCTION__); return State::Normal; }
 };
 
 } // End of namespace Sci

@@ -45,11 +45,14 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
+	virtual GLPicturePlane &getPlane() const override {
+		return *_plane;
+	}
+
 	// TODO: Several of these probably are common to all rooms; evaluate all
 	// room DLLs to find the common ones
 	GLPicturePlane *_plane;
 	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
-	Common::Array<Common::ScopedPtr<GLCel>> _cels;
 	Common::Array<Common::ScopedPtr<S2Bitmap>> _bitmaps;
 	Common::Array<Common::ScopedPtr<GLScreenItem>> _screenItems;
 	Common::Array<Common::Rect> _rects;
@@ -61,11 +64,6 @@ private:
 		auto &button = *_buttons.emplace_back(new S2Button(*_plane, args...));
 		button.setAutoHighlight(true);
 		return button;
-	}
-
-	template <typename ...Args>
-	GLCel &addCel(Args && ...args) {
-		return *_cels.emplace_back(new GLCel(*_plane, args...));
 	}
 
 private:

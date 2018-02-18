@@ -40,12 +40,30 @@ class S2Kernel;
 class S2Room;
 
 class S2RoomManager : public GLObject {
+private:
+	template <typename T>
+	void addUnique(Common::Array<T *> &array, T &object) {
+		if (Common::find(array.begin(), array.end(), &object) == array.end()) {
+			array.push_back(&object);
+		}
+	}
+
+	template <typename T>
+	void removeUnique(Common::Array<T *> &array, T &object) {
+		auto it = Common::find(array.begin(), array.end(), &object);
+		if (it != array.end()) {
+			array.erase(it);
+		}
+	}
+
 public:
 	S2RoomManager(S2Kernel &kernel, S2Game &game);
 	virtual ~S2RoomManager();
 
 	int getCurrentRoomNo() const { return _currentRoomNo; }
 	bool getIsSaved() const { return _isSaved; }
+
+	bool inInteractiveRoom() const;
 
 	void setNextRoomNo(const int roomNo) { _nextRoomNo = roomNo; }
 
@@ -61,7 +79,7 @@ public:
 	void deactivateRoom();
 
 	GLPicturePlane *getGlobalPlane() const { return _globalPlane.get(); }
-	void loadGlobalRoom(const int roomNo, const bool fullscreen);
+	void loadGlobalRoom(const int roomNo, const bool fullscreen = false);
 	void unloadGlobalRoom();
 
 	void drawPan(const uint16 resourceNo);
@@ -71,6 +89,22 @@ public:
 	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
 
 	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
+
+	void toggleAutoHighlight() { _autoHighlight = !_autoHighlight; }
+
+	GLPicturePlane &getGamePlane() const { return *_picture; }
+
+	void addHotspot(S2Hotspot &hotspot) { addUnique(_hotspots, hotspot); }
+	void removeHotspot(S2Hotspot &hotspot) { removeUnique(_hotspots, hotspot); }
+	void removeAllHotspots() { _hotspots.clear(); }
+
+	void addExit(S2Exit &exit) { addUnique(_exits, exit); }
+	void removeExit(S2Exit &exit) { removeUnique(_exits, exit); }
+	void removeAllExits() { _exits.clear(); }
+
+	void addCel(GLCel &cel) { addUnique(_cels, cel); }
+	void removeCel(GLCel &cel) { removeUnique(_cels, cel); }
+	void removeAllCels() { _cels.clear(); }
 
 private:
 	int getBaseRoomNumber(const int roomNo);
@@ -102,9 +136,9 @@ private:
 	uint16 _currentPictureNo;
 	Common::ScopedPtr<GLPanorama> _panorama;
 	bool _panoramaIsVisible;
-	Common::Array<S2Exit> _exits;
-	Common::Array<S2Hotspot> _hotspots;
-	Common::Array<GLCel> _cels;
+	Common::Array<S2Exit *> _exits;
+	Common::Array<S2Hotspot *> _hotspots;
+	Common::Array<GLCel *> _cels;
 
 	// Keep these in order; `_globalPlane` must be destroyed *after*
 	// `_globalRoom` (or else changed to use a SharedPtr)

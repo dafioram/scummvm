@@ -27,6 +27,7 @@
 
 namespace Sci {
 
+class GLCel;
 class GLEvent;
 class GLObject;
 class GLTarget;
@@ -35,6 +36,10 @@ class GLScreenItem;
 class GLCast {
 public:
 	void add(GLObject &object);
+	// TODO: GLCel is added here to avoid UB-triggering behaviour when trying to
+	// remove a GLCel from the cast, but virtual inheritance is probably more
+	// appropriate
+	void remove(GLCel &object);
 	void remove(GLObject &object);
 	void doIt();
 	bool handleEvent(GLEvent &event);

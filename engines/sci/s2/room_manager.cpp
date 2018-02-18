@@ -69,6 +69,14 @@ S2RoomManager::~S2RoomManager() {
 	}
 }
 
+bool S2RoomManager::inInteractiveRoom() const {
+	return _currentRoomNo >= 2000 &&
+		_currentRoomNo != 26900 &&
+		_currentRoomNo != 26901 &&
+		_currentRoomNo != 26721 &&
+		_currentRoomNo != 26850;
+}
+
 void S2RoomManager::doIt() {
 	if (_nextGlobalRoomNo) {
 		const int roomNo = _nextGlobalRoomNo;
@@ -414,14 +422,14 @@ void S2RoomManager::checkMouse() {
 		const auto localMousePosition(_picture->toLocal(mousePosition));
 
 		for (const auto &exit : _exits) {
-			if ((exit.getCursorCel() != 1 || _autoHighlight) &&
-				exit.getIsEnabled() &&
-				exit.checkIsOnMe(localMousePosition) &&
-				exit.getCursorCel() != 0) {
+			if ((exit->getCursorCel() != 1 || _autoHighlight) &&
+				exit->getIsEnabled() &&
+				exit->checkIsOnMe(localMousePosition) &&
+				exit->getCursorCel() != 0) {
 				hit = true;
 
-				if (highlightedCel.celNo != exit.getCursorCel()) {
-					highlightedCel.celNo = exit.getCursorCel();
+				if (highlightedCel.celNo != exit->getCursorCel()) {
+					highlightedCel.celNo = exit->getCursorCel();
 					_game.getCursor().setHighlightedCelRes(highlightedCel);
 				}
 
@@ -431,7 +439,7 @@ void S2RoomManager::checkMouse() {
 
 		if (!hit && _autoHighlight) {
 			for (const auto &hotspot : _hotspots) {
-				if (hotspot.getIsEnabled() && hotspot.checkIsOnMe(localMousePosition)) {
+				if (hotspot->getIsEnabled() && hotspot->checkIsOnMe(localMousePosition)) {
 					hit = true;
 
 					if (highlightedCel.celNo != 1) {
@@ -444,7 +452,7 @@ void S2RoomManager::checkMouse() {
 			}
 			if (!hit) {
 				for (const auto &cel : _cels) {
-					if (cel.checkIsOnMe(localMousePosition)) {
+					if (cel->checkIsOnMe(localMousePosition)) {
 						hit = true;
 
 						if (highlightedCel.celNo != 1) {

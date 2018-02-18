@@ -38,6 +38,7 @@
 #include "sci/s2/system/glmovie.h"
 #include "sci/s2/system/glmovie_player.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/glrobot.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
@@ -51,10 +52,18 @@ public:
 
 	S2MovieManager(S2Kernel &kernel, S2Game &game);
 
+	void initRobot(const uint16 robotNo, AbsGLPlane &plane, const int16 priority = -1, const GLPoint &position = GLPoint(0, 0));
+	void playRobot(const bool isModal = false, const bool hideClient = true, const bool keepLastFrame = true);
 	void pauseRobot();
 	void resumeRobot();
-	void stopRobot(const bool);
+	void stopRobot(const bool shouldCue);
+	void setRobotCaller(GLObject &caller);
+	void setRobotClient(GLCel &cel);
+
 	void play(const uint16 movieNo, Captioner captioner = nullptr, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
+
+	bool getUseHalfScreen() const { return _useHalfScreen; }
+	void toggleUseHalfScreen() { _useHalfScreen = !_useHalfScreen; }
 
 private:
 	S2Kernel &_kernel;
@@ -62,6 +71,8 @@ private:
 
 	GLMoviePlayer _player;
 	GLVmdMovie _movie;
+	GLRobot _robot;
+	bool _robotIsInitialized;
 
 	bool _preventSkip;
 	bool _useHalfScreen;

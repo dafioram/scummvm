@@ -21,12 +21,14 @@
  */
 
 #include "common/savefile.h"
+#include "common/translation.h"
 #include "sci/s2/button.h"
 #include "sci/s2/control.h"
 #include "sci/s2/dialog.h"
 #include "sci/s2/engine.h"
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
+#include "sci/s2/message_box.h"
 #include "sci/s2/savegame.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glquit_handler.h"
@@ -43,12 +45,14 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_movieManager(kernel, *this),
 	_roomManager(kernel, *this),
 	_flags(),
+	_saveGameSlotNo(-1),
 	_volume(Audio32::kMaxVolume) {
 	GLCue::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);
 	S2Control::init(&_user);
 	S2Dialog::init(&_user);
+	S2InventoryObject::init(this);
 	_phoneManager.init();
 }
 
@@ -60,6 +64,14 @@ void S2Game::run() {
 	_roomManager.initRoom(1000);
 
 	play();
+
+	if (!_roomManager.getIsSaved() && _roomManager.inInteractiveRoom()) {
+		S2MessageBox message(_("Your game '%s' has not yet been saved. "
+							   "Would you like to save this game before exiting?"), S2MessageBox::Type::YesNo);
+		if (message.createS2Dialog() == S2MessageBox::Result::Yes) {
+			save();
+		}
+	}
 
 	// TODO: A save-before-quit confirmation dialogue was shown here; add this
 	// if it feels like a good idea later
@@ -188,6 +200,10 @@ void S2Game::init() {
 	//   been omitted
 
 	_kernel.audioMixer.setAttenuatedMixing(false);
+}
+
+void S2Game::save() {
+	_engine.saveGameState(_saveGameSlotNo, _saveGameName);
 }
 
 } // End of namespace Sci

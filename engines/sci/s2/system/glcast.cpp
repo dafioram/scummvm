@@ -22,6 +22,7 @@
 
 #include "common/textconsole.h"
 #include "sci/s2/system/glcast.h"
+#include "sci/s2/system/glcel.h"
 #include "sci/s2/system/glevent.h"
 #include "sci/s2/system/globject.h"
 #include "sci/s2/system/glscreen_item.h"
@@ -38,6 +39,16 @@ void GLCast::add(GLObject &object) {
 	}
 	if (object.getNeedsEvent()) {
 		_eventHandlers.push_back(&static_cast<GLTarget &>(object));
+	}
+}
+
+void GLCast::remove(GLCel &object) {
+	if (static_cast<GLScreenItem &>(object).getIsScreenItem()) {
+		_screenItems.remove(&object);
+	}
+	_doIts.remove(&static_cast<GLTarget &>(object));
+	if (static_cast<GLTarget &>(object).getNeedsEvent()) {
+		_eventHandlers.remove(&object);
 	}
 }
 

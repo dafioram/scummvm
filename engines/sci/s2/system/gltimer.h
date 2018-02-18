@@ -52,7 +52,9 @@ public:
 	void setSeconds(const uint32 numSeconds);
 
 protected:
-	GLTimer() : GLCue(), _type(Type::None) {}
+	GLTimer() :
+		GLCue(),
+		_type(Type::None) {}
 
 	static TimeManager *_timeManager;
 

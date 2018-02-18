@@ -30,8 +30,8 @@ GLCel::GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const i
 	GLScreenItem(plane, viewNo, loopNo, celNo, position, priority, scaleInfo),
 	GLFeature(plane),
 	_cycler(nullptr),
-	_cycleTicks(6),
-	_moveTicks(6),
+	_cycleSpeed(6),
+	_moveSpeed(6),
 	_stepSize(3, 3) {
 	GLFeature::setIsScreenItem(true);
 	GLFeature::setNeedsDoIt(true);
