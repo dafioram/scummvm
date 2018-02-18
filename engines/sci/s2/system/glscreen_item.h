@@ -47,6 +47,7 @@ public:
 	bool getIsVisible() const { return _isVisible; }
 	int16 getPriority() const { return _screenItem->_priority; }
 
+	void setCelRes(const GLCelRes &celInfo, const bool shouldUpdate = false);
 	void setLoop(const int16 loopNo, const bool shouldUpdate = false);
 
 	virtual void doIt() override {}

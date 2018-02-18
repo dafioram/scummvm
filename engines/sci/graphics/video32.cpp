@@ -900,7 +900,7 @@ void VMDPlayer::initComposited() {
 	SciBitmap &vmdBitmap = *_segMan->allocateBitmap(&_bitmapId, _drawRect.width(), _drawRect.height(), 255, 0, 0, screenWidth, screenHeight, hunkPaletteSize, false, false);
 	vmdBitmap.getBuffer().fillRect(Common::Rect(_drawRect.width(), _drawRect.height()), 0);
 
-	CelInfo32 vmdCelInfo = CelInfo32::makeBitmap(_bitmapId);
+	CelInfo32 vmdCelInfo(_bitmapId);
 
 	Video::AdvancedVMDDecoder *decoder = static_cast<Video::AdvancedVMDDecoder *>(_decoder.get());
 	assert(decoder);

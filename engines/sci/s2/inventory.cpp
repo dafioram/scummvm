@@ -20,6 +20,7 @@
  *
  */
 
+#include "common/array.h"
 #include "sci/s2/inventory.h"
 
 namespace Sci {

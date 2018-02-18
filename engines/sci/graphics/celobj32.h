@@ -95,44 +95,55 @@ struct CelInfo32 {
 	 */
 	uint8 color;
 
-	CelInfo32() :
-		// In SSCI, color is left uninitialised
+#ifndef HAVE_CPP11
+#define constexpr
+#endif
+
+	constexpr CelInfo32() :
+		// In SSCI, color is left uninitialised; we initialise it so this can be
+		// constexpr
 		type(kCelTypeMem),
 		resourceId(0),
 		loopNo(0),
 		celNo(0),
-		bitmap(NULL_REG) {}
+		bitmap(NULL_REG),
+		color(0) {}
 
-	static CelInfo32 makeView(const GuiResourceId resourceId, const int16 loopNo, const int16 celNo) {
-		CelInfo32 info;
-		info.type = kCelTypeView;
-		info.resourceId = resourceId;
-		info.loopNo = loopNo;
-		info.celNo = celNo;
-		return info;
-	}
+	constexpr CelInfo32(const GuiResourceId resourceId_, const int16 loopNo_, const int16 celNo_) :
+		type(kCelTypeView),
+		resourceId(resourceId_),
+		loopNo(loopNo_),
+		celNo(celNo_),
+		bitmap(NULL_REG),
+		color(0) {}
 
-	static CelInfo32 makePic(const GuiResourceId resourceId, const int16 celNo) {
-		CelInfo32 info;
-		info.type = kCelTypePic;
-		info.resourceId = resourceId;
-		info.celNo = celNo;
-		return info;
-	}
+	constexpr CelInfo32(const GuiResourceId resourceId_, const int16 celNo_) :
+		type(kCelTypePic),
+		resourceId(resourceId_),
+		loopNo(0),
+		celNo(celNo_),
+		bitmap(NULL_REG),
+		color(0) {}
 
-	static CelInfo32 makeBitmap(const reg_t bitmap) {
-		CelInfo32 info;
-		info.type = kCelTypeMem;
-		info.bitmap = bitmap;
-		return info;
-	}
+	constexpr CelInfo32(const reg_t bitmapId) :
+		type(kCelTypeMem),
+		resourceId(0),
+		loopNo(0),
+		celNo(0),
+		bitmap(bitmapId),
+		color(0) {}
 
-	static CelInfo32 makeColor(const uint8 color) {
-		CelInfo32 info;
-		info.type = kCelTypeColor;
-		info.color = color;
-		return info;
-	}
+	constexpr CelInfo32(const uint8 color) :
+		type(kCelTypeColor),
+		resourceId(0),
+		loopNo(0),
+		celNo(0),
+		bitmap(NULL_REG),
+		color(color) {}
+
+#ifndef HAVE_CPP11
+#undef constexpr
+#endif
 
 	// This is the equivalence criteria used by CelObj::searchCache in at least
 	// SSCI SQ6. Notably, it does not check the color field.

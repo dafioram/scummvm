@@ -29,9 +29,9 @@ namespace Sci {
 
 S2Game *S2InventoryObject::_game = nullptr;
 
-S2InventoryObject::S2InventoryObject(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, Inventory id, const GLPoint &position, const int16 priority, const int slotNo) :
+S2InventoryObject::S2InventoryObject(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, S2Inventory id, const GLPoint &position, const int16 priority, const int slotNo) :
 	GLCel(plane, viewNo, loopNo, celNo, position, priority),
-	_id(id),
+	_item(id),
 	_isEnabled(true),
 	_slotNo(slotNo) {}
 
@@ -60,13 +60,13 @@ bool S2InventoryObject::handleEvent(GLEvent &event) {
 	if (event.getType() == kSciEventMouseRelease && _isEnabled && checkIsOnMe(event.getMousePosition())) {
 
 		if (_slotNo >= 0) {
-			if (_id != Inventory::None) {
+			if (_item != S2Inventory::None) {
 				_game->getInventoryManager().selectItem(_slotNo);
 			} else if (_game->getCursor().hasInventory()) {
 				_game->getInventoryManager().unselectItem(true);
 			}
 		} else {
-			_game->getInventoryManager().addItem(_id);
+			_game->getInventoryManager().addItem(_item);
 			disable();
 			hide();
 		}

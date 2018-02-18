@@ -28,28 +28,49 @@
 
 namespace Sci {
 
+class S2Game;
+
 class S2InventoryManager {
 public:
-	enum class State {
-		Normal = 0,
-		Placed = 1,
-		Taken  = 2,
-		InUse  = 4,
-		Used   = 8
-	};
+	enum { kMaxHeldItems = 12 };
 
-	enum class PrayerStick {
-		None = 0
-	};
+	S2InventoryManager(S2Game &game);
 
-	PrayerStick getPrayerStickId() const { warning("TODO: %s", __PRETTY_FUNCTION__); return PrayerStick::None; }
+	void init();
+
+	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
+	S2Inventory getCurrentItem() const { return _currentItem; }
+
+	bool isItemShowing() const { return _showingItem != S2Inventory::None; }
 
 	void selectItem(const int slotNo);
 	void unselectItem(const bool returnToInventory);
 
-	void addItem(const Inventory item);
+	// In SSCI this returned an int, but the return value was never taken
+	void addItem(const S2Inventory item);
 
-	State getState(const Inventory item) const { warning("TODO: %s", __PRETTY_FUNCTION__); return State::Normal; }
+	S2Inventory removeItem(const int slotNo);
+
+	S2InventoryState getState(const S2Inventory item) const {
+		return _inventory[int(item)].state;
+	}
+
+	bool setState(const S2Inventory item, const S2InventoryState state);
+
+	const GLCelRes &getSmallCel(S2Inventory item) { return _inventory[int(item)].smallCel; }
+
+private:
+	S2Game &_game;
+	S2Inventory _currentItem;
+	S2Inventory _showingItem;
+
+	int _numItemsHeld;
+	Common::FixedArray<S2Inventory, kMaxHeldItems> _itemSlots;
+
+	S2PrayerStick _prayerStick;
+
+	Common::FixedArray<S2InventoryItem, int(S2Inventory::kNumInventory)> _inventory;
+	Common::FixedArray<S2InventoryItem, int(S2PrayerStick::kNumPrayerSticks)> _prayerSticks;
 };
 
 } // End of namespace Sci

@@ -888,7 +888,7 @@ int16 CelObjView::getNumCels(const GuiResourceId viewId, int16 loopNo) {
 }
 
 CelObjView::CelObjView(const GuiResourceId viewId, const int16 loopNo, const int16 celNo) {
-	_info = CelInfo32::makeView(viewId, loopNo, celNo);
+	_info = CelInfo32(viewId, loopNo, celNo);
 	_mirrorX = false;
 	_compressionType = kCelCompressionInvalid;
 	_transparent = true;
@@ -1091,7 +1091,7 @@ Common::Point CelObjView::getLinkPosition(const int16 linkId) const {
 #pragma mark CelObjPic
 
 CelObjPic::CelObjPic(const GuiResourceId picId, const int16 celNo) {
-	_info = CelInfo32::makePic(picId, celNo);
+	_info = CelInfo32(picId, celNo);
 	_mirrorX = false;
 	_compressionType = kCelCompressionInvalid;
 	_transparent = true;
@@ -1215,7 +1215,7 @@ const SciSpan<const byte> CelObjPic::getResPointer() const {
 #pragma mark CelObjMem
 
 CelObjMem::CelObjMem(const reg_t bitmapObject) {
-	_info = CelInfo32::makeBitmap(bitmapObject);
+	_info = CelInfo32(bitmapObject);
 	_mirrorX = false;
 	_compressionType = kCelCompressionNone;
 	_celHeaderOffset = 0;
@@ -1252,7 +1252,7 @@ const SciSpan<const byte> CelObjMem::getResPointer() const {
 #pragma mark CelObjColor
 
 CelObjColor::CelObjColor(const uint8 color, const int16 width, const int16 height) {
-	_info = CelInfo32::makeColor(color);
+	_info = CelInfo32(color);
 	_origin.x = 0;
 	_origin.y = 0;
 	_xResolution = _gfxFrameout->getScriptWidth();

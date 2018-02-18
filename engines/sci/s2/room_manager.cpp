@@ -152,7 +152,7 @@ void S2RoomManager::newRoom(int roomNo) {
 		_isSaved = false;
 		if (++_numRoomTransitions == 5) {
 			_numRoomTransitions = 0;
-			if (_game.getInventoryManager().getPrayerStickId() != S2InventoryManager::PrayerStick::None) {
+			if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
 				_game.getInterface().changeLife(-1);
 			}
 		}

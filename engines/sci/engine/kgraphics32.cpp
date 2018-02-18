@@ -294,9 +294,9 @@ reg_t kCreateTextBitmap(EngineState *s, int argc, reg_t *argv) {
 		TextAlign alignment = (TextAlign)readSelectorValue(segMan, object, SELECTOR(mode));
 		return g_sci->_gfxFrameout->_text.createFontBitmap(width, height, rect, text, foreColor, backColor, skipColor, fontId, alignment, borderColor, dimmed, true, true);
 	} else {
-		CelInfo32 celInfo = CelInfo32::makeView(readSelectorValue(segMan, object, SELECTOR(view)),
-												readSelectorValue(segMan, object, SELECTOR(loop)),
-												readSelectorValue(segMan, object, SELECTOR(cel)));
+		CelInfo32 celInfo(readSelectorValue(segMan, object, SELECTOR(view)),
+						  readSelectorValue(segMan, object, SELECTOR(loop)),
+						  readSelectorValue(segMan, object, SELECTOR(cel)));
 		return g_sci->_gfxFrameout->_text.createFontBitmap(celInfo, rect, text, foreColor, backColor, fontId, skipColor, borderColor, dimmed, true);
 	}
 }

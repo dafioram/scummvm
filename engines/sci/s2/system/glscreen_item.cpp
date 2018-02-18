@@ -46,16 +46,20 @@ GLScreenItem::GLScreenItem(AbsGLPlane &plane, const GLCelRes &celInfo, const GLP
 }
 
 GLScreenItem::GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
-	GLScreenItem(plane, GLCelRes::makeView(viewNo, loopNo, celNo), position, priority, scaleInfo) {}
+	GLScreenItem(plane, GLCelRes(viewNo, loopNo, celNo), position, priority, scaleInfo) {}
 
 GLScreenItem::GLScreenItem(AbsGLPlane &plane, S2Bitmap &bitmap, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
-	GLScreenItem(plane, GLCelRes::makeBitmap(bitmap.getHandle()), position, priority, scaleInfo) {}
+	GLScreenItem(plane, GLCelRes(bitmap.getHandle()), position, priority, scaleInfo) {}
 
 GLScreenItem::~GLScreenItem() {
 	if (_screenItem && _isVisible) {
 		_graphicsManager->deleteScreenItem(*_screenItem.release());
 	}
 	_plane->getCast().remove(*this);
+}
+
+void GLScreenItem::setCelRes(const GLCelRes &celInfo, const bool shouldUpdate) {
+	load(celInfo, shouldUpdate);
 }
 
 void GLScreenItem::setLoop(const int16 loopNo, const bool shouldUpdate) {

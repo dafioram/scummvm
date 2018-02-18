@@ -36,6 +36,13 @@ GLCursor::GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo) :
 	updateKernel(celInfo);
 }
 
+void GLCursor::setNormalCelRes(const GLCelRes &celInfo) {
+	_normalCel = celInfo;
+	if (isNormal()) {
+		updateKernel(celInfo);
+	}
+}
+
 void GLCursor::setHighlightedCelRes(const GLCelRes &celInfo) {
 	_highlightedCel = celInfo;
 	if (isHighlighted()) {

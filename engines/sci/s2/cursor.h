@@ -43,6 +43,15 @@ public:
 	S2Cursor(GfxCursor32 &kernelCursor);
 
 	bool hasInventory() const { return _inventoryState & kInventory; }
+	bool hasPrayerStick() const { return _inventoryState & kPrayerStick; }
+
+	// SSCI did not accept a GLCelRes, it accepted an S2Inventory and just used
+	// the global inventory table directly, but we do not have one of those (it
+	// is part of S2InventoryManager) and the only reason for sending the
+	// inventory item was to get the cel anyway
+	void getItem(const GLCelRes &celInfo);
+
+	void dropItem();
 
 private:
 	enum InventoryState {
@@ -51,7 +60,7 @@ private:
 		kPrayerStick = 2
 	};
 
-	GLCelRes _normalCel;
+	GLCelRes _noInventoryCel;
 	GLCelRes _prayerStickNormalCel;
 	GLCelRes _inventoryCel;
 	int _inventoryState;

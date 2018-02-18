@@ -66,6 +66,7 @@ public:
 	bool inInteractiveRoom() const;
 
 	void setNextRoomNo(const int roomNo) { _nextRoomNo = roomNo; }
+	void setIsSaved(const bool saved) { _isSaved = saved; }
 
 	void doIt() override;
 	bool handleEvent(GLEvent &event) override;

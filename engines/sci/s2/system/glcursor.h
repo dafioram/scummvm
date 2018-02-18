@@ -37,6 +37,8 @@ public:
 	GLCursor(GfxCursor32 &kernelCursor, const GLCelRes &celInfo);
 
 	const GLCelRes &getHighlightedCelRes() { return _highlightedCel; }
+	const GLCelRes &getNormalCelRes() const { return _normalCel; }
+	void setNormalCelRes(const GLCelRes &celInfo);
 	void setHighlightedCelRes(const GLCelRes &celInfo);
 	void setHandsOffCelRes(const GLCelRes &celInfo);
 	Common::Point getPosition() const { return _position; }
@@ -44,6 +46,7 @@ public:
 	void show();
 	void hide();
 
+	bool isNormal() const { return !(_state & (kWaitState | kHandsOffState | kHighlightedState)); }
 	bool isHighlighted() const { return _state & kHighlightedState; }
 	bool isHandsOff() const { return _state & kHandsOffState; }
 

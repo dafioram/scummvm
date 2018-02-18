@@ -27,6 +27,8 @@
 #include "common/rect.h"
 #include "sci/s2/bitmap.h"
 #include "sci/s2/button.h"
+#include "sci/s2/inventory.h"
+#include "sci/s2/inventory_manager.h"
 #include "sci/s2/inventory_object.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glscreen_item.h"
@@ -58,6 +60,9 @@ public:
 	void resetButtons();
 
 	void changeLife(const int amount);
+
+	void drawInventoryItem(const int slotNo, const S2Inventory item);
+	void eraseInventoryItem(const int slotNo);
 
 private:
 	S2Button *makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable = true) const;
@@ -91,7 +96,7 @@ private:
 	bool _isCaptioningOn;
 	bool _hasCaptioningFinished;
 
-	Common::FixedArray<Common::ScopedPtr<S2InventoryObject>, 12> _inventory;
+	Common::FixedArray<Common::ScopedPtr<S2InventoryObject>, S2InventoryManager::kMaxHeldItems> _inventory;
 };
 
 } // End of namespace Sci

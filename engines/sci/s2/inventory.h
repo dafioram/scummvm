@@ -23,9 +23,11 @@
 #ifndef SCI_S2_INVENTORY_H
 #define SCI_S2_INVENTORY_H
 
+#include "sci/s2/system/types.h"
+
 namespace Sci {
 
-enum class Inventory {
+enum class S2Inventory {
 	None,
 	FortyDollars,
 	kInv2,
@@ -66,9 +68,9 @@ enum class Inventory {
 	kInv37,
 	kInv38,
 	kInv39,
-	Change,
+	kInv40,
 	kInv41,
-	kInv42,
+	Change,
 	kInv43,
 	kInv44,
 	kInv45,
@@ -77,7 +79,37 @@ enum class Inventory {
 	kInv48,
 	kInv49,
 	kInv50,
-	kInv51
+	kInv51,
+	kNumInventory
+};
+
+enum class S2InventoryState {
+	Normal = 0,
+	Placed = 1,
+	Taken  = 2,
+	InUse  = 4,
+	Used   = 8
+};
+
+enum class S2PrayerStick {
+	None = 0,
+	kNumPrayerSticks
+};
+
+struct S2InventoryItem {
+	S2InventoryState state;
+	// SSCI held three cel types and two states, but the first and third cels
+	// were always the same, and the second state was used to reset the first
+	// state because the inventory was constructed in a static mutable table, so
+	// we can just use two cels and once state instead
+	GLCelRes smallCel;
+	GLCelRes bigCel;
+
+	S2InventoryItem() {}
+	constexpr S2InventoryItem(S2InventoryState state_, const GLCelRes &smallCel_, const GLCelRes &bigCel_) :
+		state(state_),
+		smallCel(smallCel_),
+		bigCel(bigCel_) {}
 };
 
 } // End of namespace Sci

@@ -84,7 +84,7 @@ void S2Interface::init() {
 
 	// TODO: Inventory table
 	for (int slotNo = 0; slotNo < _inventory.size(); ++slotNo) {
-		S2InventoryObject *object = new S2InventoryObject(*_main, 3000, 0, 0, Inventory::None, GLPoint(80 + 40 * slotNo, 392), 4, slotNo);
+		S2InventoryObject *object = new S2InventoryObject(*_main, 3000, 0, 0, S2Inventory::None, GLPoint(80 + 40 * slotNo, 392), 4, slotNo);
 		_inventory[slotNo].reset(object);
 		object->show();
 		object->enable();
@@ -184,7 +184,9 @@ void S2Interface::show() {
 	_flashback->show();
 	_options->show();
 	_map->show();
-	// TODO: Inventory
+	for (auto &inventory : _inventory) {
+		inventory->show();
+	}
 }
 
 void S2Interface::hide() {
@@ -201,6 +203,9 @@ void S2Interface::hide() {
 	_flashback->hide();
 	_options->hide();
 	_map->hide();
+	for (auto &inventory : _inventory) {
+		inventory->hide();
+	}
 }
 
 void S2Interface::putText(const uint16 messageNo) {
@@ -223,6 +228,15 @@ void S2Interface::resetButtons() {
 
 void S2Interface::changeLife(const int amount) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2Interface::drawInventoryItem(const int slotNo, const S2Inventory item) {
+	_inventory[slotNo]->setCelRes(_game.getInventoryManager().getSmallCel(item), true);
+	_inventory[slotNo]->setItem(item);
+}
+
+void S2Interface::eraseInventoryItem(const int slotNo) {
+	drawInventoryItem(slotNo, S2Inventory::None);
 }
 
 } // End of namespace Sci

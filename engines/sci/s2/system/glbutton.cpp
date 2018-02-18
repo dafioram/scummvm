@@ -97,19 +97,19 @@ void GLButton::generalSelect(GLEvent &event) {
 }
 
 void GLButton::setEnabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
-	_enabledCel = GLCelRes::makeView(viewNo, loopNo, celNo);
+	_enabledCel = GLCelRes(viewNo, loopNo, celNo);
 }
 
 void GLButton::setDepressedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
-	_depressedCel = GLCelRes::makeView(viewNo, loopNo, celNo);
+	_depressedCel = GLCelRes(viewNo, loopNo, celNo);
 }
 
 void GLButton::setDisabledFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
-	_disabledCel = GLCelRes::makeView(viewNo, loopNo, celNo);
+	_disabledCel = GLCelRes(viewNo, loopNo, celNo);
 }
 
 void GLButton::setHighlightedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo) {
-	_highlightedCel = GLCelRes::makeView(viewNo, loopNo, celNo);
+	_highlightedCel = GLCelRes(viewNo, loopNo, celNo);
 }
 
 void GLButton::changeCel(const GLCelRes &celInfo, const bool shouldUpdate) {

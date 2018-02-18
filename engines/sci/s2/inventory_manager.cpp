@@ -20,20 +20,138 @@
  *
  */
 
+#include "sci/s2/game.h"
 #include "sci/s2/inventory_manager.h"
+#include "sci/s2/scoring_manager.h"
 
 namespace Sci {
 
-void S2InventoryManager::addItem(const Inventory item) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+S2InventoryManager::S2InventoryManager(S2Game &game) :
+	_game(game),
+	_currentItem(S2Inventory::None),
+	_showingItem(S2Inventory::None),
+	_numItemsHeld(0),
+	_itemSlots(),
+	_prayerStick(S2PrayerStick::None) {}
+
+void S2InventoryManager::init() {
+	for (int itemNo = 0; itemNo < int(S2Inventory::kNumInventory); ++itemNo) {
+		S2InventoryState state;
+		if (itemNo == 1 || itemNo == 2) {
+			state = S2InventoryState::Taken;
+		} else if (itemNo ==  3 || itemNo ==  5 || itemNo ==  6 || itemNo ==  7 ||
+				   itemNo ==  9 || itemNo == 11 || itemNo == 13 || itemNo == 14 ||
+				   itemNo == 15 ||
+				   (itemNo >= 17 && itemNo <= 24) ||
+				   (itemNo >= 26 && itemNo <= 32) ||
+				   itemNo == 34 || itemNo == 35 || itemNo == 37 || itemNo == 38 ||
+				   itemNo == 40 || itemNo == 41 || itemNo == 48 || itemNo == 49) {
+			state = S2InventoryState::Placed;
+		} else {
+			state = S2InventoryState::Normal;
+		}
+
+		_inventory[itemNo] = S2InventoryItem(state, GLCelRes(3000, itemNo, 0), GLCelRes(3000 + itemNo, 0, 0));
+
+		if (state == S2InventoryState::Taken) {
+			addItem(S2Inventory(itemNo));
+		}
+	}
+
+	for (int itemNo = 0; itemNo < int(S2PrayerStick::kNumPrayerSticks); ++itemNo) {
+		const GLCelRes cel(910, 0, itemNo);
+		_prayerSticks[itemNo] = S2InventoryItem(S2InventoryState::Normal, cel, cel);
+	}
+}
+
+void S2InventoryManager::addItem(const S2Inventory item) {
+	if (_numItemsHeld >= kMaxHeldItems) {
+		_game.getSoundManager().play(10005, false, Audio32::kMaxVolume);
+		return;
+	}
+
+	for (const auto &heldItem : _itemSlots) {
+		if (item == heldItem) {
+			return;
+		}
+	}
+
+	int slotNo = 0;
+	while (_itemSlots[slotNo] != S2Inventory::None) {
+		++slotNo;
+	}
+	setState(item, S2InventoryState::Taken);
+	++_numItemsHeld;
+	_itemSlots[slotNo] = item;
+	_game.getInterface().drawInventoryItem(slotNo, item);
+}
+
+S2Inventory S2InventoryManager::removeItem(const int slotNo) {
+	const S2Inventory oldItem = _itemSlots[slotNo];
+	if (oldItem != S2Inventory::None) {
+		_game.getInterface().eraseInventoryItem(slotNo);
+		setState(oldItem, S2InventoryState::InUse);
+		_itemSlots[slotNo] = S2Inventory::None;
+		--_numItemsHeld;
+	}
+	return oldItem;
+}
+
+bool S2InventoryManager::setState(const S2Inventory item, const S2InventoryState state) {
+	if (state == S2InventoryState::Taken &&
+		(_numItemsHeld == kMaxHeldItems || getCurrentItem() != S2Inventory::None)) {
+
+		_game.getSoundManager().play(10005, false, Audio32::kMaxVolume);
+		return false;
+	}
+
+	_game.getRoomManager().setIsSaved(false);
+	if (getState(item) == S2InventoryState::InUse && state == S2InventoryState::Used) {
+		_game.getCursor().dropItem();
+		_currentItem = S2Inventory::None;
+		if (!isItemShowing()) {
+			_game.getInterface().resetButtons();
+		}
+		if (item != S2Inventory::kInv10 && item != S2Inventory::kInv16 &&
+			item != S2Inventory::kInv25 && item != S2Inventory::kInv39) {
+			_game.getScoringManager().doEvent(S2Score::kScore1);
+		}
+	}
+
+	if (getState(item) < S2InventoryState::Taken && state == S2InventoryState::Taken &&
+		item > S2Inventory::kInv2) {
+		_game.getScoringManager().doEvent(S2Score::kScore0);
+	}
+
+	_inventory[int(item)].state = state;
+	return true;
 }
 
 void S2InventoryManager::selectItem(const int slotNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_currentItem != S2Inventory::None) {
+		unselectItem(true);
+	}
+	_currentItem = removeItem(slotNo);
+	_game.getSoundManager().play(10008, false, 100);
+	_game.getCursor().getItem(_inventory[int(_currentItem)].smallCel);
+	_game.getInterface().disableButtons();
 }
 
 void S2InventoryManager::unselectItem(const bool returnToInventory) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (_currentItem != S2Inventory::None) {
+		const S2Inventory oldItem = _currentItem;
+		_currentItem = S2Inventory::None;
+		_game.getCursor().dropItem();
+		if (returnToInventory) {
+			addItem(oldItem);
+			_game.getSoundManager().play(10009, false, 100);
+			if (!isItemShowing()) {
+				_game.getInterface().resetButtons();
+			}
+		} else {
+			setState(oldItem, S2InventoryState::Used);
+		}
+	}
 }
 
 } // End of namespace Sci

@@ -276,7 +276,7 @@ void S2Room1000::resetHotspot() {
 			break;
 		case 8:
 		case 9:
-			if (_game.getInventoryManager().getState(Inventory::FortyDollars) == S2InventoryManager::State::InUse) {
+			if (_game.getInventoryManager().getState(S2Inventory::FortyDollars) == S2InventoryState::InUse) {
 				_game.getInventoryManager().unselectItem(false);
 				resetState(10);
 			} else {
@@ -285,7 +285,7 @@ void S2Room1000::resetHotspot() {
 			break;
 		case 11:
 			_game.getSoundManager().play(11118, false, 100);
-			_game.getInventoryManager().addItem(Inventory::Change);
+			_game.getInventoryManager().addItem(S2Inventory::Change);
 			resetState(12);
 			break;
 		}

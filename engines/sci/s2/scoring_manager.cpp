@@ -20,8 +20,17 @@
  *
  */
 
+#include "common/textconsole.h"
 #include "sci/s2/scoring_manager.h"
 
 namespace Sci {
+
+S2ScoringManager::S2ScoringManager() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2ScoringManager::doEvent(S2Score event) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
 
 } // End of namespace Sci

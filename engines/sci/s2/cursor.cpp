@@ -24,17 +24,40 @@
 
 namespace Sci {
 
-static const GLCelRes defaultCel = GLCelRes::makeView(99, 0, S2Cursor::kNormalCel);
+static const GLCelRes defaultCel = GLCelRes(99, 0, S2Cursor::kNormalCel);
 
 S2Cursor::S2Cursor(GfxCursor32 &kernelCursor) :
 	GLCursor(kernelCursor, defaultCel),
-	_normalCel(defaultCel),
+	_noInventoryCel(defaultCel),
 	_prayerStickNormalCel(defaultCel),
 	_inventoryCel(defaultCel),
 	_inventoryState(0) {
-	setHighlightedCelRes(GLCelRes::makeView(99, 0, kHighlightCel));
-	setHandsOffCelRes(GLCelRes::makeView(99, 0, kWaitCel));
+	setHighlightedCelRes(GLCelRes(99, 0, kHighlightCel));
+	setHandsOffCelRes(GLCelRes(99, 0, kWaitCel));
 	setPosition(Common::Point(320, 192));
+}
+
+void S2Cursor::getItem(const GLCelRes &celInfo) {
+	if (!hasInventory()) {
+		endHighlight();
+		_inventoryCel = celInfo;
+		if (!hasPrayerStick()) {
+			_noInventoryCel = getNormalCelRes();
+		}
+		_inventoryState |= kInventory;
+		setNormalCelRes(_inventoryCel);
+	}
+}
+
+void S2Cursor::dropItem() {
+	if (hasInventory()) {
+		_inventoryState &= ~kInventory;
+		if (hasPrayerStick()) {
+			setNormalCelRes(_prayerStickNormalCel);
+		} else {
+			setNormalCelRes(_noInventoryCel);
+		}
+	}
 }
 
 } // End of namespace Sci

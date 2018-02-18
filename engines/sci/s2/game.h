@@ -32,6 +32,7 @@
 #include "sci/s2/phone_manager.h"
 #include "sci/s2/room_manager.h"
 #include "sci/s2/savegame.h"
+#include "sci/s2/scoring_manager.h"
 #include "sci/s2/sound_manager.h"
 #include "sci/s2/system/glplane_manager.h"
 #include "sci/s2/system/glset.h"
@@ -101,6 +102,7 @@ public:
 	S2PhoneManager &getPhoneManager() { return _phoneManager; }
 	S2MovieManager &getMovieManager() { return _movieManager; }
 	S2InventoryManager &getInventoryManager() { return _inventoryManager; }
+	S2ScoringManager &getScoringManager() { return _scoringManager; }
 	GameFlags &getFlags() { return _flags; }
 
 	const Common::String &getSaveGameName() const { return _saveGameName; }
@@ -117,6 +119,7 @@ private:
 	S2PhoneManager _phoneManager;
 	S2MovieManager _movieManager;
 	S2InventoryManager _inventoryManager;
+	S2ScoringManager _scoringManager;
 	GameFlags _flags;
 
 	Common::String _saveGameName;

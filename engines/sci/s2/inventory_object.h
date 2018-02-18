@@ -34,7 +34,7 @@ class S2Game;
 
 class S2InventoryObject : public GLCel {
 public:
-	S2InventoryObject(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, Inventory id, const GLPoint &position = GLPoint(0, 0), const int16 priority = -9999, const int slotNo = -1);
+	S2InventoryObject(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, S2Inventory id, const GLPoint &position = GLPoint(0, 0), const int16 priority = -9999, const int slotNo = -1);
 
 	static void init(S2Game *game) { _game = game; }
 
@@ -43,10 +43,12 @@ public:
 	void disable();
 	virtual bool handleEvent(GLEvent &event) override;
 
+	void setItem(const S2Inventory item) { _item = item; }
+
 private:
 	static S2Game *_game;
 
-	Inventory _id;
+	S2Inventory _item;
 	bool _isEnabled;
 	int _slotNo;
 };

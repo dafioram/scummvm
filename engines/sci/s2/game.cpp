@@ -43,6 +43,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
 	_interface(*this),
 	_movieManager(kernel, *this),
+	_inventoryManager(*this),
 	_roomManager(kernel, *this),
 	_flags(),
 	_saveGameSlotNo(-1),
@@ -167,6 +168,7 @@ void S2Game::doIt() {
 void S2Game::init() {
 	_cursor.show();
 	_interface.init();
+	_inventoryManager.init();
 
 	// SSCI had multiple heap allocations + instantiations here in this order:
 	// * S2Cursor

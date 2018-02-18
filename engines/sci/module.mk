@@ -127,7 +127,9 @@ MODULE_OBJS += \
 	s2/game.o \
 	s2/hotspot.o \
 	s2/interface.o \
+	s2/inventory.o \
 	s2/inventory_manager.o \
+	s2/inventory_object.o \
 	s2/kernel.o \
 	s2/message_box.o \
 	s2/movie_manager.o \
@@ -144,6 +146,7 @@ MODULE_OBJS += \
 	s2/system/glcel.o \
 	s2/system/glcue.o \
 	s2/system/glcursor.o \
+	s2/system/glcycler.o \
 	s2/system/glevent.o \
 	s2/system/glevent_handler_set.o \
 	s2/system/glfeature.o \
@@ -155,6 +158,7 @@ MODULE_OBJS += \
 	s2/system/glplane_manager.o \
 	s2/system/glpoly.o \
 	s2/system/glquit_handler.o \
+	s2/system/glrobot.o \
 	s2/system/glscreen_item.o \
 	s2/system/glscript.o \
 	s2/system/glset.o \
