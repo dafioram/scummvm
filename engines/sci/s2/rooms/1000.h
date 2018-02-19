@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef SCI_S2_ENGINE_H
-#define SCI_S2_ENGINE_H
+#ifndef SCI_S2_ROOMS_1000_H
+#define SCI_S2_ROOMS_1000_H
 
 #include "sci/s2/hotspot.h"
 #include "sci/s2/kernel.h"
@@ -54,7 +54,6 @@ private:
 	int _soundNo = 0;
 	bool _useAltMovie = false;
 
-	Common::ScopedPtr<S2Hotspot> _hotspot;
 	Common::ScopedPtr<GLCycler> _cycler;
 };
 

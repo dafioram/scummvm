@@ -44,8 +44,6 @@ public:
 
 	int16 getCursorCel() const { return _cursorCel; }
 
-	virtual bool checkIsOnMe(const GLPoint &point) const override;
-
 private:
 	static GLPoint _defaultPoly[10];
 

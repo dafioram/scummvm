@@ -29,6 +29,13 @@ GLPicturePlane &S2Room::getPlane() const {
 	return _game.getRoomManager().getGamePlane();
 }
 
-// TODO: Delete this file if nothing common ends up in it
+void S2Room::dispose(const int roomNo) {
+	for (auto &&hotspot : _hotspots) {
+		_game.getRoomManager().removeHotspot(*hotspot);
+	}
+	_hotspots.clear();
+	_cels.clear();
+	_script.reset();
+}
 
 } // End of namespace Sci

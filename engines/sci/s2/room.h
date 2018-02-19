@@ -24,6 +24,7 @@
 #define SCI_S2_ROOM_H
 
 #include "common/ptr.h"
+#include "sci/s2/hotspot.h"
 #include "sci/s2/kernel.h"
 #include "sci/s2/system/glcel.h"
 #include "sci/s2/system/glplane.h"
@@ -83,6 +84,7 @@ protected:
 	S2Game &_game;
 	Common::ScopedPtr<GLScript> _script;
 	Common::Array<Common::ScopedPtr<GLCel>> _cels;
+	Common::Array<Common::ScopedPtr<S2Hotspot>> _hotspots;
 };
 
 } // End of namespace Sci

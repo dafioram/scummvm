@@ -69,7 +69,15 @@ void S2Room1000::init(const int roomNo) {
 }
 
 void S2Room1000::dispose(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	switch (roomNo) {
+	case 1015:
+		_cycler.reset();
+		_game.getSoundManager().fade(31002, 0, 15, 12, true);
+		_game.getMovieManager().stopRobot(false);
+		break;
+	}
+
+	S2Room::dispose(roomNo);
 }
 
 bool S2Room1000::handleEvent(GLEvent &event) {
@@ -260,8 +268,9 @@ void S2Room1000::playRobotOrSound(GLScript &script, const uint16 robotNo, const 
 }
 
 void S2Room1000::resetHotspot() {
-	_hotspot.reset(new S2Hotspot(getPlane(), 224, 120, 464, 360));
-	_hotspot->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+	_hotspots.resize(1);
+	_hotspots[0].reset(new S2Hotspot(getPlane(), 224, 120, 464, 360));
+	_hotspots[0]->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
 		if (event.getType() != kSciEventMouseRelease) {
 			return;
 		}
@@ -313,7 +322,7 @@ void S2Room1000::resetHotspot() {
 		flushEvents();
 	});
 
-	_game.getRoomManager().addHotspot(*_hotspot);
+	_game.getRoomManager().addHotspot(*_hotspots[0]);
 }
 
 } // End of namespace Sci

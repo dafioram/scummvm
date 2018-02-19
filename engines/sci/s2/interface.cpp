@@ -34,7 +34,6 @@ S2Interface::S2Interface(S2Kernel &kernel, S2Game &game) :
 	_kernel(kernel),
 	_game(game),
 	_isVisible(false),
-	_inputEnabled(false),
 	_healthRemaining(100),
 	_isCaptioningOn(false),
 	_hasCaptioningFinished(false) {}

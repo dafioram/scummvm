@@ -38,7 +38,7 @@ public:
 	void enable();
 	void disable();
 
-	bool handleEvent(GLEvent &event);
+	bool handleEvent(GLEvent &event) override;
 
 	const EventHandler &getMouseUpHandler() const { return _mouseUpHandler; }
 	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }

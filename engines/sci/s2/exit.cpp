@@ -43,9 +43,4 @@ S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly
 	GLPoly::init();
 }
 
-bool S2Exit::checkIsOnMe(const GLPoint &point) const {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-	return false;
-}
-
 } // End of namespace Sci

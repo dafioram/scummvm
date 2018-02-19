@@ -80,8 +80,6 @@ private:
 	// In SSCI this was inverted
 	bool _isVisible;
 
-	bool _inputEnabled;
-
 	int _healthRemaining;
 
 	S2Kernel &_kernel;
