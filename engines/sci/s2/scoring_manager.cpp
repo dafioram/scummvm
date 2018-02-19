@@ -25,12 +25,64 @@
 
 namespace Sci {
 
-S2ScoringManager::S2ScoringManager() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+S2ScoringManager::S2ScoringManager() :
+	_currentScore(0) {
+	_events[kScore0] = 2050;
+	_events[kScore1] = 2500;
+	_events[kScore2] = 2000;
+	_events[kScore3] = 3500;
+	_events[kScore4] = 7500;
+	_events[kScore5] = -2000;
+	_events[kScore6] = -500;
+
+	for (int i = kScore7; i <= kScore41; ++i) {
+		_events[i] = 250;
+	}
+
+	for (int i = kScore42; i <= kScore165; ++i) {
+		_events[i] = 500;
+	}
+
+	for (int i = kScore166; i <= kScore174; ++i) {
+		_events[i] = 650;
+	}
+
+	for (int i = kScore175; i <= kScore180; ++i) {
+		_events[i] = 750;
+	}
+
+	for (int i = kScore181; i <= kScore190; ++i) {
+		_events[i] = 1750;
+	}
+
+	for (int i = kScore191; i <= kScore202; ++i) {
+		_events[i] = 3500;
+	}
+
+	_events[kScore203] = 17500;
+
+	for (int i = kScore204; i <= kScore227; ++i) {
+		_events[i] = 7500;
+	}
+
+	_events[kScore228] = _events[kScore229] = 18300;
+
+	for (int i = kScore230; i <= kScore241; ++i) {
+		_events[i] = 15000;
+	}
 }
 
 void S2ScoringManager::doEvent(S2Score event) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	int score = _events[event];
+	if (score < 0 && ABS(score) >= _currentScore) {
+		_currentScore = 0;
+	} else {
+		_currentScore += score;
+	}
+
+	if (event > kScore6) {
+		_events[event] = 0;
+	}
 }
 
 } // End of namespace Sci

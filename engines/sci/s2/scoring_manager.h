@@ -23,9 +23,11 @@
 #ifndef SCI_S2_SCORING_MANAGER_H
 #define SCI_S2_SCORING_MANAGER_H
 
+#include "common/array.h"
+
 namespace Sci {
 
-enum class S2Score {
+enum S2Score {
 	kScore0,
 	kScore1,
 	kScore2,
@@ -33,7 +35,7 @@ enum class S2Score {
 	kScore4,
 	kScore5,
 	kScore6,
-	kScore7 = kScore6,
+	kScore7,
 	kScore8,
 	kScore9,
 	kScore10,
@@ -268,14 +270,18 @@ enum class S2Score {
 	kScore239,
 	kScore240,
 	kScore241,
-	kScore242,
 	kNumScoreEvents
 };
 
 class S2ScoringManager {
 public:
 	S2ScoringManager();
+
 	void doEvent(S2Score event);
+
+private:
+	uint32 _currentScore;
+	Common::FixedArray<int16, int(S2Score::kNumScoreEvents)> _events;
 };
 
 } // End of namespace Sci
