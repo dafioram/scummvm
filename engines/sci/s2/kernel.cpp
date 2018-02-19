@@ -53,12 +53,4 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	GLCycler::init(&timeManager);
 }
 
-Common::String S2Kernel::getMessage(const uint16 resourceNo) const {
-	auto *resource = resourceManager.findResource(ResourceId(kResourceTypeText, resourceNo), false);
-	if (resource) {
-		return Common::String(reinterpret_cast<const char *>(resource->data()), resource->size());
-	}
-	return "";
-}
-
 } // End of namespace Sci

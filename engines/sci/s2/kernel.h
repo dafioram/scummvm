@@ -39,9 +39,6 @@ class S2Kernel {
 public:
 	S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata);
 
-	// In SSCI, this was Win32 LoadMessage
-	Common::String getMessage(const uint16 resourceNo) const;
-
 	ResourceManager resourceManager;
 	GameFeatures features;
 	EventManager eventManager;

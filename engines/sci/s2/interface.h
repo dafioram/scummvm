@@ -39,12 +39,13 @@ namespace Sci {
 class GLEvent;
 class GLScript;
 class S2Game;
+class S2Kernel;
 
 // In SSCI this was of type GLObject and then got treated like a GLTarget using
 // unsafe casts
 class S2Interface : public GLTarget {
 public:
-	S2Interface(S2Game &game);
+	S2Interface(S2Kernel &kernel, S2Game &game);
 
 	void init();
 
@@ -53,7 +54,7 @@ public:
 
 	void show();
 	void hide();
-	void putText(const uint16 messageNo);
+	void putText(const uint16 messageNo, const bool append = false, const bool showImmediately = false);
 	bool getIsCaptioningOn() const { return _isCaptioningOn; }
 
 	void disableButtons();
@@ -67,6 +68,15 @@ public:
 private:
 	S2Button *makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable = true) const;
 
+	void captionScript(GLScript &script, const int state);
+	Common::String _activeCaptionText;
+	Common::String::iterator _nextCaptionPosition;
+	Common::String::iterator _currentCaptionPosition;
+
+	void displayText(const Common::String &text);
+	void clearText();
+	void stopText();
+
 	// In SSCI this was inverted
 	bool _isVisible;
 
@@ -74,6 +84,7 @@ private:
 
 	int _healthRemaining;
 
+	S2Kernel &_kernel;
 	S2Game &_game;
 	Common::ScopedPtr<GLColoredPlane> _background;
 	Common::ScopedPtr<GLTransparentPlane> _main;

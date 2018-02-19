@@ -36,7 +36,7 @@ bool PEResourceSource::scanSource(ResourceManager *resMan) {
 		for (uint index = 0; index <= 0xf; ++index) {
 			const uint16 numChars = data->readUint16LE();
 			if (numChars) {
-				resMan->addResource(ResourceId(kResourceTypeText, entryNo | index), this, data->pos(), numChars / 2, _name);
+				resMan->addResource(ResourceId(kResourceTypeText, entryNo | index), this, data->pos(), numChars, _name);
 				data->skip(numChars * 2);
 			}
 		}
@@ -46,7 +46,7 @@ bool PEResourceSource::scanSource(ResourceManager *resMan) {
 }
 
 void PEResourceSource::loadResource(const ResourceManager *resMan, Resource *res) const {
-	Common::ScopedPtr<Common::SeekableReadStream> inData(_exe.getResource(Common::kPEString, res->getId().getNumber() >> 4) + 1);
+	Common::ScopedPtr<Common::SeekableReadStream> inData(_exe.getResource(Common::kPEString, (res->getId().getNumber() >> 4) + 1));
 	inData->skip(res->_fileOffset);
 	byte *outData = new byte[res->_size];
 	assert(outData);

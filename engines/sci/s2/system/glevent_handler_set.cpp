@@ -27,8 +27,8 @@
 namespace Sci {
 
 bool GLEventHandlerSet::handleEvent(GLEvent &event) {
-	for (auto &object : *this) {
-		if (object->handleEvent(event)) {
+	for (auto i = 0; i < size(); ++i) {
+		if ((*this)[i]->handleEvent(event)) {
 			return true;
 		}
 		event.globalize();

@@ -31,7 +31,7 @@ namespace Sci {
 // TODO: This seems like it should not be accepting null pointers, in which case
 // the methods ought to be receiving references instead
 template <typename T>
-class GLSetAsArray : public Common::Array<T *> {
+class GLSetAsArray : private Common::Array<T *> {
 	using Parent = Common::Array<T *>;
 
 public:
@@ -40,6 +40,20 @@ public:
 	using typename Parent::const_iterator;
 	using typename Parent::value_type;
 	using typename Parent::size_type;
+
+	using Parent::back;
+	using Parent::front;
+
+	using Parent::begin;
+	using Parent::end;
+
+	using Parent::reserve;
+	using Parent::clear;
+
+	using Parent::empty;
+	using Parent::size;
+
+	using Parent::operator[];
 
 	void push_front(const value_type value) {
 		insert_at(0, value);
@@ -71,9 +85,6 @@ public:
 			this->erase(it);
 		}
 	}
-
-private:
-	iterator insert_at(size_type index, const Parent &array);
 };
 
 } // End of namespace Sci

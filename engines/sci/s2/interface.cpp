@@ -24,12 +24,14 @@
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
 #include "sci/s2/interface.h"
+#include "sci/s2/kernel.h"
 #include "sci/s2/message_box.h"
 #include "sci/s2/system/glplane.h"
 
 namespace Sci {
 
-S2Interface::S2Interface(S2Game &game) :
+S2Interface::S2Interface(S2Kernel &kernel, S2Game &game) :
+	_kernel(kernel),
 	_game(game),
 	_isVisible(false),
 	_inputEnabled(false),
@@ -100,7 +102,7 @@ void S2Interface::doIt() {
 	// for a chat
 
 	if (_hasCaptioningFinished && _captionScript && _captionScript->getState() >= 3) {
-		_captionScript.reset();
+		stopText();
 	}
 }
 
@@ -208,8 +210,32 @@ void S2Interface::hide() {
 	}
 }
 
-void S2Interface::putText(const uint16 messageNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Interface::putText(const uint16 messageNo, const bool append, const bool showImmediately) {
+	if (_isCaptioningOn) {
+		const auto message(_game.getMessage(messageNo));
+		if (message.empty()) {
+			_hasCaptioningFinished = true;
+			clearText();
+			return;
+		}
+
+		if (append) {
+			_caption += message;
+		} else {
+			_caption = message;
+		}
+
+		if (showImmediately) {
+			displayText(_caption);
+		} else {
+			if (_captionScript) {
+				stopText();
+			}
+			_captionScript.reset(new GLScript(this, &S2Interface::captionScript));
+		}
+	} else {
+		clearText();
+	}
 }
 
 void S2Interface::disableButtons() {
@@ -237,6 +263,88 @@ void S2Interface::drawInventoryItem(const int slotNo, const S2Inventory item) {
 
 void S2Interface::eraseInventoryItem(const int slotNo) {
 	drawInventoryItem(slotNo, S2Inventory::None);
+}
+
+void S2Interface::captionScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		script.setCycles(1);
+		_activeCaptionText = _caption;
+		_nextCaptionPosition = _activeCaptionText.begin();
+		_hasCaptioningFinished = false;
+		break;
+	case 1: {
+		if (_hasCaptioningFinished) {
+			script.setState(2); // break to state 3
+			script.setCycles(1);
+			return;
+		}
+
+		_currentCaptionPosition = _nextCaptionPosition;
+		_kernel.graphicsManager._text.setFont(503);
+		auto textBox(_kernel.graphicsManager._text.getTextSize(_currentCaptionPosition, 512, false));
+		if (textBox.height() <= 45) {
+			_hasCaptioningFinished = true;
+		}
+
+		auto splitPoint = 0;
+		while (textBox.height() > 45) {
+			const auto lastSplitPoint = splitPoint;
+			splitPoint = strlen(_currentCaptionPosition) - 1;
+			if (lastSplitPoint) {
+				_currentCaptionPosition[lastSplitPoint] = ' ';
+			}
+			while (_currentCaptionPosition[splitPoint] != ' ') {
+				--splitPoint;
+			}
+			_nextCaptionPosition = _currentCaptionPosition + splitPoint + 1;
+			_currentCaptionPosition[splitPoint] = '\0';
+
+			textBox = _kernel.graphicsManager._text.getTextSize(_currentCaptionPosition, 512, false);
+		}
+
+		displayText(_currentCaptionPosition);
+		script.setCycles(1);
+		break;
+	}
+	case 2: {
+		const auto textBox(_kernel.graphicsManager._text.getTextSize(_currentCaptionPosition, 512, false));
+		if (textBox.height() > 30) {
+			script.setSeconds(15);
+		} else {
+			script.setSeconds(10);
+		}
+		script.setState(0); // loop to state 1
+		break;
+	}
+	case 3:
+		clearText();
+		break;
+	}
+}
+
+void S2Interface::displayText(const Common::String &text) {
+	auto width = 0, numLines = 0;
+	if (text.size()) {
+		_kernel.graphicsManager._text.setFont(503);
+		width = _kernel.graphicsManager._text.getStringWidth(text);
+		numLines = width / 512;
+	}
+
+	_captionText->fill(_captionRect, 255);
+	_captionUi->forceUpdate();
+	_captionUi->setPosition(GLPoint(64, 370 - numLines * 15));
+	_captionText->drawText(text, _captionRect, 202, 255, 255, 503, kTextAlignLeft, 255);
+}
+
+void S2Interface::clearText() {
+	_caption.clear();
+	_captionText->fill(_captionRect, 255);
+	_captionUi->forceUpdate();
+}
+
+void S2Interface::stopText() {
+	_captionScript.reset();
 }
 
 } // End of namespace Sci

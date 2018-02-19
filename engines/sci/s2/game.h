@@ -84,6 +84,9 @@ public:
 	S2Cursor &getCursor() { return _cursor; }
 	GLExtras &getExtras() { return _extras; }
 
+	// In SSCI, this was Win32 LoadMessage
+	Common::String getMessage(const uint16 resourceNo) const;
+
 private:
 	void play();
 	void doIt();

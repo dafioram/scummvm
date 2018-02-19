@@ -67,14 +67,14 @@ void GLCast::remove(GLObject &object) {
 }
 
 void GLCast::doIt() {
-	for (auto &object : _doIts) {
-		object->doIt();
+	for (auto i = 0; i < _doIts.size(); ++i) {
+		_doIts[i]->doIt();
 	}
 }
 
 bool GLCast::handleEvent(GLEvent &event) {
-	for (auto &target : _eventHandlers) {
-		target->handleEvent(event);
+	for (auto i = 0; i < _eventHandlers.size(); ++i) {
+		_eventHandlers[i]->handleEvent(event);
 		if (event.isClaimed()) {
 			break;
 		}

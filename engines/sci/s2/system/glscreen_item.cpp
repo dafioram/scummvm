@@ -58,6 +58,15 @@ GLScreenItem::~GLScreenItem() {
 	_plane->getCast().remove(*this);
 }
 
+void GLScreenItem::setPosition(const GLPoint &position, const bool shouldUpdate) {
+	_position = position;
+	_screenItem->_position = position;
+	_isDirty = true;
+	if (shouldUpdate) {
+		update();
+	}
+}
+
 void GLScreenItem::setCelRes(const GLCelRes &celInfo, const bool shouldUpdate) {
 	load(celInfo, shouldUpdate);
 }

@@ -42,7 +42,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_user(*this),
 	_cursor(kernel.graphicsManager._cursor),
 	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
-	_interface(*this),
+	_interface(kernel, *this),
 	_movieManager(kernel, *this),
 	_inventoryManager(*this),
 	_roomManager(kernel, *this),
@@ -142,6 +142,14 @@ bool S2Game::canLoadNow() const {
 	return true;
 }
 
+Common::String S2Game::getMessage(const uint16 resourceNo) const {
+	auto *resource = _kernel.resourceManager.findResource(ResourceId(kResourceTypeText, resourceNo), false);
+	if (resource) {
+		return Common::String(reinterpret_cast<const char *>(resource->data()), resource->size());
+	}
+	return "";
+}
+
 void S2Game::play() {
 	GLQuitHandler quitHandler;
 
@@ -160,8 +168,14 @@ void S2Game::play() {
 
 void S2Game::doIt() {
 	_planes.doIt();
-	for (auto &extra : _extras) {
-		extra->doIt();
+	// TODO: This list (and presumably most doit lists) might be mutated in the
+	// middle of the doit loop, so iterators cannot be used since they may be
+	// invalidated. This happens at least when a text caption is removed. This
+	// also means that some entries might be skipped for a loop. This was also a
+	// problem in SSCI, so it is unclear if sets should remove elements by
+	// nulling them out and then adding an extra packing step, or what.
+	for (auto i = 0; i < _extras.size(); ++i) {
+		_extras[i]->doIt();
 	}
 	_kernel.graphicsManager.kernelFrameOut(true);
 	_user.doIt();

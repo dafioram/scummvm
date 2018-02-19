@@ -27,8 +27,8 @@
 namespace Sci {
 
 void GLPlaneManager::doIt() {
-	for (auto &plane : _planes) {
-		plane->getCast().doIt();
+	for (auto i = 0; i < _planes.size(); ++i) {
+		_planes[i]->getCast().doIt();
 	}
 }
 
@@ -52,7 +52,10 @@ bool GLPlaneManager::contains(AbsGLPlane &plane) const {
 }
 
 bool GLPlaneManager::handleEvent(GLEvent &event) {
-	for (auto &plane : _planes) {
+	// TODO: SSCI did not account for mutations of the list in the case that a
+	// element removed itself, so some cast members may get skipped
+	for (auto i = 0; i < _planes.size(); ++i) {
+		auto &&plane(_planes[i]);
 		if (plane->checkIsOnMe(event.getMousePosition())) {
 			event.localize(*plane);
 			if (plane->getCast().handleEvent(event)) {
