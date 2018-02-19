@@ -469,7 +469,7 @@ public:
 	/**
 	 * Starts or resumes playback of an audio channel.
 	 */
-	uint16 play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor);
+	uint16 play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan = -1);
 
 	/**
 	 * Resumes playback of a paused audio channel, or of the entire audio
@@ -502,7 +502,7 @@ public:
 	/**
 	 * Restarts playback of the given audio resource.
 	 */
-	uint16 restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor);
+	uint16 restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan = -1);
 
 	/**
 	 * Returns the playback position for the given channel number, in ticks.

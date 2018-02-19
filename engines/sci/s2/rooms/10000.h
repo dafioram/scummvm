@@ -20,29 +20,22 @@
  *
  */
 
+#ifndef SCI_S2_ROOMS_10000_H
+#define SCI_S2_ROOMS_10000_H
+
 #include "sci/s2/room.h"
-#include "sci/s2/game.h"
 
 namespace Sci {
 
-GLPicturePlane &S2Room::getPlane() const {
-	return _game.getRoomManager().getGamePlane();
-}
-
-void S2Room::dispose(const int roomNo) {
-	for (auto &&hotspot : _hotspots) {
-		if (hotspot) {
-			_game.getRoomManager().removeHotspot(*hotspot);
-		}
-	}
-	for (auto &&cel : _cels) {
-		if (cel) {
-			_game.getRoomManager().removeCel(*cel);
-		}
-	}
-	_hotspots.clear();
-	_cels.clear();
-	_script.reset();
-}
+class S2Room10000 : public S2Room {
+public:
+	using S2Room::S2Room;
+	virtual void init(const int roomNo) override;
+	virtual void dispose(const int roomNo) override;
+	virtual void doIt() override {}
+	virtual bool handleEvent(GLEvent &event) override;
+};
 
 } // End of namespace Sci
+
+#endif

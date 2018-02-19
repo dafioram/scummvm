@@ -140,6 +140,7 @@ MODULE_OBJS += \
 	s2/scoring_manager.o \
 	s2/sound_manager.o \
 	s2/rooms/1000.o \
+	s2/rooms/10000.o \
 	s2/rooms/global.o \
 	s2/system/glbutton.o \
 	s2/system/glcast.o \

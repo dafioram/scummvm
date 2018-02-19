@@ -21,7 +21,92 @@
  */
 
 #include "sci/s2/system/glsound.h"
+#include "sci/s2/game.h"
+#include "sci/sound/audio32.h"
 
 namespace Sci {
+
+S2Game *GLSoundTrack::_game = nullptr;
+Audio32 *GLSoundTrack::_mixer = nullptr;
+
+void GLSoundTrack::addWaitNode(const int minTicks, const int maxTicks, const bool loop, const int somePercent) {
+	_nodes.emplace_back(new GLWaitNode(minTicks, maxTicks, loop, somePercent));
+}
+
+void GLSoundTrack::addSoundNode(const uint16 soundNo, const int16 volume, const bool loop, const int16 pan, const int somePercent) {
+	_nodes.emplace_back(new GLSound(soundNo, loop ? GLSound::State::PlayingForever : GLSound::State::PlayingOnce, volume, nullptr, pan, somePercent));
+}
+
+void GLSoundTrack::addPRSNode(const uint16 soundNo, const int somePercent, const int16 volume, const int16 pan) {
+	GLPRSNode *node;
+	if (_nodes.back()->getType() == GLNode::Type::PRS) {
+		node = static_cast<GLPRSNode *>(_nodes.back().get());
+	} else {
+		node = new GLPRSNode();
+		_nodes.emplace_back(node);
+	}
+
+	node->addSound(soundNo, GLSound::State::PlayingForever, volume, nullptr, pan, somePercent);
+}
+
+void GLSoundTrack::play() {
+	_isPaused = false;
+	_isStopped = false;
+	_currentNode = _nodes.begin();
+	cue();
+}
+
+void GLSoundTrack::changeState(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		break;
+	case 1: {
+		auto iterator = _currentNode;
+		auto *node = iterator->get();
+		if (node->getType() == GLNode::Type::Header) {
+			++iterator;
+			node = iterator->get();
+		}
+		switch (node->getType()) {
+		case GLNode::Type::Header:
+			warning("Two headers in a row"); // This was ignored in SSCI
+			break;
+		case GLNode::Type::Sound: {
+			GLSound &sound = static_cast<GLSound &>(*node);
+			_currentSoundNo = sound.getResourceNo();
+			if (sound.getRandomness() != 100 && _game->getRandomNumber(0, 100) > sound.getRandomness()) {
+				break;
+			}
+
+			const int16 pan = sound.getPan() != 50 ? sound.getPan() : -1;
+			_mixer->restart(ResourceId(kResourceTypeAudio, sound.getResourceNo()), false, false, sound.getVolume(), NULL_REG, false, pan);
+
+			break;
+		}
+		case GLNode::Type::Wait: {
+			GLWaitNode &wait = static_cast<GLWaitNode &>(*node);
+			if (wait.getRandomness() != 100 && _game->getRandomNumber(0, 100) > wait.getRandomness()) {
+				break;
+			}
+
+			_currentSoundNo = 0;
+			int numSecondsToWait;
+			if (wait.getMaximum()) {
+				numSecondsToWait = _game->getRandomNumber(wait.getMinimum(), wait.getMaximum());
+			} else {
+				numSecondsToWait = wait.getMinimum();
+			}
+			setSeconds(numSecondsToWait);
+			break;
+		}
+		case GLNode::Type::PRS: {
+			warning("TODO: PRS");
+		}
+		}
+	}
+	default:
+		error("Invalid state %d in sound track", state);
+	}
+}
 
 } // End of namespace Sci

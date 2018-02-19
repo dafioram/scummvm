@@ -25,6 +25,7 @@
 #include "sci/s2/room.h"
 #include "sci/s2/room_manager.h"
 #include "sci/s2/rooms/1000.h"
+#include "sci/s2/rooms/10000.h"
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glplane.h"
@@ -170,12 +171,14 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	assert(!_currentRoom);
 
 	// In SSCI this loaded DLLs
-	switch (roomNo) {
+	switch (getBaseRoomNumber(roomNo)) {
 	case 1000:
 		_currentRoom.reset(new S2Room1000(_kernel, _game));
 		break;
-	case 6000:
 	case 10000:
+		_currentRoom.reset(new S2Room10000(_kernel, _game));
+		break;
+	case 6000:
 	case 11000:
 	case 12000:
 	case 13000:
@@ -357,7 +360,33 @@ void S2RoomManager::deferredLoadGlobalRoom(const int roomNo, const bool fullscre
 }
 
 void S2RoomManager::drawPan(const uint16 resourceNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_game.getInterface().show();
+
+	if (_picture && _pictureIsVisible) {
+		_game.getPlanes().remove(*_picture);
+		_picture.reset();
+		_pictureIsVisible = false;
+	}
+
+	if (!_panorama) {
+		_panorama.reset(new GLPanorama({ 64, 0, 576, 384 }));
+		// panorama x/y were set here in SSCI but they were always set to zero
+	}
+
+	_kernel.graphicsManager._palette.loadPalette(resourceNo);
+	_panorama->drawPic(resourceNo, true);
+	// TODO: SSCI loaded the palette again here, is this actually necessary?
+	// TODO: flag on panorama was set here
+	if (_panoramaIsVisible) {
+		_panorama->getPlane().repaint();
+	} else {
+		_game.getExtras().push_back(_panorama.get());
+		_game.getUser().getOrphans().push_back(_panorama.get());
+		_panorama->getPlane().setPriority(2, true);
+		_panoramaIsVisible = true;
+	}
+
+	_currentPanoramaNo = resourceNo;
 }
 
 void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {

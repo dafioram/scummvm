@@ -41,7 +41,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_rng(""),
 	_user(*this),
 	_cursor(kernel.graphicsManager._cursor),
-	_soundManager(*this, kernel.resourceManager, kernel.audioMixer),
+	_soundManager(*this, kernel.audioMixer),
 	_interface(kernel, *this),
 	_movieManager(kernel, *this),
 	_inventoryManager(*this),

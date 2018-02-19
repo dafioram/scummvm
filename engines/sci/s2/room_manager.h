@@ -90,10 +90,12 @@ public:
 	void setLastSoundRoomNo(const int roomNo) { _lastSoundRoomNo = roomNo; }
 
 	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
+	int getPreviousRoomNo() const { return _previousRoomNo; }
 
 	void toggleAutoHighlight() { _autoHighlight = !_autoHighlight; }
 
 	GLPicturePlane &getGamePlane() const { return *_picture; }
+	GLPanorama &getPanorama() const { return *_panorama; }
 
 	void addHotspot(S2Hotspot &hotspot) { addUnique(_hotspots, hotspot); }
 	void removeHotspot(S2Hotspot &hotspot) { removeUnique(_hotspots, hotspot); }
@@ -137,6 +139,7 @@ private:
 	uint16 _currentPictureNo;
 	Common::ScopedPtr<GLPanorama> _panorama;
 	bool _panoramaIsVisible;
+	uint16 _currentPanoramaNo;
 	Common::Array<S2Exit *> _exits;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<GLCel *> _cels;

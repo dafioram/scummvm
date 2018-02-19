@@ -37,9 +37,13 @@ public:
 	void stopAllSounds();
 	void createAmbient(const int roomNo);
 	void deleteAmbient(const int roomNo);
+	void playAmbient(const int roomNo = 0);
 
 private:
 	int _roomNo;
+
+	Common::FixedArray<GLSoundTrack *, 5> _tracks = {};
+	Common::FixedArray<uint16, 5> _sounds = {};
 };
 
 } // End of namespace Sci

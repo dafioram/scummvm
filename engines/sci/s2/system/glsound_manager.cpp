@@ -27,9 +27,8 @@
 
 namespace Sci {
 
-GLSoundManager::GLSoundManager(S2Game &game, ResourceManager &resourceManager, Audio32 &mixer) :
+GLSoundManager::GLSoundManager(S2Game &game, Audio32 &mixer) :
 	_game(game),
-	_resourceManager(resourceManager),
 	_mixer(mixer) {}
 
 uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
@@ -38,7 +37,7 @@ uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 v
 		return 0;
 	}
 
-	const uint16 length = _mixer.play(kNoExistingChannel, resourceId, !paused, loop, volume, soundNode, false);
+	const uint16 length = _mixer.restart(resourceId, !paused, loop, volume, soundNode, false);
 
 	GLSound sound(soundNo, GLSound::State::PlayingForever, volume);
 	_sounds.push_front(sound);
@@ -92,15 +91,25 @@ void GLSoundManager::doIt() {
 					new GLCue(sound->getCaller(), this);
 				}
 
-				if (sound->getResource()) {
-					_resourceManager.unlockResource(sound->getResource());
-				}
-
 				sound = _sounds.erase(sound);
 				continue;
 			}
 		}
 		++sound;
+	}
+}
+
+GLSoundTrack &GLSoundManager::createSoundTrack() {
+	_tracks.push_front(GLSoundTrack(_tracks.size()));
+	return _tracks.front();
+}
+
+void GLSoundManager::deleteSoundTrack(const int trackId) {
+	auto it = Common::find_if(_tracks.begin(), _tracks.end(), [=](const GLSoundTrack &track) {
+		return track.getTrackId() == trackId;
+	});
+	if (it != _tracks.end()) {
+		_tracks.erase(it);
 	}
 }
 

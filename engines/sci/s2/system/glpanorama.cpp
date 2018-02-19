@@ -25,8 +25,27 @@
 
 namespace Sci {
 
+GLPanorama::GLPanorama(const Common::Rect &drawRect) :
+	GLObject(),
+	_plane(drawRect) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void GLPanorama::drawPic(const uint16 panoramaNo, const bool shouldUpdate) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void GLPanorama::updatePanorama(const bool force) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void GLPanorama::doIt() {
+	// TODO
+}
+
+bool GLPanorama::handleEvent(GLEvent &event) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+	return false;
 }
 
 } // End of namespace Sci

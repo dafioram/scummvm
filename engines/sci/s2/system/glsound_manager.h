@@ -35,7 +35,7 @@ class S2Game;
 
 class GLSoundManager : public GLObject {
 public:
-	GLSoundManager(S2Game &game, ResourceManager &resourceManager, Audio32 &mixer);
+	GLSoundManager(S2Game &game, Audio32 &mixer);
 
 	uint16 play(const uint16 soundNo, const bool loop = false, const int16 volume = Audio32::kMaxVolume, const bool paused = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
 	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopOnFade = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
@@ -43,11 +43,17 @@ public:
 	void stop(const int soundNo, const reg_t soundNode = NULL_REG);
 	void doIt();
 
-private:
+	// Merged CreateSndTrack and AttachSndTrack
+	GLSoundTrack &createSoundTrack();
+	void deleteSoundTrack(const int trackId);
+
+protected:
 	S2Game &_game;
-	ResourceManager &_resourceManager;
+
+private:
 	Audio32 &_mixer;
 	Common::List<GLSound> _sounds;
+	Common::List<GLSoundTrack> _tracks;
 };
 
 } // End of namespace Sci

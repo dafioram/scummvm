@@ -20,29 +20,38 @@
  *
  */
 
-#include "sci/s2/room.h"
 #include "sci/s2/game.h"
+#include "sci/s2/rooms/10000.h"
+#include "sci/s2/system/glpanorama.h"
 
 namespace Sci {
 
-GLPicturePlane &S2Room::getPlane() const {
-	return _game.getRoomManager().getGamePlane();
+void S2Room10000::init(const int roomNo) {
+	switch (roomNo) {
+	case 10400:
+		_game.getRoomManager().drawPan(10400);
+		_game.getSoundManager().createAmbient(10);
+
+		_game.getFlags().set(kGameFlag91);
+		_game.getFlags().set(kGameFlag71);
+
+		if (_game.getRoomManager().getPreviousRoomNo() == 1020) {
+			_game.getRoomManager().getPanorama().setPanX(717);
+			_game.getInterface().resetButtons();
+			_game.save();
+		}
+
+		// TODO: Add panorama exits
+		break;
+	}
 }
 
-void S2Room::dispose(const int roomNo) {
-	for (auto &&hotspot : _hotspots) {
-		if (hotspot) {
-			_game.getRoomManager().removeHotspot(*hotspot);
-		}
-	}
-	for (auto &&cel : _cels) {
-		if (cel) {
-			_game.getRoomManager().removeCel(*cel);
-		}
-	}
-	_hotspots.clear();
-	_cels.clear();
-	_script.reset();
+void S2Room10000::dispose(const int roomNo) {
+
+}
+
+bool S2Room10000::handleEvent(GLEvent &event) {
+	return false;
 }
 
 } // End of namespace Sci

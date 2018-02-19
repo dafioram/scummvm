@@ -706,7 +706,7 @@ bool Audio32::stopRobotAudio() {
 #pragma mark -
 #pragma mark Playback
 
-uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor) {
+uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan) {
 	Common::StackLock lock(_mutex);
 
 	freeUnusedChannels();
@@ -783,7 +783,7 @@ uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool
 	channel.fadeStartTick = 0;
 	channel.soundNode = soundNode;
 	channel.volume = volume < 0 || volume > kMaxVolume ? (int)kMaxVolume : volume;
-	channel.pan = -1;
+	channel.pan = pan;
 
 	if (monitor) {
 		_monitoredChannelIndex = channelIndex;
@@ -973,10 +973,10 @@ int16 Audio32::stop(const int16 channelIndex) {
 	return oldNumChannels;
 }
 
-uint16 Audio32::restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor) {
+uint16 Audio32::restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan) {
 	Common::StackLock lock(_mutex);
 	stop(resourceId, soundNode);
-	return play(kNoExistingChannel, resourceId, autoPlay, loop, volume, soundNode, monitor);
+	return play(kNoExistingChannel, resourceId, autoPlay, loop, volume, soundNode, monitor, pan);
 }
 
 int16 Audio32::getPosition(const int16 channelIndex) const {
