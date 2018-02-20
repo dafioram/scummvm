@@ -48,6 +48,7 @@ GLRobot::GLRobot(const uint16 robotNo, AbsGLPlane &plane, const int16 priority, 
 	_client(nullptr),
 	_isDirty(false),
 	_state(kDisposeAfterUse) {
+	setNeedsDoIt(true);
 	init();
 }
 
