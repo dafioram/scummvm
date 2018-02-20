@@ -25,6 +25,7 @@
 
 #include "common/ptr.h"
 #include "common/scummsys.h"
+#include "common/serializer.h"
 #include "sci/s2/exit.h"
 #include "sci/s2/hotspot.h"
 #include "sci/s2/system/glcel.h"
@@ -39,7 +40,7 @@ class S2GlobalRoom;
 class S2Kernel;
 class S2Room;
 
-class S2RoomManager : public GLObject {
+class S2RoomManager : public GLObject, public Common::Serializable {
 private:
 	template <typename T>
 	void addUnique(Common::Array<T *> &array, T &object) {
@@ -60,13 +61,16 @@ public:
 	S2RoomManager(S2Kernel &kernel, S2Game &game);
 	virtual ~S2RoomManager();
 
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
+
 	int getCurrentRoomNo() const { return _currentRoomNo; }
+
 	bool getIsSaved() const { return _isSaved; }
+	void setIsSaved(const bool saved) { _isSaved = saved; }
 
 	bool inInteractiveRoom() const;
 
 	void setNextRoomNo(const int roomNo) { _nextRoomNo = roomNo; }
-	void setIsSaved(const bool saved) { _isSaved = saved; }
 
 	void doIt() override;
 	bool handleEvent(GLEvent &event) override;
@@ -141,6 +145,7 @@ private:
 	Common::ScopedPtr<GLPanorama> _panorama;
 	bool _panoramaIsVisible;
 	uint16 _currentPanoramaNo;
+	int16 _savedPanX, _savedPanY;
 	Common::Array<S2Exit *> _exits;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<GLCel *> _cels;

@@ -26,6 +26,17 @@
 
 namespace Sci {
 
+void S2SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
+	int roomNo = _roomNo;
+	if (s.isSaving() && _game.getRoomManager().getLastSoundRoomNo()) {
+		roomNo = _game.getRoomManager().getLastSoundRoomNo();
+	}
+	s.syncAsSint32LE(roomNo);
+	if (s.isLoading()) {
+		createAmbient(roomNo);
+	}
+}
+
 void S2SoundManager::stopAllSounds() {
 	deleteAmbient(_roomNo);
 	stop();

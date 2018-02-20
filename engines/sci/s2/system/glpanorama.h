@@ -47,6 +47,8 @@ public:
 
 	uint16 getResourceNo() const { return _resourceNo; }
 
+	int16 &panX() { return _panX; }
+	int16 &panY() { return _panY; }
 	void setPanX(const int16 x) { _panX = x; }
 
 	void drawPic(const uint16 panoramaNo, const bool shouldUpdate = true);

@@ -24,6 +24,7 @@
 #define SCI_S2_GAME_H
 
 #include "common/random.h"
+#include "common/serializer.h"
 #include "sci/s2/cursor.h"
 #include "sci/s2/flags.h"
 #include "sci/s2/interface.h"
@@ -48,11 +49,13 @@ class S2Engine;
 class S2Kernel;
 
 /** This class combines the functionality of S2Game and GLGame from SSCI. */
-class S2Game {
+class S2Game : public Common::Serializable {
 public:
 #pragma mark -
 #pragma mark ScummVM extensions
 	S2Game(S2Engine &engine, S2Kernel &kernel);
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	/**
 	 * Runs the game. Returns once the game has finished.
@@ -130,11 +133,8 @@ private:
 	Common::String _saveGameName;
 	int _saveGameSlotNo;
 
-	int _volume; // ?
-	int _field_54;
-	int _field_58;
-	int _panSpeed;
-	int _field_60;
+	uint8 _gamma;
+	uint8 _panSpeed;
 };
 
 } // End of namespace Sci

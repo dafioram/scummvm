@@ -24,6 +24,7 @@
 #define SCI_S2_SCORING_MANAGER_H
 
 #include "common/array.h"
+#include "common/serializer.h"
 
 namespace Sci {
 
@@ -273,9 +274,11 @@ enum S2Score {
 	kNumScoreEvents
 };
 
-class S2ScoringManager {
+class S2ScoringManager : public Common::Serializable {
 public:
 	S2ScoringManager();
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	void doEvent(S2Score event);
 

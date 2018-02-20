@@ -23,14 +23,17 @@
 #ifndef SCI_S2_PHONE_MANAGER_H
 #define SCI_S2_PHONE_MANAGER_H
 
+#include "common/serializer.h"
 #include "sci/s2/system/glscript.h"
 
 namespace Sci {
 
-class S2PhoneManager : public GLScript {
+class S2PhoneManager : public GLScript, public Common::Serializable {
 public:
 	S2PhoneManager();
 	void init();
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	void cancelCall();
 

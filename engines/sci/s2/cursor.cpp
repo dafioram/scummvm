@@ -60,4 +60,26 @@ void S2Cursor::dropItem() {
 	}
 }
 
+void S2Cursor::getPrayerStick(const GLCelRes &celInfo) {
+	if (!hasPrayerStick()) {
+		endHighlight();
+		if (!hasInventory()) {
+			_noInventoryCel = getNormalCelRes();
+		}
+		_inventoryState |= kPrayerStick;
+		setNormalCelRes(celInfo);
+	}
+}
+
+void S2Cursor::dropPrayerStick() {
+	if (hasPrayerStick()) {
+		_inventoryState &= ~kPrayerStick;
+		if (hasInventory()) {
+			setNormalCelRes(_inventoryCel);
+		} else {
+			setNormalCelRes(_noInventoryCel);
+		}
+	}
+}
+
 } // End of namespace Sci

@@ -46,6 +46,8 @@ S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
 	_pictureIsVisible(false),
 	_currentPictureNo(0),
 	_panoramaIsVisible(false),
+	_savedPanX(0),
+	_savedPanY(0),
 	_currentGlobalRoomNo(0),
 	_nextGlobalRoomNo(0),
 	_lastNonGlobalRoomNo(0),
@@ -67,6 +69,161 @@ S2RoomManager::~S2RoomManager() {
 		_game.getExtras().remove(_panorama.get());
 		// TODO: Dtor was called explicitly here regardless of visibility; make
 		// sure it has no side effects which are important
+	}
+}
+
+void S2RoomManager::saveLoadWithSerializer(Common::Serializer &s) {
+	const auto oldRoomNo = _currentRoomNo;
+	const auto oldPreviousRoomNo = _previousRoomNo;
+
+	auto roomNo = _currentRoomNo;
+	auto previousRoomNo = _previousRoomNo;
+
+	if (s.isSaving()) {
+		switch (roomNo) {
+		case 6222:
+			previousRoomNo = roomNo;
+			roomNo = 6220;
+			break;
+		case 6292:
+			previousRoomNo = roomNo;
+			roomNo = 6290;
+			break;
+		case 6122:
+			previousRoomNo = roomNo;
+			roomNo = 6120;
+			break;
+		case 6272:
+			previousRoomNo = roomNo;
+			roomNo = 6279;
+			break;
+		case 6422:
+			previousRoomNo = roomNo;
+			roomNo = 6420;
+			break;
+		case 6351:
+		case 6353:
+			previousRoomNo = roomNo;
+			roomNo = 6350;
+			break;
+		case 6371:
+			previousRoomNo = roomNo;
+			roomNo = 6375;
+			break;
+		case 11140:
+			previousRoomNo = roomNo;
+			roomNo = 11100;
+			break;
+		case 14240:
+			previousRoomNo = roomNo;
+			roomNo = 14200;
+			break;
+		case 14430:
+			previousRoomNo = roomNo;
+			roomNo = 14420;
+			break;
+		case 15601:
+			previousRoomNo = roomNo;
+			roomNo = 15600;
+			break;
+		case 15370:
+			previousRoomNo = roomNo;
+			roomNo = 15300;
+			break;
+		case 36132:
+			previousRoomNo = roomNo;
+			roomNo = 36100;
+			break;
+		case 17450:
+			previousRoomNo = roomNo;
+			roomNo = 17410;
+			break;
+		case 19450:
+			previousRoomNo = roomNo;
+			roomNo = 19420;
+			break;
+		case 21390:
+		case 21321:
+			previousRoomNo = roomNo;
+			roomNo = 21300;
+			break;
+		case 21113:
+			previousRoomNo = roomNo;
+			roomNo = 21100;
+			break;
+		case 21290:
+			previousRoomNo = roomNo;
+			roomNo = 21200;
+			break;
+		case 22730:
+			previousRoomNo = roomNo;
+			roomNo = 22600;
+			break;
+		case 23150:
+			previousRoomNo = roomNo;
+			roomNo = 23140;
+			break;
+		case 24531:
+			previousRoomNo = roomNo;
+			roomNo = 24500;
+			break;
+		case 48201:
+		case 48205:
+		case 48207:
+		case 48212:
+			previousRoomNo = roomNo;
+			roomNo = 48000;
+			break;
+		case 48202:
+		case 48206:
+		case 48210:
+		case 48211:
+			previousRoomNo = roomNo;
+			roomNo = 28400;
+			break;
+		case 48203:
+		case 48204:
+		case 48208:
+		case 48209:
+			previousRoomNo = roomNo;
+			roomNo = 28700;
+			break;
+		}
+	}
+
+	s.syncAsByte(_autoHighlight);
+	s.syncAsSint32LE(roomNo);
+	s.syncAsSint32LE(previousRoomNo);
+
+	if (s.isLoading()) {
+		_currentRoomNo = roomNo;
+		_previousRoomNo = previousRoomNo;
+	}
+
+	if (_panorama) {
+		s.syncAsSint16LE(_panorama->panX());
+		s.syncAsSint16LE(_panorama->panY());
+	} else {
+		s.syncAsSint16LE(_savedPanX);
+		s.syncAsSint16LE(_savedPanY);
+	}
+
+	// This code was originally in S2Game::Load
+	if (s.isLoading()) {
+		_game.getCursor().endHighlight();
+		if (roomNo) {
+			disposeRoom(oldRoomNo);
+			unloadRoom();
+		}
+
+		loadRoom(roomNo);
+		_nextRoomNo = 0;
+		_currentRoomNo = oldPreviousRoomNo;
+		initRoom(roomNo);
+
+		if (_currentGlobalRoomNo) {
+			unloadGlobalRoom();
+		}
 	}
 }
 
@@ -370,7 +527,11 @@ void S2RoomManager::drawPan(const uint16 resourceNo) {
 
 	if (!_panorama) {
 		_panorama.reset(new GLPanorama({ 64, 0, 576, 384 }));
-		// panorama x/y were set here in SSCI but they were always set to zero
+		_panorama->panX() = _savedPanX;
+		if (_savedPanY) {
+			_panorama->panY() = _savedPanY;
+		}
+		_savedPanX = _savedPanY = 0;
 	}
 
 	_kernel.graphicsManager._palette.loadPalette(resourceNo);

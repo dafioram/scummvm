@@ -23,11 +23,12 @@
 #ifndef SCI_S2_INVENTORY_H
 #define SCI_S2_INVENTORY_H
 
+#include "common/scummsys.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
-enum class S2Inventory {
+enum class S2Inventory : uint8 {
 	None,
 	FortyDollars,
 	kInv2,
@@ -83,7 +84,7 @@ enum class S2Inventory {
 	kNumInventory
 };
 
-enum class S2InventoryState {
+enum class S2InventoryState : uint8 {
 	Normal = 0,
 	Placed = 1,
 	Taken  = 2,
@@ -91,7 +92,7 @@ enum class S2InventoryState {
 	Used   = 8
 };
 
-enum class S2PrayerStick {
+enum class S2PrayerStick : uint8 {
 	None = 0,
 	kNumPrayerSticks
 };

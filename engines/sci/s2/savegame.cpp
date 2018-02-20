@@ -24,6 +24,11 @@
 
 namespace Sci {
 
-
+void S2SaveGameMetadata::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsByte(version);
+	s.syncString(name);
+	s.syncAsUint32LE(numTicksElapsed);
+	s.syncAsUint64LE(timestamp);
+}
 
 } // End of namespace Sci

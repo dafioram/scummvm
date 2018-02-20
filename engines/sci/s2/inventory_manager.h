@@ -23,6 +23,7 @@
 #ifndef SCI_S2_INVENTORY_MANAGER_H
 #define SCI_S2_INVENTORY_MANAGER_H
 
+#include "common/serializer.h"
 #include "common/textconsole.h"
 #include "sci/s2/inventory.h"
 
@@ -30,13 +31,15 @@ namespace Sci {
 
 class S2Game;
 
-class S2InventoryManager {
+class S2InventoryManager : public Common::Serializable {
 public:
 	enum { kMaxHeldItems = 12 };
 
 	S2InventoryManager(S2Game &game);
 
 	void init();
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
 	S2Inventory getCurrentItem() const { return _currentItem; }
@@ -60,6 +63,8 @@ public:
 	const GLCelRes &getSmallCel(S2Inventory item) { return _inventory[int(item)].smallCel; }
 
 private:
+	void refresh();
+
 	S2Game &_game;
 	S2Inventory _currentItem;
 	S2Inventory _showingItem;

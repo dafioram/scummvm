@@ -49,7 +49,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_roomManager(kernel, *this),
 	_flags(),
 	_saveGameSlotNo(-1),
-	_volume(Audio32::kMaxVolume),
+	_gamma(0),
 	// In SSCI the default is 40, which is too high
 	_panSpeed(30) {
 	GLCue::init(&_extras);
@@ -61,6 +61,22 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	S2InventoryObject::init(this);
 	GLPanorama::init(this);
 	_phoneManager.init();
+}
+
+void S2Game::saveLoadWithSerializer(Common::Serializer &s) {
+	S2SaveGameMetadata metadata;
+	metadata.saveLoadWithSerializer(s);
+	s.syncAsByte(_panSpeed);
+	s.syncAsByte(_gamma);
+	getSoundManager().saveLoadWithSerializer(s);
+	getRoomManager().saveLoadWithSerializer(s);
+	getInventoryManager().saveLoadWithSerializer(s);
+	getInterface().saveLoadWithSerializer(s);
+	getMovieManager().saveLoadWithSerializer(s);
+	getScoringManager().saveLoadWithSerializer(s);
+	getFlags().saveLoadWithSerializer(s);
+	getPhoneManager().saveLoadWithSerializer(s);
+	_kernel.graphicsManager._palette.setGamma(_gamma);
 }
 
 void S2Game::run() {
@@ -104,11 +120,9 @@ Common::Array<S2SaveGameMetadata> S2Game::getSaveGameList() const {
 	Common::Array<S2SaveGameMetadata> list;
 	for (const auto &gameFilename : _engine.listSaves()) {
 		Common::ScopedPtr<Common::InSaveFile> stream(_engine.getSaveFileManager()->openForLoading(gameFilename));
-		const auto version = stream->readByte();
-		const auto name = stream->readPascalString();
-		const auto ticksElapsed = stream->readUint32LE();
-		const auto timestamp = stream->readUint64LE();
-		const S2SaveGameMetadata metadata = { name, timestamp, ticksElapsed, version };
+		Common::Serializer serializer(stream.get(), nullptr);
+		S2SaveGameMetadata metadata;
+		metadata.saveLoadWithSerializer(serializer);
 		list.push_back(metadata);
 	}
 	return list;

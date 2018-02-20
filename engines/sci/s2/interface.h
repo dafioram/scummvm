@@ -25,6 +25,7 @@
 
 #include "common/ptr.h"
 #include "common/rect.h"
+#include "common/serializer.h"
 #include "sci/s2/bitmap.h"
 #include "sci/s2/button.h"
 #include "sci/s2/inventory.h"
@@ -43,11 +44,13 @@ class S2Kernel;
 
 // In SSCI this was of type GLObject and then got treated like a GLTarget using
 // unsafe casts
-class S2Interface : public GLTarget {
+class S2Interface : public GLTarget, public Common::Serializable {
 public:
 	S2Interface(S2Kernel &kernel, S2Game &game);
 
 	void init();
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	virtual void doIt() override;
 	virtual bool handleEvent(GLEvent &event) override;
@@ -62,7 +65,7 @@ public:
 	void disableButtons();
 	void resetButtons();
 
-	void changeLife(const int amount);
+	void changeLife(const int amount, const bool isAbsolute = false);
 
 	void drawInventoryItem(const int slotNo, const S2Inventory item);
 	void eraseInventoryItem(const int slotNo);

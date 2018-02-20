@@ -23,15 +23,18 @@
 #ifndef SCI_S2_SAVEGAME_H
 #define SCI_S2_SAVEGAME_H
 
+#include "common/serializer.h"
 #include "common/str.h"
 
 namespace Sci {
 
-struct S2SaveGameMetadata {
+struct S2SaveGameMetadata : public Common::Serializable {
 	Common::String name;
 	uint64 timestamp;
 	uint32 numTicksElapsed;
 	uint8 version;
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 };
 
 } // End of namespace Sci

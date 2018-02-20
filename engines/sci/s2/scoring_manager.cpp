@@ -72,6 +72,11 @@ S2ScoringManager::S2ScoringManager() :
 	}
 }
 
+void S2ScoringManager::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsUint32LE(_currentScore);
+	s.syncArray(_events.data(), _events.size(), Common::Serializer::Sint16LE);
+}
+
 void S2ScoringManager::doEvent(S2Score event) {
 	int score = _events[event];
 	if (score < 0 && ABS(score) >= _currentScore) {

@@ -50,8 +50,9 @@ public:
 	// is part of S2InventoryManager) and the only reason for sending the
 	// inventory item was to get the cel anyway
 	void getItem(const GLCelRes &celInfo);
-
 	void dropItem();
+	void getPrayerStick(const GLCelRes &celInfo);
+	void dropPrayerStick();
 
 private:
 	enum InventoryState {

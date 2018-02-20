@@ -35,6 +35,7 @@
 #undef ctime
 #undef clock
 #include <functional>
+#include "common/serializer.h"
 #include "sci/s2/system/glmovie.h"
 #include "sci/s2/system/glmovie_player.h"
 #include "sci/s2/system/globject.h"
@@ -46,11 +47,13 @@ namespace Sci {
 class S2Game;
 class S2Kernel;
 
-class S2MovieManager : public GLObject {
+class S2MovieManager : public GLObject, public Common::Serializable {
 public:
 	using Captioner = std::function<void(S2MovieManager &)>;
 
 	S2MovieManager(S2Kernel &kernel, S2Game &game);
+
+	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
 	void initRobot(const uint16 robotNo, AbsGLPlane &plane, const int16 priority = -1, const GLPoint &position = GLPoint(0, 0));
 	void playRobot(const bool isModal = false, const bool hideClient = true, const bool keepLastFrame = true);

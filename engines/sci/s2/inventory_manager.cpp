@@ -64,6 +64,20 @@ void S2InventoryManager::init() {
 	}
 }
 
+static void syncInventoryItem(Common::Serializer &s, S2InventoryItem &item) {
+	s.syncAsByte(reinterpret_cast<uint8 &>(item.state));
+}
+
+void S2InventoryManager::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsByte(reinterpret_cast<uint8 &>(_currentItem));
+	s.syncAsByte(reinterpret_cast<uint8 &>(_prayerStick));
+	s.syncArray(_inventory.data(), _inventory.size(), syncInventoryItem);
+	s.syncArray(_prayerSticks.data(), _prayerSticks.size(), syncInventoryItem);
+	if (s.isLoading()) {
+		refresh();
+	}
+}
+
 void S2InventoryManager::addItem(const S2Inventory item) {
 	if (_numItemsHeld >= kMaxHeldItems) {
 		_game.getSoundManager().play(10005, false, Audio32::kMaxVolume);
@@ -151,6 +165,27 @@ void S2InventoryManager::unselectItem(const bool returnToInventory) {
 		} else {
 			setState(oldItem, S2InventoryState::Used);
 		}
+	}
+}
+
+void S2InventoryManager::refresh() {
+	for (auto slotNo = 0; slotNo < kMaxHeldItems; ++slotNo) {
+		_game.getInterface().eraseInventoryItem(slotNo);
+		_itemSlots[slotNo] = S2Inventory::None;
+	}
+	_numItemsHeld = 0;
+	for (auto itemNo = 0; itemNo < _inventory.size(); ++itemNo) {
+		if (_inventory[itemNo].state == S2InventoryState::Taken) {
+			addItem(S2Inventory(itemNo));
+		}
+	}
+	_game.getCursor().dropItem();
+	if (_currentItem != S2Inventory::None) {
+		_game.getCursor().getItem(_inventory[int(_currentItem)].smallCel);
+	}
+	_game.getCursor().dropPrayerStick();
+	if (_prayerStick != S2PrayerStick::None) {
+		_game.getCursor().getPrayerStick(_prayerSticks[int(_prayerStick)].smallCel);
 	}
 }
 

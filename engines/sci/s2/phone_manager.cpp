@@ -35,6 +35,10 @@ void S2PhoneManager::init() {
 	GLScript::init(this, &S2PhoneManager::changeState);
 }
 
+void S2PhoneManager::saveLoadWithSerializer(Common::Serializer &s) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2PhoneManager::cancelCall() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

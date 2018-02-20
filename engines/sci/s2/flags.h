@@ -24,6 +24,7 @@
 #define SCI_S2_FLAGS_H
 
 #include "common/array.h"
+#include "common/serializer.h"
 
 namespace Sci {
 
@@ -253,9 +254,13 @@ enum GameFlag {
 	kNumGameFlags
 };
 
-class GameFlags {
+class GameFlags : public Common::Serializable {
 public:
 	GameFlags() : _flags() {}
+
+	virtual void saveLoadWithSerializer(Common::Serializer &s) {
+		s.syncArray(_flags.data(), _flags.size(), Common::Serializer::Byte);
+	}
 
 	bool get(const GameFlag flag) const {
 		return _flags[flag];

@@ -96,6 +96,16 @@ void S2Interface::init() {
 	_main->getCast().addEventHandler(*this);
 }
 
+void S2Interface::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsByte(_isCaptioningOn);
+	s.syncAsSint32LE(_healthRemaining);
+	if (s.isLoading()) {
+		changeLife(_healthRemaining, true);
+		resetButtons();
+		_eye->enable();
+	}
+}
+
 void S2Interface::doIt() {
 	// There was internet chat stuff in here, omitted since there is no server
 	// for a chat
@@ -251,7 +261,7 @@ void S2Interface::resetButtons() {
 	}
 }
 
-void S2Interface::changeLife(const int amount) {
+void S2Interface::changeLife(const int amount, const bool isAbsolute) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 

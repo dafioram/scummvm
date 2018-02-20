@@ -39,6 +39,10 @@ S2MovieManager::S2MovieManager(S2Kernel &kernel, S2Game &game) :
 	GLVmdMovie::init(&kernel.graphicsManager._video.getVMDPlayer());
 }
 
+void S2MovieManager::saveLoadWithSerializer(Common::Serializer &s) {
+	s.syncAsByte(_useHalfScreen);
+}
+
 void S2MovieManager::initRobot(const uint16 robotNo, AbsGLPlane &plane, const int16 priority, const GLPoint &position) {
 	_robot = GLRobot(robotNo, plane, priority, position);
 	_robotIsInitialized = true;
