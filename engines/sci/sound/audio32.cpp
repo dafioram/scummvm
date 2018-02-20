@@ -176,6 +176,7 @@ Audio32::Audio32(ResourceManager *resMan, GameFeatures *features, TimeManager *t
 
 	_attenuatedMixing(true),
 	_useModifiedAttenuation(features->usesModifiedAudioAttenuation()),
+	_nextPan(),
 
 	_monitoredChannelIndex(-1),
 	_numMonitoredSamples(0) {
@@ -706,7 +707,7 @@ bool Audio32::stopRobotAudio() {
 #pragma mark -
 #pragma mark Playback
 
-uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan) {
+uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor) {
 	Common::StackLock lock(_mutex);
 
 	freeUnusedChannels();
@@ -783,7 +784,12 @@ uint16 Audio32::play(int16 channelIndex, const ResourceId resourceId, const bool
 	channel.fadeStartTick = 0;
 	channel.soundNode = soundNode;
 	channel.volume = volume < 0 || volume > kMaxVolume ? (int)kMaxVolume : volume;
-	channel.pan = pan;
+	if (resourceId == _nextPan.resourceId) {
+		channel.pan = _nextPan.amount;
+	} else {
+		channel.pan = -1;
+	}
+	_nextPan.resourceId = ResourceId();
 
 	if (monitor) {
 		_monitoredChannelIndex = channelIndex;
@@ -973,10 +979,10 @@ int16 Audio32::stop(const int16 channelIndex) {
 	return oldNumChannels;
 }
 
-uint16 Audio32::restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan) {
+uint16 Audio32::restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor) {
 	Common::StackLock lock(_mutex);
 	stop(resourceId, soundNode);
-	return play(kNoExistingChannel, resourceId, autoPlay, loop, volume, soundNode, monitor, pan);
+	return play(kNoExistingChannel, resourceId, autoPlay, loop, volume, soundNode, monitor);
 }
 
 int16 Audio32::getPosition(const int16 channelIndex) const {
@@ -1062,6 +1068,17 @@ void Audio32::setVolume(const int16 channelIndex, int16 volume) {
 	} else if (channelIndex != kNoExistingChannel) {
 		Common::StackLock lock(_mutex);
 		getChannel(channelIndex).volume = volume;
+	}
+}
+
+void Audio32::setPan(const ResourceId resourceId, const reg_t soundNode, const int16 pan) {
+	Common::StackLock lock(_mutex);
+	const int16 channelIndex = findChannelById(resourceId, soundNode);
+	if (channelIndex != kNoExistingChannel) {
+		setPan(channelIndex, pan);
+	} else {
+		_nextPan.resourceId = resourceId;
+		_nextPan.amount = pan;
 	}
 }
 
@@ -1309,11 +1326,7 @@ void Audio32::kernelPan(const int argc, const reg_t *const argv) {
 
 	const int16 channelIndex = findChannelByArgs(argc, argv, 1, argc == 3 ? argv[2] : NULL_REG);
 	const int16 pan = argv[0].toSint16();
-	if (channelIndex != kNoExistingChannel) {
-		setPan(channelIndex, pan);
-	} else {
-		warning("Attempt to pan a channel that does not exist");
-	}
+	setPan(channelIndex, pan);
 }
 
 void Audio32::kernelPanOff(const int argc, const reg_t *const argv) {

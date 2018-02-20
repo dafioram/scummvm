@@ -78,8 +78,10 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 				break;
 			}
 
-			const int16 pan = sound.getPan() != 50 ? sound.getPan() : -1;
-			_mixer->restart(ResourceId(kResourceTypeAudio, sound.getResourceNo()), false, false, sound.getVolume(), NULL_REG, false, pan);
+			if (sound.getPan() != 50) {
+				_mixer->setPan(ResourceId(kResourceTypeAudio, sound.getResourceNo()), NULL_REG, sound.getPan());
+			}
+			_mixer->restart(ResourceId(kResourceTypeAudio, sound.getResourceNo()), false, false, sound.getVolume(), NULL_REG, false);
 
 			break;
 		}

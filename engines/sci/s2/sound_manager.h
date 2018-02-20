@@ -37,7 +37,6 @@ public:
 	void stopAllSounds();
 	void createAmbient(const int roomNo);
 	void deleteAmbient(const int roomNo);
-	void playAmbient(const int roomNo = 0);
 
 private:
 	int _roomNo;

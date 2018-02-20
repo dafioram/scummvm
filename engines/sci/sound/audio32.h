@@ -469,7 +469,7 @@ public:
 	/**
 	 * Starts or resumes playback of an audio channel.
 	 */
-	uint16 play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan = -1);
+	uint16 play(int16 channelIndex, const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor);
 
 	/**
 	 * Resumes playback of a paused audio channel, or of the entire audio
@@ -502,7 +502,7 @@ public:
 	/**
 	 * Restarts playback of the given audio resource.
 	 */
-	uint16 restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor, const int16 pan = -1);
+	uint16 restart(const ResourceId resourceId, const bool autoPlay, const bool loop, const int16 volume, const reg_t soundNode, const bool monitor);
 
 	/**
 	 * Returns the playback position for the given channel number, in ticks.
@@ -573,6 +573,12 @@ public:
 	}
 
 	/**
+	 * Sets the stereo panning for a given resource. If the resource is not
+	 * already being played, the pan state will be stored until the next sound.
+	 */
+	void setPan(const ResourceId resourceId, const reg_t soundNode, const int16 pan);
+
+	/**
 	 * Sets the stereo panning for the given channel.
 	 */
 	void setPan(const int16 channelIndex, const int16 pan) {
@@ -607,6 +613,15 @@ private:
 	 * of standard linear attenuation (`A/2 + B/2`).
 	 */
 	bool _useModifiedAttenuation;
+
+	/**
+	 * The stored state of the last call to pan audio which was not already
+	 * playing.
+	 */
+	struct {
+		ResourceId resourceId;
+		int16 amount;
+	} _nextPan;
 
 	/**
 	 * Processes an audio fade for the given channel.
