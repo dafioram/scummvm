@@ -34,9 +34,7 @@ S2PanoramaImage::S2PanoramaImage(const Common::Rect &rect) :
 	_width(rect.width()),
 	_height(rect.height()),
 	_pixels(nullptr),
-	_isSprite(false) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+	_isSprite(false) {}
 
 void S2PanoramaImage::loadImage(const uint16 panoramaNo) {
 	const Resource *resource = _resourceManager->findResource(ResourceId(kResourceTypePano, panoramaNo), false);

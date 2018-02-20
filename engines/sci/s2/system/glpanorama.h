@@ -28,6 +28,7 @@
 #include "common/ptr.h"
 #include "common/rect.h"
 #include "sci/s2/panorama_image.h"
+#include "sci/s2/panorama_sprite.h"
 #include "sci/s2/system/globject.h"
 #include "sci/s2/system/glpanorama_exit.h"
 #include "sci/s2/system/glvr_plane.h"
@@ -64,6 +65,8 @@ public:
 	void removeAllExits() { _exits.clear(); }
 
 private:
+	static constexpr int _shiftY = 22;
+	static constexpr double _aspectRatio = 1.3;
 	static S2Game *_game;
 
 	void buildWarpTable();
@@ -75,24 +78,30 @@ private:
 	bool checkSprites(GLEvent &event);
 	bool checkExits(GLEvent &event);
 
+	GLPoint getUnwarpedPoint(const GLPoint &point) const {
+		return GLPoint(
+			(point.x + _panX) % _image.getHeight(),
+			(_xToYInitial[point.y] + (_panY + point.y) * _xToYDelta[point.x]) >> _shiftY
+		);
+	}
+
 	uint16 _resourceNo;
 	S2PanoramaImage _screen;
 	GLVRPlane _plane;
 	S2PanoramaImage _image;
 	int16 _panX;
 	int16 _panY;
-	int _shiftY;
-	double _aspectRatio;
 	bool _isDirty;
 	bool _isUpdating;
 	bool _isFrozen;
-	Common::FixedArray<int, 2048> _panTable;
-	Common::FixedArray<int, 2048> _percentTable;
+	Common::FixedArray<uint, 2048> _panTable;
+	Common::FixedArray<uint, 2048> _percentTable;
 	int16 _width, _height;
 	Common::Rect _deadZone;
-	Common::FixedArray<int, 640> _xToYDelta;
-	Common::FixedArray<int, 640> _xToYInitial;
+	Common::FixedArray<uint, 640> _xToYDelta;
+	Common::FixedArray<uint, 640> _xToYInitial;
 	Common::List<GLSound> _sounds;
+	Common::List<S2PanoramaSprite> _sprites;
 	// In SSCI this was not a set for some reason, even though there is no way
 	// two of the same exit should exist in one panorama
 	GLSetAsArray<GLPanoramaExit> _exits;

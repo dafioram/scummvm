@@ -35,8 +35,6 @@ GLPanorama::GLPanorama(const Common::Rect &drawRect) :
 	_image({}),
 	_panX(0),
 	_panY((512.0 * 1.3 - drawRect.height()) / 2),
-	_shiftY(22),
-	_aspectRatio(1.3),
 	_isDirty(false),
 	_isUpdating(false),
 	_isFrozen(false) {
@@ -166,8 +164,7 @@ void GLPanorama::checkMouse() {
 			mouse.x -= planeRect.left;
 			mouse.y -= planeRect.top;
 
-			const GLPoint projectedPoint((mouse.x + _panX) % _image.getHeight(),
-										 (_xToYInitial[mouse.y] + (_panY + mouse.y) * _xToYDelta[mouse.x]) >> _shiftY);
+			const GLPoint projectedPoint(getUnwarpedPoint(mouse));
 			for (const auto &exit : _exits) {
 				if (exit->contains(projectedPoint)) {
 					const auto cursorCel = exit->getCursorCel();
@@ -281,12 +278,42 @@ void GLPanorama::stretchPanorama() {
 }
 
 bool GLPanorama::checkSprites(GLEvent &event) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (!_plane.checkIsOnMe(event.getMousePosition())) {
+		return false;
+	}
+
+	event.localize(_plane);
+
+	const auto projectedPoint(getUnwarpedPoint(event.getMousePosition()));
+
+	for (auto &sprite : _sprites) {
+		if (sprite.getRect().contains(projectedPoint) && sprite.getMouseDownHandler()) {
+			sprite.getMouseDownHandler()();
+			event.claim();
+			return true;
+		}
+	}
+
 	return false;
 }
 
 bool GLPanorama::checkExits(GLEvent &event) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (!_plane.checkIsOnMe(event.getMousePosition()) || _game->getCursor().hasInventory()) {
+		return false;
+	}
+
+	event.localize(_plane);
+
+	const auto projectedPoint(getUnwarpedPoint(event.getMousePosition()));
+	for (const auto &exit : _exits) {
+		if (exit->contains(projectedPoint)) {
+			_game->getRoomManager().setNextRoomNo(exit->getRoomNo());
+			return true;
+		}
+	}
+
+	// TODO: In SSCI the event was not globalised again here, does this matter?
+
 	return false;
 }
 
