@@ -29,9 +29,11 @@
 
 namespace Sci {
 
+class S2PanoramaImage;
+
 class GLVRPlane : public GLOpaquePlane {
 public:
-	GLVRPlane(const Common::Rect &rect);
+	GLVRPlane(const Common::Rect &rect, S2PanoramaImage &image);
 
 	void updateScreen();
 

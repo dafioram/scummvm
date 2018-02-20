@@ -37,6 +37,10 @@ SciBitmap *GfxBitmap32::create(reg_t *addr, const int16 width, const int16 heigh
 	return bitmap;
 }
 
+SciBitmap *GfxBitmap32::getRawBitmap(reg_t bitmapId) {
+	return _provider->lookupBitmap(bitmapId);
+}
+
 void GfxBitmap32::destroy(reg_t bitmapId) {
 	_provider->freeBitmap(bitmapId);
 }

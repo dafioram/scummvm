@@ -47,4 +47,8 @@ void S2Bitmap::fill(const Common::Rect &rect, const uint8 color) {
 	_bitmapManager->fillRect(_handle, rect, color);
 }
 
+byte *S2Bitmap::getPixels() {
+	return _bitmapManager->getRawBitmap(_handle)->getPixels();
+}
+
 } // End of namespace Sci

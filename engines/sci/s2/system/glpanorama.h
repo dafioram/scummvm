@@ -23,9 +23,13 @@
 #ifndef SCI_S2_SYSTEM_GLPANORAMA_H
 #define SCI_S2_SYSTEM_GLPANORAMA_H
 
+#include "common/array.h"
+#include "common/list.h"
 #include "common/ptr.h"
 #include "common/rect.h"
+#include "sci/s2/panorama_image.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/glpanorama_exit.h"
 #include "sci/s2/system/glvr_plane.h"
 
 namespace Sci {
@@ -36,6 +40,9 @@ class GLVRPlane;
 class GLPanorama : public GLObject {
 public:
 	GLPanorama(const Common::Rect &drawRect);
+
+	static void init(S2Game *game) { _game = game; }
+
 	uint16 getResourceNo() const { return _resourceNo; }
 
 	void setPanX(const int16 x) { _panX = x; }
@@ -52,9 +59,36 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
+	static S2Game *_game;
+
+	void buildWarpTable();
+	void updateSprites();
+	void checkMouse();
+	void stretchPanorama();
+	void panAudio();
+
+	bool checkSprites(GLEvent &event);
+	bool checkExits(GLEvent &event);
+
 	uint16 _resourceNo;
+	S2PanoramaImage _screen;
 	GLVRPlane _plane;
+	S2PanoramaImage _image;
 	int16 _panX;
+	int16 _panY;
+	int _shiftY;
+	double _aspectRatio;
+	bool _isDirty;
+	bool _isUpdating;
+	bool _isFrozen;
+	Common::FixedArray<int, 2048> _panTable;
+	Common::FixedArray<int, 2048> _percentTable;
+	int16 _width, _height;
+	Common::Rect _deadZone;
+	Common::FixedArray<int, 640> _xToYDelta;
+	Common::FixedArray<int, 640> _xToYInitial;
+	Common::List<GLSound> _sounds;
+	Common::Array<GLPanoramaExit> _exits;
 };
 
 } // End of namespace Sci

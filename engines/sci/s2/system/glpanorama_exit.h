@@ -20,45 +20,26 @@
  *
  */
 
-#ifndef SCI_S2_BITMAP_H
-#define SCI_S2_BITMAP_H
+#ifndef SCI_S2_GLPANORAMA_EXIT_H
+#define SCI_S2_GLPANORAMA_EXIT_H
 
-#include "common/scummsys.h"
-#include "sci/engine/vm_types.h"
-#include "sci/graphics/text32.h"
-
-namespace Common {
-struct Rect;
-class String;
-}
+#include "common/rect.h"
 
 namespace Sci {
 
-class GfxBitmap32;
-class SciBitmap;
-
-class S2Bitmap {
+class GLPanoramaExit : public Common::Rect {
 public:
-	static void init(GfxBitmap32 *bitmapManager) { _bitmapManager = bitmapManager; }
+	GLPanoramaExit(const int roomNo, const int16 left, const int16 top, const int16 right, const int16 bottom, const int16 cursorCel = 3) :
+		Common::Rect(left, top, right, bottom),
+		_roomNo(roomNo),
+		_cursorCel(cursorCel) {}
 
-	S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap = false);
-
-	~S2Bitmap();
-
-	reg_t getHandle() const { return _handle; }
-
-	void drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y);
-
-	void drawText(const Common::String &text, const Common::Rect &textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const uint16 fontId, TextAlign alignment = kTextAlignDefault, const int16 borderColor = -1, const bool dimmed = false);
-
-	void fill(const Common::Rect &rect, const uint8 color);
-
-	byte *getPixels();
+	int getRoomNo() const { return _roomNo; }
+	int16 getCursorCel() const { return _cursorCel; }
 
 private:
-	static GfxBitmap32 *_bitmapManager;
-
-	reg_t _handle;
+	int _roomNo;
+	int16 _cursorCel;
 };
 
 } // End of namespace Sci

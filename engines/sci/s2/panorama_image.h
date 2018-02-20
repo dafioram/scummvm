@@ -20,45 +20,47 @@
  *
  */
 
-#ifndef SCI_S2_BITMAP_H
-#define SCI_S2_BITMAP_H
+#ifndef SCI_S2_PANORAMA_IMAGE_H
+#define SCI_S2_PANORAMA_IMAGE_H
 
-#include "common/scummsys.h"
-#include "sci/engine/vm_types.h"
-#include "sci/graphics/text32.h"
-
-namespace Common {
-struct Rect;
-class String;
-}
+#include "common/array.h"
+#include "common/ptr.h"
+#include "common/rect.h"
+#include "graphics/surface.h"
+#include "sci/s2/system/globject.h"
 
 namespace Sci {
 
-class GfxBitmap32;
-class SciBitmap;
+class ResourceManager;
 
-class S2Bitmap {
+class S2PanoramaImage : public GLObject {
 public:
-	static void init(GfxBitmap32 *bitmapManager) { _bitmapManager = bitmapManager; }
+	S2PanoramaImage(const Common::Rect &rect);
 
-	S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap = false);
+	static void init(ResourceManager *resourceManager) { _resourceManager = resourceManager; }
 
-	~S2Bitmap();
+	int16 getWidth() const { return _width; }
+	int16 getHeight() const { return _height; }
 
-	reg_t getHandle() const { return _handle; }
+	byte *getPixels() const { return _pixels; }
+	void setPixels(byte *pixels) {
+		assert(!_ownedPixels.size());
+		_pixels = pixels;
+	}
 
-	void drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y);
+	bool hasSprites() const { return !_sprites.empty(); }
 
-	void drawText(const Common::String &text, const Common::Rect &textRect, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const uint16 fontId, TextAlign alignment = kTextAlignDefault, const int16 borderColor = -1, const bool dimmed = false);
-
-	void fill(const Common::Rect &rect, const uint8 color);
-
-	byte *getPixels();
+	void loadImage(const uint16 panoramaNo);
+	virtual void doIt() override {}
 
 private:
-	static GfxBitmap32 *_bitmapManager;
-
-	reg_t _handle;
+	static ResourceManager *_resourceManager;
+	int16 _width;
+	int16 _height;
+	byte *_pixels;
+	Common::Array<byte> _ownedPixels;
+	bool _isSprite;
+	Common::List<S2PanoramaImage> _sprites;
 };
 
 } // End of namespace Sci

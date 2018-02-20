@@ -133,6 +133,7 @@ MODULE_OBJS += \
 	s2/kernel.o \
 	s2/message_box.o \
 	s2/movie_manager.o \
+	s2/panorama_image.o \
 	s2/phone_manager.o \
 	s2/room.o \
 	s2/room_manager.o \

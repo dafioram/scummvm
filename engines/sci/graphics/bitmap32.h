@@ -47,6 +47,8 @@ public:
 
 	void fillRect(const reg_t bitmapId, const Common::Rect &rect, const uint8 color);
 
+	SciBitmap *getRawBitmap(const reg_t bitmapId);
+
 private:
 	BitmapProvider *_provider;
 	GfxText32 *_gfxText32;

@@ -52,6 +52,8 @@ public:
 	virtual void doIt() override;
 	virtual bool handleEvent(GLEvent &event) override;
 
+	GLTransparentPlane &getPlane() const { return *_main; }
+
 	void show();
 	void hide();
 	void putText(const uint16 messageNo, const bool append = false, const bool showImmediately = false);

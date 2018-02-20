@@ -92,6 +92,7 @@ public:
 	int getCurrentGlobalRoomNo() const { return _currentGlobalRoomNo; }
 	int getPreviousRoomNo() const { return _previousRoomNo; }
 
+	bool getAutoHighlight() const { return _autoHighlight; }
 	void toggleAutoHighlight() { _autoHighlight = !_autoHighlight; }
 
 	GLPicturePlane &getGamePlane() const { return *_picture; }

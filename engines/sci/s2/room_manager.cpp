@@ -374,9 +374,9 @@ void S2RoomManager::drawPan(const uint16 resourceNo) {
 	}
 
 	_kernel.graphicsManager._palette.loadPalette(resourceNo);
-	_panorama->drawPic(resourceNo, true);
-	// TODO: SSCI loaded the palette again here, is this actually necessary?
-	// TODO: flag on panorama was set here
+	_panorama->drawPic(resourceNo);
+	// SSCI loaded the palette again here and set a flag which is already set by
+	// drawPic
 	if (_panoramaIsVisible) {
 		_panorama->getPlane().repaint();
 	} else {
@@ -399,7 +399,7 @@ void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {
 	if (_panorama && _panoramaIsVisible) {
 		_game.getExtras().remove(_panorama.get());
 		_game.getUser().getOrphans().remove(_panorama.get());
-		warning("TODO: Finish clearing panorama");
+		_panorama->getPlane().setPriority(-1, true);
 		_panoramaIsVisible = false;
 	}
 

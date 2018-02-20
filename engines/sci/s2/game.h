@@ -113,6 +113,8 @@ public:
 
 	void save();
 
+	int getPanSpeed() const { return _panSpeed; }
+
 private:
 	void init();
 
@@ -131,7 +133,7 @@ private:
 	int _volume; // ?
 	int _field_54;
 	int _field_58;
-	int _field_5c;
+	int _panSpeed;
 	int _field_60;
 };
 

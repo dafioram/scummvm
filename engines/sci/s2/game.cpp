@@ -32,6 +32,7 @@
 #include "sci/s2/savegame.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glcycler.h"
+#include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glquit_handler.h"
 
 namespace Sci {
@@ -48,7 +49,9 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_roomManager(kernel, *this),
 	_flags(),
 	_saveGameSlotNo(-1),
-	_volume(Audio32::kMaxVolume) {
+	_volume(Audio32::kMaxVolume),
+	// In SSCI the default is 40, which is too high
+	_panSpeed(30) {
 	GLCue::init(&_extras);
 	GLCycler::init(&_extras);
 	GLTarget::init(&_user);
@@ -56,6 +59,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	S2Control::init(&_user);
 	S2Dialog::init(&_user);
 	S2InventoryObject::init(this);
+	GLPanorama::init(this);
 	_phoneManager.init();
 }
 

@@ -20,17 +20,20 @@
  *
  */
 
+#include "sci/s2/panorama_image.h"
 #include "sci/s2/system/glvr_plane.h"
 
 namespace Sci {
 
-GLVRPlane::GLVRPlane(const Common::Rect &rect) :
+GLVRPlane::GLVRPlane(const Common::Rect &rect, S2PanoramaImage &image) :
 	GLOpaquePlane(rect, 0),
 	_bitmap(rect.width(), rect.height(), 0, 255),
-	_screenItem(*this, _bitmap, GLPoint(0, 0)) {}
+	_screenItem(*this, _bitmap, GLPoint(0, 0)) {
+	image.setPixels(_bitmap.getPixels());
+}
 
 void GLVRPlane::updateScreen() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_screenItem.forceUpdate();
 }
 
 } // End of namespace Sci
