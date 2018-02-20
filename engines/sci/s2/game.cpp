@@ -73,15 +73,16 @@ void S2Game::run() {
 	play();
 
 	if (!_roomManager.getIsSaved() && _roomManager.inInteractiveRoom()) {
-		S2MessageBox message(_("Your game '%s' has not yet been saved. "
-							   "Would you like to save this game before exiting?"), S2MessageBox::Type::YesNo);
+		using S = Common::String;
+		const S text(S::format(_("Your game '%s' has not yet been saved. Would "
+								 "you like to save this game before exiting?"),
+							   _saveGameName.c_str()));
+
+		S2MessageBox message(text, S2MessageBox::Type::YesNo);
 		if (message.createS2Dialog() == S2MessageBox::Result::Yes) {
 			save();
 		}
 	}
-
-	// TODO: A save-before-quit confirmation dialogue was shown here; add this
-	// if it feels like a good idea later
 
 	// Conditional checks that were here are moved into their respective
 	// functions
