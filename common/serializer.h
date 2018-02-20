@@ -123,6 +123,11 @@ public:
 	SYNC_AS(Sint32LE, int32, 4)
 	SYNC_AS(Sint32BE, int32, 4)
 
+	SYNC_AS(Uint64LE, uint64, 8)
+	SYNC_AS(Uint64BE, uint64, 8)
+	SYNC_AS(Sint64LE, int64, 8)
+	SYNC_AS(Sint64BE, int64, 8)
+
 	/**
 	 * Returns true if an I/O failure occurred.
 	 * This flag is never cleared automatically. In order to clear it,
