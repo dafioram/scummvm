@@ -24,6 +24,7 @@
 #define SCI_S2_ROOMS_10000_H
 
 #include "sci/s2/room.h"
+#include "sci/s2/system/glpanorama_exit.h"
 
 namespace Sci {
 
@@ -34,6 +35,9 @@ public:
 	virtual void dispose(const int roomNo) override;
 	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
+
+private:
+	Common::Array<Common::ScopedPtr<GLPanoramaExit>> _exits;
 };
 
 } // End of namespace Sci

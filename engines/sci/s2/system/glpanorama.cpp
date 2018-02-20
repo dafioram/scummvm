@@ -169,15 +169,15 @@ void GLPanorama::checkMouse() {
 			const GLPoint projectedPoint((mouse.x + _panX) % _image.getHeight(),
 										 (_xToYInitial[mouse.y] + (_panY + mouse.y) * _xToYDelta[mouse.x]) >> _shiftY);
 			for (const auto &exit : _exits) {
-				if (exit.contains(projectedPoint)) {
-					const auto cursorCel = exit.getCursorCel();
+				if (exit->contains(projectedPoint)) {
+					const auto cursorCel = exit->getCursorCel();
 
 					if (cursorCel == 1 && !_game->getRoomManager().getAutoHighlight()) {
 						continue;
 					}
 
 					if (cursorCel != 0) {
-						highlightedCel.celNo = exit.getCursorCel();
+						highlightedCel.celNo = exit->getCursorCel();
 						_game->getCursor().setHighlightedCelRes(highlightedCel);
 						shouldHighlight = true;
 						break;

@@ -31,6 +31,7 @@
 #include "sci/s2/system/globject.h"
 #include "sci/s2/system/glpanorama_exit.h"
 #include "sci/s2/system/glvr_plane.h"
+#include "sci/s2/system/glset.h"
 
 namespace Sci {
 
@@ -57,6 +58,10 @@ public:
 
 	virtual void doIt() override;
 	virtual bool handleEvent(GLEvent &event) override;
+
+	void addExit(GLPanoramaExit &exit) { _exits.push_back(&exit); }
+	void removeExit(GLPanoramaExit &exit) { _exits.remove(&exit); }
+	void removeAllExits() { _exits.clear(); }
 
 private:
 	static S2Game *_game;
@@ -88,7 +93,9 @@ private:
 	Common::FixedArray<int, 640> _xToYDelta;
 	Common::FixedArray<int, 640> _xToYInitial;
 	Common::List<GLSound> _sounds;
-	Common::Array<GLPanoramaExit> _exits;
+	// In SSCI this was not a set for some reason, even though there is no way
+	// two of the same exit should exist in one panorama
+	GLSetAsArray<GLPanoramaExit> _exits;
 };
 
 } // End of namespace Sci
