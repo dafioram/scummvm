@@ -51,10 +51,10 @@ public:
 
 	void enable(const bool shouldUpdate = true);
 	void disable(const bool shouldUpdate = true);
-
-protected:
 	void press(const bool shouldUpdate = true);
 	void release(const bool shouldUpdate = true);
+
+protected:
 	void highlight(const bool shouldUpdate = true);
 	void dim(const bool shouldUpdate = true);
 

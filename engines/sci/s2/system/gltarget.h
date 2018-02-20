@@ -47,6 +47,12 @@ class GLTarget : public GLObject {
 public:
 	using EventHandler = std::function<void(GLEvent &, GLTarget &)>;
 
+	template <typename T, typename U>
+	static EventHandler makeHandler(T object, U fn) {
+		using namespace std::placeholders;
+		return std::bind(fn, object, _1, _2);
+	}
+
 	GLTarget();
 	GLTarget(AbsGLPlane &plane);
 

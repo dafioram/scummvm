@@ -68,8 +68,13 @@ private:
 
 private:
 	void initMainMenu();
+
 	void initNewGame();
 	void startNewGame();
+
+	void initOptions();
+	void returnToGame();
+	void showOldGames();
 
 	int _lastRoomBeforeRestore;
 };

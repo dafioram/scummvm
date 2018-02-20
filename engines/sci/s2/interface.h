@@ -73,6 +73,8 @@ public:
 private:
 	S2Button *makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable = true) const;
 
+	void onOptions(GLEvent &event, GLTarget &);
+
 	void captionScript(GLScript &script, const int state);
 	Common::String _activeCaptionText;
 	Common::String::iterator _nextCaptionPosition;

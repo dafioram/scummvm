@@ -45,6 +45,8 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4010:
 		initNewGame();
 		break;
+	case 4100:
+		initOptions();
 	default:
 		error("Unknown global room %d", roomNo);
 	}
@@ -199,7 +201,7 @@ void S2GlobalRoom::initNewGame() {
 	auto *button = &addButton(4010, 0, 0, GLPoint(0, 479), 202);
 	button->setDisabledFace(4010, 0, 0);
 	button->setHighlightedFace(4010, 0, 1);
-	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
 		startNewGame();
 	});
 
@@ -229,5 +231,31 @@ void S2GlobalRoom::startNewGame() {
 	_game.getRoomManager().unloadGlobalRoom();
 	_game.getRoomManager().newRoom(1010);
 }
+
+void S2GlobalRoom::initOptions() {
+	auto *button = &addButton(4100, 0, 0, GLPoint(64, 479), 202);
+	button->setHighlightedFace(4100, 0, 2);
+	button->setDepressedFace(4100, 0, 2);
+	button->enable();
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		returnToGame();
+	});
+
+	button = &addButton(4100, 1, 0, GLPoint(64, 479), 202);
+	button->setHighlightedFace(4100, 1, 2);
+	button->setDepressedFace(4100, 1, 2);
+	button->enable();
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		// TODO
+	});
+
+	// TODO: Finish this
+}
+
+void S2GlobalRoom::returnToGame() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+
 
 } // End of namespace Sci

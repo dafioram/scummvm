@@ -70,7 +70,7 @@ void S2Interface::init() {
 
 	// TODO: handlers
 	_flashback.reset(makeButton(4, nullptr));
-	_options.reset(makeButton(5, nullptr));
+	_options.reset(makeButton(5, GLTarget::makeHandler(this, &S2Interface::onOptions)));
 	_map.reset(makeButton(6, nullptr));
 	_eye.reset(makeButton(7, nullptr, false));
 	_eye->setDisabledFace(999, 7, 0);
@@ -272,6 +272,30 @@ void S2Interface::drawInventoryItem(const int slotNo, const S2Inventory item) {
 
 void S2Interface::eraseInventoryItem(const int slotNo) {
 	drawInventoryItem(slotNo, S2Inventory::None);
+}
+
+void S2Interface::onOptions(GLEvent &event, GLTarget &) {
+	if (_options->getIsVisible() && _options->getIsEnabled() &&
+		_game.getRoomManager().getCurrentRoomNo() != 1015 &&
+		_game.getRoomManager().getCurrentRoomNo() != 6667 &&
+		event.getType() == kSciEventMousePress &&
+		_options->checkIsOnMe(event.getMousePosition())) {
+
+		_options->press();
+		_kernel.graphicsManager.frameOut(true);
+		if (!_flashback->getIsEnabled()) {
+			_game.getRoomManager().unloadGlobalRoom();
+			_flashback->enable();
+			_map->enable();
+		} else {
+			_game.getRoomManager().loadGlobalRoom(4100);
+			_flashback->disable();
+			_map->disable();
+		}
+		_options->release();
+		_game.getSoundManager().play(10912, false, 100);
+		event.claim();
+	}
 }
 
 void S2Interface::captionScript(GLScript &script, const int state) {
