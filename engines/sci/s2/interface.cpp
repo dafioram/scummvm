@@ -161,7 +161,7 @@ bool S2Interface::handleEvent(GLEvent &event) {
 			version = versionFile.readLine();
 		}
 		if (!version.empty()) {
-			S2MessageBox message(versionFile.readLine(), S2MessageBox::Type::OK);
+			S2MessageBox message(version, S2MessageBox::Type::OK);
 			message.createS2Dialog();
 		}
 		event.claim();
