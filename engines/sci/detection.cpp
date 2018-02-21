@@ -39,6 +39,7 @@
 #include "sci/engine/state.h"
 #ifdef ENABLE_SCI32S2
 #include "sci/s2/engine.h"
+#include "sci/s2/savegame.h"
 #endif
 
 namespace Sci {
@@ -794,85 +795,19 @@ bool SciMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSavesSupportPlayTime);
 }
 
-SaveStateList SciMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringArray filenames;
-	Common::String pattern = target;
-	pattern += ".###";
+static bool readSciMetadata(Common::InSaveFile &in, const int slotNr, SaveStateDescriptor &descriptor, const bool setAllProperties) {
 
-	filenames = saveFileMan->listSavefiles(pattern);
-
-	SaveStateList saveList;
-	bool hasAutosave = false;
-	int slotNr = 0;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		// Obtain the last 3 digits of the filename, since they correspond to the save slot
-		slotNr = atoi(file->c_str() + file->size() - 3);
-
-		if (slotNr >= 0 && slotNr <= 99) {
-			Common::InSaveFile *in = saveFileMan->openForLoading(*file);
-			if (in) {
-				SavegameMetadata meta;
-				if (!get_savegame_metadata(in, meta)) {
-					// invalid
-					delete in;
-					continue;
-				}
-				SaveStateDescriptor descriptor(slotNr, meta.name);
-
-				if (slotNr == 0) {
-					// ScummVM auto-save slot
-					descriptor.setWriteProtectedFlag(true);
-					hasAutosave = true;
-				} else {
-					descriptor.setWriteProtectedFlag(false);
-				}
-
-				saveList.push_back(descriptor);
-				delete in;
-			}
-		}
+	SavegameMetadata meta;
+	if (!get_savegame_metadata(&in, meta)) {
+		return false;
 	}
 
-	if (!hasAutosave) {
-		SaveStateDescriptor descriptor(0, _("(Autosave)"));
-		descriptor.setLocked(true);
-		saveList.push_back(descriptor);
-	}
+	descriptor = SaveStateDescriptor(slotNr, meta.name);
 
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-SaveStateDescriptor SciMetaEngine::querySaveMetaInfos(const char *target, int slotNr) const {
-	Common::String fileName = Common::String::format("%s.%03d", target, slotNr);
-	Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(fileName);
-	SaveStateDescriptor descriptor(slotNr, "");
-
-	if (slotNr == 0) {
-		// ScummVM auto-save slot
-		descriptor.setWriteProtectedFlag(true);
-		descriptor.setDeletableFlag(false);
-	} else {
-		descriptor.setWriteProtectedFlag(false);
-		descriptor.setDeletableFlag(true);
-	}
-
-	if (in) {
-		SavegameMetadata meta;
-
-		if (!get_savegame_metadata(in, meta)) {
-			// invalid
-			delete in;
-
-			descriptor.setDescription("*Invalid*");
-			return descriptor;
-		}
-
+	if (setAllProperties) {
 		descriptor.setDescription(meta.name);
 
-		Graphics::Surface *const thumbnail = Graphics::loadThumbnail(*in);
+		Graphics::Surface *const thumbnail = Graphics::loadThumbnail(in);
 		descriptor.setThumbnail(thumbnail);
 
 		int day = (meta.saveDate >> 24) & 0xFF;
@@ -891,12 +826,105 @@ SaveStateDescriptor SciMetaEngine::querySaveMetaInfos(const char *target, int sl
 		} else {
 			descriptor.setPlayTime(meta.playTime * 1000);
 		}
-
-		delete in;
-
-		return descriptor;
 	}
-	// Return empty descriptor
+
+	return true;
+}
+
+#ifdef ENABLE_SCI32S2
+static bool detectShivers2Game(Common::InSaveFile &in) {
+	return S2Engine::detectSaveGame(in);
+}
+static bool readShivers2Metadata(Common::InSaveFile &in, const int slotNr, SaveStateDescriptor &descriptor, const bool setAllProperties) {
+	return S2Engine::fillSaveGameDescriptor(in, slotNr, descriptor, setAllProperties);
+}
+#else
+static bool detectShivers2Game(Common::InSaveFile &in) {
+	return false;
+}
+static bool readShivers2Metadata(Common::InSaveFile &in, const int slotNr, SaveStateDescriptor &descriptor, const bool setAllProperties) {
+	return false;
+}
+#endif
+
+SaveStateList SciMetaEngine::listSaves(const char *target) const {
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+	Common::StringArray filenames;
+	Common::String pattern = target;
+	pattern += ".###";
+
+	filenames = saveFileMan->listSavefiles(pattern);
+
+	SaveStateList saveList;
+	bool hasAutosave = false;
+	int slotNr = 0;
+	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
+		// Obtain the last 3 digits of the filename, since they correspond to the save slot
+		slotNr = atoi(file->c_str() + file->size() - 3);
+
+		if (slotNr >= 0 && slotNr <= 99) {
+			Common::ScopedPtr<Common::InSaveFile> in(saveFileMan->openForLoading(*file));
+			if (in) {
+				SaveStateDescriptor descriptor;
+
+				const bool isShivers2 = detectShivers2Game(*in);
+				if (isShivers2 && !readShivers2Metadata(*in, slotNr, descriptor, false)) {
+					continue;
+				} else if (!isShivers2 && !readSciMetadata(*in, slotNr, descriptor, false)) {
+					continue;
+				}
+
+				if (slotNr == 0) {
+					// ScummVM auto-save slot
+					descriptor.setWriteProtectedFlag(true);
+					hasAutosave = true;
+				} else {
+					descriptor.setWriteProtectedFlag(false);
+				}
+
+				saveList.push_back(descriptor);
+			}
+		}
+	}
+
+	if (!hasAutosave) {
+		SaveStateDescriptor descriptor(0, _("(Autosave)"));
+		descriptor.setLocked(true);
+		saveList.push_back(descriptor);
+	}
+
+	// Sort saves based on slot number.
+	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
+	return saveList;
+}
+
+SaveStateDescriptor SciMetaEngine::querySaveMetaInfos(const char *target, int slotNr) const {
+	Common::String fileName = Common::String::format("%s.%03d", target, slotNr);
+	Common::ScopedPtr<Common::InSaveFile> in(g_system->getSavefileManager()->openForLoading(fileName));
+	SaveStateDescriptor descriptor(slotNr, "");
+
+	if (in) {
+		bool success;
+		if (detectShivers2Game(*in)) {
+			success = readShivers2Metadata(*in, slotNr, descriptor, true);
+		} else {
+			success = readSciMetadata(*in, slotNr, descriptor, true);
+		}
+
+		if (!success) {
+			descriptor.setDescription("*Invalid*");
+		}
+
+		if (slotNr == 0) {
+			// ScummVM auto-save slot
+			descriptor.setWriteProtectedFlag(true);
+			descriptor.setDeletableFlag(false);
+		} else {
+			descriptor.setWriteProtectedFlag(false);
+			descriptor.setDeletableFlag(true);
+		}
+	}
+
 	return descriptor;
 }
 

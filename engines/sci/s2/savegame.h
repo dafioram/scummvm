@@ -28,11 +28,10 @@
 
 namespace Sci {
 
-struct S2SaveGameMetadata : public Common::Serializable {
+struct S2SaveGameMetadata final : public Common::Serializable {
 	Common::String name;
 	uint64 timestamp;
 	uint32 numTicksElapsed;
-	uint8 version;
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 };

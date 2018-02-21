@@ -157,7 +157,7 @@ bool S2Interface::handleEvent(GLEvent &event) {
 		event.claim();
 		break;
 	case kSciKeyCtrlS:
-		_game.save();
+		_game.save(false);
 		event.claim();
 		break;
 	case kSciKeyCtrlV: {

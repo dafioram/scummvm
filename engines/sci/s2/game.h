@@ -114,7 +114,8 @@ public:
 	const Common::String &getSaveGameName() const { return _saveGameName; }
 	void setSaveGameName(const Common::String &name) { _saveGameName = name; }
 
-	void save();
+	void save(const bool autoSave);
+	void load(const bool autoLoad);
 
 	int getPanSpeed() const { return _panSpeed; }
 

@@ -24,12 +24,13 @@
 #define SCI_S2_ENGINE_H
 
 #include "common/error.h"
+#include "common/system.h"
 #include "common/ptr.h"
 #include "common/str.h"
 #include "engines/engine.h"
 #include "sci/sci.h"
 
-class OSystem;
+class SaveStateDescriptor;
 namespace Common { class FSNode; }
 namespace GUI { class Debugger; }
 
@@ -38,10 +39,16 @@ namespace Sci {
 class S2Debugger;
 class S2Kernel;
 class S2Game;
+struct S2SaveGameMetadata;
 
 class S2Engine : public Engine {
 public:
 	S2Engine(OSystem &system, const char *gameId, const GameMetadata &metadata);
+
+	static bool detectSaveGame(Common::InSaveFile &in);
+	static bool readSaveGameMetadata(Common::InSaveFile &in, S2SaveGameMetadata &outMetadata);
+	static bool fillSaveGameDescriptor(Common::InSaveFile &in, const int slotNr, SaveStateDescriptor &descriptor, const bool setAllProperties);
+
 	virtual void initializePath(const Common::FSNode &gamePath) override;
 	virtual Common::Error run() override;
 	virtual GUI::Debugger *getDebugger() override;
@@ -50,8 +57,18 @@ public:
 	virtual bool canLoadGameStateCurrently() override;
 	Common::StringArray listSaves();
 	virtual Common::Error saveGameState(const int slotNo, const Common::String &description) override;
+	virtual Common::Error loadGameState(const int slotNo) override;
+	int getInitialLoadSlot() const;
 
 private:
+	enum {
+		kSaveVersion = 1,
+		// Something to uniquely differentiate between an S2 save game and an
+		// interpreter save game; interpreter games start with the user's
+		// entered string so this pattern should never show up
+		kSaveMagic = 0xFFFF
+	};
+
 	OSystem &_system;
 	Common::String _gameId;
 	GameMetadata _metadata;

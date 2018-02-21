@@ -22,6 +22,7 @@
 
 #include "common/savefile.h"
 #include "common/translation.h"
+#include "gui/saveload.h"
 #include "sci/s2/button.h"
 #include "sci/s2/control.h"
 #include "sci/s2/dialog.h"
@@ -64,8 +65,6 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 }
 
 void S2Game::saveLoadWithSerializer(Common::Serializer &s) {
-	S2SaveGameMetadata metadata;
-	metadata.saveLoadWithSerializer(s);
 	s.syncAsByte(_panSpeed);
 	s.syncAsByte(_gamma);
 	getSoundManager().saveLoadWithSerializer(s);
@@ -83,8 +82,11 @@ void S2Game::run() {
 	init();
 
 	_interface.disableButtons();
-	_roomManager.loadRoom(1000);
-	_roomManager.initRoom(1000);
+
+	if (_engine.getInitialLoadSlot() < 0) {
+		_roomManager.loadRoom(1000);
+		_roomManager.initRoom(1000);
+	}
 
 	play();
 
@@ -96,7 +98,7 @@ void S2Game::run() {
 
 		S2MessageBox message(text, S2MessageBox::Type::YesNo);
 		if (message.createS2Dialog() == S2MessageBox::Result::Yes) {
-			save();
+			save(false);
 		}
 	}
 
@@ -120,10 +122,10 @@ Common::Array<S2SaveGameMetadata> S2Game::getSaveGameList() const {
 	Common::Array<S2SaveGameMetadata> list;
 	for (const auto &gameFilename : _engine.listSaves()) {
 		Common::ScopedPtr<Common::InSaveFile> stream(_engine.getSaveFileManager()->openForLoading(gameFilename));
-		Common::Serializer serializer(stream.get(), nullptr);
 		S2SaveGameMetadata metadata;
-		metadata.saveLoadWithSerializer(serializer);
-		list.push_back(metadata);
+		if (stream && _engine.readSaveGameMetadata(*stream, metadata)) {
+			list.push_back(metadata);
+		}
 	}
 	return list;
 }
@@ -176,6 +178,10 @@ void S2Game::play() {
 	_user.getPrimaDonnas().push_back(&quitHandler);
 
 	_user.setIsHandsOn(true);
+
+	if (_engine.getInitialLoadSlot() > -1) {
+		_engine.loadGameState(_engine.getInitialLoadSlot());
+	}
 
 	while (!_engine.shouldQuit()) {
 		doIt();
@@ -239,8 +245,39 @@ void S2Game::init() {
 	_kernel.audioMixer.setAttenuatedMixing(false);
 }
 
-void S2Game::save() {
-	_engine.saveGameState(_saveGameSlotNo, _saveGameName);
+void S2Game::save(const bool autoSave) {
+	int slotNo = autoSave ? 0 : _saveGameSlotNo;
+
+	if (slotNo > -1) {
+		_engine.saveGameState(slotNo, _saveGameName);
+	} else {
+		GUI::SaveLoadChooser dialog(_("Save game:"), _("Save"), true);
+		slotNo = dialog.runModalWithCurrentTarget();
+		if (slotNo > 0) {
+			_saveGameSlotNo = slotNo;
+			_saveGameName = dialog.getResultString();
+			if (_saveGameName.empty()) {
+				_saveGameName = dialog.createDefaultSaveDescription(slotNo - 1);
+			}
+			_engine.saveGameState(slotNo, _saveGameName);
+		}
+	}
+}
+
+void S2Game::load(const bool autoLoad) {
+	int slotNo = autoLoad ? 0 : _saveGameSlotNo;
+
+	if (slotNo > -1) {
+		_engine.loadGameState(slotNo);
+	} else {
+		GUI::SaveLoadChooser dialog(_("Load game:"), _("Load"), false);
+		slotNo = dialog.runModalWithCurrentTarget();
+		if (slotNo > 0) {
+			_saveGameSlotNo = slotNo;
+			_saveGameName = dialog.getResultString();
+			_engine.loadGameState(slotNo);
+		}
+	}
 }
 
 } // End of namespace Sci
