@@ -545,6 +545,7 @@ void OSystem_SDL::getTimeAndDate(TimeDate &td) const {
 	td.tm_mon = t.tm_mon;
 	td.tm_year = t.tm_year;
 	td.tm_wday = t.tm_wday;
+	td.tm_gmtoff = t.tm_gmtoff;
 }
 
 Audio::Mixer *OSystem_SDL::getMixer() {
