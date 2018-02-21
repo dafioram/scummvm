@@ -80,13 +80,25 @@ void S2Button::generalSelect(GLEvent &event) {
 				dim();
 				if (getMouseUpHandler()) {
 					getMouseUpHandler()(event, *this);
+
+					// In SSCI, a use-after-free would be triggered by the final
+					// condition in this function if the mouse handler deleted
+					// this object, as is the case in the global room when
+					// `unloadGlobalRoom` is called from the handler. To avoid
+					// this, we return early here, since the consequent
+					// statements of that condition have already been executed.
+					event.claim();
+					return;
 				}
 			}
 			event.claim();
 		}
 	}
 
-	if (event.getType() == kSciEventMouseRelease && event.getKeyModifiers() != kSciKeyModShift && getIsDepressed()) {
+	if (event.getType() == kSciEventMouseRelease &&
+		event.getKeyModifiers() != kSciKeyModShift &&
+		getIsDepressed()) {
+
 		release();
 		dim();
 		event.claim();

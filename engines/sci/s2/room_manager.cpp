@@ -49,7 +49,6 @@ S2RoomManager::S2RoomManager(S2Kernel &kernel, S2Game &game) :
 	_savedPanX(0),
 	_savedPanY(0),
 	_currentGlobalRoomNo(0),
-	_nextGlobalRoomNo(0),
 	_lastNonGlobalRoomNo(0),
 	_numRoomTransitions(0) {
 	game.getExtras().push_back(this);
@@ -238,13 +237,6 @@ bool S2RoomManager::inInteractiveRoom() const {
 }
 
 void S2RoomManager::doIt() {
-	if (_nextGlobalRoomNo) {
-		const int roomNo = _nextGlobalRoomNo;
-		_nextGlobalRoomNo = 0;
-		deferredLoadGlobalRoom(roomNo, _nextGlobalRoomFullscreen);
-		return;
-	}
-
 	if (!_currentRoomNo) {
 		return;
 	}
@@ -415,11 +407,6 @@ void S2RoomManager::deactivateRoom() {
 	}
 }
 
-void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
-	_nextGlobalRoomNo = roomNo;
-	_nextGlobalRoomFullscreen = fullscreen;
-}
-
 void S2RoomManager::unloadGlobalRoom() {
 	if (!_currentGlobalRoomNo) {
 		return;
@@ -450,7 +437,7 @@ int S2RoomManager::getBaseRoomNumber(const int roomNo) {
 	}
 }
 
-void S2RoomManager::deferredLoadGlobalRoom(const int roomNo, const bool fullscreen) {
+void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 	const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth(),
 									  _kernel.graphicsManager.getScriptHeight());
 

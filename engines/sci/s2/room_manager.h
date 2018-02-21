@@ -155,8 +155,6 @@ private:
 	Common::ScopedPtr<GLPicturePlane> _globalPlane;
 	Common::ScopedPtr<S2GlobalRoom> _globalRoom;
 	int _currentGlobalRoomNo;
-	int _nextGlobalRoomNo;
-	bool _nextGlobalRoomFullscreen;
 	int _lastNonGlobalRoomNo;
 
 	uint8 _numRoomTransitions;
