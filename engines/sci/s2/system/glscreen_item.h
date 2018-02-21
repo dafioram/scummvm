@@ -72,7 +72,6 @@ private:
 	static GfxFrameout *_graphicsManager;
 
 	GLCelRes _celInfo;
-	S2Bitmap *_bitmap;
 	GLPoint _position;
 	AbsGLPlane *_plane;
 	Common::ScopedPtr<ScreenItem> _screenItem;

@@ -29,7 +29,6 @@ GLButton::GLButton(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, c
 	_isEnabled(false),
 	_isHighlighted(false),
 	_isDepressed(false),
-	_isHog(false),
 	_mouseUpHandler(nullptr) {
 	setEnabledFace(viewNo, loopNo);
 	setDisabledFace(viewNo, loopNo);

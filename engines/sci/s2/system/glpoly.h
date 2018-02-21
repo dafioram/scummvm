@@ -48,8 +48,6 @@ protected:
 
 private:
 	PointsList _points;
-	int16 _priority = -9999;
-	uint8 _color = 0;
 };
 
 } // End of namespace Sci

@@ -36,7 +36,6 @@ GLPanorama::GLPanorama(const Common::Rect &drawRect) :
 	_panX(0),
 	_panY((512.0 * 1.3 - drawRect.height()) / 2),
 	_isDirty(false),
-	_isUpdating(false),
 	_isFrozen(false) {
 	buildWarpTable();
 	for (int i = 0; i < 2048; ++i) {

@@ -94,7 +94,6 @@ private:
 	int16 _panX;
 	int16 _panY;
 	bool _isDirty;
-	bool _isUpdating;
 	bool _isFrozen;
 	Common::FixedArray<uint, 2048> _panTable;
 	Common::FixedArray<uint, 2048> _percentTable;

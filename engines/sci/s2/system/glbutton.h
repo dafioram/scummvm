@@ -67,7 +67,6 @@ private:
 	bool _isEnabled;
 	bool _isHighlighted;
 	bool _isDepressed;
-	bool _isHog;
 
 	GLCelRes _enabledCel;
 	GLCelRes _disabledCel;
