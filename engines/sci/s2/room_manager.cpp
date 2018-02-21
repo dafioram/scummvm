@@ -225,6 +225,8 @@ void S2RoomManager::saveLoadWithSerializer(Common::Serializer &s) {
 			unloadGlobalRoom();
 		}
 	}
+
+	_isSaved = true;
 }
 
 bool S2RoomManager::inInteractiveRoom() const {
