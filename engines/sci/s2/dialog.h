@@ -62,7 +62,7 @@ protected:
 	Result _result;
 
 private:
-	virtual void dialogEvent(GLEvent &event, S2Control &control) = 0;
+	virtual void dialogEvent(GLEvent &event, S2Control *control) = 0;
 
 	static GfxFrameout *_graphicsManager;
 	static GLUser *_user;

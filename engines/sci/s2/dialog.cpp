@@ -66,11 +66,15 @@ auto S2Dialog::createS2Dialog() -> Result {
 			for (auto &control : _controls) {
 				control->handleEvent(event);
 				if (event.isClaimed()) {
-					dialogEvent(event, *control);
+					dialogEvent(event, control);
 					_graphicsManager->frameOut(true);
 					break;
 				}
 			}
+		// SSCI did not allow keyboard interaction with the dialogue; we add
+		// this for convenience
+		} else if (event.getType() == kSciEventKeyDown) {
+			dialogEvent(event, nullptr);
 		}
 		if (!event.isClaimed() && handleEvent(event)) {
 			_graphicsManager->frameOut(true);
@@ -117,7 +121,7 @@ bool S2Dialog::handleEvent(GLEvent &event) {
 				for (auto &control : _controls) {
 					control->handleEvent(event);
 					if (event.isClaimed()) {
-						dialogEvent(event, *control);
+						dialogEvent(event, control);
 						break;
 					}
 				}

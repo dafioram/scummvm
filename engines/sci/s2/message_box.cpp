@@ -146,17 +146,43 @@ void S2MessageBox::hide() {
 	S2Dialog::hide();
 }
 
-void S2MessageBox::dialogEvent(GLEvent &event, S2Control &control) {
+void S2MessageBox::dialogEvent(GLEvent &event, S2Control *control) {
 	if (event.getType() == kSciEventQuit) {
 		_result = (_type == Type::YesNo) ? Result::No : Result::Cancel;
 	} else if (event.getType() == kSciEventMouseRelease) {
-		const uint buttonIndex = (&control == _controls[1]) ? 1 : 0;
+		const uint buttonIndex = (control == _controls[1]) ? 1 : 0;
 		const S2Button &button = *_buttons[buttonIndex];
 		if (button.checkIsOnMe(event.getMousePosition())) {
 			if (buttonIndex == 0) {
 				_result = (_type == Type::YesNo) ? Result::Yes : Result::OK;
 			} else {
 				_result = (_type == Type::YesNo) ? Result::No : Result::Cancel;
+			}
+		}
+	// SSCI did not allow keyboard interaction with the dialogue; we add this
+	// for convenience
+	} else if (event.getType() == kSciEventKeyDown) {
+		if (event.getMessage() == kSciKeyEsc) {
+			switch (_type) {
+			case Type::YesNo:
+				_result = Result::No;
+				break;
+			case Type::OKCancel:
+				_result = Result::Cancel;
+				break;
+			case Type::OK:
+				_result = Result::OK;
+				break;
+			}
+		} else if (event.getMessage() == kSciKeyEnter) {
+			switch (_type) {
+			case Type::YesNo:
+				_result = Result::Yes;
+				break;
+			case Type::OKCancel:
+			case Type::OK:
+				_result = Result::OK;
+				break;
 			}
 		}
 	}

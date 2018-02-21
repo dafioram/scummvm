@@ -48,7 +48,7 @@ public:
 	virtual void hide() override;
 
 private:
-	virtual void dialogEvent(GLEvent &event, S2Control &control) override;
+	virtual void dialogEvent(GLEvent &event, S2Control *control) override;
 
 	static GfxText32 *_textManager;
 
