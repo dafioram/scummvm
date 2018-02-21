@@ -38,7 +38,7 @@ void S2Room10000::init(const int roomNo) {
 		if (_game.getRoomManager().getPreviousRoomNo() == 1020) {
 			_game.getRoomManager().getPanorama().setPanX(717);
 			_game.getInterface().resetButtons();
-			_game.save(true);
+			_game.save(0, false);
 		}
 
 		_exits.emplace_back(new GLPanoramaExit(10100, 725, 200, 786, 386));

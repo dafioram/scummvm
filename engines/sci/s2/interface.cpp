@@ -20,6 +20,8 @@
  *
  */
 
+#include "common/error.h"
+#include "common/translation.h"
 #include "sci/s2/bitmap.h"
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
@@ -156,10 +158,11 @@ bool S2Interface::handleEvent(GLEvent &event) {
 		// internet-related functionality
 		event.claim();
 		break;
-	case kSciKeyCtrlS:
-		_game.save(false);
+	case kSciKeyCtrlS: {
+		_game.save(true);
 		event.claim();
 		break;
+	}
 	case kSciKeyCtrlV: {
 		Common::String version;
 		Common::File versionFile;

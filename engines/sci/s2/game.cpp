@@ -98,7 +98,7 @@ void S2Game::run() {
 
 		S2MessageBox message(text, S2MessageBox::Type::YesNo);
 		if (message.createS2Dialog() == S2MessageBox::Result::Yes) {
-			save(false);
+			save(-1, true);
 		}
 	}
 
@@ -245,11 +245,14 @@ void S2Game::init() {
 	_kernel.audioMixer.setAttenuatedMixing(false);
 }
 
-void S2Game::save(const bool autoSave) {
-	int slotNo = autoSave ? 0 : _saveGameSlotNo;
+void S2Game::save(const bool showMessage) {
+	return save(_saveGameSlotNo, showMessage);
+}
 
+void S2Game::save(int slotNo, const bool showMessage) {
+	Common::Error result;
 	if (slotNo > -1) {
-		_engine.saveGameState(slotNo, _saveGameName);
+		result = _engine.saveGameState(slotNo, _saveGameName);
 	} else {
 		GUI::SaveLoadChooser dialog(_("Save game:"), _("Save"), true);
 		slotNo = dialog.runModalWithCurrentTarget();
@@ -259,14 +262,39 @@ void S2Game::save(const bool autoSave) {
 			if (_saveGameName.empty()) {
 				_saveGameName = dialog.createDefaultSaveDescription(slotNo - 1);
 			}
-			_engine.saveGameState(slotNo, _saveGameName);
+			result = _engine.saveGameState(slotNo, _saveGameName);
+		} else {
+			result = Common::kUserCanceled;
+		}
+	}
+
+	// SSCI gave no feedback here about whether or not the save actually
+	// happened
+	if (showMessage) {
+		using S = Common::String;
+		S message;
+		switch (result.getCode()) {
+		case Common::kNoError:
+			message = _("Your game has been saved successfully.");
+			break;
+		case Common::kUserCanceled:
+			break;
+		default:
+			message = S::format(_("An error occurred while saving the game: %s"), result.getDesc().c_str());
+		}
+
+		if (!message.empty()) {
+			S2MessageBox dialog(message, S2MessageBox::Type::OK);
+			dialog.createS2Dialog();
 		}
 	}
 }
 
-void S2Game::load(const bool autoLoad) {
-	int slotNo = autoLoad ? 0 : _saveGameSlotNo;
+void S2Game::load() {
+	load(_saveGameSlotNo);
+}
 
+void S2Game::load(int slotNo) {
 	if (slotNo > -1) {
 		_engine.loadGameState(slotNo);
 	} else {
