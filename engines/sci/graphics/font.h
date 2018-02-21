@@ -54,6 +54,7 @@ class GfxFontFromResource final : public GfxFont {
 public:
 	GfxFontFromResource(ResourceManager *resMan, const GuiResourceId fontId);
 	GfxFontFromResource(const GfxFontFromResource &other);
+	GfxFontFromResource &operator=(const GfxFontFromResource &other);
 	virtual ~GfxFontFromResource();
 
 	virtual uint8 getHeight() const override;

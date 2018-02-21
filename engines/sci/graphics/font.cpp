@@ -219,14 +219,32 @@ GfxFontFromResource::GfxFontFromResource(ResourceManager *resMan, GuiResourceId 
 
 GfxFontFromResource::GfxFontFromResource(const GfxFontFromResource &other) :
 	_resMan(other._resMan),
-	_resource(other._resource),
 	_data(other._data),
 	_offsets(other._offsets),
 	_numChars(other._numChars),
 	_fontHeight(other._fontHeight) {
-	if (_resource) {
-		_resMan->findResource(_resource->getId(), true);
+	if (other._resource) {
+		_resource = _resMan->findResource(other._resource->getId(), true);
+	} else {
+		_resource = nullptr;
 	}
+}
+
+GfxFontFromResource &GfxFontFromResource::operator=(const GfxFontFromResource &other) {
+	_resMan = other._resMan;
+	_data = other._data;
+	_offsets = other._offsets;
+	_numChars = other._numChars;
+	_fontHeight = other._fontHeight;
+	if (_resource) {
+		_resMan->unlockResource(_resource);
+	}
+	if (other._resource) {
+		_resource = _resMan->findResource(other._resource->getId(), true);
+	} else {
+		_resource = nullptr;
+	}
+	return *this;
 }
 
 GfxFontFromResource::~GfxFontFromResource() {
