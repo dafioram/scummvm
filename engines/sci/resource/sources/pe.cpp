@@ -52,8 +52,8 @@ void PEResourceSource::loadResource(const ResourceManager *resMan, Resource *res
 	assert(outData);
 	for (uint i = 0; i < res->_size; ++i) {
 		const uint16 character = inData->readUint16LE();
-		// Non-ASCII characters will need conversion to whatever character set
-		// SCI uses (there is a map in event.h which may help inform this)
+		// Non-ASCII characters will need conversion to IBM 850 (there is a map
+		// in event.cpp to help with this)
 		assert(character <= 0x7f);
 		outData[i] = character;
 	}

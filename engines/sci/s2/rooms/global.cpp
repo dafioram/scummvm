@@ -221,7 +221,9 @@ void S2GlobalRoom::initNewGame() {
 void S2GlobalRoom::startNewGame() {
 	for (const auto &metadata : _game.getSaveGameList()) {
 		if (_newGameName == metadata.name) {
-			S2MessageBox message("That name is already registered. Please type in a unique game name.", S2MessageBox::Type::OK);
+			S2MessageBox message("That name is already registered. "
+								 "Please type in a unique game name.",
+								 S2MessageBox::Type::OK);
 			message.createS2Dialog();
 			return;
 		}
