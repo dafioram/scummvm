@@ -249,6 +249,10 @@ public:
 
 	/** The resource's source. */
 	const ResourceSource *_source;
+
+private:
+	Resource(const Resource &);
+	Resource &operator=(const Resource &);
 };
 
 struct ResourceIdHash : public Common::UnaryFunction<ResourceId, uint> {
