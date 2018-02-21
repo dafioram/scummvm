@@ -169,11 +169,11 @@ void GLPanorama::checkMouse() {
 				if (exit->contains(projectedPoint)) {
 					const auto cursorCel = exit->getCursorCel();
 
-					if (cursorCel == 1 && !_game->getRoomManager().getAutoHighlight()) {
+					if (cursorCel == S2Cursor::kHighlightCel && !_game->getRoomManager().getAutoHighlight()) {
 						continue;
 					}
 
-					if (cursorCel != 0) {
+					if (cursorCel != S2Cursor::kNormalCel) {
 						highlightedCel.celNo = exit->getCursorCel();
 						_game->getCursor().setHighlightedCelRes(highlightedCel);
 						shouldHighlight = true;

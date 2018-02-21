@@ -24,12 +24,13 @@
 #define SCI_S2_GLPANORAMA_EXIT_H
 
 #include "common/rect.h"
+#include "sci/s2/cursor.h"
 
 namespace Sci {
 
 class GLPanoramaExit : public Common::Rect {
 public:
-	GLPanoramaExit(const int roomNo, const int16 left, const int16 top, const int16 right, const int16 bottom, const int16 cursorCel = 3) :
+	GLPanoramaExit(const int roomNo, const int16 left, const int16 top, const int16 right, const int16 bottom, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel) :
 		Common::Rect(left, top, right, bottom),
 		_roomNo(roomNo),
 		_cursorCel(cursorCel) {}

@@ -29,13 +29,13 @@ GLPoint S2Exit::_defaultPoly[] = {
 	{ 144, 80 }, { 144, 303 }, { 494, 303 }, { 494,  80 }, { 144, 80 }
 };
 
-S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const int16 cursorCel) :
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const S2Cursor::Cel cursorCel) :
 	S2Exit(plane, targetRoomNo, PointsList(_defaultPoly, ARRAYSIZE(_defaultPoly)), cursorCel) {}
 
-S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const int16 cursorCel) :
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const S2Cursor::Cel cursorCel) :
 	S2Exit(plane, targetRoomNo, rectToPoints(rect), cursorCel) {}
 
-S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const int16 cursorCel) :
+S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const S2Cursor::Cel cursorCel) :
 	GLPoly(plane, PointsList(_defaultPoly, ARRAYSIZE(_defaultPoly))),
 	_isEnabled(true),
 	_targetRoomNo(targetRoomNo),

@@ -24,6 +24,7 @@
 #define SCI_S2_EXIT_H
 
 #include "common/array.h"
+#include "sci/s2/cursor.h"
 #include "sci/s2/system/glpoly.h"
 #include "sci/s2/system/types.h"
 
@@ -31,9 +32,9 @@ namespace Sci {
 
 class S2Exit : public GLPoly {
 public:
-	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const int16 cursorCel = 3);
-	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const int16 cursorCel = 3);
-	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const int16 cursorCel = 3);
+	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
+	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
+	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
 
 	int getTargetRoomNo() const { return _targetRoomNo; }
 	void setTargetRoomNo(const int roomNo) { _targetRoomNo = roomNo; }
@@ -42,7 +43,7 @@ public:
 	void disable() { _isEnabled = false; }
 	void enable() { _isEnabled = true; }
 
-	int16 getCursorCel() const { return _cursorCel; }
+	S2Cursor::Cel getCursorCel() const { return _cursorCel; }
 
 private:
 	static GLPoint _defaultPoly[10];
@@ -63,7 +64,7 @@ private:
 
 	bool _isEnabled;
 	int _targetRoomNo;
-	int16 _cursorCel;
+	S2Cursor::Cel _cursorCel;
 };
 
 } // End of namespace Sci

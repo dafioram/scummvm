@@ -612,10 +612,10 @@ void S2RoomManager::checkMouse() {
 		const auto localMousePosition(_picture->toLocal(mousePosition));
 
 		for (const auto &exit : _exits) {
-			if ((exit->getCursorCel() != 1 || _autoHighlight) &&
+			if ((exit->getCursorCel() != S2Cursor::kHighlightCel || _autoHighlight) &&
 				exit->getIsEnabled() &&
 				exit->checkIsOnMe(localMousePosition) &&
-				exit->getCursorCel() != 0) {
+				exit->getCursorCel() != S2Cursor::kNormalCel) {
 				hit = true;
 
 				if (highlightedCel.celNo != exit->getCursorCel()) {
@@ -632,8 +632,8 @@ void S2RoomManager::checkMouse() {
 				if (hotspot->getIsEnabled() && hotspot->checkIsOnMe(localMousePosition)) {
 					hit = true;
 
-					if (highlightedCel.celNo != 1) {
-						highlightedCel.celNo = 1;
+					if (highlightedCel.celNo != S2Cursor::kHighlightCel) {
+						highlightedCel.celNo = S2Cursor::kHighlightCel;
 						_game.getCursor().setHighlightedCelRes(highlightedCel);
 					}
 
@@ -645,8 +645,8 @@ void S2RoomManager::checkMouse() {
 					if (cel->checkIsOnMe(localMousePosition)) {
 						hit = true;
 
-						if (highlightedCel.celNo != 1) {
-							highlightedCel.celNo = 1;
+						if (highlightedCel.celNo != S2Cursor::kHighlightCel) {
+							highlightedCel.celNo = S2Cursor::kHighlightCel;
 							_game.getCursor().setHighlightedCelRes(highlightedCel);
 						}
 

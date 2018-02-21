@@ -45,9 +45,9 @@ void S2Room10000::init(const int roomNo) {
 		_game.getRoomManager().getPanorama().addExit(*_exits.back());
 		_exits.emplace_back(new GLPanoramaExit(10300, 900, 180, 1171, 386));
 		_game.getRoomManager().getPanorama().addExit(*_exits.back());
-		_exits.emplace_back(new GLPanoramaExit(10410, 124, 278, 166, 301, 1));
+		_exits.emplace_back(new GLPanoramaExit(10410, 124, 278, 166, 301, S2Cursor::kHighlightCel));
 		_game.getRoomManager().getPanorama().addExit(*_exits.back());
-		_exits.emplace_back(new GLPanoramaExit(10420, 1859, 281, 1886, 297, 1));
+		_exits.emplace_back(new GLPanoramaExit(10420, 1859, 281, 1886, 297, S2Cursor::kHighlightCel));
 		_game.getRoomManager().getPanorama().addExit(*_exits.back());
 		break;
 	}
