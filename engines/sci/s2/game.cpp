@@ -124,6 +124,7 @@ Common::Array<S2SaveGameMetadata> S2Game::getSaveGameList() const {
 		Common::ScopedPtr<Common::InSaveFile> stream(_engine.getSaveFileManager()->openForLoading(gameFilename));
 		S2SaveGameMetadata metadata;
 		if (stream && _engine.readSaveGameMetadata(*stream, metadata)) {
+			metadata.slotNo = atoi(gameFilename.end() - 3);
 			list.push_back(metadata);
 		}
 	}
@@ -245,11 +246,11 @@ void S2Game::init() {
 	_kernel.audioMixer.setAttenuatedMixing(false);
 }
 
-void S2Game::save(const bool showMessage) {
+bool S2Game::save(const bool showMessage) {
 	return save(_saveGameSlotNo, showMessage);
 }
 
-void S2Game::save(int slotNo, const bool showMessage) {
+bool S2Game::save(int slotNo, const bool showMessage) {
 	Common::Error result;
 	if (slotNo > -1) {
 		result = _engine.saveGameState(slotNo, _saveGameName);
@@ -288,6 +289,8 @@ void S2Game::save(int slotNo, const bool showMessage) {
 			dialog.createS2Dialog();
 		}
 	}
+
+	return result.getCode() == Common::kNoError;
 }
 
 void S2Game::load() {
@@ -306,6 +309,10 @@ void S2Game::load(int slotNo) {
 			_engine.loadGameState(slotNo);
 		}
 	}
+}
+
+void S2Game::deleteGame(int slotNo) {
+	_engine.removeGameState(slotNo);
 }
 
 } // End of namespace Sci

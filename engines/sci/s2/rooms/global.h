@@ -45,13 +45,8 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
-	virtual GLPicturePlane &getPlane() const override {
-		return *_plane;
-	}
+	virtual GLPicturePlane &getPlane() const override;
 
-	// TODO: Several of these probably are common to all rooms; evaluate all
-	// room DLLs to find the common ones
-	GLPicturePlane *_plane;
 	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
 	Common::Array<Common::ScopedPtr<S2Bitmap>> _bitmaps;
 	Common::Array<Common::ScopedPtr<GLScreenItem>> _screenItems;
@@ -61,7 +56,7 @@ private:
 
 	template <typename ...Args>
 	S2Button &addButton(Args && ...args) {
-		auto &button = *_buttons.emplace_back(new S2Button(*_plane, args...));
+		auto &button = *_buttons.emplace_back(new S2Button(getPlane(), args...));
 		button.setAutoHighlight(true);
 		return button;
 	}
@@ -74,9 +69,14 @@ private:
 
 	void initOptions();
 	void returnToGame();
-	void showOldGames();
+
+	void showOldGames(GLEvent &, GLTarget &);
+	void quitGame(GLEvent &, GLTarget &);
+
+	void initLoadGame();
 
 	int _lastRoomBeforeRestore;
+	int _selectedSlot;
 };
 
 } // End of namespace Sci

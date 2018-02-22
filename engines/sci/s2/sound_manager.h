@@ -42,7 +42,7 @@ public:
 	void deleteAmbient(const int roomNo);
 
 private:
-	int _roomNo;
+	int _roomNo = 0;
 
 	Common::FixedArray<GLSoundTrack *, 5> _tracks = {};
 	Common::FixedArray<uint16, 5> _sounds = {};

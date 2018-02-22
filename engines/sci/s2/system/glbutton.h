@@ -46,6 +46,8 @@ public:
 	void setHighlightedFace(const uint16 viewNo, const int16 loopNo, const int16 celNo = 3);
 
 	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }
+	template <typename T, typename U>
+	void setMouseUpHandler(T object, U fn) { _mouseUpHandler = makeHandler(object, fn); }
 
 	virtual bool handleEvent(GLEvent &event) override;
 

@@ -58,6 +58,7 @@ public:
 	Common::StringArray listSaves();
 	virtual Common::Error saveGameState(const int slotNo, const Common::String &description) override;
 	virtual Common::Error loadGameState(const int slotNo) override;
+	void removeGameState(const int slotNo);
 	int getInitialLoadSlot() const;
 
 private:

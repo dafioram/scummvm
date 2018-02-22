@@ -38,6 +38,8 @@ void S2Room10000::init(const int roomNo) {
 		if (_game.getRoomManager().getPreviousRoomNo() == 1020) {
 			_game.getRoomManager().getPanorama().setPanX(717);
 			_game.getInterface().resetButtons();
+			// TODO: Save to the first new save slot instead of the autosave
+			// slot?
 			_game.save(0, false);
 		}
 
@@ -54,7 +56,9 @@ void S2Room10000::init(const int roomNo) {
 }
 
 void S2Room10000::dispose(const int roomNo) {
-
+	for (auto &exit : _exits) {
+		_game.getRoomManager().getPanorama().removeExit(*exit);
+	}
 }
 
 bool S2Room10000::handleEvent(GLEvent &event) {

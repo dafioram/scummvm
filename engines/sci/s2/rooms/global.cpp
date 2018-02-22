@@ -21,6 +21,7 @@
  */
 
 #include "common/textconsole.h"
+#include "gui/saveload.h"
 #include "sci/event.h"
 #include "sci/s2/button.h"
 #include "sci/s2/game.h"
@@ -33,8 +34,11 @@
 
 namespace Sci {
 
+GLPicturePlane &S2GlobalRoom::getPlane() const {
+	return *_game.getRoomManager().getGlobalPlane();
+}
+
 void S2GlobalRoom::init(const int roomNo) {
-	_plane = _game.getRoomManager().getGlobalPlane();
 	_game.getInterface().putText(0);
 	_kernel.eventManager.flushEvents();
 
@@ -45,8 +49,12 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4010:
 		initNewGame();
 		break;
+	case 4020:
+		initLoadGame();
+		break;
 	case 4100:
 		initOptions();
+		break;
 	default:
 		error("Unknown global room %d", roomNo);
 	}
@@ -71,8 +79,8 @@ void S2GlobalRoom::dispose(const int roomNo) {
 		break;
 	}
 
+	S2Room::dispose(roomNo);
 	_buttons.clear();
-	_cels.clear();
 	_bitmaps.clear();
 	_screenItems.clear();
 	_rects.clear();
@@ -136,9 +144,14 @@ bool S2GlobalRoom::handleEvent(GLEvent &event) {
 }
 
 void S2GlobalRoom::initMainMenu() {
-	auto *button = &addButton(4000, 0, 0, GLPoint(0, 479), 202);
-	button->setHighlightedFace(4000, 0, 2);
-	button->setDepressedFace(4000, 0, 2);
+	auto makeButton = [&](const int16 loopNo) -> S2Button * {
+		auto &button = addButton(4000, loopNo, 0, GLPoint(0, 479), 202);
+		button.setHighlightedFace(4000, loopNo, 2);
+		button.setDepressedFace(4000, loopNo, 2);
+		return &button;
+	};
+
+	auto *button = makeButton(0);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
 		_game.getSoundManager().play(10913, false, 100);
@@ -147,21 +160,13 @@ void S2GlobalRoom::initMainMenu() {
 		_game.getRoomManager().loadGlobalRoom(4010, true);
 	});
 
-	button = &addButton(4000, 1, 0, GLPoint(0, 479), 202);
-	button->setHighlightedFace(4000, 1, 2);
-	button->setDepressedFace(4000, 1, 2);
+	button = makeButton(1);
 	if (_game.hasSaveGames()) {
 		button->enable();
 	}
-	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
-		_game.getSoundManager().play(10913, false, 100);
-		_lastRoomBeforeRestore = _game.getRoomManager().getCurrentGlobalRoomNo();
-		_game.getRoomManager().loadGlobalRoom(4020, true);
-	});
+	button->setMouseUpHandler(this, &S2GlobalRoom::showOldGames);
 
-	button = &addButton(4000, 2, 0, GLPoint(0, 479), 202);
-	button->setHighlightedFace(4000, 2, 2);
-	button->setDepressedFace(4000, 2, 2);
+	button = makeButton(2);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
 		const char *text = "Unfortunately, Internet Archive does not have a "
@@ -187,12 +192,7 @@ void S2GlobalRoom::initMainMenu() {
 	button = &addButton(4000, 4, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4000, 4, 2);
 	button->enable();
-	button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
-		// SSCI did not wait until the sample finished playing before quitting
-		_kernel.timeManager.sleepTicks(_game.getSoundManager().play(10903, false, 100));
-		_game.getRoomManager().unloadGlobalRoom();
-		_game.quit();
-	});
+	button->setMouseUpHandler(this, &S2GlobalRoom::quitGame);
 
 	addCel(4000, 5, 4, GLPoint(0, 479), 201).show();
 }
@@ -215,7 +215,7 @@ void S2GlobalRoom::initNewGame() {
 
 	_rects.emplace_back(2, 2, 510, 21);
 	auto &bitmap = _bitmaps.emplace_back(new S2Bitmap(512, 22, 255, 255));
-	_screenItems.emplace_back(new GLScreenItem(*_plane, *bitmap, GLPoint(115, 135), 202))->show();
+	_screenItems.emplace_back(new GLScreenItem(getPlane(), *bitmap, GLPoint(115, 135), 202))->show();
 }
 
 void S2GlobalRoom::startNewGame() {
@@ -235,29 +235,172 @@ void S2GlobalRoom::startNewGame() {
 }
 
 void S2GlobalRoom::initOptions() {
-	auto *button = &addButton(4100, 0, 0, GLPoint(64, 479), 202);
-	button->setHighlightedFace(4100, 0, 2);
-	button->setDepressedFace(4100, 0, 2);
+	auto makeButton = [&](int16 loop) -> S2Button * {
+		auto &button = addButton(4100, loop, 0, GLPoint(64, 383), 202);
+		button.setHighlightedFace(4100, loop, 2);
+		button.setDepressedFace(4100, loop, 2);
+		return &button;
+	};
+
+	auto *button = makeButton(0);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
 		returnToGame();
 	});
 
-	button = &addButton(4100, 1, 0, GLPoint(64, 479), 202);
-	button->setHighlightedFace(4100, 1, 2);
-	button->setDepressedFace(4100, 1, 2);
+	button = makeButton(1);
+	if (_game.hasSaveGames()) {
+		button->enable();
+	}
+	button->setMouseUpHandler(this, &S2GlobalRoom::showOldGames);
+
+	button = makeButton(2);
 	button->enable();
 	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
-		// TODO
+		_game.getSoundManager().play(10913, false, 100);
+		// SSCI used a script to delay this call for one second for some reason
+		_game.getRoomManager().loadGlobalRoom(4120);
 	});
 
-	// TODO: Finish this
+	button = makeButton(3);
+	button->enable();
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		_game.getSoundManager().play(10913, false, 100);
+
+		// SSCI used an ugly-looking kEditText control to do this, and this was
+		// the only place in the game that used it, so we will just use the
+		// normal ScummVM picker instead
+		if (_game.save(-1, true)) {
+			_game.getRoomManager().unloadGlobalRoom();
+			_game.getInterface().resetButtons();
+		}
+	});
+
+	button = makeButton(4);
+	button->enable();
+	button->setMouseUpHandler(this, &S2GlobalRoom::quitGame);
+
+	auto &bitmap = _bitmaps.emplace_back(new S2Bitmap(252, 22, 255, 255));
+	auto &textBox = _screenItems.emplace_back(new GLScreenItem(getPlane(), *bitmap, GLPoint(139, 357), 202));
+	const Common::String score(Common::String::format("%d", _game.getScoringManager().getCurrentScore()));
+	bitmap->drawText(score, Common::Rect(2, 2, 251, 21), 202, 255, 255, 503, kTextAlignLeft, 255);
+	textBox->forceUpdate();
 }
 
 void S2GlobalRoom::returnToGame() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_game.getSoundManager().play(10902, false, 100);
+	_game.getRoomManager().unloadGlobalRoom();
+	_game.getInterface().resetButtons();
 }
 
+void S2GlobalRoom::showOldGames(GLEvent &, GLTarget &) {
+	_game.getSoundManager().play(10913, false, 100);
+	_lastRoomBeforeRestore = _game.getRoomManager().getCurrentGlobalRoomNo();
+	_game.getRoomManager().loadGlobalRoom(4020, true);
+}
 
+void S2GlobalRoom::quitGame(GLEvent &, GLTarget &) {
+	// SSCI did not wait until the sample finished playing before quitting
+	_kernel.timeManager.sleepTicks(_game.getSoundManager().play(10903, false, 100));
+	_game.getRoomManager().unloadGlobalRoom();
+	_game.quit();
+}
+
+void S2GlobalRoom::initLoadGame() {
+	_selectedSlot = -1;
+
+	auto *button = &addButton(4020, 0, 0, GLPoint(0, 479), 202);
+	button->setHighlightedFace(4020, 0, 1);
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		_game.getUser().setIsHandsOn(false);
+		_game.getCursor().goHandsOff();
+		_game.getSoundManager().play(10902, false, 100);
+		_game.getRoomManager().setLastSoundRoomNo(0);
+		_game.getRoomManager().unloadGlobalRoom();
+		flushEvents();
+		_game.load(_selectedSlot);
+		_game.getCursor().goHandsOn();
+		_game.getUser().setIsHandsOn(true);
+	});
+
+	button = &addButton(4020, 1, 0, GLPoint(0, 479), 202);
+	button->setHighlightedFace(4020, 1, 1);
+	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		_game.getSoundManager().play(10913, false, 100);
+		_game.deleteGame(_selectedSlot);
+		dispose(4020);
+		init(4020);
+	});
+
+	if (_lastRoomBeforeRestore == 4000) {
+		button = &addButton(4020, 2, 0, GLPoint(0, 479), 202);
+		button->setHighlightedFace(4020, 2, 1);
+		button->enable();
+		button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			_game.getSoundManager().play(10913, false, 100);
+			_game.getRoomManager().loadGlobalRoom(4000, true);
+		});
+	} else if (_lastRoomBeforeRestore < 4200 || _lastRoomBeforeRestore >= 4300) {
+		button = &addButton(4020, 3, 0, GLPoint(0, 479), 202);
+		button->setHighlightedFace(4020, 3, 1);
+		button->enable();
+		button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			_game.getSoundManager().play(10913, false, 100);
+			_game.getRoomManager().loadGlobalRoom(4100);
+		});
+	}
+
+	auto index = 0;
+	auto position(GLPoint(115, 135));
+	auto hotspotPosition(GLPoint(98, 134));
+	for (const auto &save : _game.getSaveGameList()) {
+		const int slotNo = save.slotNo;
+
+		if (index == 12) {
+			position.x = 430;
+			position.y = 135;
+			hotspotPosition.x = 408;
+			hotspotPosition.y = 135;
+		}
+
+		S2Bitmap &bitmap = *_bitmaps.emplace_back(new S2Bitmap(512, 22, 255, 255));
+		GLScreenItem &screenItem = *_screenItems.emplace_back(new GLScreenItem(getPlane(), bitmap, position, 202));
+		screenItem.show();
+		bitmap.drawText(save.name, Common::Rect(2, 2, 510, 21), 202, 255, 255, 503, kTextAlignLeft, 255);
+		screenItem.forceUpdate();
+
+		auto &hotspot = *_hotspots.emplace_back(new S2Hotspot(getPlane(),
+															  hotspotPosition.x,
+															  hotspotPosition.y,
+															  hotspotPosition.x + 254,
+															  hotspotPosition.y + 20));
+
+		hotspot.setMouseUpHandler([=](GLEvent &event, GLTarget &target) {
+			_game.getSoundManager().play(10913, false, 100);
+			_buttons[0]->enable();
+			_buttons[1]->enable();
+
+			if (!_cels.size() || !_cels[0]) {
+				resetCel(0, 4020, 4, 0, GLPoint(0, 0), 201).show();
+			}
+
+			if (index < 12) {
+				_cels[0]->setPosition(GLPoint(100, 152 + index * 28));
+			} else {
+				_cels[0]->setPosition(GLPoint(415, 152 + index * 28));
+			}
+
+			_cels[0]->forceUpdate();
+			_selectedSlot = slotNo;
+		});
+
+		if (++index == 24) {
+			break;
+		}
+
+		position.y += 28;
+		hotspotPosition.y += 28;
+	}
+}
 
 } // End of namespace Sci

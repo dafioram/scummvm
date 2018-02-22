@@ -51,9 +51,16 @@ void S2SoundManager::createAmbient(const int roomNo) {
 		deleteAmbient(_roomNo);
 	}
 
-	const auto ambientNo(roomNo ? roomNo : _game.getRoomManager().getCurrentRoomNo());
+	const auto ambientNo(roomNo ? roomNo : _game.getRoomManager().getCurrentAmbientRoomNo());
 
 	switch (ambientNo) {
+	// This case did not exist in SSCI, it exists because we raise an error for
+	// unknown ambient room numbers, whereas SSCI silently did nothing, and this
+	// room number will be used when loading a save game from the main menu at
+	// game startup
+	case 1:
+		break;
+
 	case 2:
 		_tracks[0] = &createSoundTrack();
 		_tracks[0]->addWaitNode(3, 6);

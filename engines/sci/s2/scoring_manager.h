@@ -280,6 +280,8 @@ public:
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
+	uint32 getCurrentScore() const { return _currentScore; }
+
 	void doEvent(S2Score event);
 
 private:

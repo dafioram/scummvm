@@ -32,6 +32,7 @@ struct S2SaveGameMetadata final : public Common::Serializable {
 	Common::String name;
 	uint64 timestamp;
 	uint32 numTicksElapsed;
+	int slotNo;
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 };

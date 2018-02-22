@@ -209,6 +209,11 @@ Common::Error S2Engine::loadGameState(const int slotNo) {
 	return Common::kNoError;
 }
 
+void S2Engine::removeGameState(const int slotNo) {
+	Common::String fileName = Common::String::format("%s.%03d", _gameId.c_str(), slotNo);
+	_system.getSavefileManager()->removeSavefile(fileName);
+}
+
 int S2Engine::getInitialLoadSlot() const {
 	return ConfMan.getInt("save_slot");
 }

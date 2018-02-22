@@ -425,11 +425,11 @@ void S2RoomManager::unloadGlobalRoom() {
 		_game.getSoundManager().createAmbient(_lastSoundRoomNo);
 	} else {
 		_game.getSoundManager().stopAllSounds();
-		_game.getSoundManager().createAmbient(getBaseRoomNumber(_currentRoomNo) / 1000);
+		_game.getSoundManager().createAmbient(getCurrentAmbientRoomNo());
 	}
 }
 
-int S2RoomManager::getBaseRoomNumber(const int roomNo) {
+int S2RoomManager::getBaseRoomNumber(const int roomNo) const {
 	if (roomNo < 30000) {
 		return roomNo / 1000 * 1000;
 	} else {

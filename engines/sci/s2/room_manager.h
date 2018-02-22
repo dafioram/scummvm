@@ -63,7 +63,9 @@ public:
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
+	int getCurrentBaseRoomNo() const { return getBaseRoomNumber(_currentRoomNo); }
 	int getCurrentRoomNo() const { return _currentRoomNo; }
+	int getCurrentAmbientRoomNo() const { return getCurrentBaseRoomNo() / 1000; }
 
 	bool getIsSaved() const { return _isSaved; }
 	void setIsSaved(const bool saved) { _isSaved = saved; }
@@ -115,7 +117,7 @@ public:
 	void removeAllCels() { _cels.clear(); }
 
 private:
-	int getBaseRoomNumber(const int roomNo);
+	int getBaseRoomNumber(const int roomNo) const;
 
 	// If a button callback calls to load a new room it will cause a
 	// use-after-free. We can either switch everything to shared pointers to
