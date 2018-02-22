@@ -75,11 +75,20 @@ private:
 
 	void initLoadGame();
 
+	void initConfiguration();
+
 	void deleteSelectedSlot();
 	void playSelectedSlot();
 
 	int _lastRoomBeforeRestore;
 	int _selectedSlot;
+
+	Common::ScopedPtr<GLScript> _neonSign;
+	Common::ScopedPtr<GLCycler> _solverCycler;
+
+	void solvePuzzle(GLEvent &, GLTarget &);
+
+	bool _solveIt;
 };
 
 } // End of namespace Sci

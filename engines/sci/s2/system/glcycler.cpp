@@ -30,6 +30,14 @@ namespace Sci {
 TimeManager *GLCycler::_timeManager = nullptr;
 GLExtras *GLCycler::_extras = nullptr;
 
+GLCycler::~GLCycler() {
+	if (_isCycling) {
+		stop();
+	}
+
+	release();
+}
+
 int GLCycler::add(GLCel &cel, const bool shouldStart) {
 	_cels.push_back(&cel);
 	_timings.push_back(_timeManager->getTickCount() + cel.getCycleSpeed());

@@ -37,6 +37,7 @@ public:
 	GLCycler(GLCel &cel) : GLObject() {
 		add(cel);
 	}
+	virtual ~GLCycler();
 
 	static void init(TimeManager *timeManager) { _timeManager = timeManager; }
 	static void init(GLExtras *extras) { _extras = extras; }

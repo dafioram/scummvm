@@ -29,6 +29,7 @@
 #include "sci/s2/kernel.h"
 #include "sci/s2/message_box.h"
 #include "sci/s2/rooms/global.h"
+#include "sci/s2/system/glcycler.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/types.h"
 #include "sci/s2/savegame.h"
@@ -56,6 +57,9 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4100:
 		initOptions();
 		break;
+	case 4120:
+		initConfiguration();
+		break;
 	default:
 		error("Unknown global room %d", roomNo);
 	}
@@ -64,7 +68,10 @@ void S2GlobalRoom::init(const int roomNo) {
 void S2GlobalRoom::dispose(const int roomNo) {
 	switch (roomNo) {
 	case 4120:
-		warning("TODO: Handle global 4120 dispose");
+		_neonSign.reset();
+		_solverCycler.reset();
+		// In SSCI, settings were applied here, but they are being applied
+		// immediately as the controls are used, so this is omitted
 		break;
 	case 4300:
 		warning("TODO: Handle global 4300 dispose");
@@ -130,7 +137,7 @@ bool S2GlobalRoom::handleEvent(GLEvent &event) {
 		}
 		break;
 	case 4120:
-		warning("TODO: Handle global 4120 event");
+		warning("TODO: Handle global 4120 event (destroy slider script on release)");
 		break;
 	case 4300:
 		warning("TODO: Handle global 4300 event");
@@ -416,6 +423,79 @@ void S2GlobalRoom::initLoadGame() {
 	}
 }
 
+void S2GlobalRoom::initConfiguration() {
+	auto *button = &resetCel(0, 4120, 0, _game.getInterface().getIsCaptioningOn(), GLPoint(64, 383), 201);
+	button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+		if (event.getType() == kSciEventMousePress) {
+			_game.getSoundManager().play(10913, false, 100);
+			const bool newState = !_game.getInterface().getIsCaptioningOn();
+			_game.getInterface().setIsCaptioningOn(newState);
+			static_cast<GLCel &>(cel).setCel(newState, true);
+		}
+	});
+	button->forceUpdate();
+
+	button = &resetCel(1, 4120, 1, _game.getRoomManager().getAutoHighlight(), GLPoint(64, 383), 201);
+	button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+		if (event.getType() == kSciEventMousePress) {
+			_game.getSoundManager().play(10913, false, 100);
+			const bool newState = !_game.getRoomManager().getAutoHighlight();
+			_game.getRoomManager().toggleAutoHighlight();
+			static_cast<GLCel &>(cel).setCel(newState, true);
+		}
+	});
+	button->forceUpdate();
+
+	button = &resetCel(2, 4120, 2, !_game.getMovieManager().getUseHalfScreen(), GLPoint(64, 383), 201);
+	button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+		if (event.getType() == kSciEventMousePress) {
+			_game.getSoundManager().play(10913, false, 100);
+			const bool newState = !_game.getMovieManager().getUseHalfScreen();
+			_game.getMovieManager().toggleUseHalfScreen();
+			static_cast<GLCel &>(cel).setCel(!newState, true);
+		}
+	});
+	button->forceUpdate();
+
+	auto *slider = &resetCel(3, 4120, 3, 0, GLPoint(64 + 366 + 124 * ConfMan.getInt("sfx_volume") / (Audio::Mixer::kMaxMixerVolume + 1), 192), 201);
+	slider->setSelectHandler([&](GLEvent &event, GLTarget &cel) {});
+	slider->forceUpdate();
+
+	slider = &resetCel(4, 4120, 3, 0, GLPoint(64 + 366 + 31 * _game.getGamma(), 223), 201);
+	slider->setSelectHandler([&](GLEvent &, GLTarget &cel) {
+
+	});
+	slider->forceUpdate();
+
+	slider = &resetCel(6, 4120, 3, 0, GLPoint(64 + 366 + 31 * _game.getGamma(), 286), 201);
+	slider->setSelectHandler([&](GLEvent &, GLTarget &cel) {
+
+	});
+	slider->forceUpdate();
+
+	auto &sign = resetCel(8, 4120, 4, 2, GLPoint(64, 383), 201);
+	sign.hide();
+	_neonSign.reset(new GLScript([&](GLScript &script, int state) {
+		switch (state) {
+		case 0:
+			sign.show();
+			script.setSeconds(_game.getRandomNumber(1, 2));
+			break;
+		case 1:
+			sign.hide();
+			script.setSeconds(_game.getRandomNumber(1, 2));
+			script.setState(-1);
+			break;
+		}
+	}));
+
+	_solveIt = false;
+	auto &solver = resetCel(9, 4120, 5, 0, GLPoint(64, 383), 201);
+	solver.setSelectHandler(this, &S2GlobalRoom::solvePuzzle);
+	_solverCycler.reset(new GLCycler());
+	_solverCycler->add(solver, true);
+}
+
 void S2GlobalRoom::deleteSelectedSlot() {
 	_game.getSoundManager().play(10913, false, 100);
 	_game.deleteGame(_selectedSlot);
@@ -435,6 +515,10 @@ void S2GlobalRoom::playSelectedSlot() {
 	}
 	_game.getCursor().goHandsOn();
 	_game.getUser().setIsHandsOn(true);
+}
+
+void S2GlobalRoom::solvePuzzle(GLEvent &, GLTarget &) {
+	warning("TODO: solve puzzle");
 }
 
 } // End of namespace Sci

@@ -315,4 +315,12 @@ void S2Game::deleteGame(int slotNo) {
 	_engine.removeGameState(slotNo);
 }
 
+int S2Game::getVolume() const {
+	return (ConfMan.getInt("sfx_volume") + 1) * Audio32::kMaxVolume / Audio::Mixer::kMaxMixerVolume;
+}
+
+void S2Game::setVolume(const int newVolume) {
+	ConfMan.setInt("sfx_volume", newVolume * Audio::Mixer::kMaxMixerVolume / Audio32::kMaxVolume);
+}
+
 } // End of namespace Sci

@@ -58,6 +58,8 @@ public:
 
 	static void init(GLUser *user) { _user = user; }
 
+	template <typename T, typename U>
+	void setSelectHandler(T object, U fn) { _selectHandler = makeHandler(object, fn); }
 	void setSelectHandler(const EventHandler &handler) { _selectHandler = handler; }
 
 	virtual bool handleEvent(GLEvent &event) override;

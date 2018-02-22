@@ -121,7 +121,12 @@ public:
 	bool load(int slotNo);
 	void deleteGame(int slotNo);
 
+	int getVolume() const;
+	void setVolume(const int newVolume);
 	int getPanSpeed() const { return _panSpeed; }
+	void setPanSpeed(const int panSpeed) { _panSpeed = panSpeed; }
+	int getGamma() const { return _gamma; }
+	void setGamma(const int gamma) { _gamma = gamma; }
 
 private:
 	void init();

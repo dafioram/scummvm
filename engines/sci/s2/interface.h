@@ -61,6 +61,7 @@ public:
 	void hide();
 	void putText(const uint16 messageNo, const bool append = false, const bool showImmediately = false);
 	bool getIsCaptioningOn() const { return _isCaptioningOn; }
+	void setIsCaptioningOn(const bool on) { _isCaptioningOn = on; }
 
 	void disableButtons();
 	void resetButtons();
