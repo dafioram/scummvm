@@ -419,7 +419,7 @@ void S2RoomManager::unloadGlobalRoom() {
 	_globalPlane.reset();
 	activateRoom();
 	_game.getMovieManager().resumeRobot();
-	_kernel.graphicsManager.kernelFrameOut(true);
+	_kernel.graphicsManager.frameOut(true);
 	_currentGlobalRoomNo = 0;
 	if (_lastNonGlobalRoomNo == _currentRoomNo) {
 		_game.getSoundManager().createAmbient(_lastSoundRoomNo);

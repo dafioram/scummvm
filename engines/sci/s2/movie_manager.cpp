@@ -159,7 +159,7 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 	_kernel.eventManager.flushEvents();
 	_movie.showCursor(true);
 	_frameNo = 5;
-	_kernel.graphicsManager.kernelFrameOut(true);
+	_kernel.graphicsManager.frameOut(true);
 }
 
 } // End of namespace Sci
