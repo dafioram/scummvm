@@ -119,12 +119,6 @@ public:
 private:
 	int getBaseRoomNumber(const int roomNo) const;
 
-	// If a button callback calls to load a new room it will cause a
-	// use-after-free. We can either switch everything to shared pointers to
-	// avoid disposing of objects early, or we can defer the load until the next
-	// doIt loop when the event handler has cleared. We do the latter for now.
-	void deferredLoadGlobalRoom(const int roomNo, const bool fullscreen);
-
 	void checkMouse();
 
 	S2Kernel &_kernel;

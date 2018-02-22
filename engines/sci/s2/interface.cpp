@@ -85,7 +85,6 @@ void S2Interface::init() {
 	_captionUi.reset(new GLScreenItem(*_captions, *_captionText, GLPoint(64, 383 - 46), 255));
 	_captionUi->show();
 
-	// TODO: Inventory table
 	for (int slotNo = 0; slotNo < _inventory.size(); ++slotNo) {
 		S2InventoryObject *object = new S2InventoryObject(*_main, 3000, 0, 0, S2Inventory::None, GLPoint(80 + 40 * slotNo, 392), 4, slotNo);
 		_inventory[slotNo].reset(object);

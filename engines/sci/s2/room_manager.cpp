@@ -555,8 +555,7 @@ void S2RoomManager::drawPic(const uint16 resourceNo, const bool fullscreen) {
 	}
 
 	if (!_picture) {
-		const Common::Rect fullscreenRect(0, 0,
-										  _kernel.graphicsManager.getScriptWidth(),
+		const Common::Rect fullscreenRect(_kernel.graphicsManager.getScriptWidth(),
 										  _kernel.graphicsManager.getScriptHeight());
 		if (fullscreen) {
 			_picture.reset(new GLPicturePlane(fullscreenRect, resourceNo));
