@@ -40,7 +40,7 @@ GLPicturePlane &S2GlobalRoom::getPlane() const {
 
 void S2GlobalRoom::init(const int roomNo) {
 	_game.getInterface().putText(0);
-	_kernel.eventManager.flushEvents();
+	flushEvents();
 
 	switch (roomNo) {
 	case 4000:
@@ -120,7 +120,13 @@ bool S2GlobalRoom::handleEvent(GLEvent &event) {
 		}
 		break;
 	case 4020:
-		warning("TODO: Handle global 4020 event");
+		if (event.getType() == kSciEventKeyDown && _buttons[0]->getIsEnabled()) {
+			if (event.getMessage() == kSciKeyEnter) {
+				playSelectedSlot();
+			} else if (event.getMessage() == kSciKeyDelete) {
+				deleteSelectedSlot();
+			}
+		}
 		break;
 	case 4120:
 		warning("TODO: Handle global 4120 event");
@@ -312,24 +318,13 @@ void S2GlobalRoom::initLoadGame() {
 	auto *button = &addButton(4020, 0, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4020, 0, 1);
 	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
-		_game.getUser().setIsHandsOn(false);
-		_game.getCursor().goHandsOff();
-		_game.getSoundManager().play(10902, false, 100);
-		_game.getRoomManager().setLastSoundRoomNo(0);
-		_game.getRoomManager().unloadGlobalRoom();
-		flushEvents();
-		_game.load(_selectedSlot);
-		_game.getCursor().goHandsOn();
-		_game.getUser().setIsHandsOn(true);
+		playSelectedSlot();
 	});
 
 	button = &addButton(4020, 1, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4020, 1, 1);
 	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
-		_game.getSoundManager().play(10913, false, 100);
-		_game.deleteGame(_selectedSlot);
-		dispose(4020);
-		init(4020);
+		deleteSelectedSlot();
 	});
 
 	if (_lastRoomBeforeRestore == 4000) {
@@ -363,10 +358,15 @@ void S2GlobalRoom::initLoadGame() {
 			hotspotPosition.y = 135;
 		}
 
-		S2Bitmap &bitmap = *_bitmaps.emplace_back(new S2Bitmap(512, 22, 255, 255));
+		// Dimensions are reduced versus SSCI since we allow arbitrary game
+		// name lengths instead of limiting to a certain number of characters,
+		// so the names might overflow
+		GfxFontFromResource font(&_kernel.resourceManager, 503);
+
+		S2Bitmap &bitmap = *_bitmaps.emplace_back(new S2Bitmap(232, font.getHeight() + 1, 255, 255));
 		GLScreenItem &screenItem = *_screenItems.emplace_back(new GLScreenItem(getPlane(), bitmap, position, 202));
 		screenItem.show();
-		bitmap.drawText(save.name, Common::Rect(2, 2, 510, 21), 202, 255, 255, 503, kTextAlignLeft, 255);
+		bitmap.drawText(save.name, Common::Rect(2, 2, 232, font.getHeight() + 1), 202, 255, 255, 503, kTextAlignLeft, 255);
 		screenItem.forceUpdate();
 
 		auto &hotspot = *_hotspots.emplace_back(new S2Hotspot(getPlane(),
@@ -384,12 +384,8 @@ void S2GlobalRoom::initLoadGame() {
 				resetCel(0, 4020, 4, 0, GLPoint(0, 0), 201).show();
 			}
 
-			if (index < 12) {
-				_cels[0]->setPosition(GLPoint(100, 152 + index * 28));
-			} else {
-				_cels[0]->setPosition(GLPoint(415, 152 + index * 28));
-			}
-
+			const auto x = index < 12 ? 100 : 415;
+			_cels[0]->setPosition(GLPoint(x, position.y + 18));
 			_cels[0]->forceUpdate();
 			_selectedSlot = slotNo;
 		});
@@ -401,6 +397,25 @@ void S2GlobalRoom::initLoadGame() {
 		position.y += 28;
 		hotspotPosition.y += 28;
 	}
+}
+
+void S2GlobalRoom::deleteSelectedSlot() {
+	_game.getSoundManager().play(10913, false, 100);
+	_game.deleteGame(_selectedSlot);
+	dispose(4020);
+	init(4020);
+}
+
+void S2GlobalRoom::playSelectedSlot() {
+	_game.getUser().setIsHandsOn(false);
+	_game.getCursor().goHandsOff();
+	_game.getSoundManager().play(10902, false, 100);
+	_game.getRoomManager().setLastSoundRoomNo(0);
+	_game.getRoomManager().unloadGlobalRoom();
+	flushEvents();
+	_game.load(_selectedSlot);
+	_game.getCursor().goHandsOn();
+	_game.getUser().setIsHandsOn(true);
 }
 
 } // End of namespace Sci

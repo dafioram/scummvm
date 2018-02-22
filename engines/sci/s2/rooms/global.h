@@ -75,6 +75,9 @@ private:
 
 	void initLoadGame();
 
+	void deleteSelectedSlot();
+	void playSelectedSlot();
+
 	int _lastRoomBeforeRestore;
 	int _selectedSlot;
 };
