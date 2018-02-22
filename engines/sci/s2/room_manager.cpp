@@ -495,6 +495,7 @@ void S2RoomManager::loadGlobalRoom(const int roomNo, const bool fullscreen) {
 				_game.getInterface().show();
 				_globalPlane.reset(new GLPicturePlane(fullscreenRect, 1, 3));
 				_globalPlane->addPicAt(roomNo, 64, 0);
+				_game.getPlanes().add(*_globalPlane);
 			} else {
 				_globalPlane->addPicAt(roomNo, 64, 0);
 			}
