@@ -21,6 +21,7 @@
  */
 
 #include "common/textconsole.h"
+#include "common/translation.h"
 #include "gui/saveload.h"
 #include "sci/event.h"
 #include "sci/s2/button.h"
@@ -315,6 +316,22 @@ void S2GlobalRoom::quitGame(GLEvent &, GLTarget &) {
 void S2GlobalRoom::initLoadGame() {
 	_selectedSlot = -1;
 
+	if (!ConfMan.getBool("originalsaveload")) {
+		GUI::SaveLoadChooser dialog(_("Load game:"), _("Load"), false);
+		const int slotNo = dialog.runModalWithCurrentTarget();
+		if (slotNo > -1) {
+			_selectedSlot = slotNo;
+			playSelectedSlot();
+		} else if (_lastRoomBeforeRestore == 4000) {
+			_game.getRoomManager().loadGlobalRoom(4000, true);
+		} else if (_lastRoomBeforeRestore < 4200 || _lastRoomBeforeRestore >= 4300) {
+			_game.getRoomManager().loadGlobalRoom(4100);
+		} else {
+			returnToGame();
+		}
+		return;
+	}
+
 	auto *button = &addButton(4020, 0, 0, GLPoint(0, 479), 202);
 	button->setHighlightedFace(4020, 0, 1);
 	button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
@@ -413,7 +430,9 @@ void S2GlobalRoom::playSelectedSlot() {
 	_game.getRoomManager().setLastSoundRoomNo(0);
 	_game.getRoomManager().unloadGlobalRoom();
 	flushEvents();
-	_game.load(_selectedSlot);
+	if (!_game.load(_selectedSlot)) {
+		error("Attempt to load slot %d failed", _selectedSlot);
+	}
 	_game.getCursor().goHandsOn();
 	_game.getUser().setIsHandsOn(true);
 }

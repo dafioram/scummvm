@@ -4211,12 +4211,13 @@ static const struct ADGameDescription SciGameDescriptions[] = {
 #undef GUIO_SHIVERS
 
 #ifdef ENABLE_SCI32S2
-#define GUIO_SHIVERS2     GUIO6(GUIO_NOMIDI, \
+#define GUIO_SHIVERS2     GUIO7(GUIO_NOMIDI, \
                                 GUIO_LINKSPEECHTOSFX, \
                                 GUIO_LINKMUSICTOSFX, \
                                 GUIO_NOASPECT, \
                                 GAMEOPTION_ENABLE_BLACK_LINED_VIDEO, \
-                                GAMEOPTION_HQ_VIDEO)
+                                GAMEOPTION_HQ_VIDEO, \
+                                GAMEOPTION_ORIGINAL_SAVELOAD)
 
 #if 0
 	// Shivers2 - English Windows Demo

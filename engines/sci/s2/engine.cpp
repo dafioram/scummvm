@@ -201,6 +201,7 @@ Common::Error S2Engine::loadGameState(const int slotNo) {
 	S2SaveGameMetadata metadata;
 	metadata.saveLoadWithSerializer(serializer);
 	_game->setSaveGameName(metadata.name);
+	_game->setSaveGameSlot(slotNo == 0 ? -1 : slotNo);
 
 	Graphics::skipThumbnail(*file);
 

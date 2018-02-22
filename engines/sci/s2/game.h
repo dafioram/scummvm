@@ -113,11 +113,12 @@ public:
 
 	const Common::String &getSaveGameName() const { return _saveGameName; }
 	void setSaveGameName(const Common::String &name) { _saveGameName = name; }
+	void setSaveGameSlot(const int slotNo) { _saveGameSlotNo = slotNo; }
 
 	bool save(const bool showMessage);
 	bool save(int slotNo, const bool showMessage);
-	void load();
-	void load(int slotNo);
+	bool load();
+	bool load(int slotNo);
 	void deleteGame(int slotNo);
 
 	int getPanSpeed() const { return _panSpeed; }

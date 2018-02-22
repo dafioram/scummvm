@@ -293,20 +293,20 @@ bool S2Game::save(int slotNo, const bool showMessage) {
 	return result.getCode() == Common::kNoError;
 }
 
-void S2Game::load() {
-	load(_saveGameSlotNo);
+bool S2Game::load() {
+	return load(_saveGameSlotNo);
 }
 
-void S2Game::load(int slotNo) {
+bool S2Game::load(int slotNo) {
 	if (slotNo > -1) {
-		_engine.loadGameState(slotNo);
+		return _engine.loadGameState(slotNo).getCode() == Common::kNoError;
 	} else {
 		GUI::SaveLoadChooser dialog(_("Load game:"), _("Load"), false);
 		slotNo = dialog.runModalWithCurrentTarget();
-		if (slotNo > 0) {
-			_saveGameSlotNo = slotNo;
-			_saveGameName = dialog.getResultString();
-			_engine.loadGameState(slotNo);
+		if (slotNo >= 0) {
+			return _engine.loadGameState(slotNo).getCode() == Common::kNoError;
+		} else {
+			return false;
 		}
 	}
 }
