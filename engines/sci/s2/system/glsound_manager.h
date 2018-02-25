@@ -39,7 +39,7 @@ public:
 
 	uint16 play(const uint16 soundNo, const bool loop = false, const int16 volume = Audio32::kMaxVolume, const bool paused = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
 	void pan(const uint16 soundNo, const int16 pan, const reg_t soundNode = NULL_REG);
-	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopOnFade = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
+	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopAfterFade = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
 	void stop();
 	void stop(const int soundNo, const reg_t soundNode = NULL_REG);
 	void doIt();
