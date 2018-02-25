@@ -477,6 +477,8 @@ void S2SoundManager::deleteAmbient(int roomNo) {
 		fade(12840, 0, 15, 12);
 		break;
 	}
+
+	_roomNo = 0;
 }
 
 } // End of namespace Sci
