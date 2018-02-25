@@ -47,6 +47,7 @@ public:
 	void returnToGame();
 
 	int _lastRoomBeforeRestore;
+	int _creditsSoundNo;
 
 private:
 	virtual GLPicturePlane &getPlane() const override {

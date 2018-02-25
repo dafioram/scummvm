@@ -76,9 +76,10 @@ public:
 		button->setMouseUpHandler([&](GLEvent &event, GLTarget &target) {
 			_game.getSoundManager().play(10913, false, 100);
 			_game.getSoundManager().fade(30004, 0, 15, 12, true);
-			const uint16 songNo = 30000 + _game.getRandomNumber(1, 3);
-			_game.getSoundManager().play(songNo, true, 0);
-			_game.getSoundManager().fade(songNo, Audio32::kMaxVolume, 15, 16);
+			const int soundNo = 30000 + _game.getRandomNumber(1, 3);
+			static_cast<S2GlobalRoom &>(_parent)._creditsSoundNo = soundNo;
+			_game.getSoundManager().play(soundNo, true, 0);
+			_game.getSoundManager().fade(soundNo, Audio32::kMaxVolume, 15, 16);
 			_game.getRoomManager().loadGlobalRoom(4400, true);
 		});
 
@@ -463,6 +464,12 @@ public:
 		_solverCycler->add(solver, true);
 	}
 
+	virtual bool handleEvent(GLEvent &event) override {
+		warning("TODO: Handle global 4120 event (destroy slider script on release)");
+		event.claim();
+		return true;
+	}
+
 private:
 	void solvePuzzle(GLEvent &, GLTarget &) {
 		warning("TODO: solve puzzle");
@@ -472,6 +479,93 @@ private:
 
 	bool _solveIt;
 	Common::ScopedPtr<GLCycler> _solverCycler;
+};
+
+class S2CreditsRoom : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int roomNo) override {
+		auto &hotspot = emplaceHotspot(false, 0, 0, 639, 479);
+		hotspot.setMouseUpHandler([=](GLEvent &, GLTarget &) {
+			if (roomNo == 4407) {
+				finish();
+			} else {
+				next();
+			}
+		});
+		setScript(this, &S2CreditsRoom::creditsScript);
+
+		switch (roomNo) {
+		case 4401:
+		case 4402:
+		case 4403:
+		case 4406:
+			GLPoint position;
+			if (roomNo == 4401) {
+				position = { 96, 135 };
+			} else if (roomNo == 4402) {
+				position = { 316, 360 };
+			} else if (roomNo == 4403) {
+				position = { 319, 380 };
+			} else {
+				position = { 322, 320 };
+			}
+
+			auto &cel = emplaceCel(false, roomNo, 0, 0, position);
+			cel.setCel(_game.getRandomNumber(0, 40));
+			cel.setCycleSpeed(6);
+			cel.show();
+			_cycler.reset(new GLPingPongCycler());
+			_cycler->add(cel);
+			break;
+		}
+	}
+
+	bool handleEvent(GLEvent &event) override {
+		if (event.getType() == kSciEventKeyDown) {
+			const auto key = event.getMessage();
+			if (key == kSciKeyEsc) {
+				finish();
+			} else if (key == kSciKeyEnter || key == ' ') {
+				next();
+			}
+		}
+
+		event.claim();
+		return true;
+	}
+
+private:
+	void finish() {
+		const int soundNo = static_cast<S2GlobalRoom &>(_parent)._creditsSoundNo;
+		_game.getSoundManager().fade(soundNo, 0, 15, 16, true);
+		_game.getSoundManager().play(30004, true, 0);
+		_game.getSoundManager().fade(30004, 80, 15, 12);
+		_game.getRoomManager().loadGlobalRoom(4000, true);
+	}
+
+	void next() {
+		int nextRoom = _game.getRoomManager().getCurrentGlobalRoomNo() + 1;
+		if (nextRoom > 4407) {
+			nextRoom = 4400;
+		}
+		_game.getRoomManager().loadGlobalRoom(nextRoom, true);
+	}
+
+	void creditsScript(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			script.setSeconds(10);
+			break;
+		case 1: {
+			next();
+			break;
+		}
+		}
+	}
+
+	Common::ScopedPtr<GLPingPongCycler> _cycler;
 };
 
 void S2GlobalRoom::init(const int roomNo) {
@@ -494,6 +588,16 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4120:
 		setSubRoom<S2ConfigurationRoom>();
 		break;
+	case 4400:
+	case 4401:
+	case 4402:
+	case 4403:
+	case 4404:
+	case 4405:
+	case 4406:
+	case 4407:
+		setSubRoom<S2CreditsRoom>();
+		break;
 	default:
 		error("Unknown global room %d", roomNo);
 	}
@@ -505,24 +609,10 @@ void S2GlobalRoom::init(const int roomNo) {
 
 bool S2GlobalRoom::handleEvent(GLEvent &event) {
 	switch (_game.getRoomManager().getCurrentGlobalRoomNo()) {
-	case 4010:
-	case 4020:
-		break;
 	case 4120:
-		warning("TODO: Handle global 4120 event (destroy slider script on release)");
 		break;
 	case 4300:
 		warning("TODO: Handle global 4300 event");
-		break;
-	case 4400:
-	case 4401:
-	case 4402:
-	case 4403:
-	case 4404:
-	case 4405:
-	case 4406:
-	case 4407:
-		warning("TODO: Handle global 4400 event");
 		break;
 	}
 	return _activeSubRoom->handleEvent(event);
