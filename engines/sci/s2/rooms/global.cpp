@@ -388,10 +388,18 @@ private:
 };
 
 class S2ConfigurationRoom : public S2SubRoom {
+	enum {
+		kSliderX = 430,
+		kSliderSize = 124,
+		kMinPanSpeed = 10,
+		kMaxPanSpeed = 50
+	};
+
 public:
 	using S2SubRoom::S2SubRoom;
 
 	virtual void init(const int) override {
+		// captioning
 		auto *button = &emplaceCel(false, 4120, 0, _game.getInterface().getIsCaptioningOn(), gameBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
@@ -403,6 +411,7 @@ public:
 		});
 		button->forceUpdate();
 
+		// smart cursor
 		button = &emplaceCel(false, 4120, 1, _game.getRoomManager().getAutoHighlight(), gameBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
@@ -414,6 +423,7 @@ public:
 		});
 		button->forceUpdate();
 
+		// video size
 		button = &emplaceCel(false, 4120, 2, !_game.getMovieManager().getUseHalfScreen(), gameBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
@@ -425,21 +435,32 @@ public:
 		});
 		button->forceUpdate();
 
-		auto *slider = &emplaceCel(false, 4120, 3, 0, GLPoint(64 + 366 + 124 * ConfMan.getInt("sfx_volume") / (Audio::Mixer::kMaxMixerVolume + 1), 192), 201);
-		slider->setSelectHandler([&](GLEvent &event, GLTarget &cel) {});
-		slider->forceUpdate();
-
-		slider = &emplaceCel(false, 4120, 3, 0, GLPoint(64 + 366 + 31 * _game.getGamma(), 223), 201);
-		slider->setSelectHandler([&](GLEvent &, GLTarget &cel) {
-
+		// volume
+		auto *slider = &emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize * ConfMan.getInt("sfx_volume") / (Audio::Mixer::kMaxMixerVolume + 1), 192), 201);
+		slider->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+			startSlider(Slider::Volume, event, static_cast<GLCel &>(cel));
 		});
 		slider->forceUpdate();
 
-		slider = &emplaceCel(false, 4120, 3, 0, GLPoint(64 + 366 + 31 * _game.getGamma(), 286), 201);
-		slider->setSelectHandler([&](GLEvent &, GLTarget &cel) {
-
+		// brightness
+		slider = &emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize * _game.getGamma() / (GfxPalette32::numGammaTables - 1), 223), 201);
+		slider->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+			startSlider(Slider::Gamma, event, static_cast<GLCel &>(cel));
 		});
 		slider->forceUpdate();
+
+		// sound performance, does nothing in ScummVM
+		emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize, 254), 201).forceUpdate();
+
+		// pan speed (10-50, in SSCI it was 20 to 60)
+		slider = &emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize * _game.getPanSpeed() / 60, 286), 201);
+		slider->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
+			startSlider(Slider::PanSpeed, event, static_cast<GLCel &>(cel));
+		});
+		slider->forceUpdate();
+
+		// pan window size, does nothing in ScummVM
+		emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize, 317), 201).forceUpdate();
 
 		auto &sign = emplaceCel(false, 4120, 4, 2, gameBottom, 201);
 		sign.hide();
@@ -465,15 +486,76 @@ public:
 	}
 
 	virtual bool handleEvent(GLEvent &event) override {
-		warning("TODO: Handle global 4120 event (destroy slider script on release)");
+		if (event.getType() == kSciEventMouseRelease) {
+			stopSlider();
+		}
 		event.claim();
 		return true;
 	}
 
 private:
+	enum class Slider {
+		Volume,
+		Gamma,
+		PanSpeed
+	};
+
+	void startSlider(const Slider type, GLEvent &event, GLCel &cel) {
+		if (event.getType() == kSciEventMousePress) {
+			_game.getSoundManager().play(12608, true, Audio32::kMaxVolume);
+			_sliderType = type;
+			_sliderCel = &cel;
+			_sliderScript.reset(new GLScript(this, &S2ConfigurationRoom::pollSlider));
+		} else if (event.getType() == kSciEventMouseRelease) {
+			stopSlider();
+		}
+	}
+
+	void stopSlider() {
+		_game.getSoundManager().stop(12608);
+		_sliderScript.reset();
+	}
+
+	void pollSlider(GLScript &script, const int) {
+		// In SSCI, values were not applied until the configuration room was
+		// disposed; we always just live-update the configuration since the
+		// other way is unnecessarily complicated and gives a worse UX
+		auto value = CLIP(_game.getUser().getMousePosition().x - 430, 0, 124);
+		int16 quantisedPosition;
+
+		switch (_sliderType) {
+		case Slider::Volume:
+			value = value * Audio32::kMaxVolume / 124;
+			quantisedPosition = kSliderX + value * 124 / Audio32::kMaxVolume;
+			_kernel.audioMixer.setMasterVolume(value);
+			break;
+		case Slider::Gamma:
+			value = value * (GfxPalette32::numGammaTables - 1) / 124;
+			quantisedPosition = kSliderX + value * 124 / (GfxPalette32::numGammaTables - 1);
+			_kernel.graphicsManager._palette.setGamma(value);
+			break;
+		case Slider::PanSpeed:
+			value = value * (kMaxPanSpeed - kMinPanSpeed) / 124 + kMinPanSpeed;
+			quantisedPosition = kSliderX + (value - kMinPanSpeed) * 124 / (kMaxPanSpeed - kMinPanSpeed);
+			_game.setPanSpeed(value);
+			break;
+		}
+
+		_sliderCel->setPosition(GLPoint(quantisedPosition, _sliderCel->getPosition().y), true);
+
+		// was 10 cycles in SSCI; it really does not need to update more than
+		// once per tick
+		script.setTicks(1);
+		script.setState(-1);
+	}
+
 	void solvePuzzle(GLEvent &, GLTarget &) {
 		warning("TODO: solve puzzle");
 	}
+
+	Slider _sliderType;
+	GLCel *_sliderCel;
+	Common::ScopedPtr<GLScript> _sliderScript;
 
 	Common::ScopedPtr<GLScript> _neonSign;
 

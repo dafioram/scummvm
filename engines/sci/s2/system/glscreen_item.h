@@ -47,6 +47,7 @@ public:
 	bool getIsVisible() const { return _isVisible; }
 	int16 getPriority() const { return _screenItem->_priority; }
 
+	const GLPoint &getPosition() const { return _screenItem->_position; }
 	void setPosition(const GLPoint &position, const bool shouldUpdate = false);
 
 	void setCelRes(const GLCelRes &celInfo, const bool shouldUpdate = false);
