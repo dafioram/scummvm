@@ -34,27 +34,11 @@ class S2Room1000 : public S2Room {
 public:
 	using S2Room::S2Room;
 	virtual void init(const int roomNo) override;
-	virtual void dispose(const int roomNo) override;
-	virtual void doIt() override {}
-	virtual bool handleEvent(GLEvent &event) override;
 
 private:
 	void logoScript(GLScript &script, const int state);
 	void openingScript(GLScript &script, const int state);
-	void checkInScript(GLScript &script, const int state);
 	void dreamMovieScript(GLScript &script, const int state);
-
-	void playRobot(GLScript &script, const uint16 robotNo);
-
-	void playRobotOrSound(GLScript &script, const uint16 robotNo, const uint16 soundNo, const int16 wackyLoop);
-
-	void resetHotspot();
-
-	bool _isWacky = false;
-	int _soundNo = 0;
-	bool _useAltMovie = false;
-
-	Common::ScopedPtr<GLCycler> _cycler;
 };
 
 } // End of namespace Sci

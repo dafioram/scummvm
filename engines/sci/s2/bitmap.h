@@ -42,7 +42,10 @@ public:
 	static void init(GfxBitmap32 *bitmapManager) { _bitmapManager = bitmapManager; }
 
 	S2Bitmap(const int16 width, const int16 height, const uint8 skipColor, const uint8 backColor, const bool remap = false);
-
+	S2Bitmap(const S2Bitmap &) = delete;
+	S2Bitmap &operator=(const S2Bitmap &) = delete;
+	S2Bitmap(S2Bitmap &&);
+	S2Bitmap &operator=(S2Bitmap &&);
 	~S2Bitmap();
 
 	reg_t getHandle() const { return _handle; }

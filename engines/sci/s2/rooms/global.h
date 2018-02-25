@@ -40,55 +40,18 @@ class S2GlobalRoom : public S2Room {
 public:
 	using S2Room::S2Room;
 	virtual void init(const int roomNo) override;
-	virtual void dispose(const int roomNo) override;
-	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
-
-private:
-	virtual GLPicturePlane &getPlane() const override;
-
-	Common::Array<Common::ScopedPtr<S2Button>> _buttons;
-	Common::Array<Common::ScopedPtr<S2Bitmap>> _bitmaps;
-	Common::Array<Common::ScopedPtr<GLScreenItem>> _screenItems;
-	Common::Array<Common::Rect> _rects;
-
-	Common::String _newGameName;
-
-	template <typename ...Args>
-	S2Button &addButton(Args && ...args) {
-		auto &button = *_buttons.emplace_back(new S2Button(getPlane(), args...));
-		button.setAutoHighlight(true);
-		return button;
-	}
-
-private:
-	void initMainMenu();
-
-	void initNewGame();
-	void startNewGame();
-
-	void initOptions();
-	void returnToGame();
 
 	void showOldGames(GLEvent &, GLTarget &);
 	void quitGame(GLEvent &, GLTarget &);
-
-	void initLoadGame();
-
-	void initConfiguration();
-
-	void deleteSelectedSlot();
-	void playSelectedSlot();
+	void returnToGame();
 
 	int _lastRoomBeforeRestore;
-	int _selectedSlot;
 
-	Common::ScopedPtr<GLScript> _neonSign;
-	Common::ScopedPtr<GLCycler> _solverCycler;
-
-	void solvePuzzle(GLEvent &, GLTarget &);
-
-	bool _solveIt;
+private:
+	virtual GLPicturePlane &getPlane() const override {
+		return *_game.getRoomManager().getGlobalPlane();
+	}
 };
 
 } // End of namespace Sci

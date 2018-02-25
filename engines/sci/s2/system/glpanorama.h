@@ -62,8 +62,8 @@ public:
 	virtual void doIt() override;
 	virtual bool handleEvent(GLEvent &event) override;
 
-	void addExit(GLPanoramaExit &exit) { _exits.push_back(&exit); }
-	void removeExit(GLPanoramaExit &exit) { _exits.remove(&exit); }
+	template <typename ...Args>
+	void addExit(Args && ... args) { _exits.emplace_back(args...); }
 	void removeAllExits() { _exits.clear(); }
 
 private:
@@ -103,9 +103,7 @@ private:
 	Common::FixedArray<uint, 640> _xToYInitial;
 	Common::List<GLSound> _sounds;
 	Common::List<S2PanoramaSprite> _sprites;
-	// In SSCI this was not a set for some reason, even though there is no way
-	// two of the same exit should exist in one panorama
-	GLSetAsArray<GLPanoramaExit> _exits;
+	Common::Array<GLPanoramaExit> _exits;
 };
 
 } // End of namespace Sci

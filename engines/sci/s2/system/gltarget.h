@@ -43,7 +43,7 @@ namespace Sci {
 class AbsGLPlane;
 class GLUser;
 
-class GLTarget : public GLObject {
+class GLTarget : public virtual GLObject {
 public:
 	using EventHandler = std::function<void(GLEvent &, GLTarget &)>;
 

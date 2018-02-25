@@ -34,7 +34,7 @@ class AbsGLPlane;
 class GfxFrameout;
 class S2Bitmap;
 
-class GLScreenItem : public GLObject {
+class GLScreenItem : public virtual GLObject {
 public:
 	GLScreenItem(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 	GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());

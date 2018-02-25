@@ -33,9 +33,9 @@ GLCel::GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const i
 	_cycleSpeed(6),
 	_moveSpeed(6),
 	_stepSize(3, 3) {
-	GLFeature::setIsScreenItem(true);
-	GLFeature::setNeedsDoIt(true);
-	GLFeature::setNeedsEvent(true);
+	setIsScreenItem(true);
+	setNeedsDoIt(true);
+	setNeedsEvent(true);
 	// SSCI called setBounds here but the underlying ScreenItem will never be
 	// part of the graphics system yet so this call would always fail
 	GLFeature::init();

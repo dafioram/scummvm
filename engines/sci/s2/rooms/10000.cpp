@@ -43,25 +43,18 @@ void S2Room10000::init(const int roomNo) {
 			_game.save(0, false);
 		}
 
-		_exits.emplace_back(new GLPanoramaExit(10100, 725, 200, 786, 386));
-		_game.getRoomManager().getPanorama().addExit(*_exits.back());
-		_exits.emplace_back(new GLPanoramaExit(10300, 900, 180, 1171, 386));
-		_game.getRoomManager().getPanorama().addExit(*_exits.back());
-		_exits.emplace_back(new GLPanoramaExit(10410, 124, 278, 166, 301, S2Cursor::kHighlightCel));
-		_game.getRoomManager().getPanorama().addExit(*_exits.back());
-		_exits.emplace_back(new GLPanoramaExit(10420, 1859, 281, 1886, 297, S2Cursor::kHighlightCel));
-		_game.getRoomManager().getPanorama().addExit(*_exits.back());
+		auto &panorama = _game.getRoomManager().getPanorama();
+		panorama.addExit(10100, 725, 200, 786, 386);
+		panorama.addExit(10300, 900, 180, 1171, 386);
+		panorama.addExit(10410, 124, 278, 166, 301, S2Cursor::kHighlightCel);
+		panorama.addExit(10420, 1859, 281, 1886, 297, S2Cursor::kHighlightCel);
 		break;
 	}
 }
 
-void S2Room10000::dispose(const int roomNo) {
-	for (auto &exit : _exits) {
-		_game.getRoomManager().getPanorama().removeExit(*exit);
-	}
-}
+void S2Room10000::dispose(const int) {}
 
-bool S2Room10000::handleEvent(GLEvent &event) {
+bool S2Room10000::handleEvent(GLEvent &) {
 	return false;
 }
 

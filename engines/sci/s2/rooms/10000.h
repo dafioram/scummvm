@@ -35,9 +35,6 @@ public:
 	virtual void dispose(const int roomNo) override;
 	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
-
-private:
-	Common::Array<Common::ScopedPtr<GLPanoramaExit>> _exits;
 };
 
 } // End of namespace Sci

@@ -165,15 +165,15 @@ void GLPanorama::checkMouse() {
 
 			const GLPoint projectedPoint(getUnwarpedPoint(mouse));
 			for (const auto &exit : _exits) {
-				if (exit->contains(projectedPoint)) {
-					const auto cursorCel = exit->getCursorCel();
+				if (exit.contains(projectedPoint)) {
+					const auto cursorCel = exit.getCursorCel();
 
 					if (cursorCel == S2Cursor::kHighlightCel && !_game->getRoomManager().getAutoHighlight()) {
 						continue;
 					}
 
 					if (cursorCel != S2Cursor::kNormalCel) {
-						highlightedCel.celNo = exit->getCursorCel();
+						highlightedCel.celNo = exit.getCursorCel();
 						_game->getCursor().setHighlightedCelRes(highlightedCel);
 						shouldHighlight = true;
 						break;
@@ -305,8 +305,8 @@ bool GLPanorama::checkExits(GLEvent &event) {
 
 	const auto projectedPoint(getUnwarpedPoint(event.getMousePosition()));
 	for (const auto &exit : _exits) {
-		if (exit->contains(projectedPoint)) {
-			_game->getRoomManager().setNextRoomNo(exit->getRoomNo());
+		if (exit.contains(projectedPoint)) {
+			_game->getRoomManager().setNextRoomNo(exit.getRoomNo());
 			return true;
 		}
 	}

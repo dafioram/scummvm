@@ -42,11 +42,14 @@ public:
 
 	const EventHandler &getMouseUpHandler() const { return _mouseUpHandler; }
 	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }
+	template <typename T, typename U>
+	void setMouseUpHandler(T object, U fn) {
+		_mouseUpHandler = makeHandler(object, fn);
+	}
 
 private:
 	bool _isEnabled;
 	EventHandler _mouseUpHandler;
-
 };
 
 } // End of namespace Sci

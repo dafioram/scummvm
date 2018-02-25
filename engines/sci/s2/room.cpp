@@ -21,28 +21,25 @@
  */
 
 #include "sci/s2/room.h"
-#include "sci/s2/game.h"
 
 namespace Sci {
 
-GLPicturePlane &S2Room::getPlane() const {
-	return _game.getRoomManager().getGamePlane();
+constexpr GLPoint S2Room::absTop;
+constexpr GLPoint S2Room::absBottom;
+constexpr GLPoint S2Room::gameTop;
+constexpr GLPoint S2Room::gameBottom;
+
+void S2Room::doIt() {
+	if (_activeSubRoom) {
+		_activeSubRoom->doIt();
+	}
 }
 
-void S2Room::dispose(const int roomNo) {
-	for (auto &&hotspot : _hotspots) {
-		if (hotspot) {
-			_game.getRoomManager().removeHotspot(*hotspot);
-		}
+bool S2Room::handleEvent(GLEvent &event) {
+	if (_activeSubRoom) {
+		return _activeSubRoom->handleEvent(event);
 	}
-	for (auto &&cel : _cels) {
-		if (cel) {
-			_game.getRoomManager().removeCel(*cel);
-		}
-	}
-	_hotspots.clear();
-	_cels.clear();
-	_script.reset();
+	return false;
 }
 
 } // End of namespace Sci

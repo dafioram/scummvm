@@ -31,8 +31,25 @@ S2Bitmap::S2Bitmap(const int16 width, const int16 height, const uint8 skipColor,
 	_bitmapManager->create(&_handle, width, height, skipColor, backColor, 0, 0, 640, 480, 0, remap, false);
 }
 
+S2Bitmap::S2Bitmap(S2Bitmap &&other) {
+	_handle = other._handle;
+	other._handle = make_reg(kUninitializedSegment, 0);
+}
+
+S2Bitmap &S2Bitmap::operator=(S2Bitmap &&other) {
+	if (&other == this) {
+		return *this;
+	}
+
+	_handle = other._handle;
+	other._handle = make_reg(kUninitializedSegment, 0);
+	return *this;
+}
+
 S2Bitmap::~S2Bitmap() {
-	_bitmapManager->destroy(_handle);
+	if (_handle.getSegment() != kUninitializedSegment) {
+		_bitmapManager->destroy(_handle);
+	}
 }
 
 void S2Bitmap::drawView(const uint16 viewNo, const int16 loopNo, const int16 celNo, const int16 x, const int16 y) {

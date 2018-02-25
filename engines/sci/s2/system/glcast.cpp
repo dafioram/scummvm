@@ -32,13 +32,13 @@ namespace Sci {
 
 void GLCast::add(GLObject &object) {
 	if (object.getIsScreenItem()) {
-		_screenItems.push_back(&static_cast<GLScreenItem &>(object));
+		_screenItems.push_back(&dynamic_cast<GLScreenItem &>(object));
 	}
 	if (object.getNeedsDoIt()) {
 		_doIts.push_back(&object);
 	}
 	if (object.getNeedsEvent()) {
-		_eventHandlers.push_back(&static_cast<GLTarget &>(object));
+		_eventHandlers.push_back(&dynamic_cast<GLTarget &>(object));
 	}
 }
 
@@ -58,11 +58,11 @@ void GLCast::remove(GLObject &object) {
 	// the list contained the element before trying to remove the element, which
 	// is not necessary.)
 	if (object.getIsScreenItem()) {
-		_screenItems.remove(&static_cast<GLScreenItem &>(object));
+		_screenItems.remove(&dynamic_cast<GLScreenItem &>(object));
 	}
 	_doIts.remove(&object);
 	if (object.getNeedsEvent()) {
-		_eventHandlers.remove(&static_cast<GLTarget &>(object));
+		_eventHandlers.remove(&dynamic_cast<GLTarget &>(object));
 	}
 }
 
