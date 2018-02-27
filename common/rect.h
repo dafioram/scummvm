@@ -31,6 +31,10 @@
 
 namespace Common {
 
+#ifndef HAVE_CPP11
+#define constexpr
+#endif
+
 /**
  * Simple class for handling both 2D position and size.
  */
@@ -38,8 +42,8 @@ struct Point {
 	int16 x;	///< The horizontal part of the point
 	int16 y;	///< The vertical part of the point
 
-	Point() : x(0), y(0) {}
-	Point(int16 x1, int16 y1) : x(x1), y(y1) {}
+	constexpr Point() : x(0), y(0) {}
+	constexpr Point(int16 x1, int16 y1) : x(x1), y(y1) {}
 	bool operator==(const Point &p) const { return x == p.x && y == p.y; }
 	bool operator!=(const Point &p) const { return x != p.x || y != p.y; }
 	Point operator+(const Point &delta) const {	return Point(x + delta.x, y + delta.y);	}
@@ -96,8 +100,8 @@ struct Rect {
 	int16 top, left;		///< The point at the top left of the rectangle (part of the rect).
 	int16 bottom, right;	///< The point at the bottom right of the rectangle (not part of the rect).
 
-	Rect() : top(0), left(0), bottom(0), right(0) {}
-	Rect(int16 w, int16 h) : top(0), left(0), bottom(h), right(w) {}
+	constexpr Rect() : top(0), left(0), bottom(0), right(0) {}
+	constexpr Rect(int16 w, int16 h) : top(0), left(0), bottom(h), right(w) {}
 	Rect(int16 x1, int16 y1, int16 x2, int16 y2) : top(y1), left(x1), bottom(y2), right(x2) {
 		assert(isValidRect());
 	}
@@ -268,6 +272,10 @@ struct Rect {
 		return Rect(x, y, x + w, y + h);
 	}
 };
+
+#ifndef HAVE_CPP11
+#undef constexpr
+#endif
 
 } // End of namespace Common
 
