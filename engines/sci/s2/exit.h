@@ -30,11 +30,20 @@
 
 namespace Sci {
 
+class S2Cursor;
+class S2RoomManager;
+
 class S2Exit : public GLPoly {
 public:
 	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
+	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const int16 x1, const int16 y1, const int16 x2, const int16 y2, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
 	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const Common::Rect &rect, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
 	S2Exit(AbsGLPlane &plane, const int targetRoomNo, const PointsList &poly, const S2Cursor::Cel cursorCel = S2Cursor::kForwardCel);
+
+	static void init(S2Cursor *cursor, S2RoomManager *roomManager) {
+		_cursor = cursor;
+		_roomManager = roomManager;
+	}
 
 	int getTargetRoomNo() const { return _targetRoomNo; }
 	void setTargetRoomNo(const int roomNo) { _targetRoomNo = roomNo; }
@@ -45,10 +54,15 @@ public:
 
 	S2Cursor::Cel getCursorCel() const { return _cursorCel; }
 
+	bool handleEvent(GLEvent &event) override;
+
 private:
+	static S2Cursor *_cursor;
+	static S2RoomManager *_roomManager;
+
 	static GLPoint _defaultPoly[10];
 
-	PointsList rectToPoints(const Common::Rect &rect) const {
+	static PointsList rectToPoints(const Common::Rect &rect) {
 		// In order to match the poly dimensions for rectangles in SSCI, the
 		// rectangle coordinates need to be converted from BR-exclusive to
 		// BR-inclusive

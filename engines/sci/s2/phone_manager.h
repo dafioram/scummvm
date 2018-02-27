@@ -35,6 +35,11 @@ public:
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
+	void pushedMotelMessageButton();
+
+	void addAnsweringMachineLight(const int roomNo);
+	void removeAnsweringMachineLight();
+	void resetPhone();
 	void cancelCall();
 
 	void notifyRoomChange(const bool baseRoomChanged);

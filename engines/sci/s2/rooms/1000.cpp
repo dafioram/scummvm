@@ -59,11 +59,11 @@ private:
 			auto &hotspot = emplaceHotspot(true, 224, 120, 464, 360);
 			hotspot.setMouseUpHandler(this, &S2CheckInRoom::interact);
 
-			_charles = &emplaceCel(false, 1910, 0, 0, gameBottom, 200);
+			_charles = &emplaceCel(false, 1910, 0, 0, roomBottom, 200);
 			_charles->show();
 
 			if (_isWacky) {
-				auto &wackyCel = emplaceCel(false, 1910, 3, 0, gameBottom, 200);
+				auto &wackyCel = emplaceCel(false, 1910, 3, 0, roomBottom, 200);
 				wackyCel.setCycleSpeed(12);
 				_wackyFace = &wackyCel;
 				getPlane().getCast().remove(wackyCel);
@@ -107,13 +107,13 @@ private:
 				_wackyFace->hide();
 			}
 			_game.getRoomManager().drawPic(1920);
-			_deskItem.reset(new GLCel(getPlane(), 1920, 0, 0, gameBottom, 203));
+			_deskItem.reset(new GLCel(getPlane(), 1920, 0, 0, roomBottom, 203));
 			_deskItem->show();
 			break;
 		case 6:
 			_charles->hide();
 			_game.getRoomManager().drawPic(1920);
-			_deskItem.reset(new GLCel(getPlane(), 1920, 0, 1, gameBottom, 203));
+			_deskItem.reset(new GLCel(getPlane(), 1920, 0, 1, roomBottom, 203));
 			_deskItem->show();
 			break;
 		case 7:
@@ -156,7 +156,7 @@ private:
 			}
 			flushEvents();
 			_game.getRoomManager().drawPic(1920);
-			_deskItem.reset(new GLCel(getPlane(), 1920, 1, 0, gameBottom, 202));
+			_deskItem.reset(new GLCel(getPlane(), 1920, 1, 0, roomBottom, 202));
 			_deskItem->show();
 			break;
 		case 12:
@@ -234,7 +234,7 @@ private:
 	}
 
 	void playRobot(GLScript &script, const uint16 robotNo) {
-		_game.getMovieManager().initRobot(robotNo, getPlane(), 200, gameTop);
+		_game.getMovieManager().initRobot(robotNo, getPlane(), 200, roomTop);
 		_game.getMovieManager().setRobotCaller(script);
 		_game.getMovieManager().setRobotClient(*_charles);
 		_game.getMovieManager().playRobot(false, true, false);

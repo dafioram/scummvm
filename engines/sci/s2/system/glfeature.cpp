@@ -30,6 +30,11 @@ GLFeature::GLFeature(AbsGLPlane &plane) :
 
 GLFeature::~GLFeature() {
 	_plane->getCast().removeEventHandler(*this);
+	// SSCI did not do this; we need to do this, or else we will crash in
+	// `GLCast::remove` when deleting a GLCel, since that method is called by
+	// ~GLScreenItem but the GLFeature part of the GLCel object will have
+	// already been destroyed by then (and it'd be a redundant call anyway)
+	setNeedsEvent(false);
 }
 
 void GLFeature::init() {

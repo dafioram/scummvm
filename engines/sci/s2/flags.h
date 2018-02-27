@@ -172,7 +172,7 @@ enum GameFlag {
 	kGameFlag140,
 	kGameFlag141,
 	kGameFlag142,
-	kGameFlag143,
+	kUnlockedSuitcase,
 	kGameFlag144,
 	kGameFlag145,
 	kGameFlag146,

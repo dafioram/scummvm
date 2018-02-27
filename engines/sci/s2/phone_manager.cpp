@@ -39,6 +39,22 @@ void S2PhoneManager::saveLoadWithSerializer(Common::Serializer &s) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+void S2PhoneManager::pushedMotelMessageButton() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2PhoneManager::addAnsweringMachineLight(const int roomNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2PhoneManager::removeAnsweringMachineLight() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2PhoneManager::resetPhone() {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void S2PhoneManager::cancelCall() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }

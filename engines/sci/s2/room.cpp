@@ -26,8 +26,8 @@ namespace Sci {
 
 constexpr GLPoint S2Room::absTop;
 constexpr GLPoint S2Room::absBottom;
-constexpr GLPoint S2Room::gameTop;
-constexpr GLPoint S2Room::gameBottom;
+constexpr GLPoint S2Room::roomTop;
+constexpr GLPoint S2Room::roomBottom;
 
 void S2Room::doIt() {
 	if (_activeSubRoom) {

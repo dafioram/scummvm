@@ -36,6 +36,13 @@ S2Hotspot::S2Hotspot(AbsGLPlane &plane, const int16 x1, const int16 y1, const in
 	enable();
 }
 
+S2Hotspot::~S2Hotspot() {
+	// SSCI required the caller to do this manually
+	if (_isEnabled) {
+		_plane->getCast().remove(*this);
+	}
+}
+
 bool S2Hotspot::handleEvent(GLEvent &event) {
 	if (_isEnabled && event.getType() == kSciEventMouseRelease) {
 		event.localize(*_plane);

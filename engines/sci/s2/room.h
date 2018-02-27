@@ -44,8 +44,8 @@ class S2Room {
 public:
 	static constexpr GLPoint absTop     = {  0,   0 };
 	static constexpr GLPoint absBottom  = {  0, 479 };
-	static constexpr GLPoint gameTop    = { 64,   0 };
-	static constexpr GLPoint gameBottom = { 64, 383 };
+	static constexpr GLPoint roomTop    = { 64,   0 };
+	static constexpr GLPoint roomBottom = { 64, 383 };
 
 	S2Room(S2Kernel &kernel, S2Game &game) :
 		_kernel(kernel),
@@ -84,6 +84,45 @@ protected:
 		T *object = new T(getPlane(), args...);
 		_children.emplace_back(object);
 		return *object;
+	}
+
+	void removeChild(S2Exit &exit) {
+		auto it = Common::find(_exits.begin(), _exits.end(), &exit);
+		if (it != _exits.end()) {
+			_game.getRoomManager().removeExit(exit);
+			_exits.erase(it);
+		}
+
+		removeChild(static_cast<GLObject &>(exit));
+	}
+
+	void removeChild(S2Hotspot &hotspot) {
+		auto it = Common::find(_hotspots.begin(), _hotspots.end(), &hotspot);
+		if (it != _hotspots.end()) {
+			_game.getRoomManager().removeHotspot(hotspot);
+			_hotspots.erase(it);
+		}
+
+		removeChild(static_cast<GLObject &>(hotspot));
+	}
+
+	void removeChild(GLCel &cel) {
+		auto it = Common::find(_cels.begin(), _cels.end(), &cel);
+		if (it != _cels.end()) {
+			_game.getRoomManager().removeCel(cel);
+			_cels.erase(it);
+		}
+
+		removeChild(static_cast<GLObject &>(cel));
+	}
+
+	void removeChild(GLObject &object) {
+		auto it = Common::find_if(_children.begin(), _children.end(), [&](Common::ScopedPtr<GLObject> &ptr) {
+			return ptr.get() == &object;
+		});
+		if (it != _children.end()) {
+			_children.erase(it);
+		}
 	}
 
 	template <typename ...Args>
@@ -133,9 +172,9 @@ protected:
 		cel.show();
 	}
 
-	template <typename O, typename F, typename ... Args>
-	void setScript(O object, F function, Args && ...args) {
-		_script.reset(new GLScript(object, function, args...));
+	template <typename ... Args>
+	void setScript(Args && ...args) {
+		_script.reset(new GLScript(args...));
 	}
 
 	void resetState(const int newState) {
@@ -158,7 +197,13 @@ protected:
 				_game.getRoomManager().removeCel(*cel);
 			}
 		}
+		for (auto &&exit : _exits) {
+			if (exit) {
+				_game.getRoomManager().removeExit(*exit);
+			}
+		}
 		_game.getRoomManager().getPanorama().removeAllExits();
+		_exits.clear();
 		_hotspots.clear();
 		_cels.clear();
 		_children.clear();

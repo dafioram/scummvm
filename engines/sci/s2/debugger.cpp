@@ -36,12 +36,15 @@ S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
 
 	registerCmd("go", WRAP_METHOD(S2Debugger, cmdExit));
 	registerCmd("bitmap_info", WRAP_METHOD(S2Debugger, cmdBitmapInfo));
+	registerCmd("room", WRAP_METHOD(S2Debugger, cmdRoom));
 
 	kernel.eventManager.attachDebugger(this);
 	kernel.graphicsManager.attachDebugger(this);
 }
 
 bool S2Debugger::cmdHelp(int argc, const char **argv) {
+	debugPrintf("Game:\n");
+	debugPrintf("room - Get or set the current room\n");
 	debugPrintf("Resources:\n");
 	printResourcesHelp();
 	debugPrintf("\nGraphics:\n");
@@ -81,6 +84,21 @@ bool S2Debugger::cmdBitmapInfo(int argc, const char **argv) {
 	}
 
 	debugPrintf("%s\n", bitmap->toString().c_str());
+	return true;
+}
+
+bool S2Debugger::cmdRoom(int argc, const char **argv) {
+	if (argc > 1) {
+		int roomNo;
+		if (!parseInteger(argv[1], roomNo)) {
+			debugPrintf("Invalid room number '%s'\n", argv[1]);
+		} else {
+			_game.getRoomManager().setNextRoomNo(roomNo);
+			debugPrintf("Room changed from %d to %d\n", _game.getRoomManager().getCurrentRoomNo(), roomNo);
+		}
+	} else {
+		debugPrintf("Current room is %d\n", _game.getRoomManager().getCurrentRoomNo());
+	}
 	return true;
 }
 

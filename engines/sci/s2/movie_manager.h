@@ -64,6 +64,7 @@ public:
 	void setRobotClient(GLCel &cel);
 
 	void play(const uint16 movieNo, Captioner captioner = nullptr, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
+	void play(const uint16 tapeId, const bool blockHypnotism);
 
 	bool getUseHalfScreen() const { return _useHalfScreen; }
 	void toggleUseHalfScreen() { _useHalfScreen = !_useHalfScreen; }
@@ -80,6 +81,9 @@ private:
 	bool _preventSkip;
 	bool _useHalfScreen;
 	int _frameNo;
+
+	bool _shouldHypnotise;
+	bool _someHypnotise;
 };
 
 } // End of namespace Sci

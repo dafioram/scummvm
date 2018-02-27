@@ -72,6 +72,7 @@ public:
 
 	bool inInteractiveRoom() const;
 
+	int getNextRoomNo() const { return _nextRoomNo; }
 	void setNextRoomNo(const int roomNo) { _nextRoomNo = roomNo; }
 
 	void doIt() override;
@@ -116,6 +117,8 @@ public:
 	void removeCel(GLCel &cel) { removeUnique(_cels, cel); }
 	void removeAllCels() { _cels.clear(); }
 
+	void setNorah(const uint16 soundNo, const int roomNo);
+
 private:
 	int getBaseRoomNumber(const int roomNo) const;
 
@@ -154,6 +157,9 @@ private:
 	int _lastNonGlobalRoomNo;
 
 	uint8 _numRoomTransitions;
+
+	uint16 _norahSoundNo;
+	int _norahNextRoomNo;
 };
 
 } // End of namespace Sci

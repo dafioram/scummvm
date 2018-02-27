@@ -39,7 +39,7 @@ public:
 	GLScreenItem(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 	GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 	GLScreenItem(AbsGLPlane &plane, S2Bitmap &bitmap, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
-	~GLScreenItem();
+	virtual ~GLScreenItem();
 
 	static void init(GfxFrameout *graphicsManager) { _graphicsManager = graphicsManager; }
 

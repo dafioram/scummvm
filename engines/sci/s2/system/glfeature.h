@@ -33,7 +33,7 @@ class AbsGLPlane;
 class GLFeature : public GLTarget {
 public:
 	GLFeature(AbsGLPlane &plane);
-	~GLFeature();
+	virtual ~GLFeature();
 	bool checkIsOnMe(const GLPoint &position) const;
 
 	const Common::Rect &getRect() const { return _bounds; }

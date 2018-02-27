@@ -429,6 +429,11 @@ void S2RoomManager::unloadGlobalRoom() {
 	}
 }
 
+void S2RoomManager::setNorah(const uint16 soundNo, const int roomNo) {
+	_norahSoundNo = soundNo;
+	_norahNextRoomNo = roomNo;
+}
+
 int S2RoomManager::getBaseRoomNumber(const int roomNo) const {
 	if (roomNo < 30000) {
 		return roomNo / 1000 * 1000;

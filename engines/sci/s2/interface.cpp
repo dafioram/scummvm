@@ -100,6 +100,8 @@ void S2Interface::init() {
 void S2Interface::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsByte(_isCaptioningOn);
 	s.syncAsSint32LE(_healthRemaining);
+
+	// This was originally in S2Game::Load in SSCI
 	if (s.isLoading()) {
 		changeLife(_healthRemaining, true);
 		resetButtons();
@@ -264,7 +266,23 @@ void S2Interface::resetButtons() {
 }
 
 void S2Interface::changeLife(const int amount, const bool isAbsolute) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (isAbsolute) {
+		_healthRemaining = amount;
+	} else {
+		_healthRemaining += amount;
+	}
+
+	if (_healthRemaining < 0) {
+		_healthRemaining = 0;
+	} else if (_healthRemaining > 100) {
+		_healthRemaining = 100;
+	}
+
+	if (_healthRemaining == 0) {
+		_game.getRoomManager().loadGlobalRoom(4200, true);
+	} else {
+		_healthMask->setPosition(GLPoint(_healthRemaining * 5, 479), true);
+	}
 }
 
 void S2Interface::drawInventoryItem(const int slotNo, const S2Inventory item) {

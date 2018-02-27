@@ -54,8 +54,8 @@ void GLCycler::start() {
 	_extras->push_back(this);
 }
 
-void GLCycler::start(GLObject *caller) {
-	_caller = caller;
+void GLCycler::start(GLObject &caller) {
+	_caller = &caller;
 	start();
 }
 
@@ -112,6 +112,41 @@ void GLCycler::release() {
 	}
 	_cels.clear();
 	_timings.clear();
+}
+
+int16 GLEndCycler::nextCel(GLCel &client) {
+	auto cel = client.getCel() + getDirection();
+	if (cel < 0) {
+		cel = 0;
+		incrementCycle();
+	}
+	const auto lastCel = client.getLastCel();
+	if (cel > lastCel) {
+		cel = lastCel;
+		incrementCycle();
+	}
+	return cel;
+}
+
+int16 GLEndBackCycler::nextCel(GLCel &client) {
+	const auto cel = client.getCel();
+	cycleForward(false);
+	if (cel == 0) {
+		incrementCycle();
+		return cel;
+	} else {
+		return cel + getDirection();
+	}
+}
+
+int16 GLEndForwardCycler::nextCel(GLCel &client) {
+	const auto cel = client.getCel();
+	if (cel >= client.getLastCel()) {
+		incrementCycle();
+		return cel;
+	} else {
+		return cel + getDirection();
+	}
 }
 
 int16 GLPingPongCycler::nextCel(GLCel &client) {

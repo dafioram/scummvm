@@ -20,37 +20,17 @@
  *
  */
 
-#ifndef SCI_S2_HOTSPOT_H
-#define SCI_S2_HOTSPOT_H
-
-#include "sci/s2/system/glpoly.h"
+#ifndef SCI_S2_ROOMS_PHONE_H
+#define SCI_S2_ROOMS_PHONE_H
 
 namespace Sci {
 
 class GLEvent;
 
-class S2Hotspot : public GLPoly {
-public:
-	S2Hotspot(AbsGLPlane &plane, const int16 x1, const int16 y1, const int16 x2, const int16 y2);
-	virtual ~S2Hotspot();
-
-	bool getIsEnabled() const { return _isEnabled; }
-
-	void enable();
-	void disable();
-
-	bool handleEvent(GLEvent &event) override;
-
-	const EventHandler &getMouseUpHandler() const { return _mouseUpHandler; }
-	void setMouseUpHandler(const EventHandler &handler) { _mouseUpHandler = handler; }
-	template <typename T, typename U>
-	void setMouseUpHandler(T object, U fn) {
-		_mouseUpHandler = makeHandler(object, fn);
-	}
-
-private:
-	bool _isEnabled;
-	EventHandler _mouseUpHandler;
+class PhoneRoom {
+protected:
+	void setUpPhone(const int roomNo);
+	void handleEvent(GLEvent &);
 };
 
 } // End of namespace Sci

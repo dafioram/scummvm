@@ -46,7 +46,7 @@ public:
 
 	int add(GLCel &cel, const bool shouldStart = false);
 	void start();
-	void start(GLObject *caller);
+	void start(GLObject &caller);
 	void stop();
 
 	void cycleForward(const bool forward);
@@ -54,6 +54,7 @@ public:
 	virtual void doIt() override;
 
 protected:
+	void incrementCycle() { ++_numCyclesCompleted; }
 	virtual int16 nextCel(GLCel &client);
 
 private:
@@ -72,6 +73,24 @@ private:
 	Common::Array<int> _timings;
 	int _direction = 1;
 	int _numCyclesCompleted = 0;
+};
+
+class GLEndCycler : public GLCycler {
+public:
+	using GLCycler::GLCycler;
+	virtual int16 nextCel(GLCel &client) override;
+};
+
+class GLEndBackCycler : public GLCycler {
+public:
+	using GLCycler::GLCycler;
+	virtual int16 nextCel(GLCel &client) override;
+};
+
+class GLEndForwardCycler : public GLCycler {
+public:
+	using GLCycler::GLCycler;
+	virtual int16 nextCel(GLCel &client) override;
 };
 
 class GLPingPongCycler : public GLCycler {

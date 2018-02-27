@@ -61,6 +61,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	S2Dialog::init(&_user);
 	S2InventoryObject::init(this);
 	GLPanorama::init(this);
+	S2Exit::init(&_cursor, &_roomManager);
 	_phoneManager.init();
 }
 

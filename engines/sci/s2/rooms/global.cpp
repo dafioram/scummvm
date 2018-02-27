@@ -332,7 +332,7 @@ private:
 
 class S2OptionsRoom : public S2SubRoom {
 	auto &addButton(const int16 loopNo, const bool enable = true) {
-		auto &button = emplaceButton(true, enable, 4100, loopNo, 0, gameBottom, 202);
+		auto &button = emplaceButton(true, enable, 4100, loopNo, 0, roomBottom, 202);
 		button.setHighlightedFace(4100, loopNo, 2);
 		button.setDepressedFace(4100, loopNo, 2);
 		return button;
@@ -400,7 +400,7 @@ public:
 
 	virtual void init(const int) override {
 		// captioning
-		auto *button = &emplaceCel(false, 4120, 0, _game.getInterface().getIsCaptioningOn(), gameBottom, 201);
+		auto *button = &emplaceCel(false, 4120, 0, _game.getInterface().getIsCaptioningOn(), roomBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
 				_game.getSoundManager().play(10913, false, 100);
@@ -412,7 +412,7 @@ public:
 		button->forceUpdate();
 
 		// smart cursor
-		button = &emplaceCel(false, 4120, 1, _game.getRoomManager().getAutoHighlight(), gameBottom, 201);
+		button = &emplaceCel(false, 4120, 1, _game.getRoomManager().getAutoHighlight(), roomBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
 				_game.getSoundManager().play(10913, false, 100);
@@ -424,7 +424,7 @@ public:
 		button->forceUpdate();
 
 		// video size
-		button = &emplaceCel(false, 4120, 2, !_game.getMovieManager().getUseHalfScreen(), gameBottom, 201);
+		button = &emplaceCel(false, 4120, 2, !_game.getMovieManager().getUseHalfScreen(), roomBottom, 201);
 		button->setSelectHandler([&](GLEvent &event, GLTarget &cel) {
 			if (event.getType() == kSciEventMousePress) {
 				_game.getSoundManager().play(10913, false, 100);
@@ -462,7 +462,7 @@ public:
 		// pan window size, does nothing in ScummVM
 		emplaceCel(false, 4120, 3, 0, GLPoint(kSliderX + kSliderSize, 317), 201).forceUpdate();
 
-		auto &sign = emplaceCel(false, 4120, 4, 2, gameBottom, 201);
+		auto &sign = emplaceCel(false, 4120, 4, 2, roomBottom, 201);
 		sign.hide();
 		_neonSign.reset(new GLScript([&](GLScript &script, int state) {
 			switch (state) {
@@ -479,7 +479,7 @@ public:
 		}));
 
 		_solveIt = false;
-		auto &solver = emplaceCel(false, 4120, 5, 0, gameBottom, 201);
+		auto &solver = emplaceCel(false, 4120, 5, 0, roomBottom, 201);
 		solver.setSelectHandler(this, &S2ConfigurationRoom::solvePuzzle);
 		_solverCycler.reset(new GLCycler());
 		_solverCycler->add(solver, true);
@@ -691,8 +691,6 @@ void S2GlobalRoom::init(const int roomNo) {
 
 bool S2GlobalRoom::handleEvent(GLEvent &event) {
 	switch (_game.getRoomManager().getCurrentGlobalRoomNo()) {
-	case 4120:
-		break;
 	case 4300:
 		warning("TODO: Handle global 4300 event");
 		break;
