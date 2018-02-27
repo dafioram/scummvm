@@ -52,6 +52,10 @@ public:
 	int _lastRoomBeforeRestore;
 	int _creditsSoundNo;
 
+	int _flashbackPageNo;
+	int _flashbackMovieNo;
+	S2MovieManager::Captioner *_flashbackMovieCaptioner;
+
 private:
 	virtual GLPicturePlane &getPlane() const override {
 		return *_game.getRoomManager().getGlobalPlane();

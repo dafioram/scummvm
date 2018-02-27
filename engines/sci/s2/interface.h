@@ -73,8 +73,7 @@ public:
 
 private:
 	S2Button *makeButton(const int16 loopNo, const bool shouldEnable = true) const;
-
-	void onOptions(GLEvent &event, GLTarget &);
+	void activateButton(GLEvent &event, GLTarget &target, const int roomNo);
 
 	void captionScript(GLScript &script, const int state);
 	Common::String _activeCaptionText;

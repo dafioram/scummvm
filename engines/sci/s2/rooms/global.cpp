@@ -387,6 +387,328 @@ private:
 	Common::ScopedPtr<S2Bitmap> _scoreBitmap;
 };
 
+class S2FlashbackRoom : public S2GlobalSubRoom {
+public:
+	using S2GlobalSubRoom::S2GlobalSubRoom;
+
+	virtual void init(const int roomNo) override {
+		switch (roomNo) {
+		case 2:
+			playMovie(true);
+			break;
+		case 1920:
+			emplaceCel(false, 1920, 0, 1, roomBottom).show();
+			break;
+		case 4110:
+		case 4111: {
+			_game.getFlags().set(kGameFlag44);
+			auto &button = emplaceButton(true, true, 4110, 1, 0, roomBottom, 202);
+			button.setHighlightedFace(4110, 1, 1);
+			button.setMouseUpHandler([&](GLEvent &, GLTarget &) {
+				static_cast<S2GlobalRoom &>(_parent).returnToGame();
+			});
+
+			if (roomNo == 4110) {
+				initFlashbackList();
+			} else {
+				initMovieList();
+			}
+			break;
+		}
+		case 5010:
+		case 5120:
+			_game.getSoundManager().stop(30004);
+			warning("TODO: caption %d", roomNo);
+			_game.getMovieManager().play(roomNo, nullptr, roomTop, false, true);
+			_game.getSoundManager().play(30004, true, 0);
+			_game.getSoundManager().fade(30004, 80, 15, 12);
+			_game.getRoomManager().loadGlobalRoom(4110);
+			break;
+		case 5011:
+			_game.getSoundManager().stop(30004);
+			// SSCI stopped the same sound twice here
+			_game.getSoundManager().play(59016);
+			_game.getInterface().putText(59016);
+			break;
+		case 6274:
+		case 10121:
+		case 10128:
+		case 11352:
+		case 13211:
+		case 14525:
+		case 15021:
+		case 16113:
+		case 16931:
+			break;
+		case 6353:
+			emplaceCel(false, 6353, 1, 1, roomBottom).show();
+			break;
+		case 11140:
+			emplaceCel(false, 11140, 0, 10, roomBottom).show();
+			_game.getSoundManager().play(41150);
+			_game.getInterface().putText(41150);
+			break;
+		case 15341:
+			playMovie(false);
+			break;
+		case 18131:
+			emplaceCel(false, 18131, 0, 1, roomBottom).show();
+			break;
+		case 18240:
+			emplaceCel(false, 18240, 1, 7, GLPoint(316, 135)).show();
+			break;
+		case 18423:
+			break;
+		case 20412: {
+			getParent()._flashbackPageNo = 20412;
+			emplaceCel(false, 20412, 0, 0, roomBottom).show();
+			emplaceHotspot(false, 334, 34, 549, 358).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+			break;
+		}
+		case 20413: {
+			getParent()._flashbackPageNo = 20413;
+			emplaceCel(false, 20412, 0, 1, roomBottom).show();
+			emplaceHotspot(false, 91, 34, 318, 358).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+			break;
+		}
+		case 21321:
+			emplaceCel(false, 21321, 25, 0, roomBottom).show();
+			break;
+		case 21354:
+			getParent()._flashbackPageNo = 21354;
+			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+			break;
+		case 21355:
+			getParent()._flashbackPageNo = 21355;
+			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+			break;
+		case 22511:
+			emplaceCel(false, 22511, 0, 3, roomBottom).show();
+			break;
+		case 24321:
+		case 24322:
+		case 24323:
+		case 24324:
+		case 24325:
+		case 24326:
+		case 24327:
+		case 24328:
+		case 24329:
+		case 24330:
+		case 24331:
+		case 24332:
+		case 24333:
+		case 24334:
+		case 24335:
+			getParent()._flashbackPageNo = roomNo;
+			if (roomNo > 24321) {
+				emplaceHotspot(false, 64, 18, 315, 356).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+			}
+			if (roomNo < 24335) {
+				emplaceHotspot(false, 332, 18, 575, 356).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+			}
+			break;
+		}
+	}
+
+	virtual void dispose(const int roomNo) override {
+		switch (roomNo) {
+		case 5011:
+			_game.getInterface().putText(0);
+			_game.getSoundManager().stop();
+			break;
+		case 11140:
+			_game.getSoundManager().stop(41150);
+			break;
+		}
+	}
+
+private:
+	S2GlobalRoom &getParent() const { return static_cast<S2GlobalRoom &>(_parent); }
+
+	void initFlashbackList() {
+		auto &cel = emplaceCel(false, 4110, 0, 0, roomBottom, 202);
+		cel.setSelectHandler([&](GLEvent &event, GLTarget &) {
+			if (event.getType() == kSciEventMousePress) {
+				_game.getSoundManager().play(10908, false, 100);
+				_game.getRoomManager().loadGlobalRoom(4111);
+			}
+		});
+		cel.show();
+		cel.forceUpdate();
+
+		auto *button = &emplaceButton(true, true, 4110, 2, 0, GLPoint(77, 40), 202);
+		// SSCI set depressed face to its already-defaulted value
+		button->setMouseUpHandler(this, &S2FlashbackRoom::showFlashback);
+
+		// SSCI counted indexes and multiplied on each step instead of
+		// maintaining a single point object
+		GLPoint position(77, 70);
+		for (int flag = kGameFlag45, loopNo = 3; flag <= kGameFlag70; ++flag, ++loopNo) {
+			if (!_game.getFlags().get(GameFlag(flag))) {
+				continue;
+			}
+			button = &emplaceButton(true, true, 4110, loopNo, 0, position, 202);
+			// SSCI set depressed face to its already-defaulted value
+			button->setMouseUpHandler(this, &S2FlashbackRoom::showFlashback);
+
+			if (position.y == 250) {
+				position.y = 40;
+				if (position.x == 77) {
+					position.x = 241;
+				} else if (position.x == 241) {
+					position.x = 410;
+				}
+			} else {
+				position.y += 30;
+			}
+		}
+	}
+
+	void initMovieList() {
+		_game.getFlags().set(kGameFlag44);
+
+		auto &backButton = emplaceCel(false, 4110, 0, 1, roomBottom, 202);
+		backButton.setSelectHandler([&](GLEvent &event, GLTarget &) {
+			if (event.getType() == kSciEventMousePress) {
+				_game.getSoundManager().play(10908, false, 100);
+				_game.getRoomManager().loadGlobalRoom(4110);
+			}
+		});
+		backButton.show();
+		backButton.forceUpdate();
+
+		GLPoint position(159, 50);
+		for (int flag = kGameFlag71, loopNo = 29; flag <= kGameFlag84; ++flag, ++loopNo) {
+			if (!_game.getFlags().get(GameFlag(flag))) {
+				continue;
+			}
+
+			auto &button = emplaceButton(true, true, 4110, loopNo, 0, position, 202);
+			button.setMouseUpHandler(this, &S2FlashbackRoom::showMovie);
+
+			if (position.y == 290) {
+				position.x = 334;
+				position.y = 50;
+			} else {
+				position.y += 40;
+			}
+		}
+	}
+
+	void showFlashback(GLEvent &, GLTarget &target) {
+		auto &button = static_cast<S2Button &>(target);
+		_game.getSoundManager().play(10913, false, 100);
+		const int roomNo = _loopToRoom[button.getLoop()];
+		if (roomNo) {
+			_game.getRoomManager().loadGlobalRoom(roomNo);
+		}
+	}
+
+	void showMovie(GLEvent &, GLTarget &target) {
+		auto &button = static_cast<S2Button &>(target);
+		const Movie &movie = _loopToMovie[button.getLoop() - 29];
+		getParent()._flashbackMovieNo = movie.movieNo;
+		getParent()._flashbackMovieCaptioner = movie.captioner;
+		_game.getRoomManager().loadGlobalRoom(movie.roomNo);
+	}
+
+	void playMovie(const bool specialPlayback) {
+		_game.getSoundManager().stop(30004);
+		const auto movieNo = getParent()._flashbackMovieNo;
+		const auto captioner = getParent()._flashbackMovieCaptioner;
+		GLPoint position;
+		bool forceDouble;
+		if (specialPlayback && movieNo == 1020) {
+			position = roomTop;
+			forceDouble = false;
+		} else if (specialPlayback && movieNo == 4020) {
+			position = { 182, 44 };
+			forceDouble = true;
+		} else {
+			position = { 159, 70 };
+			forceDouble = true;
+		}
+
+		_game.getMovieManager().play(movieNo, captioner ? *captioner : nullptr, position, forceDouble, true);
+		_game.getSoundManager().play(30004, true, 0);
+		_game.getSoundManager().fade(30004, 80, 15, 12);
+		_game.getRoomManager().loadGlobalRoom(4111);
+	}
+
+	void previousPage(GLEvent &, GLTarget &) {
+		_game.getSoundManager().play(10908, false, 100);
+		_game.getRoomManager().loadGlobalRoom(getParent()._flashbackPageNo - 1);
+	}
+
+	void nextPage(GLEvent &, GLTarget &) {
+		_game.getSoundManager().play(10908, false, 100);
+		_game.getRoomManager().loadGlobalRoom(getParent()._flashbackPageNo + 1);
+	}
+
+	struct Movie {
+		int movieNo;
+		S2MovieManager::Captioner *captioner;
+		int roomNo;
+	};
+
+	static constexpr Movie _loopToMovie[] = {
+		// starts at 29
+		// TODO: Captions
+		{ 1020, nullptr, 2 },
+		{ 2002, nullptr, 15341 },
+		{ 2008, nullptr, 15341 },
+		{ 2004, nullptr, 15341 },
+		{ 2003, nullptr, 15341 },
+		{ 2006, nullptr, 15341 },
+		{ 2001, nullptr, 15341 },
+		{ 2005, nullptr, 15341 },
+		{ 2000, nullptr, 15341 },
+		{ 2007, nullptr, 15341 },
+		{ 4000, nullptr, 2 },
+		{ 4010, nullptr, 2 },
+		{ 0, nullptr, 0 },
+		{ 4020, nullptr, 2 },
+		{ 5120, nullptr, 2 },
+		{ 5010, nullptr, 2 }
+	};
+
+	static constexpr int _loopToRoom[] = {
+		0,
+		0,
+		1920,
+		11140,
+		11352,
+		0,
+		10128,
+		10121,
+		0,
+		13211,
+		16113,
+		16931,
+		5011,
+		15021,
+		18423,
+		18131,
+		18240,
+		0,
+		20412,
+		14525,
+		5010, // + special stuff for movie & caption
+		24321,
+		6274,
+		6353,
+		22511,
+		5120, // + special stuff for movie & caption
+		0,
+		21321,
+		21354
+	};
+};
+
+constexpr int S2FlashbackRoom::_loopToRoom[];
+constexpr S2FlashbackRoom::Movie S2FlashbackRoom::_loopToMovie[];
+
 class S2ConfigurationRoom : public S2GlobalSubRoom {
 	enum {
 		kSliderX = 430,
@@ -664,6 +986,12 @@ public:
 		_cycler->add(*_cel, true);
 	}
 
+	virtual void dispose(const int) override {
+		_game.getSoundManager().stop(20019);
+		_game.getSoundManager().stop(20020);
+		_game.getSoundManager().stop(20021);
+	}
+
 	virtual bool handleEvent(GLEvent &event) override {
 		// SSCI checked to see if the mouse button was released outside of the
 		// cel but still within the bounds of the room area of the screen. This
@@ -811,6 +1139,51 @@ void S2GlobalRoom::init(const int roomNo) {
 		break;
 	case 4100:
 		setSubRoom<S2OptionsRoom>();
+		break;
+	case 2:
+	case 1920:
+	case 4110:
+	case 4111:
+	case 5010:
+	case 5011:
+	case 5120:
+	case 6274:
+	case 6353:
+	case 10121:
+	case 10128:
+	case 11140:
+	case 11352:
+	case 13211:
+	case 14525:
+	case 15021:
+	case 15341:
+	case 16113:
+	case 16931:
+	case 18131:
+	case 18240:
+	case 18423:
+	case 20412:
+	case 20413:
+	case 21321:
+	case 21354:
+	case 21355:
+	case 22511:
+	case 24321:
+	case 24322:
+	case 24323:
+	case 24324:
+	case 24325:
+	case 24326:
+	case 24327:
+	case 24328:
+	case 24329:
+	case 24330:
+	case 24331:
+	case 24332:
+	case 24333:
+	case 24334:
+	case 24335:
+		setSubRoom<S2FlashbackRoom>();
 		break;
 	case 4120:
 		setSubRoom<S2ConfigurationRoom>();

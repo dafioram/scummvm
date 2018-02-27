@@ -71,9 +71,17 @@ void S2Interface::init() {
 
 	// TODO: handlers
 	_flashback.reset(makeButton(4));
+	_flashback->setSelectHandler([&](GLEvent &event, GLTarget &target) {
+		activateButton(event, target, 4110);
+	});
 	_options.reset(makeButton(5));
-	_options->setSelectHandler(this, &S2Interface::onOptions);
+	_options->setSelectHandler([&](GLEvent &event, GLTarget &target) {
+		activateButton(event, target, 4100);
+	});
 	_map.reset(makeButton(6));
+	_map->setSelectHandler([&](GLEvent &event, GLTarget &target) {
+		activateButton(event, target, 4130);
+	});
 	_eye.reset(makeButton(7, false));
 	_eye->setDisabledFace(999, 7, 0);
 	_eye->setEnabledFace(999, 7, 1);
@@ -308,25 +316,47 @@ void S2Interface::eraseInventoryItem(const int slotNo) {
 	drawInventoryItem(slotNo, S2Inventory::None);
 }
 
-void S2Interface::onOptions(GLEvent &event, GLTarget &) {
-	if (_options->getIsVisible() && _options->getIsEnabled() &&
+void S2Interface::activateButton(GLEvent &event, GLTarget &target, const int roomNo) {
+	auto &button = static_cast<S2Button &>(target);
+	if (button.getIsEnabled() && button.getIsVisible() &&
 		_game.getRoomManager().getCurrentRoomNo() != 1015 &&
 		_game.getRoomManager().getCurrentRoomNo() != 6667 &&
 		event.getType() == kSciEventMousePress &&
-		_options->checkIsOnMe(event.getMousePosition())) {
+		button.checkIsOnMe(event.getMousePosition())) {
 
-		_options->press();
-		_kernel.graphicsManager.frameOut(true);
-		if (!_flashback->getIsEnabled()) {
-			_game.getRoomManager().unloadGlobalRoom();
-			_flashback->enable();
-			_map->enable();
+		S2Button *contraButton;
+		if (&button == _flashback.get()) {
+			contraButton = _options.get();
 		} else {
-			_game.getRoomManager().loadGlobalRoom(4100);
-			_flashback->disable();
-			_map->disable();
+			contraButton = _flashback.get();
 		}
-		_options->release();
+
+		button.press();
+		_kernel.graphicsManager.frameOut(true);
+		if (!contraButton->getIsEnabled()) {
+			_game.getRoomManager().unloadGlobalRoom();
+			if (&button != _flashback.get()) {
+				_flashback->enable();
+			}
+			if (&button != _options.get()) {
+				_options->enable();
+			}
+			if (&button != _map.get()) {
+				_map->enable();
+			}
+		} else {
+			_game.getRoomManager().loadGlobalRoom(roomNo);
+			if (&button != _flashback.get()) {
+				_flashback->disable();
+			}
+			if (&button != _options.get()) {
+				_options->disable();
+			}
+			if (&button != _map.get()) {
+				_map->disable();
+			}
+		}
+		button.release();
 		_game.getSoundManager().play(10912, false, 100);
 		event.claim();
 	}
