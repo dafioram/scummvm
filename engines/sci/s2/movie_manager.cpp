@@ -101,7 +101,7 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 	}
 
 	if (!captioner) {
-		// TODO: A big switch
+		warning("TODO: Captioning selection");
 	}
 
 	_movie = GLVmdMovie(movieNo);
@@ -289,7 +289,7 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 		_kernel.graphicsManager._palette.doCycle(195, 1);
 	}
 
-	// TODO: Captioning
+	warning("TODO: Captioning selection for tapes");
 	play(movieNo, nullptr, GLPoint(159, 70), true, true);
 
 	if (_shouldHypnotise) {

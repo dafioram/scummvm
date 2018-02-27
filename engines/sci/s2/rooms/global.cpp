@@ -608,6 +608,7 @@ private:
 	void showMovie(GLEvent &, GLTarget &target) {
 		auto &button = static_cast<S2Button &>(target);
 		const Movie &movie = _loopToMovie[button.getLoop() - 29];
+		warning("TODO: Captions in _loopToMovie");
 		getParent()._flashbackMovieNo = movie.movieNo;
 		getParent()._flashbackMovieCaptioner = movie.captioner;
 		_game.getRoomManager().loadGlobalRoom(movie.roomNo);
@@ -654,7 +655,6 @@ private:
 
 	static constexpr Movie _loopToMovie[] = {
 		// starts at 29
-		// TODO: Captions
 		{ 1020, nullptr, 2 },
 		{ 2002, nullptr, 15341 },
 		{ 2008, nullptr, 15341 },

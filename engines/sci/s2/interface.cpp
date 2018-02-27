@@ -69,7 +69,6 @@ void S2Interface::init() {
 	_internet.reset(makeButton(3, nullptr));
 	_internet->disable(); // :(
 
-	// TODO: handlers
 	_flashback.reset(makeButton(4));
 	_flashback->setSelectHandler([&](GLEvent &event, GLTarget &target) {
 		activateButton(event, target, 4110);

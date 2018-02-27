@@ -67,8 +67,7 @@ private:
 
 	GLObject *_caller = nullptr;
 	bool _isCycling = false;
-	// TODO: Rename 'finished' to match other APIs
-	bool _isComplete = false;
+	bool _isFinished = false;
 	int _targetCel;
 	GLSetAsArray<GLCel> _cels;
 	Common::Array<int> _timings;

@@ -50,7 +50,7 @@ int GLCycler::add(GLCel &cel, const bool shouldStart) {
 
 void GLCycler::start() {
 	_isCycling = true;
-	_isComplete = false;
+	_isFinished = false;
 	_extras->push_back(this);
 }
 
@@ -80,7 +80,7 @@ void GLCycler::doIt() {
 		}
 	}
 	if (_numCyclesCompleted == _cels.size()) {
-		_isComplete = true;
+		_isFinished = true;
 		done();
 	}
 }
