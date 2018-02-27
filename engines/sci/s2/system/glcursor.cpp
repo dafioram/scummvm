@@ -64,13 +64,11 @@ void GLCursor::setPosition(const Common::Point &position) {
 
 void GLCursor::show() {
 	_state &= ~kHiddenState;
-	setNeedsEvent(true);
 	_kernelCursor.show();
 }
 
 void GLCursor::hide() {
 	_state |= kHiddenState;
-	setNeedsEvent(false);
 	_kernelCursor.hide();
 }
 
