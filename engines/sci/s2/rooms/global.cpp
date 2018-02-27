@@ -36,7 +36,7 @@
 
 namespace Sci {
 
-class S2MainMenuRoom : public S2SubRoom {
+class S2MainMenuRoom : public S2GlobalSubRoom {
 	auto &addButton(const int16 loopNo, const bool enable = true) {
 		auto &button = emplaceButton(true, enable, 4000, loopNo, 0, absBottom, 202);
 		button.setHighlightedFace(4000, loopNo, 2);
@@ -45,7 +45,7 @@ class S2MainMenuRoom : public S2SubRoom {
 	};
 
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int) override {
 		// new game
@@ -93,9 +93,9 @@ public:
 	}
 };
 
-class S2NewGameRoom : public S2SubRoom {
+class S2NewGameRoom : public S2GlobalSubRoom {
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int) override {
 		auto *button = _startButton = &emplaceButton(true, false, 4010, 0, 0, GLPoint(0, 479), 202);
@@ -179,9 +179,9 @@ private:
 	S2Button *_startButton;
 };
 
-class S2LoadGameRoom : public S2SubRoom {
+class S2LoadGameRoom : public S2GlobalSubRoom {
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int) override {
 		const int lastRoom = static_cast<S2GlobalRoom &>(_parent)._lastRoomBeforeRestore;
@@ -330,7 +330,7 @@ private:
 	int _selectedSlot = -1;
 };
 
-class S2OptionsRoom : public S2SubRoom {
+class S2OptionsRoom : public S2GlobalSubRoom {
 	auto &addButton(const int16 loopNo, const bool enable = true) {
 		auto &button = emplaceButton(true, enable, 4100, loopNo, 0, roomBottom, 202);
 		button.setHighlightedFace(4100, loopNo, 2);
@@ -339,7 +339,7 @@ class S2OptionsRoom : public S2SubRoom {
 	};
 
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int) override {
 		auto *button = &addButton(0);
@@ -387,7 +387,7 @@ private:
 	Common::ScopedPtr<S2Bitmap> _scoreBitmap;
 };
 
-class S2ConfigurationRoom : public S2SubRoom {
+class S2ConfigurationRoom : public S2GlobalSubRoom {
 	enum {
 		kSliderX = 430,
 		kSliderSize = 124,
@@ -396,7 +396,7 @@ class S2ConfigurationRoom : public S2SubRoom {
 	};
 
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int) override {
 		// captioning
@@ -563,9 +563,9 @@ private:
 	Common::ScopedPtr<GLCycler> _solverCycler;
 };
 
-class S2CreditsRoom : public S2SubRoom {
+class S2CreditsRoom : public S2GlobalSubRoom {
 public:
-	using S2SubRoom::S2SubRoom;
+	using S2GlobalSubRoom::S2GlobalSubRoom;
 
 	virtual void init(const int roomNo) override {
 		auto &hotspot = emplaceHotspot(false, 0, 0, 639, 479);
@@ -650,6 +650,151 @@ private:
 	Common::ScopedPtr<GLPingPongCycler> _cycler;
 };
 
+class S2InventoryRoom : public S2GlobalSubRoom {
+public:
+	using S2GlobalSubRoom::S2GlobalSubRoom;
+
+	virtual void init(const int) override {
+		_cel.reset(new GLCel(getPlane(), _game.getInventoryManager().getShowingItemCel(), roomBottom, 255));
+		_cel->setCycleSpeed(18);
+		_cel->setSelectHandler(this, &S2InventoryRoom::combine);
+		_cel->show();
+		_cel->forceUpdate();
+		_cycler.reset(new GLCycler());
+		_cycler->add(*_cel, true);
+	}
+
+	virtual bool handleEvent(GLEvent &event) override {
+		// SSCI checked to see if the mouse button was released outside of the
+		// cel but still within the bounds of the room area of the screen. This
+		// meant the only way to get out of the inventory room in most cases was
+		// to click on the eye again, since most inventory cels take up the
+		// entire room area. For convenience, we extend the clickable area to
+		// include the borders around the edge of the room.
+		// SSCI also had an extra check to verify the mouse was not over the
+		// cel; this is not necessary since GLCel will unconditionally claim the
+		// event, so it will never be received by this room handler if it is
+		// over the cel.
+		if (event.getType() == kSciEventMouseRelease) {
+			const Common::Rect room(0, 0, 640, 384);
+			if (room.contains(event.getMousePosition()) &&
+				!_game.getCursor().hasInventory()) {
+
+				_game.getInventoryManager().hideItem();
+			}
+		}
+		event.claim();
+		return true;
+	}
+
+private:
+	void combine(GLEvent &event, GLTarget &) {
+		if (event.getType() == kSciEventMouseRelease) {
+			if (_game.getCursor().hasInventory()) {
+				auto item = _game.getInventoryManager().combineItems();
+				if (item == S2Inventory::kInv47) {
+					_game.getUser().setIsHandsOn(false);
+					_cycler.reset();
+					setScript([&](GLScript &script, const int state) {
+						switch (state) {
+						case 0:
+							_cel.reset(new GLCel(getPlane(), 3047, 1, 0, roomBottom, 300));
+							getPlane().repaint();
+							_cycler.reset(new GLEndCycler());
+							_cycler->add(*_cel);
+							_cycler->start(script);
+							break;
+						case 1:
+							_cel->setLoop(0, true);
+							_cycler.reset(new GLCycler());
+							_cycler->add(*_cel, true);
+							_script.reset();
+							_game.getUser().setIsHandsOn(true);
+							break;
+						}
+					});
+				} else if (item != S2Inventory::None) {
+					_cel->setCelRes(_game.getInventoryManager().getBigCel(item), true);
+				}
+			} else {
+				if (_game.getInventoryManager().getShowingItem() == S2Inventory::kInv28) {
+					_cel->setLoop(!_cel->getLoop(), true);
+				} else if (_game.getInventoryManager().getShowingItem() == S2Inventory::CompleteTapePlayer) {
+					setScript([&](GLScript &script, const int state) {
+						switch (state) {
+						case 0:
+							_game.getSoundManager().play(20020, false, 126, false, &script);
+							break;
+						case 1:
+							_game.getSoundManager().play(20019, false, 126, false, &script);
+							_game.getInterface().putText(11072);
+							break;
+						case 2:
+							_game.getSoundManager().play(20021, false, 126);
+							_script.reset();
+							break;
+						}
+					});
+				}
+			}
+		}
+	}
+
+	Common::ScopedPtr<GLCel> _cel;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
+class S2MusicBoxRoom : public S2GlobalSubRoom {
+public:
+	using S2GlobalSubRoom::S2GlobalSubRoom;
+
+	virtual void init(const int) override {
+		auto &cel = emplaceCel(false, _game.getInventoryManager().getShowingItemCel(), roomBottom, 255);
+		cel.setCycleSpeed(18);
+		cel.show();
+		setScript([&](GLScript &script, const int state) {
+			switch (state) {
+			case 0:
+				_game.getSoundManager().fade(30004, 0, 15, 12, true);
+				script.setTicks(30);
+				break;
+			case 1:
+				_game.getSoundManager().play(30005, false, 100, false, &script);
+				_cycler.reset(new GLEndCycler());
+				_cycler->add(cel);
+				_cycler->start(script);
+				break;
+			case 2: {
+				_cycler.reset();
+				auto &cel2 = emplaceCel(false, 3019, 1, 0, roomBottom, 300);
+				cel2.setCycleSpeed(18);
+				cel2.show();
+				_cycler.reset(new GLCycler());
+				_cycler->add(cel2, true);
+				break;
+			}
+			case 3:
+				_game.getSoundManager().play(30004, true, 0);
+				_game.getSoundManager().fade(30004, 80, 15, 12);
+				_cycler->stop();
+				_script.reset();
+				break;
+			}
+		});
+	}
+
+	virtual void dispose(const int) override {
+		_game.getSoundManager().stop(30005);
+		if (_cycler) {
+			_cycler->clearCaller();
+		}
+	}
+
+private:
+	Common::ScopedPtr<GLCel> _cel;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
 void S2GlobalRoom::init(const int roomNo) {
 	_game.getInterface().putText(0);
 	flushEvents();
@@ -669,6 +814,29 @@ void S2GlobalRoom::init(const int roomNo) {
 		break;
 	case 4120:
 		setSubRoom<S2ConfigurationRoom>();
+		break;
+	case 4300:
+		setSubRoom<S2InventoryRoom>();
+		break;
+	case 4301:
+		for (auto i = 0; i < 8; ++i) {
+			auto &cel = emplaceCel(false, 4301, i, _game.getRandomNumber(0, 25), roomBottom, 255);
+			cel.setCycleSpeed(18);
+			cel.show();
+			cel.setSelectHandler([&](GLEvent &event, GLTarget &) {
+				if (event.getType() == kSciEventMouseRelease) {
+					auto celNo = cel.getCel() + 1;
+					if (celNo == 26) {
+						celNo = 0;
+					}
+					cel.setCel(celNo, true);
+				}
+			});
+			cel.forceUpdate();
+		}
+		break;
+	case 4302:
+		setSubRoom<S2MusicBoxRoom>();
 		break;
 	case 4400:
 	case 4401:
@@ -690,11 +858,6 @@ void S2GlobalRoom::init(const int roomNo) {
 }
 
 bool S2GlobalRoom::handleEvent(GLEvent &event) {
-	switch (_game.getRoomManager().getCurrentGlobalRoomNo()) {
-	case 4300:
-		warning("TODO: Handle global 4300 event");
-		break;
-	}
 	return _activeSubRoom->handleEvent(event);
 }
 

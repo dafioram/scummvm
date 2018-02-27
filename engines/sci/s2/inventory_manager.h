@@ -43,7 +43,9 @@ public:
 
 	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
 	S2Inventory getCurrentItem() const { return _currentItem; }
+	void setCurrentItem(const S2Inventory item);
 
+	S2Inventory getShowingItem() const { return _showingItem; }
 	bool isItemShowing() const { return _showingItem != S2Inventory::None; }
 
 	void selectItem(const int slotNo);
@@ -51,16 +53,22 @@ public:
 
 	// In SSCI this returned an int, but the return value was never taken
 	void addItem(const S2Inventory item);
-
 	S2Inventory removeItem(const int slotNo);
+	S2Inventory combineItems();
+
+	const GLCelRes &getShowingItemCel() const {
+		return getBigCel(_showingItem);
+	}
+	void showItem();
+	void hideItem();
 
 	S2InventoryState getState(const S2Inventory item) const {
 		return _inventory[int(item)].state;
 	}
-
 	bool setState(const S2Inventory item, const S2InventoryState state);
 
-	const GLCelRes &getSmallCel(S2Inventory item) { return _inventory[int(item)].smallCel; }
+	const GLCelRes &getSmallCel(S2Inventory item) const { return _inventory[int(item)].smallCel; }
+	const GLCelRes &getBigCel(S2Inventory item) const { return _inventory[int(item)].bigCel; }
 
 private:
 	void refresh();

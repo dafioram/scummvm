@@ -187,6 +187,10 @@ protected:
 	}
 
 	void clear() {
+		if (!_keepPanoramaExits) {
+			_game.getRoomManager().getPanorama().removeAllExits();
+		}
+
 		for (auto &&hotspot : _hotspots) {
 			if (hotspot) {
 				_game.getRoomManager().removeHotspot(*hotspot);
@@ -202,7 +206,6 @@ protected:
 				_game.getRoomManager().removeExit(*exit);
 			}
 		}
-		_game.getRoomManager().getPanorama().removeAllExits();
 		_exits.clear();
 		_hotspots.clear();
 		_cels.clear();
@@ -219,6 +222,8 @@ protected:
 	Common::Array<GLCel *> _cels;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<S2Exit *> _exits;
+
+	bool _keepPanoramaExits = false;
 };
 
 class S2SubRoom : public S2Room {

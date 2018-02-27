@@ -36,6 +36,7 @@ class GLCycler;
 class GLCel : public GLScreenItem, public GLFeature {
 public:
 	GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
+	GLCel(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority = -9999, const ScaleInfo &scaleInfo = ScaleInfo());
 
 	virtual void show() override;
 	virtual void hide() override;

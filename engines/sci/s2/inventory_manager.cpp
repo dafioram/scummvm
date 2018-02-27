@@ -78,6 +78,24 @@ void S2InventoryManager::saveLoadWithSerializer(Common::Serializer &s) {
 	}
 }
 
+void S2InventoryManager::setCurrentItem(const S2Inventory item) {
+	if (_currentItem == item) {
+		return;
+	}
+
+	unselectItem(true);
+	for (int slotNo = 0; slotNo < _itemSlots.size(); ++slotNo) {
+		if (_itemSlots[slotNo] == item) {
+			removeItem(slotNo);
+		}
+	}
+
+	_game.getCursor().getItem(getSmallCel(_currentItem));
+	_game.getInterface().disableButtons();
+	setState(item, S2InventoryState::InUse);
+	_currentItem = item;
+}
+
 void S2InventoryManager::addItem(const S2Inventory item) {
 	if (_numItemsHeld >= kMaxHeldItems) {
 		_game.getSoundManager().play(10005, false, Audio32::kMaxVolume);
@@ -109,6 +127,99 @@ S2Inventory S2InventoryManager::removeItem(const int slotNo) {
 		--_numItemsHeld;
 	}
 	return oldItem;
+}
+
+S2Inventory S2InventoryManager::combineItems() {
+	auto itemA = _game.getInventoryManager()._currentItem;
+	auto itemB = _game.getInventoryManager()._showingItem;
+	if (itemB < itemA) {
+		SWAP(itemA, itemB);
+	}
+
+	auto result = S2Inventory::None;
+	switch (itemA) {
+	case S2Inventory::Batteries:
+		// In SSCI the success sound was played even when the combination failed
+		if (itemB == S2Inventory::TapePlayer) {
+			result = S2Inventory::TapePlayerWithBatteries;
+			_game.getSoundManager().play(12415, false, 100);
+		} else if (itemB == S2Inventory::TapePlayerWithTape) {
+			result = S2Inventory::CompleteTapePlayer;
+			_game.getSoundManager().play(12415, false, 100);
+		}
+		break;
+
+	case S2Inventory::Quarter:
+		if (itemB == S2Inventory::Change2_50) {
+			result = S2Inventory::Change2_75;
+			_game.getSoundManager().play(10007, false, 100);
+		}
+		break;
+
+	case S2Inventory::CassetteTape:
+		// In SSCI the success sound was played even when the combination failed
+		if (itemB == S2Inventory::TapePlayer) {
+			result = S2Inventory::TapePlayerWithTape;
+			_game.getSoundManager().play(12416, false, 100);
+		} else if (itemB == S2Inventory::TapePlayerWithBatteries) {
+			result = S2Inventory::CompleteTapePlayer;
+			_game.getSoundManager().play(12416, false, 100);
+		}
+		break;
+
+	case S2Inventory::kInv35:
+		if (itemB == S2Inventory::kInv41) {
+			addItem(S2Inventory::kInv36);
+			result = S2Inventory::kInv47;
+			_game.getSoundManager().play(12320, false, 100);
+		}
+		break;
+
+	case S2Inventory::kInv36:
+		if (itemB == S2Inventory::kInv41) {
+			result = S2Inventory::kInv47;
+			_game.getSoundManager().play(12320, false, 100);
+		}
+		break;
+
+	default:
+		break;
+	}
+
+	if (result != S2Inventory::None) {
+		setState(_currentItem, S2InventoryState::Used);
+		setState(_showingItem, S2InventoryState::Used);
+		_showingItem = result;
+		unselectItem(false);
+	} else {
+		unselectItem(false);
+	}
+
+	return result;
+}
+
+void S2InventoryManager::showItem() {
+	_showingItem = _currentItem;
+	unselectItem(false);
+	if (_showingItem == S2Inventory::kInv12) {
+		_game.getRoomManager().loadGlobalRoom(4301);
+	} else if (_showingItem == S2Inventory::kInv19) {
+		_game.getRoomManager().loadGlobalRoom(4302);
+	} else {
+		_game.getRoomManager().loadGlobalRoom(4300);
+	}
+}
+
+void S2InventoryManager::hideItem() {
+	if (_numItemsHeld == _itemSlots.size()) {
+		_game.getCursor().getItem(getSmallCel(_showingItem));
+		setCurrentItem(_showingItem);
+	} else {
+		addItem(_showingItem);
+	}
+	_showingItem = S2Inventory::None;
+	_game.getRoomManager().unloadGlobalRoom();
+	_game.getInterface().resetButtons();
 }
 
 bool S2InventoryManager::setState(const S2Inventory item, const S2InventoryState state) {

@@ -40,13 +40,12 @@ S2Interface::S2Interface(S2Kernel &kernel, S2Game &game) :
 	_isCaptioningOn(false),
 	_hasCaptioningFinished(false) {}
 
-S2Button *S2Interface::makeButton(const int16 loopNo, const GLButton::EventHandler &handler, const bool shouldEnable) const {
+S2Button *S2Interface::makeButton(const int16 loopNo, const bool shouldEnable) const {
 	S2Button *button = new S2Button(*_main, 999, loopNo, 0, GLPoint(0, 479), 4);
 	button->setDepressedFace(999, loopNo);
 	button->setHighlightedFace(999, loopNo);
 	button->setDisabledFace(999, loopNo);
 	button->setAutoHighlight(true);
-	button->setSelectHandler(handler);
 	if (shouldEnable) {
 		button->enable();
 	}
@@ -71,13 +70,28 @@ void S2Interface::init() {
 	_internet->disable(); // :(
 
 	// TODO: handlers
-	_flashback.reset(makeButton(4, nullptr));
-	_options.reset(makeButton(5, GLTarget::makeHandler(this, &S2Interface::onOptions)));
-	_map.reset(makeButton(6, nullptr));
-	_eye.reset(makeButton(7, nullptr, false));
+	_flashback.reset(makeButton(4));
+	_options.reset(makeButton(5));
+	_options->setSelectHandler(this, &S2Interface::onOptions);
+	_map.reset(makeButton(6));
+	_eye.reset(makeButton(7, false));
 	_eye->setDisabledFace(999, 7, 0);
 	_eye->setEnabledFace(999, 7, 1);
 	_eye->setHighlightedFace(999, 7, 2);
+	_eye->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		if (_game.getCursor().hasInventory() &&
+			_game.getRoomManager().getCurrentRoomNo() != 1015 &&
+			_game.getRoomManager().getCurrentRoomNo() != 6667 &&
+			!_game.getFlags().get(kGameFlag44)) {
+			if (!_game.getInventoryManager().isItemShowing()) {
+				_game.getInventoryManager().showItem();
+				_game.getSoundManager().play(10905, false, 100);
+			}
+		} else if (_game.getInventoryManager().isItemShowing()) {
+			_game.getInventoryManager().hideItem();
+			_game.getSoundManager().play(10905, false, 100);
+		}
+	});
 	_eye->enable();
 
 	_captionRect = { 2, 2, 512 - 2, 46 - 2 };

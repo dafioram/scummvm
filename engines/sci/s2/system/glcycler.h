@@ -48,6 +48,7 @@ public:
 	void start();
 	void start(GLObject &caller);
 	void stop();
+	void clearCaller() { _caller = nullptr; }
 
 	void cycleForward(const bool forward);
 

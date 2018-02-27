@@ -225,7 +225,7 @@ private:
 			break;
 		case 11:
 			_game.getSoundManager().play(11118, false, 100);
-			_game.getInventoryManager().addItem(S2Inventory::Change);
+			_game.getInventoryManager().addItem(S2Inventory::Change2_50);
 			resetState(12);
 			break;
 		}

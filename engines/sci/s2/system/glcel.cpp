@@ -40,6 +40,8 @@ GLCel::GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const i
 	// part of the graphics system yet so this call would always fail
 	GLFeature::init();
 }
+GLCel::GLCel(AbsGLPlane &plane, const GLCelRes &celInfo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
+	GLCel(plane, celInfo.resourceId, celInfo.loopNo, celInfo.celNo, position, priority, scaleInfo) {}
 
 void GLCel::show() {
 	getPlane().getCast().addEventHandler(*this);

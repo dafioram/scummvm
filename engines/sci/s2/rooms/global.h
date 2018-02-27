@@ -38,7 +38,10 @@ class GLPicturePlane;
 
 class S2GlobalRoom : public S2Room {
 public:
-	using S2Room::S2Room;
+	S2GlobalRoom(S2Kernel &kernel, S2Game &game) :
+		S2Room(kernel, game) {
+		_keepPanoramaExits = true;
+	}
 	virtual void init(const int roomNo) override;
 	virtual bool handleEvent(GLEvent &event) override;
 
@@ -52,6 +55,14 @@ public:
 private:
 	virtual GLPicturePlane &getPlane() const override {
 		return *_game.getRoomManager().getGlobalPlane();
+	}
+};
+
+class S2GlobalSubRoom : public S2SubRoom {
+public:
+	S2GlobalSubRoom(S2Kernel &kernel, S2Game &game, S2Room &parent) :
+		S2SubRoom(kernel, game, parent) {
+		_keepPanoramaExits = true;
 	}
 };
 
