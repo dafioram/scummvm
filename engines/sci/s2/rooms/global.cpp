@@ -972,6 +972,73 @@ private:
 	Common::ScopedPtr<GLPingPongCycler> _cycler;
 };
 
+class S2MapRoom : public S2GlobalSubRoom {
+public:
+	using S2GlobalSubRoom::S2GlobalSubRoom;
+
+	virtual void init(const int) override {
+		for (int flag = kGameFlag85, celNo = 0; flag <= kGameFlag101; ++flag, ++celNo) {
+			int celLoopNo;
+			int buttonLoopOffset;
+			if (_game.getFlags().get(GameFlag(flag))) {
+				celLoopNo = 18;
+				buttonLoopOffset = 19;
+			} else {
+				celLoopNo = 0;
+				buttonLoopOffset = 1;
+			}
+
+			emplaceCel(false, 4130, celLoopNo, celNo, roomBottom, 201).show();
+			auto &button = emplaceButton(true, true, 4130, celNo + buttonLoopOffset, 0, roomBottom);
+			button.setHighlightedFace(4130, celNo + buttonLoopOffset, 1);
+			button.setMouseUpHandler([this, flag, celNo](GLEvent &event, GLTarget &) {
+				event.claim();
+
+				if (!_game.getFlags().get(GameFlag(flag))) {
+					return;
+				}
+
+				const auto &jump = _jumps[celNo];
+				_game.getRoomManager().getPanorama().setPanX(jump.panX);
+				_game.getRoomManager().setNextRoomNo(jump.roomNo);
+				_game.getSoundManager().play(10905, false, 100);
+				if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
+					_game.getInterface().changeLife(-2);
+				}
+				_game.getInterface().resetButtons();
+			});
+		}
+	}
+
+private:
+	struct Jump {
+		int roomNo;
+		int16 panX;
+	};
+
+	static constexpr Jump _jumps[] = {
+		{ 6390, 123 },
+		{ 6420, 1888 },
+		{ 6200, 1315 },
+		{ 6190, 51 },
+		{ 6230, 1504 },
+		{ 6120, 892 },
+		{ 6310, 1052 },
+		{ 6100, 637 },
+		{ 6270, 1984 },
+		{ 6220, 1255 },
+		{ 6250, 1479 },
+		{ 6250, 895 },
+		{ 6240, 744 },
+		{ 6270, 1240 },
+		{ 6410, 396 },
+		{ 6290, 680 },
+		{ 6540, 680 }
+	};
+};
+
+constexpr S2MapRoom::Jump S2MapRoom::_jumps[];
+
 class S2InventoryRoom : public S2GlobalSubRoom {
 public:
 	using S2GlobalSubRoom::S2GlobalSubRoom;
@@ -1187,6 +1254,9 @@ void S2GlobalRoom::init(const int roomNo) {
 		break;
 	case 4120:
 		setSubRoom<S2ConfigurationRoom>();
+		break;
+	case 4130:
+		setSubRoom<S2MapRoom>();
 		break;
 	case 4300:
 		setSubRoom<S2InventoryRoom>();
