@@ -48,7 +48,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_movieManager(kernel, *this),
 	_inventoryManager(*this),
 	_roomManager(kernel, *this),
-	_flags(),
+	_flags(_roomManager),
 	_saveGameSlotNo(-1),
 	_gamma(0),
 	// In SSCI the default is 40, which is too high

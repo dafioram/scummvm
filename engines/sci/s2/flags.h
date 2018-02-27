@@ -25,6 +25,7 @@
 
 #include "common/array.h"
 #include "common/serializer.h"
+#include "sci/s2/room_manager.h"
 
 namespace Sci {
 
@@ -256,7 +257,9 @@ enum GameFlag {
 
 class GameFlags : public Common::Serializable {
 public:
-	GameFlags() : _flags() {}
+	GameFlags(S2RoomManager &roomManager) :
+		_roomManager(roomManager),
+		_flags() {}
 
 	virtual void saveLoadWithSerializer(Common::Serializer &s) {
 		s.syncArray(_flags.data(), _flags.size(), Common::Serializer::Byte);
@@ -267,14 +270,18 @@ public:
 	}
 
 	void set(const GameFlag flag) {
+		_roomManager.setIsSaved(false);
 		_flags[flag] = true;
 	}
 
 	void clear(const GameFlag flag) {
+		// SSCI did not change the saved flag here
+		_roomManager.setIsSaved(false);
 		_flags[flag] = false;
 	}
 
 private:
+	S2RoomManager &_roomManager;
 	Common::FixedArray<bool, kNumGameFlags> _flags;
 };
 
