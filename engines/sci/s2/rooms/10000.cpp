@@ -323,11 +323,11 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(1, true);
 			_cel->show();
-			if (_game.getFlags().get(kGameFlag140)) {
+			if (_game.getFlags().get(kPlayed101_1)) {
 				playRadio(41004);
 			} else {
 				playRadio(41001);
-				_game.getFlags().set(kGameFlag140);
+				_game.getFlags().set(kPlayed101_1);
 			}
 		});
 
@@ -338,11 +338,11 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(2, true);
 			_cel->show();
-			if (_game.getFlags().get(kGameFlag141)) {
+			if (_game.getFlags().get(kPlayed103_2)) {
 				playRadio(41004);
 			} else {
 				playRadio(41002);
-				_game.getFlags().set(kGameFlag141);
+				_game.getFlags().set(kPlayed103_2);
 			}
 		});
 
@@ -363,11 +363,11 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(4, true);
 			_cel->show();
-			if (_game.getFlags().get(kGameFlag142)) {
+			if (_game.getFlags().get(kPlayed106_6)) {
 				playRadio(41004);
 			} else {
 				playRadio(41003);
-				_game.getFlags().set(kGameFlag142);
+				_game.getFlags().set(kPlayed106_6);
 			}
 		});
 
