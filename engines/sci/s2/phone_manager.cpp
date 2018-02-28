@@ -107,6 +107,7 @@ void S2PhoneManager::pushedMotelMessageButton() {
 	setMotelState(1);
 
 	_phoneIndex = getCurrentPhoneIndex();
+	assert(_phoneIndex < _phones.size());
 
 	if (messageExists(1)) {
 		setState(17);
@@ -123,7 +124,6 @@ void S2PhoneManager::addAnsweringMachineLight(const int resourceNo) {
 	}
 
 	_lightResourceNo = resourceNo;
-	_lightPosition = { 0, 0 };
 	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
 	if (phone.newMessages[0]) {
 		_lightCel.reset(new GLCel(_game.getRoomManager().getGamePlane(), resourceNo, 0, 0, S2Room::roomBottom));
@@ -133,33 +133,13 @@ void S2PhoneManager::addAnsweringMachineLight(const int resourceNo) {
 	}
 }
 
-void S2PhoneManager::addAnsweringMachineLight(const int resourceNo, const GLPoint &position) {
-	if (!resourceNo || _lightScript) {
-		return;
-	}
-
-	_lightResourceNo = resourceNo;
-	_lightPosition = position;
-	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
-	if (phone.newMessages[0]) {
-		_panoramaLight.reset(new S2PanoramaSprite(resourceNo, position, 0, 1, false, true));
-		// SSCI unconditionally created the script, which was a bug that would
-		// cause a read of garbage pointer
-		_lightScript.reset(new GLScript(this, &S2PhoneManager::blinkingLight));
-	}
-}
-
 void S2PhoneManager::removeAnsweringMachineLight() {
 	_lightResourceNo = 0;
-	_lightPosition = { 0, 0 };
 	if (_lightScript) {
 		_lightScript.reset();
-		if (_panoramaLight) {
-			_game.getRoomManager().getPanorama().removeSprite(*_panoramaLight);
-			_panoramaLight.reset();
-		} else if (_lightCel) {
-			_lightCel.reset();
-		}
+		// SSCI had a check for a panorama light, but the game never used this
+		// so it is omitted
+		_lightCel.reset();
 	}
 }
 
@@ -188,14 +168,96 @@ void S2PhoneManager::cancelCall() {
 	}
 }
 
+template <typename T, typename U>
+static int binarySearch(T array, U value) {
+	int min = 0, max = array.size() - 1, result;
+	while (max >= min) {
+		result = (max - min) / 2 + min;
+		if (array[result].roomNo == value) {
+			return result;
+		}
+		if (array[result].roomNo > value) {
+			max = result - 1;
+		} else {
+			min = result + 1;
+		}
+	}
+	return array.size();
+}
+
 void S2PhoneManager::notifyRoomChange(const bool baseRoomChanged) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (!_isCalling && _incomingMessage) {
+		const auto phoneIndex = getCurrentPhoneIndex();
+		if (phoneIndex < _phones.size()) {
+			_isCalling = true;
+			_phoneIndex = phoneIndex;
+			setState(39);
+			cue();
+		}
+	}
+
+	if (_isCalling) {
+		const auto roomNo = _game.getRoomManager().getCurrentRoomNo();
+		_roomPan = binarySearch(_panoramaSounds, roomNo);
+		if (_roomPan < _panoramaSounds.size()) {
+			const auto &sound = _panoramaSounds[_roomPan];
+			_game.getRoomManager().getPanorama().attachSound(_currentSoundNo, sound.panX, sound.volume);
+		}
+
+		if (baseRoomChanged) {
+			_isCalling = false;
+			_game.getRoomManager().getPanorama().detachSound(_currentSoundNo);
+			_game.getSoundManager().stop(_currentSoundNo);
+			setState(-1);
+			_game.getInterface().putText(0);
+
+			if (_nextRoomEnterMessage) {
+				_incomingMessage = _nextRoomEnterMessage;
+				_nextRoomEnterMessage = 0;
+			}
+		}
+	} else if (baseRoomChanged) {
+		randomDcCall();
+	}
+}
+
+void S2PhoneManager::randomDcCall() {
+	if (_randomness > _game.getRandomNumber(0, 100)) {
+		int numFlags = 0;
+		for (int flag = kGameFlag115; flag <= kGameFlag126; ++flag) {
+			if (_game.getFlags().get(GameFlag(flag))) {
+				++numFlags;
+			}
+		}
+		if (numFlags == 12 && _randomMessages3.size()) {
+			const auto index = _game.getRandomNumber(0, _randomMessages3.size() - 1);
+			_incomingMessage = _randomMessages3[index];
+			_randomMessages3.remove_at(index);
+		} else if (_game.getFlags().get(kGameFlag195) &&
+				   _game.getFlags().get(kGameFlag196) &&
+				   _randomMessages2.size()) {
+			const auto index = _game.getRandomNumber(0, _randomMessages2.size() - 1);
+			_incomingMessage = _randomMessages2[index];
+			_randomMessages2.remove_at(index);
+		} else if (_randomMessages1.size()) {
+			const auto index = _game.getRandomNumber(0, _randomMessages1.size() - 1);
+			_incomingMessage = _randomMessages1[index];
+			_randomMessages1.remove_at(index);
+		}
+	}
+
+	// SSCI just kept incrementing forever, even though once it gets above 100
+	// it will always trigger
+	if (_randomness < 101) {
+		++_randomness;
+	}
 }
 
 void S2PhoneManager::processMessage(int type, const int action) {
 	const auto roomNo = _game.getRoomManager().getCurrentAmbientRoomNo();
 
 	_phoneIndex = getCurrentPhoneIndex();
+	assert(_phoneIndex < _phones.size());
 
 	if (roomNo == 10 || roomNo == 12) {
 		if (!_phones[_phoneIndex].newMessages[0]) {
@@ -251,13 +313,14 @@ void S2PhoneManager::deleteMessage(const int type) {
 
 int S2PhoneManager::getCurrentPhoneIndex() const {
 	const auto roomNo = _game.getRoomManager().getCurrentAmbientRoomNo();
-	for (auto i = 0; i < _phones.size(); ++i) {
+	int i;
+	for (i = 0; i < _phones.size(); ++i) {
 		if (_phones[i].roomNo == roomNo) {
-			return i;
+			break;
 		}
 	}
 
-	error("Could not find a valid phone for ambient room %d", roomNo);
+	return i;
 }
 
 void S2PhoneManager::blinkingLight(GLScript &script, const int state) {
@@ -574,11 +637,10 @@ void S2PhoneManager::changeState(GLScript &script, const int state) {
 			_phones[_phoneIndex].add(1, _incomingMessage);
 		}
 
-		if (_lightPosition.x) {
-			addAnsweringMachineLight(_lightResourceNo, _lightPosition);
-		} else {
-			addAnsweringMachineLight(_lightResourceNo);
-		}
+		// SSCI had a check for a light position which would indicate a panorama
+		// sprite, but panorama sprites were never used by the game so this is
+		// omitted
+		addAnsweringMachineLight(_lightResourceNo);
 
 		_incomingMessage = 0;
 		_isCalling = false;

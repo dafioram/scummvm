@@ -42,7 +42,6 @@ public:
 	void pushedMotelMessageButton();
 
 	void addAnsweringMachineLight(const int viewNo);
-	void addAnsweringMachineLight(const int bitmapNo, const GLPoint &position);
 	void removeAnsweringMachineLight();
 	void resetPhone();
 	void cancelCall();
@@ -99,6 +98,8 @@ private:
 	void saveMessage(const int type);
 
 	void deleteMessage(const int type);
+
+	void randomDcCall();
 
 	RoomPhone &getPhoneForRoom(const int roomNo) {
 		for (auto &phone : _phones) {
