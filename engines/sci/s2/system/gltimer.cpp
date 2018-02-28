@@ -80,8 +80,12 @@ void GLTimer::setTicks(const uint32 numTicks) {
 
 void GLTimer::setSeconds(const uint32 numSeconds) {
 	assert(_type == Type::None);
-	_type = Type::Seconds;
-	_secondToCueAt = _timeManager->getSystemDate() + numSeconds;
+	// SSCI used wall clock for this which means it can be off by up to 0.999...
+	// seconds on a seconds wait (and god help you if you are playing across a
+	// DST boundary); we use ticks instead so it can be only off by up to
+	// .01666... of a second
+	_type = Type::Ticks;
+	_tickToCueAt = _timeManager->getTickCount() + numSeconds * 60;
 }
 
 } // End of namespace Sci
