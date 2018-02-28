@@ -447,8 +447,7 @@ protected:
  * container API.
  */
 template <typename T, size_t N>
-class FixedArray {
-public:
+struct FixedArray {
 	typedef T * iterator;
 	typedef const T * const_iterator;
 	typedef T value_type;
@@ -499,7 +498,6 @@ public:
 		return !(*this == other);
 	}
 
-private:
 	T _storage[N];
 };
 
