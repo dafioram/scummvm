@@ -28,14 +28,18 @@
 #include "common/rect.h"
 #include "graphics/surface.h"
 #include "sci/s2/system/globject.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
 
 class ResourceManager;
 
+class S2PanoramaSprite;
+
 class S2PanoramaImage : public GLObject {
 public:
 	S2PanoramaImage(const Common::Rect &rect);
+	S2PanoramaImage(const uint16 resourceNo);
 
 	static void init(ResourceManager *resourceManager) { _resourceManager = resourceManager; }
 
@@ -53,13 +57,19 @@ public:
 	void loadImage(const uint16 panoramaNo);
 	virtual void doIt() override {}
 
+	void draw(S2PanoramaSprite &sprite);
+	void erase(S2PanoramaSprite &sprite);
+
+protected:
+	bool _isSprite;
+	GLPoint _position;
+
 private:
 	static ResourceManager *_resourceManager;
 	int16 _width;
 	int16 _height;
 	byte *_pixels;
 	Common::Array<byte> _ownedPixels;
-	bool _isSprite;
 	Common::List<S2PanoramaImage> _sprites;
 };
 

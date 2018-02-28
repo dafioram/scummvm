@@ -22,18 +22,28 @@
 
 #include "sci/s2/game.h"
 #include "sci/s2/phone_manager.h"
+#include "sci/s2/room.h"
 #include "sci/s2/system/glpanorama.h"
 
 namespace Sci {
 
+constexpr Common::FixedArray<S2PhoneManager::PanoramaSound, 53> S2PhoneManager::_panoramaSounds;
+
 S2PhoneManager::S2PhoneManager(S2Game &game) :
 	GLScript(),
-	_game(game),
-	_motelState(0),
-	_isCalling(false),
-	_currentSoundNo(0),
-	_phoneIndex(0),
-	_lastMessageType(0) {}
+	_game(game) {
+	_randomMessages1.reserve(5);
+	for (int i = 65064; i < 65064 + 5; ++i) {
+		_randomMessages1.push_back(i);
+	}
+	_randomMessages2.reserve(8);
+	for (int i = 65052; i < 65052 + 8; ++i) {
+		_randomMessages2.push_back(i);
+	}
+	_randomMessages3.reserve(2);
+	_randomMessages3.push_back(65060);
+	_randomMessages3.push_back(65061);
+}
 
 void S2PhoneManager::init() {
 	// Trying to initialise the script at construction time is invalid since the
@@ -45,23 +55,112 @@ void S2PhoneManager::init() {
 }
 
 void S2PhoneManager::saveLoadWithSerializer(Common::Serializer &s) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	s.syncAsUint16LE(_incomingMessage);
+	s.syncAsUint16LE(_nextRoomEnterMessage);
+	s.syncAsByte(_randomness);
+	s.syncAsUint16LE(_phones[11].answeringMachineMessage);
+	for (auto &&phone : _phones) {
+		s.syncArray(phone.newMessages.data(), phone.newMessages.size(), Common::Serializer::Uint16LE);
+		s.syncArray(phone.savedMessages.data(), phone.savedMessages.size(), Common::Serializer::Uint16LE);
+	}
+
+	uint8 numElements = _randomMessages1.size();
+	s.syncAsByte(numElements);
+	if (s.isLoading()) {
+		_randomMessages1.resize(numElements);
+	}
+	for (int i = 0; i < numElements; ++i) {
+		s.syncAsUint16LE(_randomMessages1[i]);
+	}
+
+	numElements = _randomMessages2.size();
+	s.syncAsByte(numElements);
+	if (s.isLoading()) {
+		_randomMessages2.resize(numElements);
+	}
+	for (int i = 0; i < numElements; ++i) {
+		s.syncAsUint16LE(_randomMessages2[i]);
+	}
+
+	numElements = _randomMessages3.size();
+	s.syncAsByte(numElements);
+	if (s.isLoading()) {
+		_randomMessages3.resize(numElements);
+	}
+	for (int i = 0; i < numElements; ++i) {
+		s.syncAsUint16LE(_randomMessages3[i]);
+	}
 }
 
 void S2PhoneManager::pushedMotelMessageButton() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_game.getInterface().putText(0);
+
+	if (getMotelState()) {
+		_game.getSoundManager().stop(_currentSoundNo);
+		_game.getSoundManager().play(20003, true, 80);
+		setMotelState(0);
+		return;
+	}
+
+	_game.getSoundManager().play(20016, false, 80);
+	_game.getSoundManager().stop(20003);
+	setMotelState(1);
+
+	_phoneIndex = getCurrentPhoneIndex();
+
+	if (messageExists(1)) {
+		setState(17);
+	} else {
+		setState(15);
+	}
+
+	cue();
 }
 
-void S2PhoneManager::addAnsweringMachineLight(const int roomNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2PhoneManager::addAnsweringMachineLight(const int resourceNo) {
+	if (!resourceNo || _lightScript) {
+		return;
+	}
+
+	_lightResourceNo = resourceNo;
+	_lightPosition = { 0, 0 };
+	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	if (phone.newMessages[0]) {
+		_lightCel.reset(new GLCel(_game.getRoomManager().getGamePlane(), resourceNo, 0, 0, S2Room::roomBottom));
+		// SSCI unconditionally created the script, which was a bug that would
+		// cause a read of garbage pointer
+		_lightScript.reset(new GLScript(this, &S2PhoneManager::blinkingLight));
+	}
 }
 
-void S2PhoneManager::addAnsweringMachineLight(const int roomNo, const GLPoint &position) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2PhoneManager::addAnsweringMachineLight(const int resourceNo, const GLPoint &position) {
+	if (!resourceNo || _lightScript) {
+		return;
+	}
+
+	_lightResourceNo = resourceNo;
+	_lightPosition = position;
+	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	if (phone.newMessages[0]) {
+		_panoramaLight.reset(new S2PanoramaSprite(resourceNo, position, 0, 1, false, true));
+		// SSCI unconditionally created the script, which was a bug that would
+		// cause a read of garbage pointer
+		_lightScript.reset(new GLScript(this, &S2PhoneManager::blinkingLight));
+	}
 }
 
 void S2PhoneManager::removeAnsweringMachineLight() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	_lightResourceNo = 0;
+	_lightPosition = { 0, 0 };
+	if (_lightScript) {
+		_lightScript.reset();
+		if (_panoramaLight) {
+			_game.getRoomManager().getPanorama().removeSprite(*_panoramaLight);
+			_panoramaLight.reset();
+		} else if (_lightCel) {
+			_lightCel.reset();
+		}
+	}
 }
 
 void S2PhoneManager::resetPhone() {
@@ -93,8 +192,97 @@ void S2PhoneManager::notifyRoomChange(const bool baseRoomChanged) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2PhoneManager::processMessage(const int type, const int action) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2PhoneManager::processMessage(int type, const int action) {
+	const auto roomNo = _game.getRoomManager().getCurrentAmbientRoomNo();
+
+	_phoneIndex = getCurrentPhoneIndex();
+
+	if (roomNo == 10 || roomNo == 12) {
+		if (!_phones[_phoneIndex].newMessages[0]) {
+			type = 2;
+		}
+
+		setState(10 + action);
+	} else {
+		setState(action);
+	}
+
+	_lastMessageType = type;
+
+	if (action == 3) {
+		saveMessage(type);
+	} else if (action == 6) {
+		deleteMessage(type);
+	}
+
+	cue();
+}
+
+void S2PhoneManager::saveMessage(const int type) {
+	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	if (type == 1) {
+		for (auto &message : phone.savedMessages) {
+			if (!message) {
+				message = phone.newMessages[0];
+				break;
+			}
+		}
+		for (auto it = phone.newMessages.begin(); it != phone.newMessages.end() - 1; ++it) {
+			*it = *(it + 1);
+		}
+		phone.newMessages.back() = 0;
+	} else {
+		++phone.lastSavedMessageIndex;
+	}
+}
+
+void S2PhoneManager::deleteMessage(const int type) {
+	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	auto &collection = (type == 1 ? phone.newMessages : phone.savedMessages);
+	const int indexToDelete = (type == 1 ? 0 : phone.lastSavedMessageIndex);
+	for (auto it = collection.begin() + indexToDelete; it != collection.end() - 1; ++it) {
+		*it = *(it + 1);
+	}
+	collection.back() = 0;
+	if (type != 1 && collection[indexToDelete] == 0) {
+		phone.lastSavedMessageIndex = 0;
+	}
+}
+
+int S2PhoneManager::getCurrentPhoneIndex() const {
+	const auto roomNo = _game.getRoomManager().getCurrentAmbientRoomNo();
+	for (auto i = 0; i < _phones.size(); ++i) {
+		if (_phones[i].roomNo == roomNo) {
+			return i;
+		}
+	}
+
+	error("Could not find a valid phone for ambient room %d", roomNo);
+}
+
+void S2PhoneManager::blinkingLight(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		if (_panoramaLight) {
+			_game.getRoomManager().getPanorama().addSprite(*_panoramaLight, true);
+		} else {
+			_lightCel->show();
+		}
+
+		script.setSeconds(1);
+		break;
+
+	case 1:
+		if (_panoramaLight) {
+			_game.getRoomManager().getPanorama().removeSprite(*_panoramaLight);
+		} else {
+			_lightCel->hide();
+		}
+
+		script.setState(-1);
+		script.setSeconds(1);
+		break;
+	}
 }
 
 void S2PhoneManager::callPhoneNumber(const uint32 number) {
@@ -133,8 +321,14 @@ void S2PhoneManager::callPhoneNumber(const uint32 number) {
 }
 
 bool S2PhoneManager::messageExists(const int type) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-	return false;
+	const auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	if (phone.roomNo == 10 || phone.roomNo == 12) {
+		return phone.newMessages[0] || phone.savedMessages[phone.lastSavedMessageIndex];
+	} else if (type == 1) {
+		return phone.newMessages[0];
+	} else {
+		return phone.savedMessages[phone.lastSavedMessageIndex];
+	}
 }
 
 void S2PhoneManager::changeState(GLScript &script, const int state) {
@@ -219,9 +413,37 @@ void S2PhoneManager::changeState(GLScript &script, const int state) {
 		script.setState(-1);
 		break;
 
-	case 11:
-		warning("TODO: state 11");
+	case 11: {
+		auto &phone = _phones[_phoneIndex];
+		uint16 soundNo;
+		if (_lastMessageType == 1) {
+			// SSCI did some stuff with a new message index, but the new message
+			// index was never set to any value other than zero, so we just
+			// always check only for new message zero
+			soundNo = phone.newMessages[0];
+			if (!soundNo) {
+				removeAnsweringMachineLight();
+				_lastMessageType = 2;
+				phone.lastSavedMessageIndex = 0;
+				soundNo = phone.savedMessages[0];
+			}
+		} else {
+			if (!phone.savedMessages[phone.lastSavedMessageIndex]) {
+				phone.lastSavedMessageIndex = 0;
+			}
+			soundNo = phone.savedMessages[phone.lastSavedMessageIndex];
+		}
+
+		if (soundNo) {
+			playMessage(soundNo, script);
+			setMotelState(2);
+		} else {
+			script.setState(7);
+			script.setCycles(1);
+		}
+
 		break;
+	}
 
 	case 12:
 		script.setCycles(1);
@@ -367,12 +589,13 @@ void S2PhoneManager::changeState(GLScript &script, const int state) {
 
 void S2PhoneManager::playPanorama(const uint16 soundNo, GLScript &script, const int16 volumeAdjust) {
 		_game.getRoomManager().getPanorama().detachSound(_currentSoundNo);
-		const auto &panSounds = _phonePan[_roomPan];
 		_currentSoundNo = 0;
-		if (_roomPan < 53) {
-			_game.getRoomManager().getPanorama().attachSound(soundNo, panSounds[1], panSounds[2]);
-		}
-		playMessage(soundNo, script, panSounds[2] + volumeAdjust);
+		// SSCI checked if _roomPan was in bounds of _phonePan here, but then it
+		// went ahead and used it unconditionally later, so the bounds check is
+		// omitted here
+		const auto &panSounds = _panoramaSounds[_roomPan];
+		_game.getRoomManager().getPanorama().attachSound(soundNo, panSounds.panX, panSounds.volume);
+		playMessage(soundNo, script, panSounds.volume + volumeAdjust);
 }
 
 void S2PhoneManager::playMessage(const uint16 soundNo, GLScript &script, const int16 volume, const bool loop) {

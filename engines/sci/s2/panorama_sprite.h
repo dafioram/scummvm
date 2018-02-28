@@ -36,21 +36,43 @@
 #undef clock
 #include <functional>
 #include "sci/s2/panorama_image.h"
+#include "sci/s2/system/types.h"
 
 namespace Sci {
+
+class S2PanoramaCycler;
+class S2PanoramaMover;
 
 class S2PanoramaSprite : public S2PanoramaImage {
 public:
 	using EventHandler = std::function<void()>;
 
+	S2PanoramaSprite(const uint16 resourceNo, const GLPoint &position, const int16 celNo, const int16 numCels, const bool transparent, const bool visible);
+
 	const EventHandler &getMouseDownHandler() const { return _mouseDownHandler; }
 	void setMouseDownHandler(const EventHandler &handler) { _mouseDownHandler = handler; }
 
 	const Common::Rect &getRect() { return _bounds; }
+	void setBounds(const Common::Rect &bounds);
+
+	bool getIsVisible() const { return _isVisible; }
 
 private:
 	Common::Rect _bounds;
 	EventHandler _mouseDownHandler;
+
+	int16 _celNo;
+	int16 _numCels;
+	int16 _celWidth;
+	int16 _celHeight;
+	int16 _scaleInfo;
+	int _cycleSpeed;
+	int _moveSpeed;
+	GLPoint _stepSize;
+	bool _isVisible;
+	bool _hasTransparency;
+	S2PanoramaCycler *_cycler;
+	S2PanoramaMover *_mover;
 };
 
 } // End of namespace Sci

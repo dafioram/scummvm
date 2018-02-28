@@ -38,6 +38,7 @@ namespace Sci {
 
 class GLEvent;
 class GLVRPlane;
+class S2PanoramaSprite;
 
 class GLPanorama : public GLObject {
 public:
@@ -68,6 +69,9 @@ public:
 
 	void attachSound(const uint16 soundNo, const int16 panX, const int16 volume = 80);
 	void detachSound(const uint16 soundNo);
+
+	void addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate = true);
+	void removeSprite(S2PanoramaSprite &sprite);
 
 private:
 	static constexpr int _shiftY = 22;
@@ -105,7 +109,7 @@ private:
 	Common::FixedArray<uint, 640> _xToYDelta;
 	Common::FixedArray<uint, 640> _xToYInitial;
 	Common::List<GLSound> _sounds;
-	Common::List<S2PanoramaSprite> _sprites;
+	Common::List<S2PanoramaSprite *> _sprites;
 	Common::Array<GLPanoramaExit> _exits;
 };
 

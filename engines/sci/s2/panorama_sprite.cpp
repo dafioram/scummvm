@@ -24,4 +24,35 @@
 
 namespace Sci {
 
+S2PanoramaSprite::S2PanoramaSprite(const uint16 resourceNo, const GLPoint &position, const int16 celNo, const int16 numCels, const bool hasTransparency, const bool isVisible) :
+	S2PanoramaImage(resourceNo),
+	_celNo(celNo),
+	_numCels(numCels),
+	_celWidth(getWidth() / numCels),
+	_celHeight(getHeight()),
+	_scaleInfo(100),
+	_hasTransparency(hasTransparency),
+	_isVisible(isVisible),
+	_cycleSpeed(6),
+	_moveSpeed(2),
+	_stepSize(30, 10) {
+	_position = position;
+	_isSprite = true;
+	setBounds(Common::Rect(position.x, position.y, position.x + _celWidth, position.y + _celHeight));
+	// TODO: Allocated cel wxh pixels for something
+}
+
+void S2PanoramaSprite::setBounds(const Common::Rect &bounds) {
+	if (_scaleInfo != 100) {
+		int deltaX = bounds.width() * _scaleInfo / 200;
+		int deltaY = bounds.height() * _scaleInfo / 200;
+		_bounds = Common::Rect(bounds.left + deltaX,
+							   bounds.top + deltaY,
+							   bounds.right - deltaX,
+							   bounds.bottom - deltaY);
+	} else {
+		_bounds = bounds;
+	}
+}
+
 } // End of namespace Sci

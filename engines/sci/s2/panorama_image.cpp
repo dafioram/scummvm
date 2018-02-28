@@ -36,6 +36,12 @@ S2PanoramaImage::S2PanoramaImage(const Common::Rect &rect) :
 	_pixels(nullptr),
 	_isSprite(false) {}
 
+S2PanoramaImage::S2PanoramaImage(const uint16 resourceNo) :
+	GLObject(),
+	_isSprite(false) {
+	loadImage(resourceNo);
+}
+
 void S2PanoramaImage::loadImage(const uint16 panoramaNo) {
 	const Resource *resource = _resourceManager->findResource(ResourceId(kResourceTypePano, panoramaNo), false);
 	// SSCI would just return early if the resource was not found
@@ -61,6 +67,14 @@ void S2PanoramaImage::loadImage(const uint16 panoramaNo) {
 			target -= surface.h;
 		}
 	}
+}
+
+void S2PanoramaImage::draw(S2PanoramaSprite &source) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2PanoramaImage::erase(S2PanoramaSprite &source) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 } // End of namespace Sci

@@ -32,7 +32,7 @@ GLPanorama::GLPanorama(const Common::Rect &drawRect) :
 	GLObject(),
 	_screen(drawRect),
 	_plane(drawRect, _screen),
-	_image({}),
+	_image(Common::Rect()),
 	_panX(0),
 	_panY((512.0 * 1.3 - drawRect.height()) / 2),
 	_isDirty(false),
@@ -236,6 +236,27 @@ void GLPanorama::detachSound(const uint16 soundNo) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+void GLPanorama::addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate) {
+	if (sprite.getIsVisible()) {
+		_image.draw(sprite);
+	}
+
+	if (shouldUpdate) {
+		_sprites.push_back(&sprite);
+	}
+}
+
+void GLPanorama::removeSprite(S2PanoramaSprite &sprite) {
+	_image.erase(sprite);
+
+	auto it = Common::find(_sprites.begin(), _sprites.end(), &sprite);
+	if (it != _sprites.end()) {
+		_sprites.erase(it);
+	}
+
+	_isDirty = true;
+}
+
 void GLPanorama::buildWarpTable() {
 	const double halfWidth = _screen.getWidth() / 2.0;
 	for (int x = 0; x < _screen.getWidth(); ++x) {
@@ -294,8 +315,8 @@ bool GLPanorama::checkSprites(GLEvent &event) {
 	const auto projectedPoint(getUnwarpedPoint(event.getMousePosition()));
 
 	for (auto &sprite : _sprites) {
-		if (sprite.getRect().contains(projectedPoint) && sprite.getMouseDownHandler()) {
-			sprite.getMouseDownHandler()();
+		if (sprite->getRect().contains(projectedPoint) && sprite->getMouseDownHandler()) {
+			sprite->getMouseDownHandler()();
 			event.claim();
 			return true;
 		}
