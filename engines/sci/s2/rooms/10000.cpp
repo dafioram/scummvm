@@ -464,10 +464,8 @@ void S2Room10000::dispose(const int roomNo) {
 }
 
 bool S2Room10000::handleEvent(GLEvent &event) {
-	if (event.getType() == kSciEventKeyDown &&
-		_game.getRoomManager().getCurrentRoomNo() == 10411) {
-
-		PhoneRoom::handleEvent(event);
+	if (_game.getRoomManager().getCurrentRoomNo() == 10411) {
+		S2PhoneRoom::handleEvent(event);
 	}
 
 	return false;

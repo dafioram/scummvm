@@ -23,14 +23,25 @@
 #ifndef SCI_S2_ROOMS_PHONE_H
 #define SCI_S2_ROOMS_PHONE_H
 
+#include "common/str.h"
+#include "sci/s2/room.h"
+
 namespace Sci {
 
-class GLEvent;
+class S2PhoneRoom : public S2Room {
+public:
+	using S2Room::S2Room;
 
-class PhoneRoom {
 protected:
 	void setUpPhone(const int roomNo);
-	void handleEvent(GLEvent &);
+
+	virtual bool handleEvent(GLEvent &event) override;
+
+private:
+	void emplaceDigit(const int digit, const int16 x1, const int16 y1, const int16 x2, const int16 y2);
+	void pushButton(const int digit);
+
+	Common::String _number;
 };
 
 } // End of namespace Sci

@@ -29,9 +29,9 @@
 
 namespace Sci {
 
-class S2Room10000 : public S2Room, PhoneRoom {
+class S2Room10000 : public S2PhoneRoom {
 public:
-	using S2Room::S2Room;
+	using S2PhoneRoom::S2PhoneRoom;
 	virtual void init(const int roomNo) override;
 	virtual void dispose(const int roomNo) override;
 	virtual void doIt() override {}

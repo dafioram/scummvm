@@ -44,6 +44,10 @@ public:
 	void stop(const int soundNo, const reg_t soundNode = NULL_REG);
 	void doIt();
 
+	// SSCI used GetSampleVolume to decide if something was playing without ever
+	// actually caring about the volume
+	bool isPlaying(const uint16 soundNo, const reg_t soundNode = NULL_REG) const;
+
 	// Merged CreateSndTrack and AttachSndTrack
 	GLSoundTrack &createSoundTrack();
 	void deleteSoundTrack(const int trackId);

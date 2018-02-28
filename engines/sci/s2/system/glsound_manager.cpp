@@ -32,14 +32,14 @@ GLSoundManager::GLSoundManager(S2Game &game, Audio32 &mixer) :
 	_mixer(mixer) {}
 
 uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
-	const ResourceId resourceId(kResourceTypeAudio, soundNo);
-	if (_mixer.getVolume(resourceId, soundNode) != -1) {
+	if (isPlaying(soundNo, soundNode)) {
 		return 0;
 	}
 
+	const ResourceId resourceId(kResourceTypeAudio, soundNo);
 	const uint16 length = _mixer.restart(resourceId, !paused, loop, volume, soundNode, false);
 
-	GLSound sound(soundNo, GLSound::State::PlayingForever, volume);
+	GLSound sound(soundNo, GLSound::State::Finished, volume, caller);
 	_sounds.push_front(sound);
 
 	// SSCI did not return length, but we do so that we can wait for samples
@@ -82,12 +82,13 @@ void GLSoundManager::doIt() {
 	for (auto sound = _sounds.begin(); sound != _sounds.end(); ) {
 		const auto state = sound->getState();
 		if (state == GLSound::State::Finished || state == GLSound::State::Fading) {
-			const auto volume = _mixer.getVolume(sound->getResourceNo());
+			const auto resourceId = ResourceId(kResourceTypeAudio, sound->getResourceNo());
+			const auto volume = _mixer.getVolume(_mixer.findChannelById(resourceId));
 			int16 finishedVolume;
 			if (state == GLSound::State::Fading) {
 				finishedVolume = sound->getVolume();
 			} else {
-				finishedVolume = 0;
+				finishedVolume = -1;
 			}
 
 			if (volume == finishedVolume) {
@@ -101,6 +102,10 @@ void GLSoundManager::doIt() {
 		}
 		++sound;
 	}
+}
+
+bool GLSoundManager::isPlaying(const uint16 soundNo, const reg_t soundNode) const {
+	return _mixer.getPosition(ResourceId(kResourceTypeAudio, soundNo), soundNode) != -1;
 }
 
 GLSoundTrack &GLSoundManager::createSoundTrack() {

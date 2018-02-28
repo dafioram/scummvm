@@ -60,6 +60,7 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
 		break;
+
 	case 1: {
 		auto iterator = _currentNode;
 		auto *node = iterator->get();

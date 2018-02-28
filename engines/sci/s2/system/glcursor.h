@@ -56,6 +56,8 @@ public:
 	void beginHighlight();
 	void endHighlight();
 
+	void setCel(const int16 celNo);
+
 protected:
 	GfxCursor32 &_kernelCursor;
 

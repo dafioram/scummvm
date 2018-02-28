@@ -228,6 +228,14 @@ bool GLPanorama::handleEvent(GLEvent &event) {
 	return false;
 }
 
+void GLPanorama::attachSound(const uint16 soundNo, const int16 panX, const int16 volume) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void GLPanorama::detachSound(const uint16 soundNo) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
 void GLPanorama::buildWarpTable() {
 	const double halfWidth = _screen.getWidth() / 2.0;
 	for (int x = 0; x < _screen.getWidth(); ++x) {

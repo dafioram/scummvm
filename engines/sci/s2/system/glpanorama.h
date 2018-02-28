@@ -66,6 +66,9 @@ public:
 	void addExit(Args && ... args) { _exits.emplace_back(args...); }
 	void removeAllExits() { _exits.clear(); }
 
+	void attachSound(const uint16 soundNo, const int16 panX, const int16 volume = 80);
+	void detachSound(const uint16 soundNo);
+
 private:
 	static constexpr int _shiftY = 22;
 	static constexpr double _aspectRatio = 1.3;

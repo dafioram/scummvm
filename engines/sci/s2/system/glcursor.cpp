@@ -100,6 +100,27 @@ void GLCursor::endHighlight() {
 	}
 }
 
+void GLCursor::setCel(const int16 celNo) {
+	switch (_state & (kWaitState | kHandsOffState | kHighlightedState)) {
+	case kWaitState:
+		_waitCel.celNo = celNo;
+		updateKernel(_waitCel);
+		break;
+	case kHandsOffState:
+		_handsOffCel.celNo = celNo;
+		updateKernel(_handsOffCel);
+		break;
+	case kHighlightedState:
+		_highlightedCel.celNo = celNo;
+		updateKernel(_highlightedCel);
+		break;
+	default:
+		_normalCel.celNo = celNo;
+		updateKernel(_normalCel);
+		break;
+	}
+}
+
 void GLCursor::updateKernel(const GLCelRes &celInfo) const {
 	_kernelCursor.setView(celInfo.resourceId, celInfo.loopNo, celInfo.celNo);
 }
