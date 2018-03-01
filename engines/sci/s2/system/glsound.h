@@ -87,22 +87,17 @@ private:
 
 class GLWaitNode : public GLNode {
 public:
-	GLWaitNode(const int minSeconds, const int maxSeconds, const bool loop, const int randomness) :
+	GLWaitNode(const int minSeconds, const int maxSeconds) :
 		GLNode(GLNode::Type::Wait),
 		_minSeconds(minSeconds),
-		_maxSeconds(maxSeconds),
-		_loop(loop),
-		_randomness(randomness) {}
+		_maxSeconds(maxSeconds) {}
 
 	int getMinimum() const { return _minSeconds; }
 	int getMaximum() const { return _maxSeconds; }
-	int16 getRandomness() const { return _randomness; }
 
 private:
 	int _minSeconds;
 	int _maxSeconds;
-	bool _loop;
-	int16 _randomness;
 };
 
 class GLPRSNode : public GLNode {
@@ -138,7 +133,7 @@ public:
 
 	int getTrackId() const { return _trackId; }
 
-	void addWaitNode(const int minTicks, const int maxTicks = 0, const bool loop = true, const int somePercent = 100);
+	void addWaitNode(const int minTicks, const int maxTicks = 0);
 	void addSoundNode(const uint16 soundNo, const int16 volume = Audio32::kMaxVolume, const bool loop = true, const int16 pan = 50, const int somePercent = 100);
 	void addPRSNode(const uint16 soundNo, const int somePercent = 100, const int16 volume = Audio32::kMaxVolume, const int16 pan = 50);
 

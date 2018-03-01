@@ -39,7 +39,8 @@ S2PanoramaSprite::S2PanoramaSprite(const uint16 resourceNo, const GLPoint &posit
 	_position = position;
 	_isSprite = true;
 	setBounds(Common::Rect(position.x, position.y, position.x + _celWidth, position.y + _celHeight));
-	// TODO: Allocated cel wxh pixels for something
+	// SSCI allocated memory for the saved back rect of the sprite here; this
+	// allocation is deferred until draw is actually called
 }
 
 void S2PanoramaSprite::setBounds(const Common::Rect &bounds) {

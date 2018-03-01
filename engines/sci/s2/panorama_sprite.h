@@ -42,7 +42,6 @@
 namespace Sci {
 
 class S2PanoramaSprite;
-class S2PanoramaMover;
 
 using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
@@ -98,7 +97,6 @@ private:
 	bool _isVisible;
 	bool _hasTransparency;
 	S2PanoramaCycler *_cycler;
-	S2PanoramaMover *_mover;
 };
 
 } // End of namespace Sci

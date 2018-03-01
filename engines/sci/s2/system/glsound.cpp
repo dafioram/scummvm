@@ -29,8 +29,8 @@ namespace Sci {
 S2Game *GLSoundTrack::_game = nullptr;
 Audio32 *GLSoundTrack::_mixer = nullptr;
 
-void GLSoundTrack::addWaitNode(const int minTicks, const int maxTicks, const bool loop, const int somePercent) {
-	_nodes.emplace_back(new GLWaitNode(minTicks, maxTicks, loop, somePercent));
+void GLSoundTrack::addWaitNode(const int minTicks, const int maxTicks) {
+	_nodes.emplace_back(new GLWaitNode(minTicks, maxTicks));
 }
 
 void GLSoundTrack::addSoundNode(const uint16 soundNo, const int16 volume, const bool loop, const int16 pan, const int somePercent) {
@@ -88,10 +88,8 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 		}
 		case GLNode::Type::Wait: {
 			GLWaitNode &wait = static_cast<GLWaitNode &>(*node);
-			if (wait.getRandomness() != 100 && _game->getRandomNumber(0, 100) > wait.getRandomness()) {
-				break;
-			}
-
+			// SSCI did some randomness check here but this function was never
+			// used so it is omitted
 			_currentSoundNo = 0;
 			int numSecondsToWait;
 			if (wait.getMaximum()) {

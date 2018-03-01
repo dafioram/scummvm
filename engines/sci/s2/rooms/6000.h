@@ -87,7 +87,6 @@ private:
 	void useGasPump(GLScript &, const int);
 
 	void prySiding(GLScript &, const int);
-	GLCel *_siding = nullptr;
 
 	void openKeyBox(GLScript &, const int);
 
