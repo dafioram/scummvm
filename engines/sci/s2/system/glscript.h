@@ -54,7 +54,10 @@ public:
 		GLScript(makeHandler(object, fn), initialState, data, dataPointer) {}
 
 	GLScript(ChangeStateHandler callback, const int initialState = 0, const int data = 0, void *const dataPointer = nullptr);
-
+	GLScript(GLScript &&other);
+	GLScript(const GLScript &) = delete;
+	GLScript &operator=(const GLScript &) = delete;
+	GLScript &operator=(GLScript &&) = delete;
 	virtual ~GLScript();
 
 	virtual void cue() override;

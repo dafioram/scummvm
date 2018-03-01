@@ -31,17 +31,17 @@ void S2Room10000::init(const int roomNo) {
 	switch (roomNo) {
 	case 10000:
 	case 10100: {
-		_game.getSoundManager().createAmbient(10);
-		_game.getFlags().set(kGameFlag91);
+		sound().createAmbient(10);
+		flags().set(kGameFlag91);
 
-		if (_game.getRoomManager().getPreviousRoomNo() == 6312) {
-			_game.getRoomManager().getPanorama().setPanX(1319);
-			_game.getSoundManager().play(11003, false);
+		if (room().getPreviousRoomNo() == 6312) {
+			room().getPanorama().setPanX(1319);
+			sound().play(11003, false);
 		}
 
-		_game.getRoomManager().drawPan(10100);
+		room().drawPan(10100);
 
-		auto &panorama = _game.getRoomManager().getPanorama();
+		auto &panorama = room().getPanorama();
 		panorama.addExit(10200, 100, 150, 300, 450);
 		panorama.addExit(10300, 1350, 200, 1600, 400);
 		panorama.addExit(10400, 1600, 150, 1900, 450);
@@ -50,23 +50,23 @@ void S2Room10000::init(const int roomNo) {
 	}
 
 	case 10110: {
-		_game.getRoomManager().drawPic(10110);
+		room().drawPic(10110);
 		_cancelSoundNo = 11003;
 		setScript([&](GLScript &script, const int state) {
 			switch (state) {
 			case 0:
-				_game.getUser().setIsHandsOn(false);
+				user().setIsHandsOn(false);
 				_cel.reset(new GLCel(getPlane(), roomNo, 0, 0, roomBottom));
 				_cycler.reset(new GLEndCycler());
 				_cycler->add(*_cel);
 				_cycler->start(script);
-				_game.getSoundManager().play(11004, false, 120);
+				sound().play(11004, false, 120);
 				break;
 			case 1:
 				getPlane().getCast().remove(*_cel);
 				_script.reset();
 				_cycler.reset();
-				_game.getUser().setIsHandsOn(true);
+				user().setIsHandsOn(true);
 				break;
 			}
 		});
@@ -76,34 +76,32 @@ void S2Room10000::init(const int roomNo) {
 	}
 
 	case 10120:
-		_game.getRoomManager().drawPic(10120);
-		emplaceExit(true, 10999, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 495, 0, 575, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 145, 0, 494, 80, S2Cursor::kBackCel);
+		room().drawPic(10120);
+		exitBorder(10999);
 		emplaceHotspot(true, 178, 281, 453, 353).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
 			auto &hotspot = static_cast<S2Hotspot &>(target);
-			if (_game.getFlags().get(kUnlockedSuitcase) ||
-				_game.getInventoryManager().getState(S2Inventory::kInv2) == S2InventoryState::InUse) {
-				_game.getFlags().set(kUnlockedSuitcase);
-				_game.getInventoryManager().unselectItem(false);
-				_game.getSoundManager().play(11002, false, 100);
+			if (flags().get(kUnlockedSuitcase) ||
+				inventory().isInUse(S2Inventory::kInv2)) {
+				flags().set(kUnlockedSuitcase);
+				inventory().unselectItem(false);
+				sound().play(11002, false, 100);
 				removeChild(hotspot);
 				setScript(this, &S2Room10000::suitcaseScript);
 			} else {
-				_game.getSoundManager().play(10004, false, 100);
+				sound().play(10004, false, 100);
 			}
 		});
 		break;
 
 	case 10129: {
-		_game.getRoomManager().drawPic(10120);
-		_lastRoomNo = _game.getRoomManager().getPreviousRoomNo();
+		room().drawPic(10120);
+		_lastRoomNo = room().getPreviousRoomNo();
 		if (_lastRoomNo >= 10126 && _lastRoomNo <= 10128) {
-			_game.getSoundManager().play(11532);
+			sound().play(11532);
 		}
 		if (!_cel) {
 			int16 loopNo;
-			if (_game.getInventoryManager().getState(S2Inventory::kInv5) == S2InventoryState::Placed) {
+			if (inventory().isPlaced(S2Inventory::kInv5)) {
 				loopNo = 1;
 			} else {
 				loopNo = 0;
@@ -111,9 +109,7 @@ void S2Room10000::init(const int roomNo) {
 			_cel.reset(new GLCel(getPlane(), 10120, loopNo, 3, roomBottom));
 		}
 		_cel->show();
-		emplaceExit(true, 10999, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 495, 0, 575, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 145, 0, 494, 80, S2Cursor::kBackCel);
+		exitBorder(10999);
 		emplaceExit(true, 10121, 330, 146, 395, 185, S2Cursor::kHighlightCel);
 		emplaceExit(true, 10122, 244, 296, 275, 302, S2Cursor::kHighlightCel);
 		emplaceExit(true, 10123, 333, 205, 375, 246, S2Cursor::kHighlightCel);
@@ -125,7 +121,7 @@ void S2Room10000::init(const int roomNo) {
 		});
 
 		auto &hotspot = emplaceHotspot(true, 365, 272, 408, 292);
-		if (_game.getInventoryManager().getState(S2Inventory::kInv5) == S2InventoryState::Placed) {
+		if (inventory().isPlaced(S2Inventory::kInv5)) {
 			hotspot.setMouseUpHandler(this, &S2Room10000::takeTapeFromSuitcase);
 		} else {
 			hotspot.setMouseUpHandler(this, &S2Room10000::putTapeInSuitcase);
@@ -138,26 +134,26 @@ void S2Room10000::init(const int roomNo) {
 	case 10123:
 	case 10124:
 	case 10125:
-		_game.getRoomManager().drawPic(roomNo);
-		_game.getSoundManager().play(11505);
+		room().drawPic(roomNo);
+		sound().play(11505);
 		emplaceExit(true, 10129, S2Cursor::kBackCel);
 
 		switch (roomNo) {
 		case 10121:
-			_game.getFlags().set(kGameFlag49);
-			_game.getScoringManager().doEvent(S2Score::kScore70);
+			flags().set(kGameFlag49);
+			score().doEvent(S2Score::kScore70);
 			break;
 		case 10122:
-			_game.getScoringManager().doEvent(S2Score::kScore76);
+			score().doEvent(S2Score::kScore76);
 			break;
 		case 10123:
-			_game.getScoringManager().doEvent(S2Score::kScore75);
+			score().doEvent(S2Score::kScore75);
 			break;
 		case 10124:
-			_game.getScoringManager().doEvent(S2Score::kScore71);
+			score().doEvent(S2Score::kScore71);
 			break;
 		case 10125:
-			_game.getScoringManager().doEvent(S2Score::kScore74);
+			score().doEvent(S2Score::kScore74);
 			break;
 		}
 		break;
@@ -169,31 +165,30 @@ void S2Room10000::init(const int roomNo) {
 		if (nextPageNo == 10129) {
 			nextPageNo = 10126;
 		}
-		_game.getRoomManager().drawPic(roomNo);
-		_game.getSoundManager().play(11505);
+		room().drawPic(roomNo);
+		sound().play(11505);
 
-		emplaceExit(true, 10129, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10129, 495, 0, 575, 383, S2Cursor::kBackCel);
+		exitBorder(10129, false);
 		emplaceExit(true, nextPageNo, 156, 32, 537, 343, S2Cursor::kHighlightCel);
 
 		if (roomNo == 10126) {
-			_game.getScoringManager().doEvent(S2Score::kScore72);
+			score().doEvent(S2Score::kScore72);
 		} else if (roomNo == 10128) {
-			_game.getFlags().set(kGameFlag48);
-			_game.getScoringManager().doEvent(S2Score::kScore73);
+			flags().set(kGameFlag48);
+			score().doEvent(S2Score::kScore73);
 		}
 
 		break;
 	}
 
 	case 10200:
-		_game.getRoomManager().drawPan(10200);
-		_game.getRoomManager().getPanorama().addExit(10100, 800, 50, 1150, 500);
+		room().drawPan(10200);
+		room().getPanorama().addExit(10100, 800, 50, 1150, 500);
 		break;
 
 	case 10300: {
-		_game.getRoomManager().drawPan(10300);
-		auto &panorama = _game.getRoomManager().getPanorama();
+		room().drawPan(10300);
+		auto &panorama = room().getPanorama();
 		panorama.addExit(10100, 440, 200, 555, 387);
 		panorama.addExit(10400, 0, 135, 135, 385);
 		panorama.addExit(10400, 1900, 135, 2047, 385);
@@ -204,44 +199,41 @@ void S2Room10000::init(const int roomNo) {
 	}
 
 	case 10310: {
-		_game.getRoomManager().drawPic(10310);
-		emplaceExit(true, 10999, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 495, 0, 575, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10999, 145, 0, 494, 80, S2Cursor::kBackCel);
+		room().drawPic(10310);
+		exitBorder(10999);
 		addDresserHotspots();
 		break;
 	}
 
 	case 10320:
-		_game.getRoomManager().drawPic(10320);
-		_game.getSoundManager().createAmbient(10);
-		emplaceExit(true, 10300, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10300, 495, 0, 575, 383, S2Cursor::kBackCel);
+		room().drawPic(10320);
+		sound().createAmbient(10);
+		exitBorder(10300, false);
 		emplaceHotspot(true, 253, 41, 375, 61).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-			if (_game.getInventoryManager().getState(S2Inventory::kInv5) == S2InventoryState::InUse) {
-				_game.getSoundManager().play(11008, false, 120);
-				_game.getInventoryManager().setState(S2Inventory::kInv5, S2InventoryState::Used);
+			if (inventory().isInUse(S2Inventory::kInv5)) {
+				sound().play(11008, false, 120);
+				inventory().setState(S2Inventory::kInv5, S2InventoryState::Used);
 				_videoNo = 1;
-				_game.getRoomManager().setNextRoomNo(10321);
-			} else if (_game.getInventoryManager().getState(S2Inventory::kInv28) == S2InventoryState::InUse) {
-				_game.getInventoryManager().setState(S2Inventory::kInv28, S2InventoryState::Used);
+				room().setNextRoomNo(10321);
+			} else if (inventory().isInUse(S2Inventory::kInv28)) {
+				inventory().setState(S2Inventory::kInv28, S2InventoryState::Used);
 				_videoNo = 2;
-				_game.getRoomManager().setNextRoomNo(10321);
+				room().setNextRoomNo(10321);
 			}
 		});
 		break;
 
 	case 10321:
-		_game.getRoomManager().drawPic(2);
-		_game.getSoundManager().deleteAmbient(10);
+		room().drawPic(2);
+		sound().deleteAmbient(10);
 		setScript([&](GLScript &script, const int state) {
 			switch (state) {
 			case 0:
-				_game.getFlags().set(kGameFlag139);
+				flags().set(kGameFlag139);
 				script.setCycles(1);
 				break;
 			case 1:
-				_game.getMovieManager().play(_videoNo, _game.getFlags().get(kGameFlag139));
+				movie().play(_videoNo, flags().get(kGameFlag139));
 				// SSCI did not clean up the video number
 				_videoNo = 0;
 				_script.reset();
@@ -251,21 +243,21 @@ void S2Room10000::init(const int roomNo) {
 		break;
 
 	case 10400: {
-		_game.getRoomManager().drawPan(10400);
-		_game.getSoundManager().createAmbient(10);
+		room().drawPan(10400);
+		sound().createAmbient(10);
 
-		_game.getFlags().set(kGameFlag91);
-		_game.getFlags().set(kGameFlag71);
+		flags().set(kGameFlag91);
+		flags().set(kGameFlag71);
 
-		if (_game.getRoomManager().getPreviousRoomNo() == 1020) {
-			_game.getRoomManager().getPanorama().setPanX(717);
-			_game.getInterface().resetButtons();
+		if (room().getPreviousRoomNo() == 1020) {
+			room().getPanorama().setPanX(717);
+			interface().resetButtons();
 			// TODO: Save to the first new save slot instead of the autosave
 			// slot?
 			_game.save(0, false);
 		}
 
-		auto &panorama = _game.getRoomManager().getPanorama();
+		auto &panorama = room().getPanorama();
 		panorama.addExit(10100, 725, 200, 786, 386);
 		panorama.addExit(10300, 900, 180, 1171, 386);
 		panorama.addExit(10410, 124, 278, 166, 301, S2Cursor::kHighlightCel);
@@ -274,16 +266,14 @@ void S2Room10000::init(const int roomNo) {
 	}
 
 	case 10410:
-		_game.getRoomManager().drawPic(10410);
-		emplaceExit(true, 10400, 64, 0, 144, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10400, 495, 0, 575, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 10400, 145, 0, 494, 80, S2Cursor::kBackCel);
+		room().drawPic(10410);
+		exitBorder(10400);
 		emplaceExit(true, 10411, 181, 84, 511, 176, S2Cursor::kHighlightCel);
-		_game.getPhoneManager().addAnsweringMachineLight(10411);
+		phone().addAnsweringMachineLight(10411);
 		break;
 
 	case 10411:
-		_game.getRoomManager().drawPic(10410);
+		room().drawPic(10410);
 		_cel.reset(new GLCel(getPlane(), 10410, 0, 0, roomBottom));
 		_cel->show();
 		emplaceExit(true, 10400, 213, 0, 575, 80, S2Cursor::kBackCel);
@@ -294,19 +284,19 @@ void S2Room10000::init(const int roomNo) {
 		emplaceExit(true, 10410, 64, 230, 174, 339, S2Cursor::kHighlightCel);
 
 		emplaceHotspot(true, 224, 255, 257, 291).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-			_game.getScoringManager().doEvent(kScore11);
-			_game.getScoringManager().doEvent(kScore12);
-			_game.getScoringManager().doEvent(kScore25);
-			_game.getScoringManager().doEvent(kScore26);
-			_game.getPhoneManager().pushedMotelMessageButton();
+			score().doEvent(kScore11);
+			score().doEvent(kScore12);
+			score().doEvent(kScore25);
+			score().doEvent(kScore26);
+			phone().pushedMotelMessageButton();
 		});
 
 		setUpPhone(10411);
-		_game.getPhoneManager().addAnsweringMachineLight(10411);
+		phone().addAnsweringMachineLight(10411);
 		break;
 
 	case 10420:
-		_game.getRoomManager().drawPic(12420);
+		room().drawPic(12420);
 		emplaceExit(true, 10400, S2Cursor::kBackCel);
 		_cel.reset(new GLCel(getPlane(), 12420, 0, 0, roomBottom));
 		_cel->show();
@@ -323,11 +313,11 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(1, true);
 			_cel->show();
-			if (_game.getFlags().get(kPlayed101_1)) {
+			if (flags().get(kPlayed101_1)) {
 				playRadio(41004);
 			} else {
 				playRadio(41001);
-				_game.getFlags().set(kPlayed101_1);
+				flags().set(kPlayed101_1);
 			}
 		});
 
@@ -338,11 +328,11 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(2, true);
 			_cel->show();
-			if (_game.getFlags().get(kPlayed103_2)) {
+			if (flags().get(kPlayed103_2)) {
 				playRadio(41004);
 			} else {
 				playRadio(41002);
-				_game.getFlags().set(kPlayed103_2);
+				flags().set(kPlayed103_2);
 			}
 		});
 
@@ -363,22 +353,22 @@ void S2Room10000::init(const int roomNo) {
 			}
 			_cel->setCel(4, true);
 			_cel->show();
-			if (_game.getFlags().get(kPlayed106_6)) {
+			if (flags().get(kPlayed106_6)) {
 				playRadio(41004);
 			} else {
 				playRadio(41003);
-				_game.getFlags().set(kPlayed106_6);
+				flags().set(kPlayed106_6);
 			}
 		});
 
 		emplaceHotspot(true, 162, 210, 207, 252).setMouseUpHandler([&](GLEvent &, GLTarget &) {
 			_radioIsOn = !_radioIsOn;
-			_game.getSoundManager().play(10609);
-			_game.getSoundManager().stop(_radioSoundNo);
+			sound().play(10609);
+			sound().stop(_radioSoundNo);
 			_radioSoundNo = 0;
-			_game.getInterface().putText(0);
+			interface().putText(0);
 			if (_radioIsOn) {
-				_game.getScoringManager().doEvent(kScore60);
+				score().doEvent(kScore60);
 				_cel->hide();
 				playRadio(41004);
 			} else {
@@ -389,7 +379,7 @@ void S2Room10000::init(const int roomNo) {
 		break;
 
 	case 10999:
-		_lastRoomNo = _game.getRoomManager().getPreviousRoomNo();
+		_lastRoomNo = room().getPreviousRoomNo();
 		switch (_lastRoomNo) {
 		case 10110:
 			setScript(this, &S2Room10000::cancelScript);
@@ -402,7 +392,7 @@ void S2Room10000::init(const int roomNo) {
 				_cancelSoundNo = 11010;
 				setScript(this, &S2Room10000::cancelScript);
 			} else {
-				_game.getRoomManager().newRoom(10300);
+				room().newRoom(10300);
 			}
 			break;
 
@@ -412,7 +402,7 @@ void S2Room10000::init(const int roomNo) {
 				_cancelSoundNo = 11005;
 				setScript(this, &S2Room10000::cancelScript);
 			} else {
-				_game.getRoomManager().newRoom(10300);
+				room().newRoom(10300);
 			}
 			break;
 		}
@@ -430,31 +420,31 @@ void S2Room10000::dispose(const int roomNo) {
 	case 10123:
 	case 10124:
 	case 10125:
-		_game.getSoundManager().play(11504);
+		sound().play(11504);
 		break;
 
 	case 10410:
-		_game.getPhoneManager().removeAnsweringMachineLight();
+		phone().removeAnsweringMachineLight();
 		break;
 
 	case 10411:
-		_game.getPhoneManager().resetPhone();
-		_game.getPhoneManager().removeAnsweringMachineLight();
+		phone().resetPhone();
+		phone().removeAnsweringMachineLight();
 		break;
 
 	case 10420:
 		if (_radioIsOn) {
-			_game.getSoundManager().play(10609);
-			_game.getSoundManager().stop(_radioSoundNo);
-			_game.getInterface().putText(0);
+			sound().play(10609);
+			sound().stop(_radioSoundNo);
+			interface().putText(0);
 			_radioIsOn = false;
 		}
 		break;
 	}
 
 	if (roomNo == 10999 ||
-		(_game.getRoomManager().getNextRoomNo() != 10999 &&
-		 _game.getRoomManager().getNextRoomNo() != 10120)) {
+		(room().getNextRoomNo() != 10999 &&
+		 room().getNextRoomNo() != 10120)) {
 		_cel.reset();
 	}
 
@@ -464,7 +454,7 @@ void S2Room10000::dispose(const int roomNo) {
 }
 
 bool S2Room10000::handleEvent(GLEvent &event) {
-	if (_game.getRoomManager().getCurrentRoomNo() == 10411) {
+	if (room().getCurrentRoomNo() == 10411) {
 		S2PhoneRoom::handleEvent(event);
 	}
 
@@ -477,8 +467,8 @@ bool S2Room10000::handleEvent(GLEvent &event) {
 void S2Room10000::cancelScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		_game.getUser().setIsHandsOn(true);
-		_game.getSoundManager().play(_cancelSoundNo, false, 120);
+		user().setIsHandsOn(true);
+		sound().play(_cancelSoundNo, false, 120);
 		// SSCI did not clean up the sound number
 		_cancelSoundNo = 0;
 		_cycler.reset(new GLEndBackCycler());
@@ -497,15 +487,15 @@ void S2Room10000::cancelScript(GLScript &script, const int state) {
 
 		switch (_lastRoomNo) {
 		case 10110:
-			_game.getRoomManager().setNextRoomNo(10100);
-			_game.getUser().setIsHandsOn(true);
+			room().setNextRoomNo(10100);
+			user().setIsHandsOn(true);
 			break;
 
 		case 10120:
 		case 10129:
 		case 10310:
-			_game.getRoomManager().setNextRoomNo(10300);
-			_game.getUser().setIsHandsOn(true);
+			room().setNextRoomNo(10300);
+			user().setIsHandsOn(true);
 			break;
 		}
 		break;
@@ -518,12 +508,12 @@ void S2Room10000::cancelScript(GLScript &script, const int state) {
 void S2Room10000::suitcaseScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		_game.getUser().setIsHandsOn(false);
+		user().setIsHandsOn(false);
 		if (_suitcaseIsOpen) {
 			_cycler.reset(new GLEndBackCycler());
 		} else {
 			int16 loopNo;
-			if (_game.getInventoryManager().getState(S2Inventory::kInv5) == S2InventoryState::Placed) {
+			if (inventory().isPlaced(S2Inventory::kInv5)) {
 				loopNo = 1;
 			} else {
 				loopNo = 0;
@@ -534,7 +524,7 @@ void S2Room10000::suitcaseScript(GLScript &script, const int state) {
 		}
 		_cycler->add(*_cel);
 		_cycler->start(script);
-		_game.getSoundManager().play(11001, false, 100);
+		sound().play(11001, false, 100);
 		break;
 
 	case 1:
@@ -544,25 +534,25 @@ void S2Room10000::suitcaseScript(GLScript &script, const int state) {
 			// is getting destroyed
 			_cel.reset();
 			_suitcaseIsOpen = false;
-			_game.getRoomManager().setNextRoomNo(10120);
+			room().setNextRoomNo(10120);
 		} else {
 			getPlane().getCast().remove(*_cel);
 			_suitcaseIsOpen = true;
-			_game.getRoomManager().setNextRoomNo(10129);
+			room().setNextRoomNo(10129);
 		}
 		_script.reset();
 		_cycler.reset();
-		_game.getUser().setIsHandsOn(true);
+		user().setIsHandsOn(true);
 		break;
 	}
 }
 
 void S2Room10000::takeTapeFromSuitcase(GLEvent &, GLTarget &target) {
-	if (_game.getInventoryManager().setState(S2Inventory::kInv5, S2InventoryState::Taken)) {
+	if (inventory().setState(S2Inventory::kInv5, S2InventoryState::Taken)) {
 		_cel->setLoop(0, true);
 		getPlane().getCast().remove(*_cel);
-		_game.getInventoryManager().addItem(S2Inventory::kInv5);
-		_game.getSoundManager().play(11009, false, 120);
+		inventory().addItem(S2Inventory::kInv5);
+		sound().play(11009, false, 120);
 		// SSCI deleted and recreated the same hotspot just to
 		// change its event handler; we just change the handler
 		static_cast<S2Hotspot &>(target).setMouseUpHandler(this, &S2Room10000::putTapeInSuitcase);
@@ -570,11 +560,11 @@ void S2Room10000::takeTapeFromSuitcase(GLEvent &, GLTarget &target) {
 }
 
 void S2Room10000::putTapeInSuitcase(GLEvent &, GLTarget &target) {
-	if (_game.getInventoryManager().getState(S2Inventory::kInv5) == S2InventoryState::InUse) {
+	if (inventory().isInUse(S2Inventory::kInv5)) {
 		_cel->setLoop(1, true);
 		getPlane().getCast().remove(*_cel);
-		_game.getInventoryManager().unselectItem(false);
-		_game.getInventoryManager().setState(S2Inventory::kInv5, S2InventoryState::Placed);
+		inventory().unselectItem(false);
+		inventory().setState(S2Inventory::kInv5, S2InventoryState::Placed);
 		// SSCI did not restore the handler when the tape was replaced
 		static_cast<S2Hotspot &>(target).setMouseUpHandler(this, &S2Room10000::takeTapeFromSuitcase);
 	}
@@ -594,13 +584,13 @@ void S2Room10000::openDrawer(GLEvent &, GLTarget &target) {
 	}
 
 	if (_topDrawer) {
-		_game.getRoomManager().removeHotspot(*_topDrawer);
+		room().removeHotspot(*_topDrawer);
 		removeChild(*_topDrawer);
 		_topDrawer = nullptr;
 	}
 
 	if (_bottomDrawer) {
-		_game.getRoomManager().removeHotspot(*_bottomDrawer);
+		room().removeHotspot(*_bottomDrawer);
 		removeChild(*_bottomDrawer);
 		_bottomDrawer = nullptr;
 	}
@@ -613,12 +603,12 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 	// TODO: This could really be split into two functions since the
 	// case 0/1 is for drawer 1 and case 2/3 are drawer 2
 	case 0:
-		_game.getUser().setIsHandsOn(false);
+		user().setIsHandsOn(false);
 		if (_topDrawerIsOpen) {
-			_game.getSoundManager().play(11005, false, 80);
+			sound().play(11005, false, 80);
 			_cycler.reset(new GLEndBackCycler());
 		} else {
-			_game.getSoundManager().play(11006, false, 80);
+			sound().play(11006, false, 80);
 			_cel.reset(new GLCel(getPlane(), 10310, 0, 0, roomBottom));
 			_cel->show();
 			_cycler.reset(new GLEndForwardCycler());
@@ -642,16 +632,16 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 		}
 		_script.reset();
 		_cycler.reset();
-		_game.getUser().setIsHandsOn(true);
+		user().setIsHandsOn(true);
 		break;
 
 	case 2:
-		_game.getUser().setIsHandsOn(false);
+		user().setIsHandsOn(false);
 		if (_bottomDrawerIsOpen) {
 			_cycler.reset(new GLEndBackCycler());
-			_game.getSoundManager().play(11005, false, 80);
+			sound().play(11005, false, 80);
 		} else {
-			if (!_game.getFlags().get(kGameFlag111) && _game.getFlags().get(kGameFlag2)) {
+			if (!flags().get(kGameFlag111) && flags().get(kGameFlag2)) {
 				_cel.reset(new GLCel(getPlane(), 10310, 1, 0, roomBottom));
 				_prayerStickHotspot = &emplaceHotspot(true, 382, 294, 444, 336);
 			} else {
@@ -660,7 +650,7 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 
 			_cel->show();
 			_cycler.reset(new GLEndForwardCycler());
-			_game.getSoundManager().play(11006, false, 80);
+			sound().play(11006, false, 80);
 		}
 		_cycler->add(*_cel, false);
 		_cycler->start(script);
@@ -684,7 +674,7 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 
 		_script.reset();
 		_cycler.reset();
-		_game.getUser().setIsHandsOn(true);
+		user().setIsHandsOn(true);
 		break;
 	}
 }
@@ -700,14 +690,14 @@ void S2Room10000::addDresserHotspots() {
 #pragma mark Radio
 
 void S2Room10000::playRadio(const uint16 soundNo) {
-	_game.getSoundManager().stop(_radioSoundNo);
+	sound().stop(_radioSoundNo);
 	_radioSoundNo = soundNo;
 	if (soundNo == 41004) {
-		_game.getSoundManager().play(soundNo, true, 120);
+		sound().play(soundNo, true, 120);
 	} else {
-		_game.getSoundManager().play(soundNo);
+		sound().play(soundNo);
 	}
-	_game.getInterface().putText(soundNo);
+	interface().putText(soundNo);
 }
 
 } // End of namespace Sci

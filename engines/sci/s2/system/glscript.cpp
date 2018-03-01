@@ -33,6 +33,13 @@ GLScript::GLScript(ChangeStateHandler callback, const int initialState, const in
 	cue();
 }
 
+GLScript::GLScript(GLScript &&other) :
+	GLTimer(other) {
+	_changeState = other._changeState;
+	_cuer = other._cuer;
+	other._cuer = nullptr;
+}
+
 GLScript::~GLScript() {
 	_extras->remove(this);
 	if (_cuer) {

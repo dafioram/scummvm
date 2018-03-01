@@ -126,8 +126,12 @@ public:
 class GLSoundTrack : public GLScript {
 public:
 	GLSoundTrack(const int trackId) :
-		GLScript(this, &GLSoundTrack::changeState),
+		GLScript(),
 		_trackId(trackId) {}
+
+	void init() {
+		GLScript::init(this, &GLSoundTrack::changeState);
+	}
 
 	static void init(S2Game *game) { _game = game; }
 	static void init(Audio32 *mixer) { _mixer = mixer; }

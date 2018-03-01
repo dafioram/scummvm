@@ -41,6 +41,7 @@ public:
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
 
+	bool hasPrayerStick() const { return _prayerStick != S2PrayerStick::None; }
 	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
 	S2Inventory getCurrentItem() const { return _currentItem; }
 	void setCurrentItem(const S2Inventory item);
@@ -69,6 +70,22 @@ public:
 
 	const GLCelRes &getSmallCel(S2Inventory item) const { return _inventory[int(item)].smallCel; }
 	const GLCelRes &getBigCel(S2Inventory item) const { return _inventory[int(item)].bigCel; }
+
+	bool isPlaced(const S2Inventory item) const {
+		return getState(item) == S2InventoryState::Placed;
+	}
+
+	bool isTaken(const S2Inventory item) const {
+		return getState(item) == S2InventoryState::Taken;
+	}
+
+	bool isUsed(const S2Inventory item) const {
+		return getState(item) == S2InventoryState::Used;
+	}
+
+	bool isInUse(const S2Inventory item) const {
+		return getState(item) == S2InventoryState::InUse;
+	}
 
 private:
 	void refresh();

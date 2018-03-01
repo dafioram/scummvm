@@ -47,7 +47,7 @@ class S2PanoramaSprite : public S2PanoramaImage {
 public:
 	using EventHandler = std::function<void()>;
 
-	S2PanoramaSprite(const uint16 resourceNo, const GLPoint &position, const int16 celNo, const int16 numCels, const bool transparent, const bool visible);
+	S2PanoramaSprite(const uint16 resourceNo, const GLPoint &position, const int16 celNo = 0, const int16 numCels = 1, const bool transparent = false, const bool visible = true);
 
 	const EventHandler &getMouseDownHandler() const { return _mouseDownHandler; }
 	void setMouseDownHandler(const EventHandler &handler) { _mouseDownHandler = handler; }

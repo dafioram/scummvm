@@ -1002,7 +1002,7 @@ public:
 				_game.getRoomManager().getPanorama().setPanX(jump.panX);
 				_game.getRoomManager().setNextRoomNo(jump.roomNo);
 				_game.getSoundManager().play(10905, false, 100);
-				if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
+				if (_game.getInventoryManager().hasPrayerStick()) {
 					_game.getInterface().changeLife(-2);
 				}
 				_game.getInterface().resetButtons();

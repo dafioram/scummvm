@@ -176,7 +176,7 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 			_game.getScoringManager().doEvent(kScore5);
 			if (!_game.getFlags().get(kGameFlag31)) {
 				_game.getFlags().set(kGameFlag31);
-				if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
+				if (_game.getInventoryManager().hasPrayerStick()) {
 					_game.getFlags().set(kGameFlag32);
 				}
 				movieNo = 3002;
@@ -188,7 +188,7 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 				warning("TODO: Captioning function for %d", movieNo);
 			} else if (!_game.getFlags().get(kGameFlag34)) {
 				_game.getFlags().set(kGameFlag34);
-				if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
+				if (_game.getInventoryManager().hasPrayerStick()) {
 					_game.getFlags().set(kGameFlag35);
 				}
 				movieNo = 3001;

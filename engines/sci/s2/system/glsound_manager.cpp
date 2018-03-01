@@ -109,7 +109,8 @@ bool GLSoundManager::isPlaying(const uint16 soundNo, const reg_t soundNode) cons
 }
 
 GLSoundTrack &GLSoundManager::createSoundTrack() {
-	_tracks.push_front(GLSoundTrack(_tracks.size()));
+	_tracks.emplace_front(_tracks.size());
+	_tracks.front().init();
 	return _tracks.front();
 }
 

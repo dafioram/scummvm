@@ -32,6 +32,7 @@
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glrobot.h"
 #include "sci/s2/system/glscreen_item.h"
+#include "sci/s2/system/glsound.h"
 #include "sci/s2/system/gltimer.h"
 
 namespace Sci {
@@ -53,6 +54,7 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	GLRobot::init(&graphicsManager);
 	GLCycler::init(&timeManager);
 	S2PanoramaImage::init(&resourceManager);
+	GLSoundTrack::init(&audioMixer);
 }
 
 } // End of namespace Sci

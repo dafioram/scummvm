@@ -35,6 +35,7 @@
 #include "sci/s2/system/glcycler.h"
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glquit_handler.h"
+#include "sci/s2/system/glsound.h"
 
 namespace Sci {
 S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
@@ -62,6 +63,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	S2Dialog::init(&_user);
 	S2InventoryObject::init(this);
 	GLPanorama::init(this);
+	GLSoundTrack::init(this);
 	S2Exit::init(&_cursor, &_roomManager);
 	_phoneManager.init();
 }

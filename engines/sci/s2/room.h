@@ -25,8 +25,10 @@
 
 #include "common/ptr.h"
 #include "sci/s2/hotspot.h"
+#include "sci/s2/flags.h"
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
+#include "sci/s2/panorama_sprite.h"
 #include "sci/s2/room_manager.h"
 #include "sci/s2/system/glcel.h"
 #include "sci/s2/system/glpanorama.h"
@@ -167,6 +169,19 @@ protected:
 		return exit;
 	}
 
+	template <typename ...Args>
+	S2PanoramaSprite &emplaceSprite(const bool shouldUpdate, Args && ...args) {
+		S2PanoramaSprite *sprite = new S2PanoramaSprite(args...);
+		_children.emplace_back(sprite);
+		_game.getRoomManager().getPanorama().addSprite(*sprite);
+		return *sprite;
+	}
+
+	template <typename ...Args>
+	void addPanoramaExit(Args && ...args) {
+		_game.getRoomManager().getPanorama().addExit(args...);
+	}
+
 	void reshowCel(GLCel &cel) {
 		getPlane().getCast().remove(cel);
 		cel.show();
@@ -191,6 +206,12 @@ protected:
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}
 
+		for (auto &&sprite : _sprites) {
+			if (sprite) {
+				_game.getRoomManager().getPanorama().removeSprite(*sprite);
+			}
+		}
+
 		for (auto &&hotspot : _hotspots) {
 			if (hotspot) {
 				_game.getRoomManager().removeHotspot(*hotspot);
@@ -206,11 +227,45 @@ protected:
 				_game.getRoomManager().removeExit(*exit);
 			}
 		}
+		_sprites.clear();
 		_exits.clear();
 		_hotspots.clear();
 		_cels.clear();
 		_children.clear();
 		_script.reset();
+	}
+
+	S2RoomManager &room() { return _game.getRoomManager(); }
+	S2SoundManager &sound() { return _game.getSoundManager(); }
+	GameFlags &flags() { return _game.getFlags(); }
+	S2InventoryManager &inventory() { return _game.getInventoryManager(); }
+	S2MovieManager &movie() { return _game.getMovieManager(); }
+	S2PhoneManager &phone() { return _game.getPhoneManager(); }
+	S2Interface &interface() { return _game.getInterface(); }
+	GLUser &user() { return _game.getUser(); }
+	S2ScoringManager &score() { return _game.getScoringManager(); }
+
+	void enterFrom(const int previousRoomNo, const int16 panX, const uint16 soundNo) {
+		if (_game.getRoomManager().getPreviousRoomNo() == previousRoomNo) {
+			if (panX >= 0) {
+				_game.getRoomManager().getPanorama().setPanX(panX);
+			}
+			if (soundNo) {
+				_game.getSoundManager().play(soundNo);
+			}
+		}
+	}
+
+	void exitBorder(const int roomNo, const bool top = true, const bool left = true, const bool right = true) {
+		if (left) {
+			emplaceExit(true, roomNo, 64, 0, 144, 383, S2Cursor::kBackCel);
+		}
+		if (right) {
+			emplaceExit(true, roomNo, 495, 0, 575, 383, S2Cursor::kBackCel);
+		}
+		if (top) {
+			emplaceExit(true, roomNo, 145, 0, 494, 80, S2Cursor::kBackCel);
+		}
 	}
 
 	S2Kernel &_kernel;
@@ -219,6 +274,7 @@ protected:
 	Common::ScopedPtr<S2SubRoom> _activeSubRoom;
 	Common::ScopedPtr<GLScript> _script;
 	Common::Array<Common::ScopedPtr<GLObject>> _children;
+	Common::Array<S2PanoramaSprite *> _sprites;
 	Common::Array<GLCel *> _cels;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<S2Exit *> _exits;

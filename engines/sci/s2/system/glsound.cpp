@@ -106,6 +106,7 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 			warning("TODO: PRS");
 		}
 		}
+		break;
 	}
 	default:
 		error("Invalid state %d in sound track", state);

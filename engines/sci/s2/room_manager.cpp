@@ -25,6 +25,7 @@
 #include "sci/s2/room.h"
 #include "sci/s2/room_manager.h"
 #include "sci/s2/rooms/1000.h"
+#include "sci/s2/rooms/6000.h"
 #include "sci/s2/rooms/10000.h"
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glpanorama.h"
@@ -304,7 +305,7 @@ void S2RoomManager::newRoom(int roomNo) {
 		_isSaved = false;
 		if (++_numRoomTransitions == 5) {
 			_numRoomTransitions = 0;
-			if (_game.getInventoryManager().getPrayerStickId() != S2PrayerStick::None) {
+			if (_game.getInventoryManager().hasPrayerStick()) {
 				_game.getInterface().changeLife(-1);
 			}
 		}
@@ -326,10 +327,12 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	case 1000:
 		_currentRoom.reset(new S2Room1000(_kernel, _game));
 		break;
+	case 6000:
+		_currentRoom.reset(new S2Room6000(_kernel, _game));
+		break;
 	case 10000:
 		_currentRoom.reset(new S2Room10000(_kernel, _game));
 		break;
-	case 6000:
 	case 11000:
 	case 12000:
 	case 13000:
