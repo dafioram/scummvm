@@ -65,6 +65,9 @@ public:
 	int getState() const { return _state; }
 	void setState(const int state) { _state = state; }
 
+	int getData() const { return _data; }
+	void *getDataPointer() const { return _dataPointer; }
+
 	const ChangeStateHandler &getChangeState() const { return _changeState; }
 
 protected:
@@ -83,6 +86,8 @@ private:
 
 	ChangeStateHandler _changeState;
 	int _state;
+	int _data;
+	void *_dataPointer;
 };
 
 } // End of namespace Sci

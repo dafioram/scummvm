@@ -28,8 +28,9 @@ namespace Sci {
 GLScript::GLScript(ChangeStateHandler callback, const int initialState, const int data, void *const dataPointer) :
 	GLTimer(nullptr, nullptr, data, dataPointer),
 	_changeState(callback),
-	_state(initialState - 1) {
-
+	_state(initialState - 1),
+	_data(data),
+	_dataPointer(dataPointer) {
 	cue();
 }
 

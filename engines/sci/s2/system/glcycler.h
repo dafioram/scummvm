@@ -51,6 +51,7 @@ public:
 	void stop();
 	void clearCaller() { _caller = nullptr; }
 
+	bool cycleForward() { return _direction == 1; }
 	void cycleForward(const bool forward);
 
 	virtual void doIt() override;
@@ -98,7 +99,23 @@ public:
 };
 
 template <class CelT>
+class AbsGLEndForwardBackwardCycler : public AbsGLCycler<CelT> {
+public:
+	using AbsGLCycler<CelT>::AbsGLCycler;
+	virtual int16 nextCel(CelT &client) override;
+};
+
+template <class CelT>
 class AbsGLPingPongCycler : public AbsGLCycler<CelT> {
+public:
+	using AbsGLCycler<CelT>::AbsGLCycler;
+
+private:
+	virtual int16 nextCel(CelT &client) override;
+};
+
+template <class CelT>
+class AbsGLStartResetCycler : public AbsGLCycler<CelT> {
 public:
 	using AbsGLCycler<CelT>::AbsGLCycler;
 
@@ -111,6 +128,7 @@ using GLEndCycler = AbsGLEndCycler<GLCel>;
 using GLEndBackCycler = AbsGLEndBackCycler<GLCel>;
 using GLEndForwardCycler = AbsGLEndForwardCycler<GLCel>;
 using GLPingPongCycler = AbsGLPingPongCycler<GLCel>;
+using GLEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<GLCel>;
 
 } // End of namespace Sci
 

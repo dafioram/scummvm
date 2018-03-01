@@ -411,6 +411,7 @@ void S2Room6000::init(const int roomNo) {
 		sound().createAmbient(6);
 		enterFrom(18140, 1981, 21802);
 		enterFrom(19120, -1, 22102);
+		room().drawPan(6270);
 		addPanoramaExit(6280, 730, 190, 865, 365);
 		addPanoramaExit(6230, 1649, 170, 1840, 470);
 		addPanoramaExit(6275, 1329, 224, 1402, 350);
@@ -506,6 +507,7 @@ void S2Room6000::init(const int roomNo) {
 	case 6290:
 		sound().createAmbient(6);
 		enterFrom(22110, 1765, 12216);
+		room().drawPan(6290);
 		addPanoramaExit(6300, 362, 163, 480, 400);
 		addPanoramaExit(6250, 1809, 147, 1969, 291);
 		addPanoramaExit(6291, 813, 249, 876, 329, S2Cursor::kHighlightCel);
@@ -554,7 +556,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6311:
-		room().drawPan(6311);
+		room().drawPic(6311);
 		enter(roomNo, 11111, 11112, true);
 		emplaceExit(true, 11100, 256, 110, 411, 383);
 		break;
@@ -1065,12 +1067,22 @@ void S2Room6000::init(const int roomNo) {
 }
 
 void S2Room6000::dispose(const int roomNo) {
+	_cycler.reset();
 	if (roomNo == 6999) {
 		_cel.reset();
 	}
+	_ethereal.reset();
 	_fan.reset();
+	_sign.reset();
+	_flag.reset();
+	_birds.reset();
+	_cafeLight.reset();
+	_pole2.reset();
+	_pole.reset();
+	_motor.reset();
 	_panoramaCycler1.reset();
 	_panoramaCycler.reset();
+	_norah.reset();
 	S2Room::dispose(roomNo);
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
@@ -1080,7 +1092,7 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	_exitSoundNo = exitSound;
 	setScript(self(enterScript), 0, roomNo);
 	if (addExit) {
-		emplaceExit(true, 64999, S2Cursor::kBackCel);
+		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
 }
 
@@ -1112,16 +1124,68 @@ void S2Room6000::initBook() {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::enterScript(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::enterScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		script.setSeconds(1);
+		break;
+
+	case 1:
+		_cel.reset(new GLCel(getPlane(), script.getData(), 0, 0, roomBottom));
+		_cel->show();
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(_enterSoundNo, false, 100);
+		break;
+
+	case 2:
+		getPlane().getCast().remove(*_cel);
+		_cycler.reset();
+		user().setIsHandsOn(true);
+		break;
+	}
 }
 
-void S2Room6000::cancelAction(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::cancelAction(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		_cycler.reset(new GLEndBackCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(_exitSoundNo, false, 100);
+		break;
+
+	case 1:
+		_cel.reset();
+		script.setSeconds(1);
+		break;
+
+	case 2: {
+		_script.reset();
+		_cycler.reset();
+		// SSCI used a big switch here; we do the same thing algorithmically
+		room().setNextRoomNo(room().getPreviousRoomNo() / 10 * 10);
+		user().setIsHandsOn(true);
+		break;
+	}
+	}
 }
 
-void S2Room6000::goToEthereal(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::goToEthereal(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_ethereal.reset();
+		room().setNextRoomNo(_choose ? 6667 : 6666);
+		_choose = false;
+		break;
+	}
 }
 
 void S2Room6000::animateFan(GLScript &script, const int state) {
@@ -1194,20 +1258,128 @@ void S2Room6000::animateFan(GLScript &script, const int state) {
 	}
 }
 
-void S2Room6000::animateSign(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateSign(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 6113, GLPoint(1179, 181), 0, 4);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaSprite0->setCycleSpeed(_game.getRandomNumber(15, 25));
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+
+	case 3:
+		_panoramaSprite1 = &emplaceSprite(true, 6102, GLPoint(1374, 222), 0, 4);
+		_panoramaCycler1.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 4:
+		_panoramaSprite1->setCycleSpeed(_game.getRandomNumber(15, 25));
+		_panoramaCycler1->add(*_panoramaSprite1);
+		_panoramaCycler1->start(script);
+		break;
+
+	case 5:
+		script.setState(3);
+		script.setCycles(1);
+		break;
+	}
 }
 
-void S2Room6000::animateFlag(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateFlag(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 6121, GLPoint(1252, 10), 0, 5);
+		_panoramaCycler.reset(new S2PanoramaEndForwardBackwardCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaSprite0->setCycleSpeed(_game.getRandomNumber(5, 15));
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+	}
 }
 
-void S2Room6000::animateBirds(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateBirds(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 5990, GLPoint(500, 5), 37, 38, true);
+		_panoramaCycler.reset(new S2PanoramaStartResetCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+	}
 }
 
-void S2Room6000::animateCafeLight(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateCafeLight(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_lightState = 0;
+		if (script.getData() == 6270) {
+			_panoramaSprite1 = &emplaceSprite(true, 6278, GLPoint(1535, 178));
+		} else {
+			_panoramaSprite1 = &emplaceSprite(true, 6238, GLPoint(793, 213));
+		}
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaSprite1->show();
+		script.setTicks(_lightState + (_lightState == 1 ? 2 : 6));
+		break;
+
+	case 2:
+		_panoramaSprite1->hide();
+		script.setTicks(_lightState + (_lightState == 1 ? 9 : 6));
+		break;
+
+	case 3:
+		if (++_lightState == 3) {
+			script.setState(3);
+		} else {
+			script.setState(0);
+		}
+		script.setCycles(1);
+		break;
+
+	case 4:
+		_panoramaSprite1->hide();
+		script.setSeconds(4);
+		break;
+
+	case 5:
+		_lightState = 0;
+		_panoramaSprite1->show();
+		script.setState(0);
+		script.setSeconds(6);
+		break;
+	}
 }
 
 void S2Room6000::animatePole(GLScript &, const int) {
@@ -1242,8 +1414,27 @@ void S2Room6000::openKeyBox(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::showMotelSign(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::showMotelSign(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		script.setSeconds(1);
+		break;
+
+	case 1: {
+		const int16 loopNo = _game.getRandomNumber(0, 1);
+		_cel.reset(new GLCel(getPlane(), 6315, loopNo, 0, roomBottom));
+		_cel->show();
+		script.setSeconds(1);
+		break;
+	}
+
+	case 2:
+		_cel.reset();
+		_script.reset();
+		user().setIsHandsOn(true);
+		break;
+	}
 }
 
 void S2Room6000::openStatue(GLScript &, const int) {

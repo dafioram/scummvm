@@ -72,6 +72,7 @@ public:
 
 	void addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate = true);
 	void removeSprite(S2PanoramaSprite &sprite);
+	void removeAllSprites();
 
 private:
 	static constexpr int _shiftY = 22;

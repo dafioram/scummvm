@@ -108,6 +108,21 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 		}
 		break;
 	}
+
+	case 2:
+		if (_isStopped || _isPaused) {
+			script.setState(-1);
+		} else if (_mixer->getPosition({ kResourceTypeAudio, _currentSoundNo }) != -1) {
+			script.setState(1);
+		} else {
+			script.setState(0);
+		}
+
+		// SSCI unlocked the resource here, we do not need to do that since our
+		// resource locks are managed by the kernel
+		script.setCycles(1);
+		break;
+
 	default:
 		error("Invalid state %d in sound track", state);
 	}

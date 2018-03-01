@@ -205,6 +205,7 @@ protected:
 		if (!_keepPanoramaExits) {
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}
+		_game.getRoomManager().getPanorama().removeAllSprites();
 
 		for (auto &&sprite : _sprites) {
 			if (sprite) {

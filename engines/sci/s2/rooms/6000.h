@@ -51,6 +51,7 @@ private:
 	uint16 _enterSoundNo = 0;
 	uint16 _exitSoundNo = 0;
 	Common::ScopedPtr<GLCel> _cel;
+	Common::ScopedPtr<GLCycler> _cycler;
 
 	void goToEthereal(GLScript &, const int);
 	Common::ScopedPtr<GLScript> _ethereal;
@@ -68,6 +69,7 @@ private:
 	Common::ScopedPtr<GLScript> _flag;
 	Common::ScopedPtr<GLScript> _birds;
 	Common::ScopedPtr<GLScript> _cafeLight;
+	int _lightState;
 	Common::ScopedPtr<GLScript> _pole;
 	Common::ScopedPtr<GLScript> _pole2;
 	Common::ScopedPtr<GLScript> _motor;

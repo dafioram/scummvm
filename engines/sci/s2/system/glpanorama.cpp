@@ -271,6 +271,14 @@ void GLPanorama::removeSprite(S2PanoramaSprite &sprite) {
 	_isDirty = true;
 }
 
+void GLPanorama::removeAllSprites() {
+	for (auto &&sprite : _image.getSprites()) {
+		_image.erase(*sprite);
+	}
+	_image.getSprites().clear();
+	_isDirty = true;
+}
+
 void GLPanorama::buildWarpTable() {
 	const double halfWidth = _screen.getWidth() / 2.0;
 	for (int x = 0; x < _screen.getWidth(); ++x) {

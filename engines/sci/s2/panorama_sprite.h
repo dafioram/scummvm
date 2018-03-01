@@ -42,8 +42,11 @@
 namespace Sci {
 
 class S2PanoramaSprite;
-using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
 class S2PanoramaMover;
+
+using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
+using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
+using S2PanoramaStartResetCycler = AbsGLStartResetCycler<S2PanoramaSprite>;
 
 class S2PanoramaSprite : public S2PanoramaImage {
 public:
@@ -58,6 +61,9 @@ public:
 	void setBounds(const Common::Rect &bounds);
 
 	int getCycleSpeed() const { return _cycleSpeed; }
+	void setCycleSpeed(const int cycleSpeed) { _cycleSpeed = cycleSpeed; }
+
+	void setMoveSpeed(const int moveSpeed) { _moveSpeed = moveSpeed; }
 
 	void setCycler(S2PanoramaCycler *cycler) { _cycler = cycler; }
 
@@ -72,6 +78,9 @@ public:
 	bool getIsVisible() const { return _isVisible; }
 
 	Common::Array<byte> &getSavedPixels() { return _savedPixels; }
+
+	void hide() { _isVisible = false; }
+	void show() { _isVisible = true; }
 
 private:
 	Common::Rect _bounds;

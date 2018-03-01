@@ -166,6 +166,21 @@ int16 AbsGLEndForwardCycler<CelT>::nextCel(CelT &client) {
 }
 
 template <class CelT>
+int16 AbsGLEndForwardBackwardCycler<CelT>::nextCel(CelT &client) {
+	auto cel = client.getCel();
+	if (cel == 0 && !this->cycleForward()) {
+		this->incrementCycle();
+		this->cycleForward(true);
+	} else if (cel == client.getLastCel()) {
+		this->cycleForward(false);
+		cel += this->getDirection();
+	} else {
+		cel += this->getDirection();
+	}
+	return cel;
+}
+
+template <class CelT>
 int16 AbsGLPingPongCycler<CelT>::nextCel(CelT &client) {
 	int16 lastCel = client.getLastCel();
 	int16 cel = client.getCel();
@@ -183,12 +198,27 @@ int16 AbsGLPingPongCycler<CelT>::nextCel(CelT &client) {
 	return cel;
 }
 
+template <class CelT>
+int16 AbsGLStartResetCycler<CelT>::nextCel(CelT &client) {
+	auto cel = client.getCel();
+	if (cel == 0) {
+		this->incrementCycle();
+		return client.getLastCel();
+	} else {
+		this->cycleForward(false);
+		return cel + this->getDirection();
+	}
+}
+
 template class AbsGLCycler<GLCel>;
 template class AbsGLEndCycler<GLCel>;
 template class AbsGLEndBackCycler<GLCel>;
 template class AbsGLEndForwardCycler<GLCel>;
 template class AbsGLPingPongCycler<GLCel>;
+template class AbsGLEndForwardBackwardCycler<GLCel>;
 
 template class AbsGLCycler<S2PanoramaSprite>;
+template class AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
+template class AbsGLStartResetCycler<S2PanoramaSprite>;
 
 } // End of namespace Sci
