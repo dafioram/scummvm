@@ -92,6 +92,9 @@ void S2Game::run() {
 	if (_engine.getInitialLoadSlot() < 0) {
 		_roomManager.loadRoom(1000);
 		_roomManager.initRoom(1000);
+	} else {
+		_roomManager.drawPan(10400);
+		_roomManager.drawPic(1, true);
 	}
 
 	play();
