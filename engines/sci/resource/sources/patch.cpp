@@ -113,13 +113,23 @@ bool PatchResourceSource::processPatch(ResourceManager *resMan, ResourceType res
 	}
 
 	byte patchType;
-	if (fileStream->readUint32BE() == MKTAG('R','I','F','F')) {
-		fileStream->seek(-4, SEEK_CUR);
-		patchType = kResourceTypeAudio;
+#ifdef ENABLE_SCI32S2
+	if (fileStream->readUint16BE() == MKTAG16('B','M')) {
+		fileStream->seek(-2, SEEK_CUR);
+		patchType = kResourceTypePano;
 	} else {
-		fileStream->seek(-4, SEEK_CUR);
-		patchType = resMan->convertResType(fileStream->readByte());
+		fileStream->seek(-2, SEEK_CUR);
+#endif
+		if (fileStream->readUint32BE() == MKTAG('R','I','F','F')) {
+			fileStream->seek(-4, SEEK_CUR);
+			patchType = kResourceTypeAudio;
+		} else {
+			fileStream->seek(-4, SEEK_CUR);
+			patchType = resMan->convertResType(fileStream->readByte());
+		}
+#ifdef ENABLE_SCI32S2
 	}
+#endif
 
 	enum {
 		kExtraHeaderSize    = 2, ///< extra header used in gfx resources
@@ -158,6 +168,9 @@ bool PatchResourceSource::processPatch(ResourceManager *resMan, ResourceType res
 		case kResourceTypeTGA:
 		case kResourceTypeZZZ:
 		case kResourceTypeEtc:
+#ifdef ENABLE_SCI32S2
+		case kResourceTypePano:
+#endif
 #endif
 			patchDataOffset = 0;
 			break;

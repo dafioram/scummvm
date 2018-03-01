@@ -469,6 +469,13 @@ void Debugger::cmdDiskDumpWorker(ResourceType resourceType, int resourceNumber, 
 		//  e.g. "@5EG0000.014"
 		break;
 	}
+#ifdef ENABLE_SCI32S2
+	case kResourceTypePano:
+		resourceId = ResourceId(resourceType, resourceNumber);
+		resource = _resMan->findResource(resourceId, false);
+		sprintf(outFileName, "%d.bmp", resourceNumber);
+		break;
+#endif
 	default:
 		resourceId = ResourceId(resourceType, resourceNumber);
 		resource = _resMan->findResource(resourceId, 0);
@@ -479,12 +486,10 @@ void Debugger::cmdDiskDumpWorker(ResourceType resourceType, int resourceNumber, 
 	}
 
 	if (resource) {
-		Common::DumpFile *outFile = new Common::DumpFile();
-		outFile->open(outFileName);
-		resource->writeToStream(outFile);
-		outFile->finalize();
-		outFile->close();
-		delete outFile;
+		Common::DumpFile outFile;
+		outFile.open(outFileName);
+		resource->writeToStream(&outFile);
+		outFile.flush();
 		debugPrintf("Resource %s (located in %s) has been dumped to disk\n", outFileName, resource->getResourceLocation().c_str());
 	} else {
 		debugPrintf("Resource %s not found\n", outFileName);
