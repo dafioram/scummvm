@@ -31,6 +31,8 @@
 
 namespace Sci {
 
+#define self(name) this, &S2CheckInRoom::name
+
 class S2CheckInRoom : public S2SubRoom {
 public:
 	using S2SubRoom::S2SubRoom;
@@ -44,7 +46,7 @@ public:
 		_isWacky = (_game.getSaveGameName() == "WACKY" &&
 					movie().getUseHalfScreen());
 		sound().play(31002, true, 70);
-		setScript(this, &S2CheckInRoom::checkInScript);
+		setScript(self(checkInScript));
 	}
 
 	virtual void dispose(const int) override {
@@ -57,7 +59,7 @@ private:
 		switch (state) {
 		case 0: {
 			auto &hotspot = emplaceHotspot(true, 224, 120, 464, 360);
-			hotspot.setMouseUpHandler(this, &S2CheckInRoom::interact);
+			hotspot.setMouseUpHandler(self(interact));
 
 			_charles = &emplaceCel(false, 1910, 0, 0, roomBottom, 200);
 			_charles->show();
@@ -265,16 +267,19 @@ private:
 	Common::ScopedPtr<GLCycler> _wackyCycler;
 };
 
+#undef self
+#define self(name) this, &S2Room1000::name
+
 void S2Room1000::init(const int roomNo) {
 	switch (roomNo) {
 	case 1000:
 		room().drawPan(10400);
 		room().drawPic(1, true);
-		setScript(this, &S2Room1000::logoScript);
+		setScript(self(logoScript));
 		break;
 	case 1010:
 		room().drawPic(2);
-		setScript(this, &S2Room1000::openingScript);
+		setScript(self(openingScript));
 		break;
 	case 1015:
 		setSubRoom<S2CheckInRoom>();
@@ -283,7 +288,7 @@ void S2Room1000::init(const int roomNo) {
 	case 1020:
 		room().drawPic(2);
 		interface().putText(0);
-		setScript(this, &S2Room1000::dreamMovieScript);
+		setScript(self(dreamMovieScript));
 		break;
 	case 1500:
 	case 1600:
@@ -295,7 +300,7 @@ void S2Room1000::init(const int roomNo) {
 void S2Room1000::logoScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1000, nullptr, GLPoint(0, 0));
+		movie().play(1000, nullptr, absTop);
 		script.setTicks(1);
 		break;
 	case 1:
@@ -307,7 +312,7 @@ void S2Room1000::logoScript(GLScript &script, const int state) {
 void S2Room1000::openingScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1010, nullptr, GLPoint(64, 0));
+		movie().play(1010, nullptr, roomTop);
 		script.setTicks(1);
 		break;
 	case 1:
@@ -319,7 +324,7 @@ void S2Room1000::openingScript(GLScript &script, const int state) {
 void S2Room1000::dreamMovieScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1020, nullptr, GLPoint(64, 0));
+		movie().play(1020, nullptr, roomTop);
 		script.setTicks(1);
 		break;
 	case 1:

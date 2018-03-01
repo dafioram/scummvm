@@ -36,6 +36,8 @@
 
 namespace Sci {
 
+#define global(name) static_cast<S2GlobalRoom *>(&_parent), &S2GlobalRoom::name
+
 class S2MainMenuRoom : public S2GlobalSubRoom {
 	auto &addButton(const int16 loopNo, const bool enable = true) {
 		auto &button = emplaceButton(true, enable, 4000, loopNo, 0, absBottom, 202);
@@ -57,7 +59,7 @@ public:
 
 		// old game
 		button = &addButton(1, _game.hasSaveGames());
-		button->setMouseUpHandler(&static_cast<S2GlobalRoom &>(_parent), &S2GlobalRoom::showOldGames);
+		button->setMouseUpHandler(global(showOldGames));
 
 		// web page
 		button = &addButton(2);
@@ -86,7 +88,7 @@ public:
 		// quit
 		button = &addButton(4);
 		button->setHighlightedFace(4000, 4, 2);
-		button->setMouseUpHandler(&static_cast<S2GlobalRoom &>(_parent), &S2GlobalRoom::quitGame);
+		button->setMouseUpHandler(global(quitGame));
 
 		// sub-title
 		emplaceCel(false, 4000, 5, 4, absBottom, 201).show();
@@ -348,7 +350,7 @@ public:
 		});
 
 		button = &addButton(1, _game.hasSaveGames());
-		button->setMouseUpHandler(&static_cast<S2GlobalRoom &>(_parent), &S2GlobalRoom::showOldGames);
+		button->setMouseUpHandler(global(showOldGames));
 
 		button = &addButton(2);
 		button->setMouseUpHandler([&](GLEvent &, GLTarget &) {
@@ -373,7 +375,7 @@ public:
 		});
 
 		button = &addButton(4);
-		button->setMouseUpHandler(&static_cast<S2GlobalRoom &>(_parent), &S2GlobalRoom::quitGame);
+		button->setMouseUpHandler(global(quitGame));
 
 		_scoreBitmap.reset(new S2Bitmap(252, 22, 255, 255));
 		auto &textBox = emplaceChild<GLScreenItem>(*_scoreBitmap, GLPoint(139, 357), 202);
@@ -386,6 +388,8 @@ public:
 private:
 	Common::ScopedPtr<S2Bitmap> _scoreBitmap;
 };
+
+#define self(name) this, &S2FlashbackRoom::name
 
 class S2FlashbackRoom : public S2GlobalSubRoom {
 public:
@@ -462,13 +466,13 @@ public:
 		case 20412: {
 			getParent()._flashbackPageNo = 20412;
 			emplaceCel(false, 20412, 0, 0, roomBottom).show();
-			emplaceHotspot(false, 334, 34, 549, 358).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+			emplaceHotspot(false, 334, 34, 549, 358).setMouseUpHandler(self(nextPage));
 			break;
 		}
 		case 20413: {
 			getParent()._flashbackPageNo = 20413;
 			emplaceCel(false, 20412, 0, 1, roomBottom).show();
-			emplaceHotspot(false, 91, 34, 318, 358).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+			emplaceHotspot(false, 91, 34, 318, 358).setMouseUpHandler(self(previousPage));
 			break;
 		}
 		case 21321:
@@ -476,11 +480,11 @@ public:
 			break;
 		case 21354:
 			getParent()._flashbackPageNo = 21354;
-			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(self(nextPage));
 			break;
 		case 21355:
 			getParent()._flashbackPageNo = 21355;
-			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+			emplaceHotspot(false, 184, 37, 497, 362).setMouseUpHandler(self(previousPage));
 			break;
 		case 22511:
 			emplaceCel(false, 22511, 0, 3, roomBottom).show();
@@ -502,10 +506,10 @@ public:
 		case 24335:
 			getParent()._flashbackPageNo = roomNo;
 			if (roomNo > 24321) {
-				emplaceHotspot(false, 64, 18, 315, 356).setMouseUpHandler(this, &S2FlashbackRoom::previousPage);
+				emplaceHotspot(false, 64, 18, 315, 356).setMouseUpHandler(self(previousPage));
 			}
 			if (roomNo < 24335) {
-				emplaceHotspot(false, 332, 18, 575, 356).setMouseUpHandler(this, &S2FlashbackRoom::nextPage);
+				emplaceHotspot(false, 332, 18, 575, 356).setMouseUpHandler(self(nextPage));
 			}
 			break;
 		}
@@ -539,7 +543,7 @@ private:
 
 		auto *button = &emplaceButton(true, true, 4110, 2, 0, GLPoint(77, 40), 202);
 		// SSCI set depressed face to its already-defaulted value
-		button->setMouseUpHandler(this, &S2FlashbackRoom::showFlashback);
+		button->setMouseUpHandler(self(showFlashback));
 
 		// SSCI counted indexes and multiplied on each step instead of
 		// maintaining a single point object
@@ -550,7 +554,7 @@ private:
 			}
 			button = &emplaceButton(true, true, 4110, loopNo, 0, position, 202);
 			// SSCI set depressed face to its already-defaulted value
-			button->setMouseUpHandler(this, &S2FlashbackRoom::showFlashback);
+			button->setMouseUpHandler(self(showFlashback));
 
 			if (position.y == 250) {
 				position.y = 40;
@@ -585,7 +589,7 @@ private:
 			}
 
 			auto &button = emplaceButton(true, true, 4110, loopNo, 0, position, 202);
-			button.setMouseUpHandler(this, &S2FlashbackRoom::showMovie);
+			button.setMouseUpHandler(self(showMovie));
 
 			if (position.y == 290) {
 				position.x = 334;
@@ -709,6 +713,9 @@ private:
 constexpr int S2FlashbackRoom::_loopToRoom[];
 constexpr S2FlashbackRoom::Movie S2FlashbackRoom::_loopToMovie[];
 
+#undef self
+#define self(name) this, &S2ConfigurationRoom::name
+
 class S2ConfigurationRoom : public S2GlobalSubRoom {
 	enum {
 		kSliderX = 430,
@@ -802,7 +809,7 @@ public:
 
 		_solveIt = false;
 		auto &solver = emplaceCel(false, 4120, 5, 0, roomBottom, 201);
-		solver.setSelectHandler(this, &S2ConfigurationRoom::solvePuzzle);
+		solver.setSelectHandler(self(solvePuzzle));
 		_solverCycler.reset(new GLCycler());
 		_solverCycler->add(solver, true);
 	}
@@ -827,7 +834,7 @@ private:
 			_game.getSoundManager().play(12608, true, Audio32::kMaxVolume);
 			_sliderType = type;
 			_sliderCel = &cel;
-			_sliderScript.reset(new GLScript(this, &S2ConfigurationRoom::pollSlider));
+			_sliderScript.reset(new GLScript(self(pollSlider)));
 		} else if (event.getType() == kSciEventMouseRelease) {
 			stopSlider();
 		}
@@ -885,6 +892,9 @@ private:
 	Common::ScopedPtr<GLCycler> _solverCycler;
 };
 
+#undef self
+#define self(name) this, &S2CreditsRoom::name
+
 class S2CreditsRoom : public S2GlobalSubRoom {
 public:
 	using S2GlobalSubRoom::S2GlobalSubRoom;
@@ -898,7 +908,7 @@ public:
 				next();
 			}
 		});
-		setScript(this, &S2CreditsRoom::creditsScript);
+		setScript(self(creditsScript));
 
 		switch (roomNo) {
 		case 4401:
@@ -1039,6 +1049,9 @@ private:
 
 constexpr S2MapRoom::Jump S2MapRoom::_jumps[];
 
+#undef self
+#define self(name) this, &S2InventoryRoom::name
+
 class S2InventoryRoom : public S2GlobalSubRoom {
 public:
 	using S2GlobalSubRoom::S2GlobalSubRoom;
@@ -1046,7 +1059,7 @@ public:
 	virtual void init(const int) override {
 		_cel.reset(new GLCel(getPlane(), _game.getInventoryManager().getShowingItemCel(), roomBottom, 255));
 		_cel->setCycleSpeed(18);
-		_cel->setSelectHandler(this, &S2InventoryRoom::combine);
+		_cel->setSelectHandler(self(combine));
 		_cel->show();
 		_cel->forceUpdate();
 		_cycler.reset(new GLCycler());

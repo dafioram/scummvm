@@ -27,6 +27,8 @@
 
 namespace Sci {
 
+#define self(name) this, &S2Room10000::name
+
 void S2Room10000::init(const int roomNo) {
 	switch (roomNo) {
 	case 10000:
@@ -86,7 +88,7 @@ void S2Room10000::init(const int roomNo) {
 				inventory().unselectItem(false);
 				sound().play(11002, false, 100);
 				removeChild(hotspot);
-				setScript(this, &S2Room10000::suitcaseScript);
+				setScript(self(suitcaseScript));
 			} else {
 				sound().play(10004, false, 100);
 			}
@@ -117,14 +119,14 @@ void S2Room10000::init(const int roomNo) {
 		emplaceExit(true, 10125, 231, 145, 282, 213, S2Cursor::kHighlightCel);
 		emplaceExit(true, 10126, 306, 289, 381, 310, S2Cursor::kHighlightCel);
 		emplaceHotspot(true, 180, 127, 413, 139).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-			setScript(this, &S2Room10000::suitcaseScript);
+			setScript(self(suitcaseScript));
 		});
 
 		auto &hotspot = emplaceHotspot(true, 365, 272, 408, 292);
 		if (inventory().isPlaced(S2Inventory::kInv5)) {
-			hotspot.setMouseUpHandler(this, &S2Room10000::takeTapeFromSuitcase);
+			hotspot.setMouseUpHandler(self(takeTapeFromSuitcase));
 		} else {
-			hotspot.setMouseUpHandler(this, &S2Room10000::putTapeInSuitcase);
+			hotspot.setMouseUpHandler(self(putTapeInSuitcase));
 		}
 		break;
 	}
@@ -382,7 +384,7 @@ void S2Room10000::init(const int roomNo) {
 		_lastRoomNo = room().getPreviousRoomNo();
 		switch (_lastRoomNo) {
 		case 10110:
-			setScript(this, &S2Room10000::cancelScript);
+			setScript(self(cancelScript));
 			break;
 
 		case 10120:
@@ -390,7 +392,7 @@ void S2Room10000::init(const int roomNo) {
 			if (_suitcaseIsOpen) {
 				_suitcaseIsOpen = false;
 				_cancelSoundNo = 11010;
-				setScript(this, &S2Room10000::cancelScript);
+				setScript(self(cancelScript));
 			} else {
 				room().newRoom(10300);
 			}
@@ -400,7 +402,7 @@ void S2Room10000::init(const int roomNo) {
 			if (_topDrawerIsOpen || _bottomDrawerIsOpen) {
 				_topDrawerIsOpen = _bottomDrawerIsOpen = false;
 				_cancelSoundNo = 11005;
-				setScript(this, &S2Room10000::cancelScript);
+				setScript(self(cancelScript));
 			} else {
 				room().newRoom(10300);
 			}
@@ -555,7 +557,7 @@ void S2Room10000::takeTapeFromSuitcase(GLEvent &, GLTarget &target) {
 		sound().play(11009, false, 120);
 		// SSCI deleted and recreated the same hotspot just to
 		// change its event handler; we just change the handler
-		static_cast<S2Hotspot &>(target).setMouseUpHandler(this, &S2Room10000::putTapeInSuitcase);
+		static_cast<S2Hotspot &>(target).setMouseUpHandler(self(putTapeInSuitcase));
 	}
 }
 
@@ -566,7 +568,7 @@ void S2Room10000::putTapeInSuitcase(GLEvent &, GLTarget &target) {
 		inventory().unselectItem(false);
 		inventory().setState(S2Inventory::kInv5, S2InventoryState::Placed);
 		// SSCI did not restore the handler when the tape was replaced
-		static_cast<S2Hotspot &>(target).setMouseUpHandler(this, &S2Room10000::takeTapeFromSuitcase);
+		static_cast<S2Hotspot &>(target).setMouseUpHandler(self(takeTapeFromSuitcase));
 	}
 }
 
@@ -595,7 +597,7 @@ void S2Room10000::openDrawer(GLEvent &, GLTarget &target) {
 		_bottomDrawer = nullptr;
 	}
 
-	setScript(this, &S2Room10000::drawerScript, initialState);
+	setScript(self(drawerScript), initialState);
 }
 
 void S2Room10000::drawerScript(GLScript &script, const int state) {
@@ -628,7 +630,7 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 			getPlane().getCast().remove(*_cel);
 			_topDrawerIsOpen = true;
 			_topDrawer = &emplaceHotspot(true, 64, 273, 513, 354);
-			_topDrawer->setMouseUpHandler(this, &S2Room10000::openDrawer);
+			_topDrawer->setMouseUpHandler(self(openDrawer));
 		}
 		_script.reset();
 		_cycler.reset();
@@ -669,7 +671,7 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 			getPlane().getCast().remove(*_cel);
 			_bottomDrawerIsOpen = true;
 			_bottomDrawer = &emplaceHotspot(true, 69, 357, 533, 383);
-			_bottomDrawer->setMouseUpHandler(this, &S2Room10000::openDrawer);
+			_bottomDrawer->setMouseUpHandler(self(openDrawer));
 		}
 
 		_script.reset();
@@ -681,9 +683,9 @@ void S2Room10000::drawerScript(GLScript &script, const int state) {
 
 void S2Room10000::addDresserHotspots() {
 	_topDrawer = &emplaceHotspot(true, 107, 202, 405, 267);
-	_topDrawer->setMouseUpHandler(this, &S2Room10000::openDrawer);
+	_topDrawer->setMouseUpHandler(self(openDrawer));
 	_bottomDrawer = &emplaceHotspot(true, 155, 286, 376, 337);
-	_bottomDrawer->setMouseUpHandler(this, &S2Room10000::openDrawer);
+	_bottomDrawer->setMouseUpHandler(self(openDrawer));
 }
 
 #pragma mark -
