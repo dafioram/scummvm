@@ -31,7 +31,9 @@
 namespace Sci {
 
 class AbsGLPlane;
-class GLCycler;
+class GLCel;
+template <class> class AbsGLCycler;
+using GLCycler = AbsGLCycler<GLCel>;
 
 class GLCel : public GLScreenItem, public GLFeature {
 public:

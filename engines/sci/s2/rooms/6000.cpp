@@ -1068,6 +1068,9 @@ void S2Room6000::dispose(const int roomNo) {
 	if (roomNo == 6999) {
 		_cel.reset();
 	}
+	_fan.reset();
+	_panoramaCycler1.reset();
+	_panoramaCycler.reset();
 	S2Room::dispose(roomNo);
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
@@ -1121,8 +1124,74 @@ void S2Room6000::goToEthereal(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::animateFan(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateFan(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 6101, GLPoint(805, 218), 0, 4);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+
+	case 3:
+		_panoramaSprite1 = &emplaceSprite(true, 6111, GLPoint(621, 236), 0, 3);
+		_panoramaSprite2 = &emplaceSprite(true, 6112, GLPoint(737, 232), 0, 3);
+		_panoramaCycler1.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 4:
+		_panoramaCycler1->add(*_panoramaSprite1);
+		_panoramaCycler1->add(*_panoramaSprite2);
+		_panoramaCycler1->start(script);
+		break;
+
+	case 5:
+		script.setState(3);
+		script.setCycles(1);
+		break;
+
+	case 6:
+		_panoramaSprite0 = &emplaceSprite(true, 6311, GLPoint(488, 238), 0, 3);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 7:
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 8:
+		script.setState(6);
+		script.setCycles(1);
+		break;
+
+	case 9:
+		_panoramaSprite1 = &emplaceSprite(true, 6122, GLPoint(608, 247), 0, 3);
+		_panoramaCycler1.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 10:
+		_panoramaCycler1->add(*_panoramaSprite1);
+		_panoramaCycler1->start(script);;
+		break;
+
+	case 11:
+		script.setState(9);
+		script.setCycles(1);
+		break;
+	}
 }
 
 void S2Room6000::animateSign(GLScript &, const int) {

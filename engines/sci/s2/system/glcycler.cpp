@@ -20,6 +20,7 @@
  *
  */
 
+#include "sci/s2/panorama_sprite.h"
 #include "sci/s2/system/glcel.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glcycler.h"
@@ -27,10 +28,13 @@
 
 namespace Sci {
 
-TimeManager *GLCycler::_timeManager = nullptr;
-GLExtras *GLCycler::_extras = nullptr;
+template <class CelT>
+TimeManager *AbsGLCycler<CelT>::_timeManager = nullptr;
+template <class CelT>
+GLExtras *AbsGLCycler<CelT>::_extras = nullptr;
 
-GLCycler::~GLCycler() {
+template <class CelT>
+AbsGLCycler<CelT>::~AbsGLCycler() {
 	if (_isCycling) {
 		stop();
 	}
@@ -38,7 +42,8 @@ GLCycler::~GLCycler() {
 	release();
 }
 
-int GLCycler::add(GLCel &cel, const bool shouldStart) {
+template <class CelT>
+int AbsGLCycler<CelT>::add(CelT &cel, const bool shouldStart) {
 	_cels.push_back(&cel);
 	_timings.push_back(_timeManager->getTickCount() + cel.getCycleSpeed());
 	cel.setCycler(this);
@@ -48,27 +53,32 @@ int GLCycler::add(GLCel &cel, const bool shouldStart) {
 	return _cels.size();
 }
 
-void GLCycler::start() {
+template <class CelT>
+void AbsGLCycler<CelT>::start() {
 	_isCycling = true;
 	_isFinished = false;
 	_extras->push_back(this);
 }
 
-void GLCycler::start(GLObject &caller) {
+template <class CelT>
+void AbsGLCycler<CelT>::start(GLObject &caller) {
 	_caller = &caller;
 	start();
 }
 
-void GLCycler::stop() {
+template <class CelT>
+void AbsGLCycler<CelT>::stop() {
 	_isCycling = false;
 	_extras->remove(this);
 }
 
-void GLCycler::cycleForward(const bool forward) {
+template <class CelT>
+void AbsGLCycler<CelT>::cycleForward(const bool forward) {
 	_direction = forward ? 1 : -1;
 }
 
-void GLCycler::doIt() {
+template <class CelT>
+void AbsGLCycler<CelT>::doIt() {
 	_numCyclesCompleted = 0;
 	if (_cels.size()) {
 		const uint32 now = _timeManager->getTickCount();
@@ -85,7 +95,8 @@ void GLCycler::doIt() {
 	}
 }
 
-int16 GLCycler::nextCel(GLCel &client) {
+template <class CelT>
+int16 AbsGLCycler<CelT>::nextCel(CelT &client) {
 	int16 lastCel = client.getLastCel();
 	int16 newCel = client.getCel() + _direction;
 	assert(lastCel >= 0);
@@ -97,7 +108,8 @@ int16 GLCycler::nextCel(GLCel &client) {
 	return newCel;
 }
 
-void GLCycler::done() {
+template <class CelT>
+void AbsGLCycler<CelT>::done() {
 	stop();
 	release();
 	if (_caller) {
@@ -106,7 +118,8 @@ void GLCycler::done() {
 	}
 }
 
-void GLCycler::release() {
+template <class CelT>
+void AbsGLCycler<CelT>::release() {
 	for (auto &cel : _cels) {
 		cel->setCycler(nullptr);
 	}
@@ -114,56 +127,68 @@ void GLCycler::release() {
 	_timings.clear();
 }
 
-int16 GLEndCycler::nextCel(GLCel &client) {
-	auto cel = client.getCel() + getDirection();
+template <class CelT>
+int16 AbsGLEndCycler<CelT>::nextCel(CelT &client) {
+	auto cel = client.getCel() + this->getDirection();
 	if (cel < 0) {
 		cel = 0;
-		incrementCycle();
+		this->incrementCycle();
 	}
 	const auto lastCel = client.getLastCel();
 	if (cel > lastCel) {
 		cel = lastCel;
-		incrementCycle();
+		this->incrementCycle();
 	}
 	return cel;
 }
 
-int16 GLEndBackCycler::nextCel(GLCel &client) {
+template <class CelT>
+int16 AbsGLEndBackCycler<CelT>::nextCel(CelT &client) {
 	const auto cel = client.getCel();
-	cycleForward(false);
+	this->cycleForward(false);
 	if (cel == 0) {
-		incrementCycle();
+		this->incrementCycle();
 		return cel;
 	} else {
-		return cel + getDirection();
+		return cel + this->getDirection();
 	}
 }
 
-int16 GLEndForwardCycler::nextCel(GLCel &client) {
+template <class CelT>
+int16 AbsGLEndForwardCycler<CelT>::nextCel(CelT &client) {
 	const auto cel = client.getCel();
 	if (cel >= client.getLastCel()) {
-		incrementCycle();
+		this->incrementCycle();
 		return cel;
 	} else {
-		return cel + getDirection();
+		return cel + this->getDirection();
 	}
 }
 
-int16 GLPingPongCycler::nextCel(GLCel &client) {
+template <class CelT>
+int16 AbsGLPingPongCycler<CelT>::nextCel(CelT &client) {
 	int16 lastCel = client.getLastCel();
 	int16 cel = client.getCel();
 	if (lastCel != 0) {
 		if (cel == 0) {
-			cycleForward(true);
+			this->cycleForward(true);
 		} else if (cel == lastCel) {
-			cycleForward(false);
+			this->cycleForward(false);
 		}
 
-		return cel + getDirection();
+		return cel + this->getDirection();
 	}
 
 	// In SSCI this would return garbage memory if lastCel was 0
 	return cel;
 }
+
+template class AbsGLCycler<GLCel>;
+template class AbsGLEndCycler<GLCel>;
+template class AbsGLEndBackCycler<GLCel>;
+template class AbsGLEndForwardCycler<GLCel>;
+template class AbsGLPingPongCycler<GLCel>;
+
+template class AbsGLCycler<S2PanoramaSprite>;
 
 } // End of namespace Sci

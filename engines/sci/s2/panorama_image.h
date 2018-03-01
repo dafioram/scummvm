@@ -60,17 +60,27 @@ public:
 	void draw(S2PanoramaSprite &sprite);
 	void erase(S2PanoramaSprite &sprite);
 
+	const GLPoint &getPosition() const { return _position; }
+
+	bool getIsDrawn() const { return _isDrawn; }
+	void setIsDrawn(const bool isDrawn) { _isDrawn = isDrawn; }
+
+	Common::List<S2PanoramaSprite *> &getSprites() { return _sprites; }
+
 protected:
+	bool _isDrawn;
 	bool _isSprite;
 	GLPoint _position;
 
 private:
+	void calculateDimensions(S2PanoramaSprite &source, int16 &targetX, int16 &targetY, int &skipX, int &paddingX) const;
+
 	static ResourceManager *_resourceManager;
 	int16 _width;
 	int16 _height;
 	byte *_pixels;
 	Common::Array<byte> _ownedPixels;
-	Common::List<S2PanoramaImage> _sprites;
+	Common::List<S2PanoramaSprite *> _sprites;
 };
 
 } // End of namespace Sci

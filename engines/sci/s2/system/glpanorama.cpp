@@ -106,7 +106,20 @@ void GLPanorama::doIt() {
 }
 
 void GLPanorama::updateSprites() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	for (auto &&sprite : _image.getSprites()) {
+		_image.erase(*sprite);
+	}
+
+	for (auto &&sprite : _image.getSprites()) {
+		// There was a sprite update call here which did nothing and always
+		// returned true
+
+		if (sprite->getIsVisible()) {
+			_image.draw(*sprite);
+		}
+
+		_isDirty = true;
+	}
 }
 
 void GLPanorama::checkMouse() {
@@ -242,16 +255,17 @@ void GLPanorama::addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate) {
 	}
 
 	if (shouldUpdate) {
-		_sprites.push_back(&sprite);
+		_image.getSprites().push_back(&sprite);
 	}
 }
 
 void GLPanorama::removeSprite(S2PanoramaSprite &sprite) {
 	_image.erase(sprite);
 
-	auto it = Common::find(_sprites.begin(), _sprites.end(), &sprite);
-	if (it != _sprites.end()) {
-		_sprites.erase(it);
+	auto &sprites = _image.getSprites();
+	auto it = Common::find(sprites.begin(), sprites.end(), &sprite);
+	if (it != sprites.end()) {
+		sprites.erase(it);
 	}
 
 	_isDirty = true;
@@ -314,7 +328,7 @@ bool GLPanorama::checkSprites(GLEvent &event) {
 
 	const auto projectedPoint(getUnwarpedPoint(event.getMousePosition()));
 
-	for (auto &sprite : _sprites) {
+	for (auto &sprite : _image.getSprites()) {
 		if (sprite->getRect().contains(projectedPoint) && sprite->getMouseDownHandler()) {
 			sprite->getMouseDownHandler()();
 			event.claim();

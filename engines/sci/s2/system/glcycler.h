@@ -31,20 +31,21 @@ namespace Sci {
 class GLCel;
 class TimeManager;
 
-class GLCycler : public GLObject {
+template <class CelT>
+class AbsGLCycler : public GLObject {
 public:
-	GLCycler() : GLObject() {}
-	GLCycler(GLCel &cel) : GLObject() {
+	AbsGLCycler() : GLObject() {}
+	AbsGLCycler(CelT &cel) : GLObject() {
 		add(cel);
 	}
-	virtual ~GLCycler();
+	virtual ~AbsGLCycler();
 
 	static void init(TimeManager *timeManager) { _timeManager = timeManager; }
 	static void init(GLExtras *extras) { _extras = extras; }
 
 	int getDirection() const { return _direction; }
 
-	int add(GLCel &cel, const bool shouldStart = false);
+	int add(CelT &cel, const bool shouldStart = false);
 	void start();
 	void start(GLObject &caller);
 	void stop();
@@ -56,7 +57,7 @@ public:
 
 protected:
 	void incrementCycle() { ++_numCyclesCompleted; }
-	virtual int16 nextCel(GLCel &client);
+	virtual int16 nextCel(CelT &client);
 
 private:
 	static TimeManager *_timeManager;
@@ -69,39 +70,47 @@ private:
 	bool _isCycling = false;
 	bool _isFinished = false;
 	int _targetCel;
-	GLSetAsArray<GLCel> _cels;
+	GLSetAsArray<CelT> _cels;
 	Common::Array<int> _timings;
 	int _direction = 1;
 	int _numCyclesCompleted = 0;
 };
 
-class GLEndCycler : public GLCycler {
+template <class CelT>
+class AbsGLEndCycler : public AbsGLCycler<CelT> {
 public:
-	using GLCycler::GLCycler;
-	virtual int16 nextCel(GLCel &client) override;
+	using AbsGLCycler<CelT>::AbsGLCycler;
+	virtual int16 nextCel(CelT &client) override;
 };
 
-class GLEndBackCycler : public GLCycler {
+template <class CelT>
+class AbsGLEndBackCycler : public AbsGLCycler<CelT> {
 public:
-	using GLCycler::GLCycler;
-	virtual int16 nextCel(GLCel &client) override;
+	using AbsGLCycler<CelT>::AbsGLCycler;
+	virtual int16 nextCel(CelT &client) override;
 };
 
-class GLEndForwardCycler : public GLCycler {
+template <class CelT>
+class AbsGLEndForwardCycler : public AbsGLCycler<CelT> {
 public:
-	using GLCycler::GLCycler;
-	virtual int16 nextCel(GLCel &client) override;
+	using AbsGLCycler<CelT>::AbsGLCycler;
+	virtual int16 nextCel(CelT &client) override;
 };
 
-class GLPingPongCycler : public GLCycler {
+template <class CelT>
+class AbsGLPingPongCycler : public AbsGLCycler<CelT> {
 public:
-	using GLCycler::GLCycler;
+	using AbsGLCycler<CelT>::AbsGLCycler;
 
 private:
-	virtual int16 nextCel(GLCel &client) override;
+	virtual int16 nextCel(CelT &client) override;
 };
 
-
+using GLCycler = AbsGLCycler<GLCel>;
+using GLEndCycler = AbsGLEndCycler<GLCel>;
+using GLEndBackCycler = AbsGLEndBackCycler<GLCel>;
+using GLEndForwardCycler = AbsGLEndForwardCycler<GLCel>;
+using GLPingPongCycler = AbsGLPingPongCycler<GLCel>;
 
 } // End of namespace Sci
 

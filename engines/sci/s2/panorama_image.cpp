@@ -23,6 +23,7 @@
 #include "common/textconsole.h"
 #include "image/bmp.h"
 #include "sci/s2/panorama_image.h"
+#include "sci/s2/panorama_sprite.h"
 #include "sci/resource/manager.h"
 
 namespace Sci {
@@ -38,7 +39,8 @@ S2PanoramaImage::S2PanoramaImage(const Common::Rect &rect) :
 
 S2PanoramaImage::S2PanoramaImage(const uint16 resourceNo) :
 	GLObject(),
-	_isSprite(false) {
+	_isSprite(false),
+	_isDrawn(false) {
 	loadImage(resourceNo);
 }
 
@@ -69,12 +71,88 @@ void S2PanoramaImage::loadImage(const uint16 panoramaNo) {
 	}
 }
 
+void S2PanoramaImage::calculateDimensions(S2PanoramaSprite &source, int16 &targetX, int16 &targetY, int &skipX, int &paddingX) const {
+	targetX = source.getPosition().y;
+	targetY = 2048 - source.getPosition().x - source.getHeight();
+	if (targetY < 0) {
+		targetY += 2048;
+	}
+	skipX = 0;
+	paddingX = 0;
+	if (targetX < 0) {
+		skipX = -targetX;
+	}
+	if (targetX + source.getCelWidth() > 512) {
+		paddingX = targetX + source.getCelWidth() - 512;
+	}
+}
+
 void S2PanoramaImage::draw(S2PanoramaSprite &source) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	int16 targetX, targetY;
+	int skipX, paddingX;
+	calculateDimensions(source, targetX, targetY, skipX, paddingX);
+
+	source.setIsDrawn(true);
+
+	auto &savedPixels = source.getSavedPixels();
+	savedPixels.resize(source.getCelWidth() * source.getCelHeight());
+
+	byte *savePixel = savedPixels.data();
+
+	byte *targetPixel = _pixels + _width * targetY + targetX + skipX;
+	const byte *sourcePixel = source.getPixels() + skipX + source.getCel() * source.getCelWidth();
+
+	const byte transparentColor = *sourcePixel;
+
+	for (int y = 0; y < source.getCelHeight(); ++y) {
+		for (int x = 0; x < source.getCelWidth() - skipX - paddingX; ++x) {
+			*savePixel++ = *targetPixel;
+			if (source.getHasTransparency() && *sourcePixel == transparentColor) {
+				++targetPixel;
+				++sourcePixel;
+			} else {
+				*targetPixel++ = *sourcePixel++;
+			}
+		}
+
+		sourcePixel += source.getWidth() - source.getCelWidth() + skipX + paddingX;
+
+		if (targetY + y == getHeight()) {
+			targetPixel = _pixels + targetX + skipX;
+		} else {
+			targetPixel += _width - source.getCelWidth() + skipX + paddingX;
+		}
+	}
 }
 
 void S2PanoramaImage::erase(S2PanoramaSprite &source) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	if (!source.getIsDrawn()) {
+		return;
+	}
+
+	int16 targetX, targetY;
+	int skipX, paddingX;
+	calculateDimensions(source, targetX, targetY, skipX, paddingX);
+
+	auto &savedPixels = source.getSavedPixels();
+
+	byte *targetPixel = _pixels + _width * targetY + targetX + skipX;
+	const byte *sourcePixel = savedPixels.data();
+
+	for (int y = 0; y < source.getCelHeight(); ++y) {
+		for (int x = 0; x < source.getCelWidth() - skipX - paddingX; ++x) {
+			*targetPixel++ = *sourcePixel++;
+		}
+
+		if (targetY + y == getHeight()) {
+			targetPixel = _pixels + targetX + skipX;
+		} else {
+			targetPixel += _width - source.getCelWidth() + skipX + paddingX;
+		}
+	}
+
+	// SSCI did not reset the flag
+	source.setIsDrawn(false);
 }
 
 } // End of namespace Sci

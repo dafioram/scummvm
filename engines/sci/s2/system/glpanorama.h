@@ -109,7 +109,6 @@ private:
 	Common::FixedArray<uint, 640> _xToYDelta;
 	Common::FixedArray<uint, 640> _xToYInitial;
 	Common::List<GLSound> _sounds;
-	Common::List<S2PanoramaSprite *> _sprites;
 	Common::Array<GLPanoramaExit> _exits;
 };
 

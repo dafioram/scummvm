@@ -71,6 +71,11 @@ private:
 	Common::ScopedPtr<GLScript> _pole;
 	Common::ScopedPtr<GLScript> _pole2;
 	Common::ScopedPtr<GLScript> _motor;
+	S2PanoramaSprite *_panoramaSprite0;
+	S2PanoramaSprite *_panoramaSprite1;
+	S2PanoramaSprite *_panoramaSprite2;
+	Common::ScopedPtr<S2PanoramaCycler> _panoramaCycler;
+	Common::ScopedPtr<S2PanoramaCycler> _panoramaCycler1;
 
 	void drawPole(GLScript &, const int);
 	void showPoleNote(GLScript &, const int);

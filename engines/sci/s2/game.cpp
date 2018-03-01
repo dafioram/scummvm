@@ -30,6 +30,7 @@
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
 #include "sci/s2/message_box.h"
+#include "sci/s2/panorama_sprite.h"
 #include "sci/s2/savegame.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glcycler.h"
@@ -57,6 +58,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	_panSpeed(30) {
 	GLCue::init(&_extras);
 	GLCycler::init(&_extras);
+	S2PanoramaCycler::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);
 	S2Control::init(&_user);

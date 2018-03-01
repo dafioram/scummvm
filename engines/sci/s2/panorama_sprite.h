@@ -36,11 +36,13 @@
 #undef clock
 #include <functional>
 #include "sci/s2/panorama_image.h"
+#include "sci/s2/system/glcycler.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
 
-class S2PanoramaCycler;
+class S2PanoramaSprite;
+using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
 class S2PanoramaMover;
 
 class S2PanoramaSprite : public S2PanoramaImage {
@@ -55,12 +57,27 @@ public:
 	const Common::Rect &getRect() { return _bounds; }
 	void setBounds(const Common::Rect &bounds);
 
+	int getCycleSpeed() const { return _cycleSpeed; }
+
+	void setCycler(S2PanoramaCycler *cycler) { _cycler = cycler; }
+
+	int16 getCel() const { return _celNo; }
+	void setCel(const int16 celNo, const bool = false) { _celNo = celNo; }
+	int16 getLastCel() const { return _numCels - 1; }
+
+	int16 getCelWidth() const { return _celWidth; }
+	int16 getCelHeight() const { return _celHeight; }
+
+	bool getHasTransparency() const { return _hasTransparency; }
 	bool getIsVisible() const { return _isVisible; }
+
+	Common::Array<byte> &getSavedPixels() { return _savedPixels; }
 
 private:
 	Common::Rect _bounds;
 	EventHandler _mouseDownHandler;
 
+	Common::Array<byte> _savedPixels;
 	int16 _celNo;
 	int16 _numCels;
 	int16 _celWidth;
