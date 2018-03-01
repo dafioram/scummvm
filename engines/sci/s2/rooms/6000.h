@@ -78,8 +78,9 @@ private:
 	S2PanoramaSprite *_panoramaSprite2;
 	Common::ScopedPtr<S2PanoramaCycler> _panoramaCycler;
 	Common::ScopedPtr<S2PanoramaCycler> _panoramaCycler1;
+	Common::ScopedPtr<GLCycler> _cycler2;
 
-	void drawPole(GLScript &, const int);
+	void drawPole(const int roomNo);
 	void showPoleNote(GLScript &, const int);
 
 	void showShadow(GLScript &, const int);
@@ -102,6 +103,8 @@ private:
 	void openGate(GLScript &, const int);
 
 	void showNorah(GLScript &, const int);
+	uint16 _norahDuration;
+
 	void chooseEnemy(GLScript &, const int);
 	Common::ScopedPtr<GLScript> _norah;
 };

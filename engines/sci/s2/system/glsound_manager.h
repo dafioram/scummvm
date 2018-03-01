@@ -48,6 +48,8 @@ public:
 	// actually caring about the volume
 	bool isPlaying(const uint16 soundNo, const reg_t soundNode = NULL_REG) const;
 
+	int getPosition(const uint16 soundNo, const reg_t soundNode = NULL_REG) const;
+
 	// Merged CreateSndTrack and AttachSndTrack
 	GLSoundTrack &createSoundTrack();
 	void deleteSoundTrack(const int trackId);

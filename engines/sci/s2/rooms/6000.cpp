@@ -195,6 +195,7 @@ void S2Room6000::init(const int roomNo) {
 	case 6190:
 		sound().createAmbient(8);
 		enterFrom(15050, 1101, 11530);
+		room().drawPan(6190);
 		addPanoramaExit(6200, 1744, 201, 1977, 337);
 		addPanoramaExit(6180, 650, 186, 887, 348);
 		addPanoramaExit(6191, 259, 218, 307, 299);
@@ -206,10 +207,7 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6191:
 		room().drawPic(6191);
-		_enterSoundNo = 11531;
-		_exitSoundNo = 11530;
-		setScript(self(showShadow));
-		emplaceExit(true, 6999, S2Cursor::kBackCel);
+		enter(roomNo, 11531, 11530, true);
 		emplaceExit(true, 15000, 252, 93, 394, 379);
 		break;
 
@@ -222,6 +220,7 @@ void S2Room6000::init(const int roomNo) {
 	case 6200:
 		sound().createAmbient(8);
 		enterFrom(23180, 305, 22302);
+		room().drawPan(6200);
 		if (flags().get(kGameFlag127)) {
 			emplaceSprite(false, 6201, GLPoint(1608, 292));
 		}
@@ -301,7 +300,7 @@ void S2Room6000::init(const int roomNo) {
 	case 6220: {
 		sound().createAmbient(8);
 		enterFrom(21120, 366, 22102);
-
+		room().drawPan(6220);
 		addPanoramaExit(6250, 963, 189, 1236, 348);
 		addPanoramaExit(6180, 49, 181, 274, 363);
 
@@ -362,6 +361,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6241:
+		room().drawPic(6241);
 		enter(roomNo, 11610, 11609, true);
 		emplaceExit(true, 16100, 137, 84, 466, 356);
 		break;
@@ -379,7 +379,10 @@ void S2Room6000::init(const int roomNo) {
 		room().drawPan(6250);
 
 		addPanoramaExit(6220, 1941, 170, 2047, 351);
-		addPanoramaExit(6220, 170, 0, 56, 351);
+
+		// In SSCI this exit's rectangle was broken, x2 < x1
+		addPanoramaExit(6220, 56, 0, 170, 351);
+
 		addPanoramaExit(6290, 828, 144, 1022, 344);
 		addPanoramaExit(6240, 516, 195, 716, 324);
 		addPanoramaExit(6252, 1707, 232, 1755, 309);
@@ -407,6 +410,12 @@ void S2Room6000::init(const int roomNo) {
 		addPanoramaExit(6261, 1389, 148, 1493, 224, S2Cursor::kHighlightCel);
 		break;
 
+	case 6261:
+		room().drawPic(6261);
+		emplaceExit(true, 6260, S2Cursor::kBackCel);
+		score().doEvent(kScore69);
+		break;
+
 	case 6270:
 		sound().createAmbient(6);
 		enterFrom(18140, 1981, 21802);
@@ -423,10 +432,7 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6271:
 		room().drawPic(6271);
-		// TODO: Figure out something better to do with this script than to
-		// self-delete, since this will cause trouble if someone gets unlucky
-		// and quits the game at the wrong moment
-		new GLScript(self(drawPole), 0, 6271);
+		drawPole(6271);
 		enter(roomNo, 22101, 22102, true);
 		emplaceExit(true, 19100, 185, 40, 365, 351);
 		break;
@@ -441,8 +447,7 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6273:
 		room().drawPic(6273);
-		// TODO: Same as in room 6271
-		new GLScript(self(drawPole), 0, 6273);
+		drawPole(6273);
 		if (room().getPreviousRoomNo() == 6274) {
 			_pole2.reset(new GLScript(self(showPoleNote)));
 		}
@@ -479,7 +484,7 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6279:
 		room().drawPic(6271);
-		setScript(self(drawPole), 0, 6271);
+		drawPole(6271);
 		if (flags().get(kGameFlag134)) {
 			emplaceExit(true, 6271, 185, 40, 365, 351, S2Cursor::kHighlightCel);
 		} else {
@@ -543,10 +548,10 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6310:
 		sound().createAmbient(7);
-		room().drawPan(6310);
 		enterFrom(11101, 1712, 11003);
 		enterFrom(12110, -1, 11202);
 		enterFrom(10110, -1, 11003);
+		room().drawPan(6310);
 		addPanoramaExit(6110, 181, 156, 377, 373);
 		addPanoramaExit(6311, 1136, 243, 1203, 323);
 		addPanoramaExit(6312, 1505, 247, 1553, 315);
@@ -949,7 +954,7 @@ void S2Room6000::init(const int roomNo) {
 		enterFrom(24101, 1620, 22402);
 		room().drawPan(6410);
 		addPanoramaExit(6280, 1548, 377, 1786, 510);
-		const int exitNo = inventory().isUsed(S2Inventory::kInv21);
+		const int exitNo = inventory().isUsed(S2Inventory::kInv21) ? 6413 : 6411;
 		addPanoramaExit(exitNo, 594, 188, 823, 510);
 		if (flags().get(kGameFlag0)) {
 			emplaceSprite(false, 6411, GLPoint(463, 210));
@@ -989,6 +994,7 @@ void S2Room6000::init(const int roomNo) {
 		sound().createAmbient(8);
 		enterFrom(25710, 927, 22502);
 		enterFrom(6381, 1820, 11536);
+		room().drawPan(6420);
 		addPanoramaExit(6423, 1035, 234, 1195, 319);
 
 		const int exitNo = flags().get(kGameFlag137) ? 6421 : 6422;
@@ -1068,7 +1074,8 @@ void S2Room6000::init(const int roomNo) {
 
 void S2Room6000::dispose(const int roomNo) {
 	_cycler.reset();
-	if (roomNo == 6999) {
+	_cycler2.reset();
+	if (room().getNextRoomNo() != 6999) {
 		_cel.reset();
 	}
 	_ethereal.reset();
@@ -1382,16 +1389,59 @@ void S2Room6000::animateCafeLight(GLScript &script, const int state) {
 	}
 }
 
-void S2Room6000::animatePole(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animatePole(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 6271, GLPoint(262, 230), 0, 11);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaSprite0->setCycleSpeed(8);
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+
+	case 3:
+		_panoramaSprite0 = &emplaceSprite(true, 6301, GLPoint(105, 252), 0, 10);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 4:
+		_panoramaSprite0->setCycleSpeed(8);
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 5:
+		script.setState(3);
+		script.setCycles(1);
+		break;
+	}
 }
 
 void S2Room6000::animateMotor(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::drawPole(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+// In SSCI this was a script, for no reason (it had only one state)
+void S2Room6000::drawPole(const int roomNo) {
+	user().setIsHandsOn(false);
+	const auto loopNo = (roomNo == 6271 ? 1 : 0);
+	auto &cel = emplaceCel(false, roomNo, loopNo, 0, roomBottom);
+	cel.show();
+	getPlane().getCast().remove(cel);
+	_cycler2.reset(new GLCycler());
+	_cycler2->add(cel);
+	user().setIsHandsOn(true);
+	_cycler2->start();
 }
 
 void S2Room6000::showPoleNote(GLScript &, const int) {
@@ -1437,8 +1487,55 @@ void S2Room6000::showMotelSign(GLScript &script, const int state) {
 	}
 }
 
-void S2Room6000::openStatue(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::openStatue(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		int16 celNo;
+		GLCycler *cycler;
+		uint16 soundNo;
+		if (script.getData()) {
+			celNo = 0;
+			cycler = new GLEndCycler();
+			soundNo = 12605;
+		} else {
+			celNo = 5;
+			cycler = new GLEndBackCycler();
+			soundNo = 12606;
+		}
+		_cel.reset(new GLCel(getPlane(), 6350, 0, celNo, roomBottom));
+		_cel->show();
+		_cycler.reset(cycler);
+		sound().play(soundNo, false, 80);
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		break;
+
+	case 1:
+		getPlane().getCast().remove(*_cel);
+		if (script.getData()) {
+			emplaceHotspot(true, 284, 287, 374, 336).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				removeChild(static_cast<S2Hotspot &>(target));
+				room().newRoom(6353);
+			});
+			_script.reset();
+			_cycler.reset();
+			user().setIsHandsOn(true);
+		} else {
+			_cel.reset();
+			// SSCI had an extra unnecessary cue state and immediate cue call
+			// here
+			script.setSeconds(1);
+		}
+		break;
+
+	case 2:
+		room().setNextRoomNo(6350);
+		_script.reset();
+		_cycler.reset();
+		user().setIsHandsOn(true);
+		break;
+	}
 }
 
 void S2Room6000::openRock(GLScript &, const int) {
@@ -1457,8 +1554,56 @@ void S2Room6000::openGate(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::showNorah(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::showNorah(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		_cel.reset(new GLCel(getPlane(), 5001, 0, 0, { 250, 322 }));
+		_cel->show();
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		interface().putText(room().getNorahSoundNo());
+		// SSCI used a hard-coded duration table to get the length of the sound;
+		// we get it from the sound itself
+		_norahDuration = sound().play(room().getNorahSoundNo(), false, 100);
+		break;
+
+	case 1:
+		_cel.reset(new GLCel(getPlane(), _game.getRandomNumber(5003, 5006), 0, 0, { 250, 322 }));
+		_cel->setCycleSpeed(10);
+		_cel->show();
+		_cycler.reset(new GLEndForwardBackwardCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		break;
+
+	case 2: {
+		const auto position = sound().getPosition(room().getNorahSoundNo());
+		if (_norahDuration - 275 > position || position < 0) {
+			script.setState(0);
+		}
+
+		script.setCycles(1);
+		break;
+	}
+
+	case 3:
+		_cel.reset(new GLCel(getPlane(), 5002, 0, 0, { 250, 322 }));
+		_cel->show();
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		break;
+
+	case 4:
+		user().setIsHandsOn(true);
+		_cycler.reset();
+		_cel.reset();
+		room().setNextRoomNo(room().getNorahNextRoomNo());
+		_script.reset();
+		break;
+	}
 }
 
 void S2Room6000::chooseEnemy(GLScript &, const int) {

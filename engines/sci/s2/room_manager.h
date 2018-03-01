@@ -118,6 +118,8 @@ public:
 	void removeAllCels() { _cels.clear(); }
 
 	void setNorah(const uint16 soundNo, const int roomNo);
+	uint16 getNorahSoundNo() const { return _norahSoundNo; }
+	int getNorahNextRoomNo() const { return _norahNextRoomNo; }
 
 private:
 	int getBaseRoomNumber(const int roomNo) const;

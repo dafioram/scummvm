@@ -105,7 +105,11 @@ void GLSoundManager::doIt() {
 }
 
 bool GLSoundManager::isPlaying(const uint16 soundNo, const reg_t soundNode) const {
-	return _mixer.getPosition(ResourceId(kResourceTypeAudio, soundNo), soundNode) != -1;
+	return getPosition(soundNo, soundNode) != -1;
+}
+
+int GLSoundManager::getPosition(const uint16 soundNo, const reg_t soundNode) const {
+	return _mixer.getPosition(ResourceId(kResourceTypeAudio, soundNo), soundNode);
 }
 
 GLSoundTrack &GLSoundManager::createSoundTrack() {
