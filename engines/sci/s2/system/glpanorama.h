@@ -70,7 +70,7 @@ public:
 	void attachSound(const uint16 soundNo, const int16 panX, const int16 volume = 80);
 	void detachSound(const uint16 soundNo);
 
-	void addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate = true);
+	void addSprite(S2PanoramaSprite &sprite, const bool willUpdate = true);
 	void removeSprite(S2PanoramaSprite &sprite);
 	void removeAllSprites();
 

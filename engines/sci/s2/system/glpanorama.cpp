@@ -249,12 +249,12 @@ void GLPanorama::detachSound(const uint16 soundNo) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void GLPanorama::addSprite(S2PanoramaSprite &sprite, const bool shouldUpdate) {
+void GLPanorama::addSprite(S2PanoramaSprite &sprite, const bool willUpdate) {
 	if (sprite.getIsVisible()) {
 		_image.draw(sprite);
 	}
 
-	if (shouldUpdate) {
+	if (willUpdate) {
 		_image.getSprites().push_back(&sprite);
 	}
 }

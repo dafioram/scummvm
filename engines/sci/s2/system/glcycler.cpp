@@ -218,6 +218,7 @@ template class AbsGLPingPongCycler<GLCel>;
 template class AbsGLEndForwardBackwardCycler<GLCel>;
 
 template class AbsGLCycler<S2PanoramaSprite>;
+template class AbsGLEndForwardCycler<S2PanoramaSprite>;
 template class AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
 template class AbsGLStartResetCycler<S2PanoramaSprite>;
 

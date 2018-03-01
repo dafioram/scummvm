@@ -44,6 +44,7 @@ namespace Sci {
 class S2PanoramaSprite;
 
 using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
+using S2PanoramaEndForwardCycler = AbsGLEndForwardCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
 using S2PanoramaStartResetCycler = AbsGLStartResetCycler<S2PanoramaSprite>;
 

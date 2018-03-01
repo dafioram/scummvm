@@ -196,10 +196,7 @@ void S2Room6000::init(const int roomNo) {
 		sound().createAmbient(8);
 		enterFrom(15050, 1101, 11530);
 		room().drawPan(6190);
-		addPanoramaExit(6200, 1744, 201, 1977, 337);
-		addPanoramaExit(6180, 650, 186, 887, 348);
-		addPanoramaExit(6191, 259, 218, 307, 299);
-		addPanoramaExit(6192, 1103, 214, 1165, 309, S2Cursor::kHighlightCel);
+		addShadowRoomExits();
 		if (!flags().get(kGameFlag138)) {
 			setScript(self(showShadow));
 		}
@@ -765,10 +762,9 @@ void S2Room6000::init(const int roomNo) {
 		room().drawPan(6360);
 		if (flags().get(kGameFlag218)) {
 			addPanoramaExit(6370, 1406, 242, 1459, 319);
-			// TODO: SSCI checked to see if there was a sprite already and
-			// did not add the sprite, but then deleted the sprite
-			// unconditionally when the room was disposed, so the check is
-			// omitted
+			// SSCI checked to see if there was a sprite already and did not add
+			// the sprite, but then deleted the sprite unconditionally when the
+			// room was disposed, so the check is omitted
 			emplaceSprite(false, 6361, GLPoint(1390, 224));
 		}
 		addPanoramaExit(6330, 748, 309, 994, 504);
@@ -1087,11 +1083,26 @@ void S2Room6000::dispose(const int roomNo) {
 	_pole2.reset();
 	_pole.reset();
 	_motor.reset();
+	_shadow.reset();
 	_panoramaCycler1.reset();
 	_panoramaCycler.reset();
 	_norah.reset();
+
 	S2Room::dispose(roomNo);
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+
+	switch (roomNo) {
+	case 6400:
+		sound().stop(12707);
+		break;
+
+	case 6540:
+		if (room().getNextRoomNo() == 6260 && !flags().get(kGameFlag20) && inventory().hasPrayerStick()) {
+			flags().set(kGameFlag20);
+			room().drawPic(2);
+			movie().play(5020, nullptr, roomTop);
+		}
+		break;
+	}
 }
 
 void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit) {
@@ -1431,7 +1442,27 @@ void S2Room6000::animateMotor(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-// In SSCI this was a script, for no reason (it had only one state)
+void S2Room6000::animateShadow(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		room().getPanorama().removeAllExits();
+		_panoramaSprite0 = &emplaceSprite(true, 6195, GLPoint(1056, 67), 0, 10, true);
+		_panoramaCycler.reset(new S2PanoramaEndForwardCycler());
+		_panoramaSprite0->setCycleSpeed(10);
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		break;
+
+	case 1:
+		_panoramaCycler.reset();
+		removeChild(*_panoramaSprite0);
+		addShadowRoomExits();
+		_shadow.reset();
+		break;
+	}
+}
+
+// In SSCI, this was a script, for no reason (it had only one state)
 void S2Room6000::drawPole(const int roomNo) {
 	user().setIsHandsOn(false);
 	const auto loopNo = (roomNo == 6271 ? 1 : 0);
@@ -1448,8 +1479,35 @@ void S2Room6000::showPoleNote(GLScript &, const int) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
-void S2Room6000::showShadow(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::showShadow(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		if (room().getPanorama().panX() > 605 && room().getPanorama().panX() < 1019) {
+			flags().set(kGameFlag138);
+			_shadow.reset(new GLScript(self(animateShadow)));
+			script.setState(1);
+			script.setCycles(1);
+		} else {
+			script.setSeconds(1);
+		}
+		break;
+
+	case 1:
+		script.setState(-1);
+		script.setCycles(1);
+		break;
+
+	case 2:
+		_script.reset();
+		break;
+	}
+}
+
+void S2Room6000::addShadowRoomExits() {
+	addPanoramaExit(6200, 1744, 201, 1977, 337);
+	addPanoramaExit(6180, 650, 186, 887, 348);
+	addPanoramaExit(6191, 259, 218, 307, 299);
+	addPanoramaExit(6192, 1103, 214, 1165, 309, S2Cursor::kHighlightCel);
 }
 
 void S2Room6000::useGasPump(GLScript &, const int) {

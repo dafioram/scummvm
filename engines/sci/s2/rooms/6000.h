@@ -64,6 +64,7 @@ private:
 	void animateCafeLight(GLScript &, const int);
 	void animatePole(GLScript &, const int);
 	void animateMotor(GLScript &, const int);
+	void animateShadow(GLScript &, const int);
 	Common::ScopedPtr<GLScript> _fan;
 	Common::ScopedPtr<GLScript> _sign;
 	Common::ScopedPtr<GLScript> _flag;
@@ -73,6 +74,7 @@ private:
 	Common::ScopedPtr<GLScript> _pole;
 	Common::ScopedPtr<GLScript> _pole2;
 	Common::ScopedPtr<GLScript> _motor;
+	Common::ScopedPtr<GLScript> _shadow;
 	S2PanoramaSprite *_panoramaSprite0;
 	S2PanoramaSprite *_panoramaSprite1;
 	S2PanoramaSprite *_panoramaSprite2;
@@ -84,6 +86,7 @@ private:
 	void showPoleNote(GLScript &, const int);
 
 	void showShadow(GLScript &, const int);
+	void addShadowRoomExits();
 
 	void useGasPump(GLScript &, const int);
 

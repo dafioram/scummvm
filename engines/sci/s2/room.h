@@ -88,6 +88,16 @@ protected:
 		return *object;
 	}
 
+	void removeChild(S2PanoramaSprite &sprite) {
+		auto it = Common::find(_sprites.begin(), _sprites.end(), &sprite);
+		if (it != _sprites.end()) {
+			_game.getRoomManager().getPanorama().removeSprite(sprite);
+			_sprites.erase(it);
+		}
+
+		removeChild(static_cast<GLObject &>(sprite));
+	}
+
 	void removeChild(S2Exit &exit) {
 		auto it = Common::find(_exits.begin(), _exits.end(), &exit);
 		if (it != _exits.end()) {
@@ -170,10 +180,11 @@ protected:
 	}
 
 	template <typename ...Args>
-	S2PanoramaSprite &emplaceSprite(const bool shouldUpdate, Args && ...args) {
+	S2PanoramaSprite &emplaceSprite(const bool willUpdate, Args && ...args) {
 		S2PanoramaSprite *sprite = new S2PanoramaSprite(args...);
 		_children.emplace_back(sprite);
-		_game.getRoomManager().getPanorama().addSprite(*sprite);
+		_sprites.push_back(sprite);
+		_game.getRoomManager().getPanorama().addSprite(*sprite, willUpdate);
 		return *sprite;
 	}
 
@@ -205,7 +216,6 @@ protected:
 		if (!_keepPanoramaExits) {
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}
-		_game.getRoomManager().getPanorama().removeAllSprites();
 
 		for (auto &&sprite : _sprites) {
 			if (sprite) {
