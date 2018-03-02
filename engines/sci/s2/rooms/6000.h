@@ -37,8 +37,6 @@ public:
 	virtual void dispose(const int roomNo) override;
 
 private:
-	void initBook();
-
 	void enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit);
 	void enterScript(GLScript &, const int);
 	void cancelAction(GLScript &, const int);

@@ -921,6 +921,194 @@ private:
 };
 
 #undef self
+#define self(name) this, &S2CaveDoorPuzzle::name
+
+class S2CaveDoorPuzzle : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6422);
+		phone().cancelCall();
+
+		emplaceExit(true, 6420, 64, 0, 575, 33, S2Cursor::kBackCel);
+		// In SSCI, y1 > y2
+		emplaceExit(true, 6420, 64, 343, 575, 383, S2Cursor::kBackCel);
+
+		emplaceChild<GLScreenItem>(6422, 4, 0, roomBottom, 255).show();
+
+		for (auto i = 0; i < _loops.size(); ++i) {
+			auto slotNo = _game.getRandomNumber(0, _loops.size() - 1);
+			while (_slots[slotNo] > -1) {
+				slotNo = (slotNo + 1) % 7;
+			}
+			_slots[slotNo] = i;
+			const auto celNo = 4 * _game.getRandomNumber(0, 1);
+			auto &cel = emplaceCel(false, 6422, _loops[i], celNo, _positions[slotNo], 5);
+			cel.show();
+			cel.setMoveSpeed(1);
+			getPlane().getCast().remove(cel);
+			_sticks[i] = &cel;
+
+			const auto &position = _positions[i];
+			emplaceHotspot(true, position.x - 26, position.y, position.x + 26, position.y + 310).setMouseUpHandler([this, i](GLEvent &, GLTarget &) {
+				selectSlot(i);
+			});
+		}
+
+		if (checkFinished()) {
+			const auto loopNo = _sticks[_slots[0]]->getLoop();
+			_sticks[_slots[0]]->setLoop(_sticks[_slots[6]]->getLoop(), true);
+			_sticks[_slots[6]]->setLoop(loopNo, true);
+			_sticks[_game.getRandomNumber(0, _sticks.size() - 1)]->setCel(4, true);
+		}
+
+		_back = &emplaceHotspot(true, 64, 33, 575, 343);
+		_back->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			for (auto i = 0; i < _temp.size(); ++i) {
+				if (_temp[i] > -1) {
+					auto stickNo = Common::find(_slots.begin(), _slots.end(), _temp[i]) - _slots.begin();
+					_sticks[_temp[i]]->setPriority(5);
+					_sticks[_temp[i]]->setPosition(_positions[stickNo], true);
+					sound().play(10616, false, 120);
+					_temp[i] = -1;
+				}
+			}
+		});
+		_back->disable();
+	}
+
+private:
+	void selectSlot(const int index) {
+		if (_temp[0] == -1) {
+			_temp[0] = _slots[index];
+			_sticks[_temp[0]]->setPosition(_positions[index] + GLPoint(3, -5));
+			_sticks[_temp[0]]->setPriority(400, true);
+			_back->enable();
+			sound().play(10616, false, 120);
+		} else {
+			user().setIsHandsOn(false);
+			if (_slots[index] == _temp[0]) {
+				setScript(self(flipStick));
+			} else {
+				_temp[1] = _slots[index];
+				_sticks[_temp[1]]->setPosition(_positions[index] + GLPoint(3, -5));
+				_sticks[_temp[1]]->setPriority(400, true);
+				_back->enable();
+				setScript(self(swapSticks));
+			}
+		}
+	}
+
+	void flipStick(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			if (_sticks[_temp[0]]->getCel()) {
+				_cycler.reset(new GLEndBackCycler());
+			} else {
+				_cycler.reset(new GLEndForwardCycler());
+			}
+			_cycler->add(*_sticks[_temp[0]]);
+			_cycler->start(script);
+			sound().play(10616, false, 120);
+			break;
+
+		case 1: {
+			const auto index = Common::find(_slots.begin(), _slots.end(), _temp[0]) - _slots.begin();
+			_sticks[_temp[0]]->setPriority(5);
+			_sticks[_temp[0]]->setPosition(_positions[index], true);
+			_temp[0] = -1;
+			_back->disable();
+			_cycler.reset();
+			user().setIsHandsOn(true);
+			if (checkFinished()) {
+				finished();
+			}
+			// SSCI waited an extra loop before deleting the script
+			_script.reset();
+			break;
+		}
+		}
+	}
+
+	void swapSticks(GLScript &script, const int state) {
+		switch (state) {
+		case 0: {
+			int slotNos[2];
+			slotNos[0] = Common::find(_slots.begin(), _slots.end(), _temp[1]) - _slots.begin();
+			slotNos[1] = Common::find(_slots.begin(), _slots.end(), _temp[0]) - _slots.begin();
+			const auto delta = ABS(slotNos[0] - slotNos[1]);
+			for (auto i = 0; i < _temp.size(); ++i) {
+				auto &stick = _sticks[_temp[i]];
+				stick->setStepSize(GLPoint(6 + 3 * delta, 6 + 3 * delta));
+				_movers[i].reset(new GLJump(*stick, _positions[slotNos[i]], script, 1));
+				_slots[slotNos[i]] = _temp[i];
+				sound().play(10616, false, 120);
+			}
+			break;
+		}
+
+		case 1:
+			// This blank state is for the double-cueing of the jumps
+			break;
+
+		case 2:
+			for (auto i = 0; i < _temp.size(); ++i) {
+				_sticks[_temp[i]]->setPriority(5, true);
+				_temp[i] = -1;
+				_movers[i].reset();
+			}
+
+			user().setIsHandsOn(true);
+			if (checkFinished()) {
+				finished();
+			}
+
+			// SSCI waited an extra loop before deleting the script
+			_script.reset();
+			break;
+		}
+	}
+
+	bool checkFinished() {
+		for (auto i = 0; i < _slots.size(); ++i) {
+			const auto loopNo = _sticks[_slots[i]]->getLoop();
+			const auto celNo = _sticks[_slots[i]]->getCel();
+			if (loopNo != _loops[i] || celNo != 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	void finished() {
+		flags().set(kGameFlag137);
+		score().doEvent(kScore208);
+		room().setNextRoomNo(6421);
+	}
+
+	Common::FixedArray<int, 7> _loops = {{ 0, 3, 3, 1, 0, 0, 2 }};
+	Common::FixedArray<GLCel *, 7> _sticks;
+	Common::FixedArray<int, 7> _slots = {{ -1, -1, -1, -1, -1, -1, -1 }};
+	Common::FixedArray<int, 2> _temp = {{ -1, -1 }};
+	S2Hotspot *_back;
+	Common::ScopedPtr<GLCycler> _cycler;
+	Common::FixedArray<Common::ScopedPtr<GLJump>, 2> _movers;
+
+	static constexpr GLPoint _positions[7] = {
+		{ 149, 33 },
+		{ 206, 33 },
+		{ 265, 33 },
+		{ 323, 34 },
+		{ 384, 34 },
+		{ 441, 35 },
+		{ 498, 35 }
+	};
+};
+
+constexpr GLPoint S2CaveDoorPuzzle::_positions[7];
+
+#undef self
 #define self(name) this, &S2Room6000::name
 
 void S2Room6000::init(const int roomNo) {
@@ -1879,12 +2067,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6422:
-		room().drawPic(6422);
-		phone().cancelCall();
-		initBook();
-
-		emplaceExit(true, 6420, 64, 0, 575, 33, S2Cursor::kBackCel);
-		emplaceExit(true, 6420, 64, 383, 575, 343, S2Cursor::kBackCel);
+		setSubRoom<S2CaveDoorPuzzle>(roomNo);
 		break;
 
 	case 6423:
@@ -1985,10 +2168,6 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	if (addExit) {
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
-}
-
-void S2Room6000::initBook() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2Room6000::enterScript(GLScript &script, const int state) {
