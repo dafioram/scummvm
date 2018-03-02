@@ -90,6 +90,11 @@ protected:
 		return *object;
 	}
 
+	void addAsCel(GLCel &cel) {
+		_cels.push_back(&cel);
+		_game.getRoomManager().addCel(cel);
+	}
+
 	void removeChild(S2PanoramaSprite &sprite) {
 		auto it = Common::find(_sprites.begin(), _sprites.end(), &sprite);
 		if (it != _sprites.end()) {

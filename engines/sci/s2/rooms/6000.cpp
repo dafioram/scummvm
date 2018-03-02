@@ -313,8 +313,7 @@ public:
 		});
 		reset.show();
 		reset.forceUpdate();
-		room().addCel(reset);
-		_resetButton = &reset;
+		addAsCel(reset);
 
 		_dial1 = &emplaceCel(false, 6222, 9, 0, GLPoint(318, 183));
 		_dial1->setCycleSpeed(2);
@@ -322,11 +321,6 @@ public:
 		_dial10 = &emplaceCel(false, 6222, 10, 0, GLPoint(318, 183));
 		_dial10->setCycleSpeed(2);
 		_dial10->show();
-	}
-
-	virtual void dispose(const int roomNo) override {
-		room().removeCel(*_resetButton);
-		S2SubRoom::dispose(roomNo);
 	}
 
 private:
@@ -422,7 +416,6 @@ private:
 	}
 
 	Common::FixedArray<S2TransparentCel *, 9> _cels;
-	S2Button *_resetButton;
 	GLCel *_dial1;
 	GLCel *_dial10;
 
