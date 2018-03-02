@@ -454,6 +454,261 @@ private:
 };
 
 #undef self
+#define self(name) this, &S2WarehouseDoorPuzzle::name
+
+class S2WarehouseDoorPuzzle : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6292);
+		phone().cancelCall();
+		emplaceExit(true, 6290, 64, 0, 99, 382, S2Cursor::kBackCel);
+		emplaceExit(true, 6290, 100, 0, 507, 33, S2Cursor::kBackCel);
+		emplaceExit(true, 6290, 508, 0, 575, 383, S2Cursor::kBackCel);
+
+		for (int i = 0; i < _tubes.size(); ++i) {
+			for (int j = 0; j < _tubes[0].size(); ++j) {
+				const auto position = GLPoint(64 + _pX[i], _tY[i] - 58 * j);
+				auto &cel = emplaceCel(true, 6292, 1, 0, position, j + 2);
+				cel.show();
+				cel.setMoveSpeed(1);
+				cel.setSelectHandler([this, i, j](GLEvent &event, GLTarget &) {
+					if (event.getType() == kSciEventMouseRelease) {
+						// SSCI called S2Interface::clearText here for some
+						// unknown reason, omitted
+						user().setIsHandsOn(false);
+						setScript(self(slideTube), 0, _tubes.size() * j + i);
+					}
+				});
+				cel.forceUpdate();
+				_tubes[i][j] = &cel;
+			}
+
+			_side[i] = _game.getRandomNumber(0, 3);
+			_space[i] = 3;
+			const auto position = GLPoint(64 + _pX[i], _pY[i]);
+			auto &rod = emplaceCel(true, 6292, 0, _side[i] * 2, position, 1);
+			rod.show();
+			rod.setSelectHandler([this, i](GLEvent &event, GLTarget &target) {
+				if (event.getType() == kSciEventMouseRelease) {
+					user().setIsHandsOn(false);
+					setScript(self(turnRod), 0, i);
+				}
+			});
+			rod.forceUpdate();
+			_rods[i] = &rod;
+		}
+
+		if (inventory().isUsed(S2Inventory::kInv32)) {
+			emplaceCel(false, 6292, 2, 0, GLPoint(295, 341), 1).show();
+		} else {
+			emplaceHotspot(true, 281, 51, 330, 338).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				// SSCI used two calls to cursor & inventory instead of this
+				// simpler equivalent single call
+				if (inventory().isInUse(S2Inventory::kInv32)) {
+					inventory().unselectItem(false);
+					emplaceCel(false, 6292, 2, 0, GLPoint(295, 341), 1).show();
+					sound().play(10609, false, 100);
+					removeChild(static_cast<S2Hotspot &>(target));
+					// SSCI did not check for the puzzle to be finished here,
+					// but placing the inventory item may solve it
+					checkFinished();
+				}
+			});
+		}
+	}
+
+private:
+	void slideTube(GLScript &script, const int state) {
+		auto column = script.getData() % 4;
+		auto row = script.getData() / 4;
+		switch (state) {
+		case 0: {
+			uint min, max;
+			int extra;
+			if (_space[column] <= row) {
+				min = _space[column];
+				max = row + 1;
+				extra = 0;
+			} else {
+				min = row;
+				max = _space[column];
+				extra = 1;
+			}
+
+			// SSCI called S2Interface::clearText here for some unknown reason
+			for (auto i = min; i < max; ++i) {
+				auto target = GLPoint(64 + _pX[column], _tY[column] - 58 * (i + extra));
+				// SSCI did not cue only on the first mover which would cause up
+				// to a triple cue of the script & UAF (since the script is
+				// destroyed after the first one)
+				if (i == min) {
+					_movers[i].reset(new GLMover(*_tubes[column][i], target, script));
+				} else {
+					_movers[i].reset(new GLMover(*_tubes[column][i], target));
+				}
+			}
+
+			sound().play(10608, false, 100);
+			break;
+		}
+		case 1:
+			// SSCI had an extra case here where it waited a few cycles,
+			// presumably a hack for the multiple-cueing bug in the previous
+			// step
+			for (auto &mover : _movers) {
+				mover.reset();
+			}
+			if (_space[column] <= row) {
+				_space[column] = row + 1;
+			} else {
+				_space[column] = row;
+			}
+			_script.reset();
+			checkFinished();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	void turnRod(GLScript &script, const int state) {
+		const auto index = script.getData();
+		auto &rod = _rods[index];
+		const auto celNo = _side[index] * 2;
+
+		switch (state) {
+		case 0:
+			// SSCI called S2Interface::clearText here for some unknown reason,
+			// and also used 6 cycles
+			script.setCycles(1);
+			break;
+
+		case 1:
+			rod->setCel(celNo + 1, true);
+			sound().play(10621, false, 100);
+			// SSCI used 6 cycles here, which is ridiculous, so using something
+			// sane instead
+			script.setTicks(3);
+			break;
+
+		case 2:
+			rod->setCel(celNo + 2, true);
+			_side[index] = (_side[index] + 1) % 4;
+			_script.reset();
+			checkFinished();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	void checkFinished() {
+		if (!inventory().isUsed(S2Inventory::kInv32)) {
+			return;
+		}
+
+		constexpr int solvedSpace[] = { 2, 3, 2, 0 };
+		constexpr int solvedSide[] = { 0, 0, 1, 0 };
+
+		uint i;
+		for (i = 0; i < 4 && _side[i] == solvedSide[i] && _space[i] == solvedSpace[i]; ++i);
+		if (i == 4) {
+			flags().set(kGameFlag136);
+			score().doEvent(kScore205);
+			room().setNextRoomNo(6291);
+		}
+		// SSCI cleared flag 136 here, which makes no sense since you cannot
+		// access the puzzle once the flag is set
+	}
+
+	static constexpr int _pX[] = { 106, 170, 294, 354 };
+	static constexpr int _pY[] = { 339, 340, 342, 343 };
+	static constexpr int _tY[] = { 259, 260, 262, 263 };
+
+	Common::FixedArray<int, 4> _side;
+	Common::FixedArray<int, 4> _space;
+	Common::FixedArray<GLCel *, 4> _rods;
+	Common::FixedArray<Common::FixedArray<GLCel *, 3>, 4> _tubes;
+	Common::FixedArray<Common::ScopedPtr<GLMover>, 3> _movers;
+};
+
+constexpr int S2WarehouseDoorPuzzle::_pX[];
+constexpr int S2WarehouseDoorPuzzle::_pY[];
+constexpr int S2WarehouseDoorPuzzle::_tY[];
+
+#undef self
+#define self(name) this, &S2StatuePuzzle::name
+
+class S2StatuePuzzle : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6351);
+		emplaceExit(true, 6355, 64, 0, 575, 80, S2Cursor::kBackCel);
+		emplaceExit(true, 6355, 64, 81, 144, 250, S2Cursor::kBackCel);
+		phone().cancelCall();
+
+		for (auto i = 4; i >= 0; --i) {
+			addToe(i, i);
+		}
+		for (auto i = 5; i < 10; ++i) {
+			addToe(i, 10 - i);
+		}
+	}
+
+private:
+	void addToe(const int index, const int16 priority) {
+		// SSCI always made the toes look interactive even if they were not
+		auto &cel = emplaceTransparentCel(flags().get(kGameFlag72), 6351, index, 0, roomBottom, priority);
+		cel.show();
+		cel.setSelectHandler([this, index](GLEvent &event, GLTarget &) {
+			// SSCI did not test for the event type
+			if (event.getType() == kSciEventMouseRelease && flags().get(kGameFlag72)) {
+				user().setIsHandsOn(false);
+				setScript(self(toeTouched), 0, index);
+			}
+		});
+		cel.forceUpdate();
+		_toes[index] = &cel;
+	}
+
+	void toeTouched(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			_cycler.reset(new GLEndForwardBackwardCycler());
+			_cycler->add(*_toes[script.getData()]);
+			_cycler->start(script);
+			break;
+
+		case 1:
+			_cycler.reset();
+			if (script.getData() == _numToesTouched) {
+				if (++_numToesTouched == 10) {
+					if (inventory().isUsed(S2Inventory::kInv23)) {
+						room().setNextRoomNo(6354);
+					} else {
+						room().setNextRoomNo(6355);
+					}
+
+					flags().set(kGameFlag219);
+					score().doEvent(kScore223);
+				}
+			} else {
+				_numToesTouched = 0;
+			}
+			_script.reset();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	Common::FixedArray<S2TransparentCel *, 10> _toes;
+	Common::ScopedPtr<GLCycler> _cycler;
+	int _numToesTouched = 0;
+};
+
+#undef self
 #define self(name) this, &S2Room6000::name
 
 void S2Room6000::init(const int roomNo) {
@@ -946,12 +1201,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6292:
-		room().drawPic(6292);
-		phone().cancelCall();
-		emplaceExit(true, 6290, 64, 0, 99, 382, S2Cursor::kBackCel);
-		emplaceExit(true, 6290, 100, 0, 507, 33, S2Cursor::kBackCel);
-		emplaceExit(true, 6290, 508, 0, 575, 383, S2Cursor::kBackCel);
-		initWarehouse();
+		setSubRoom<S2WarehouseDoorPuzzle>(roomNo);
 		break;
 
 	case 6300:
@@ -1081,11 +1331,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6351:
-		room().drawPic(6351);
-		emplaceExit(true, 6355, 64, 0, 575, 80, S2Cursor::kBackCel);
-		emplaceExit(true, 6355, 64, 81, 144, 250, S2Cursor::kBackCel);
-		phone().cancelCall();
-		initToes();
+		setSubRoom<S2StatuePuzzle>(roomNo);
 		break;
 
 	case 6353: {
@@ -1531,14 +1777,6 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	if (addExit) {
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
-}
-
-void S2Room6000::initWarehouse() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
-void S2Room6000::initToes() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2Room6000::initMausoleum() {
