@@ -77,8 +77,9 @@ protected:
 	}
 
 	template <typename T, typename ...Args>
-	void setSubRoom(Args && ...args) {
+	void setSubRoom(const int roomNo, Args && ...args) {
 		_activeSubRoom.reset(new T(_kernel, _game, *this, args...));
+		initSubRoom(roomNo);
 	}
 
 	template <typename T, typename ...Args>
@@ -291,6 +292,9 @@ protected:
 	Common::Array<S2Exit *> _exits;
 
 	bool _keepPanoramaExits = false;
+
+private:
+	void initSubRoom(const int roomNo);
 };
 
 class S2SubRoom : public S2Room {

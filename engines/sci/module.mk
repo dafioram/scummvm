@@ -155,6 +155,7 @@ MODULE_OBJS += \
 	s2/system/glevent.o \
 	s2/system/glevent_handler_set.o \
 	s2/system/glfeature.o \
+	s2/system/glmover.o \
 	s2/system/glmovie.o \
 	s2/system/glmovie_player.o \
 	s2/system/globject.o \

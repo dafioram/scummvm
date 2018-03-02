@@ -32,6 +32,15 @@ class GLEvent;
 class S2Hotspot : public GLPoly {
 public:
 	S2Hotspot(AbsGLPlane &plane, const int16 x1, const int16 y1, const int16 x2, const int16 y2);
+
+	template <size_t N>
+	S2Hotspot(AbsGLPlane &plane, const GLPoint (&hotspots)[N]) :
+		GLPoly(plane) {
+		setNeedsEvent(true);
+		setPoints({ hotspots, N });
+		enable();
+	}
+
 	virtual ~S2Hotspot();
 
 	bool getIsEnabled() const { return _isEnabled; }
@@ -49,7 +58,7 @@ public:
 	}
 
 private:
-	bool _isEnabled;
+	bool _isEnabled = false;
 	EventHandler _mouseUpHandler;
 };
 

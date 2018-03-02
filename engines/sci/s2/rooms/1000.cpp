@@ -282,8 +282,7 @@ void S2Room1000::init(const int roomNo) {
 		setScript(self(openingScript));
 		break;
 	case 1015:
-		setSubRoom<S2CheckInRoom>();
-		_activeSubRoom->init(roomNo);
+		setSubRoom<S2CheckInRoom>(roomNo);
 		break;
 	case 1020:
 		room().drawPic(2);

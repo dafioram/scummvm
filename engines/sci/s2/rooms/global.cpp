@@ -1209,16 +1209,16 @@ void S2GlobalRoom::init(const int roomNo) {
 
 	switch (roomNo) {
 	case 4000:
-		setSubRoom<S2MainMenuRoom>();
+		setSubRoom<S2MainMenuRoom>(roomNo);
 		break;
 	case 4010:
-		setSubRoom<S2NewGameRoom>();
+		setSubRoom<S2NewGameRoom>(roomNo);
 		break;
 	case 4020:
-		setSubRoom<S2LoadGameRoom>();
+		setSubRoom<S2LoadGameRoom>(roomNo);
 		break;
 	case 4100:
-		setSubRoom<S2OptionsRoom>();
+		setSubRoom<S2OptionsRoom>(roomNo);
 		break;
 	case 2:
 	case 1920:
@@ -1263,16 +1263,16 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 24333:
 	case 24334:
 	case 24335:
-		setSubRoom<S2FlashbackRoom>();
+		setSubRoom<S2FlashbackRoom>(roomNo);
 		break;
 	case 4120:
-		setSubRoom<S2ConfigurationRoom>();
+		setSubRoom<S2ConfigurationRoom>(roomNo);
 		break;
 	case 4130:
-		setSubRoom<S2MapRoom>();
+		setSubRoom<S2MapRoom>(roomNo);
 		break;
 	case 4300:
-		setSubRoom<S2InventoryRoom>();
+		setSubRoom<S2InventoryRoom>(roomNo);
 		break;
 	case 4301:
 		for (auto i = 0; i < 8; ++i) {
@@ -1292,7 +1292,7 @@ void S2GlobalRoom::init(const int roomNo) {
 		}
 		break;
 	case 4302:
-		setSubRoom<S2MusicBoxRoom>();
+		setSubRoom<S2MusicBoxRoom>(roomNo);
 		break;
 	case 4400:
 	case 4401:
@@ -1302,14 +1302,10 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4405:
 	case 4406:
 	case 4407:
-		setSubRoom<S2CreditsRoom>();
+		setSubRoom<S2CreditsRoom>(roomNo);
 		break;
 	default:
 		error("Unknown global room %d", roomNo);
-	}
-
-	if (_activeSubRoom) {
-		_activeSubRoom->init(roomNo);
 	}
 }
 

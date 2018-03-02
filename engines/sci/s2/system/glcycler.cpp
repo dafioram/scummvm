@@ -57,7 +57,7 @@ template <class CelT>
 void AbsGLCycler<CelT>::start() {
 	_isCycling = true;
 	_isFinished = false;
-	_extras->push_back(this);
+	_extras->push_front(this);
 }
 
 template <class CelT>
@@ -84,7 +84,9 @@ void AbsGLCycler<CelT>::doIt() {
 		const uint32 now = _timeManager->getTickCount();
 		for (uint i = 0; i < _cels.size(); ++i) {
 			if (now >= _timings[i]) {
-				_timings[i] = now + _cels[i]->getCycleSpeed();
+				// SSCI did not try to correct for lag in this calculation
+				const auto ticksToNextMove = MAX(0, _cels[i]->getCycleSpeed() - int(now - _timings[i]));
+				_timings[i] = now + ticksToNextMove;
 				_cels[i]->setCel(nextCel(*_cels[i]), true);
 			}
 		}

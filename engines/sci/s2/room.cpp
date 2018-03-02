@@ -42,4 +42,8 @@ bool S2Room::handleEvent(GLEvent &event) {
 	return false;
 }
 
+void S2Room::initSubRoom(const int roomNo) {
+	_activeSubRoom->init(roomNo);
+}
+
 } // End of namespace Sci

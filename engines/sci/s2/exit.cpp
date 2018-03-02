@@ -29,11 +29,7 @@ namespace Sci {
 
 S2Cursor *S2Exit::_cursor = nullptr;
 S2RoomManager *S2Exit::_roomManager = nullptr;
-
-GLPoint S2Exit::_defaultPoly[] = {
-	{  64,  0 }, { 575,   0 }, { 575, 383 }, {  64, 383 }, {  64,  0 },
-	{ 144, 80 }, { 144, 303 }, { 494, 303 }, { 494,  80 }, { 144, 80 }
-};
+constexpr GLPoint S2Exit::_defaultPoly[];
 
 S2Exit::S2Exit(AbsGLPlane &plane, const int targetRoomNo, const S2Cursor::Cel cursorCel) :
 	S2Exit(plane, targetRoomNo, PointsList(_defaultPoly, ARRAYSIZE(_defaultPoly)), cursorCel) {}

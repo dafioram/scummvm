@@ -21,9 +21,262 @@
  */
 
 #include "sci/s2/rooms/6000.h"
+#include "sci/s2/system/glmover.h"
 
 namespace Sci {
 
+#define self(name) this, &S2BakeryDoorPuzzleRoom::name
+
+class S2BakeryDoorPuzzleRoom : public S2SubRoom {
+	static constexpr int16 calcX(const int x, const int y) {
+		return 198 + x * 39 + y * -3;
+	}
+
+	static constexpr int16 calcY(const int x, const int y) {
+		return 75 + x * 3 + y * 38;
+	}
+
+	static constexpr GLPoint calcPoint(const int x, const int y) {
+		return { calcX(x, y), calcY(x, y) };
+	}
+
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6122);
+		emplaceExit(true, 6120, 64, 0, 109, 384, S2Cursor::kBackCel);
+		emplaceExit(true, 6120, 495, 0, 575, S2Cursor::kBackCel);
+		phone().cancelCall();
+
+		const GLPoint handles[][4] = {
+			{ { 117, 107 }, { 234, 116 }, { 228, 192 }, { 111, 183 } },
+			{ { 111, 183 }, { 228, 192 }, { 222, 268 }, { 105, 259 } },
+			{ { 243,   2 }, { 321,   8 }, { 312, 122 }, { 234, 116 } },
+			{ { 321,   8 }, { 399,  14 }, { 390, 128 }, { 312, 122 } }
+		};
+
+		for (auto i = 0; i < ARRAYSIZE(handles); ++i) {
+			emplaceHotspot(true, handles[i]).setMouseUpHandler([this, i](GLEvent &, GLTarget &target) {
+				user().setIsHandsOn(false);
+				setScript(self(interact), 0, i);
+			});
+		}
+
+		const GLPoint gears[] = {
+			{ 153, 148 }, { 147, 224 }, { 279, 43 }, { 357, 49 }
+		};
+
+		for (auto i = 0; i < _gears.size(); ++i) {
+			auto &gear = emplaceCel(false, 6122, 5, 0, gears[i]);
+			gear.setCycleSpeed(2);
+			gear.show();
+			_gears[i] = &gear;
+		}
+
+		for (auto i = 0; i < _pushers.size(); ++i) {
+			auto &axis = _pushers[i];
+			for (auto j = 0; j < axis.size(); ++j) {
+				int16 loopNo;
+				GLPoint position;
+				if (!i) {
+					position = calcPoint(j % 2, j + 1) + GLPoint( 1, 9 );
+					loopNo = 1 + j % 2;
+				} else {
+					position = calcPoint(j + 1, j % 2) + GLPoint( 9, 1 );
+					loopNo = 3 + j % 2;
+				}
+				auto &cel = emplaceCel(false, 6122, loopNo, 0, position, 0);
+				cel.show();
+				cel.setMoveSpeed(0);
+				cel.setStepSize({ 12, 12 });
+				getPlane().getCast().remove(cel);
+				axis[j] = &cel;
+			}
+		}
+
+		for (auto y = 0; y < _pieces.size(); ++y) {
+			auto &row = _pieces[y];
+			for (auto x = 0; x < row.size(); ++x) {
+				if (_layout[y][x]) {
+					auto &cel = emplaceCel(false, 6122, 0, 0, calcPoint(x, y));
+					cel.show();
+					cel.setMoveSpeed(0);
+					cel.setStepSize({ 12, 12 });
+					row[x] = &cel;
+				} else {
+					row[x] = nullptr;
+				}
+			}
+		}
+
+		auto j = _game.getRandomNumber(1, 7);
+		for (auto i = 0; i < 4; ++i) {
+			const auto y = _initialStates[j][i] / 6;
+			const auto x = _initialStates[j][i] % 6;
+			_circlePieces[i] = _pieces[y][x];
+			_circlePieces[i]->setCel(i + 1, true);
+		}
+	}
+
+private:
+	void interact(GLScript &script, const int state) {
+		const auto gearIndex = script.getData() % 2;
+		const bool isHorizontal = script.getData() < 2;
+
+		// SSCI duplicated this function for horizontal and vertical movements
+		// instead of using one function and changing some variables
+		GLPoint delta;
+		uint pieceRow, pieceColumn;
+		bool cycleForward;
+		if (isHorizontal) {
+			pieceRow = gearIndex * 2 + 1;
+			pieceColumn = 0;
+			delta = { 39, 3 };
+			cycleForward = false;
+		} else {
+			pieceRow = 0;
+			pieceColumn = gearIndex * 2 + 1;
+			delta = { -3, 38 };
+			cycleForward = true;
+		}
+
+		switch (state) {
+		case 0:
+			_gearCycler.reset(new GLCycler());
+			_gearCycler->cycleForward(_pieces[pieceRow][pieceColumn] ? cycleForward : !cycleForward);
+			_gearCycler->add(*_gears[script.getData()], true);
+
+			for (auto i = 0; i < 2; ++i) {
+				const auto row = pieceRow ? pieceRow + i : 0;
+				const auto col = pieceColumn ? pieceColumn + i : 0;
+				const auto right = _pieces[row][col] ? 0 : 1;
+				for (auto j = 0; j < 6; ++j) {
+					const auto innerRow = row ? row : j + right;
+					const auto innerCol = row ? j + right : col;
+					if (j < 5) {
+						_movingPieces[i][j] = _pieces[innerRow][innerCol];
+					} else {
+						_movingPieces[i][5] = _pushers[row ? 0 : 1][(row ? row : col) - 1];
+					}
+
+					auto newPosition = _movingPieces[i][j]->getPosition();
+					if (right) {
+						newPosition -= delta;
+					} else {
+						newPosition += delta;
+					}
+
+					if (!i && !j) {
+						_movers[i][j].reset(new GLMover(*_movingPieces[i][j], newPosition, script));
+					} else {
+						_movers[i][j].reset(new GLMover(*_movingPieces[i][j], newPosition));
+					}
+				}
+			}
+
+			// In SSCI this sound was played for every iteration of the loop,
+			// which is unnecessary since each new play restarts the sound
+			sound().play(10602, true, 40);
+
+			break;
+
+		case 1:
+			_gearCycler.reset();
+			script.setTicks(15);
+			break;
+
+		case 2:
+			sound().stop(10602);
+			for (auto i = 0; i < 2; ++i) {
+				const auto row = pieceRow ? pieceRow + i : 0;
+				const auto col = pieceColumn ? pieceColumn + i : 0;
+				const auto right = _pieces[row][col] ? 0 : 1;
+				for (auto j = 0; j < 6; ++j) {
+					_movers[i][j].reset();
+					if (j < 5) {
+						if (isHorizontal) {
+							if (right) {
+								_pieces[row][j] = _pieces[row][j + 1];
+							} else {
+								_pieces[row][5 - j] = _pieces[row][4 - j];
+							}
+						} else {
+							if (right) {
+								_pieces[j][col] = _pieces[j + 1][col];
+							} else {
+								_pieces[5 - j][col] = _pieces[4 - j][col];
+							}
+						}
+					}
+				}
+				if (isHorizontal) {
+					_pieces[row][right ? 5 : 0] = nullptr;
+				} else {
+					_pieces[right ? 5 : 0][col] = nullptr;
+				}
+			}
+
+			_script.reset();
+			checkFinished();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	void checkFinished() {
+		auto i = -1;
+		uint x, y;
+		do {
+			++i;
+			x = i / 6;
+			y = i % 6;
+		} while (_circlePieces[0] != _pieces[x][y]);
+
+		if (x < 5 && y < 5 &&
+			_circlePieces[1] == _pieces[x + 1][y] &&
+			_circlePieces[2] == _pieces[x][y + 1] &&
+			_circlePieces[3] == _pieces[x + 1][y + 1]) {
+
+			flags().set(kGameFlag133);
+			score().doEvent(kScore206);
+			room().setNextRoomNo(6121);
+		}
+	}
+
+	Common::ScopedPtr<GLCycler> _gearCycler;
+	Common::FixedArray<GLCel *, 4> _gears;
+	Common::FixedArray<Common::FixedArray<GLCel *, 4>, 2> _pushers;
+	Common::FixedArray<Common::FixedArray<GLCel *, 6>, 6> _pieces;
+	Common::FixedArray<Common::FixedArray<GLCel *, 6>, 2> _movingPieces;
+	Common::FixedArray<GLCel *, 4> _circlePieces;
+	Common::FixedArray<Common::FixedArray<Common::ScopedPtr<GLMover>, 6>, 2> _movers;
+
+	static constexpr int8 _layout[6][6] = {
+		{ 0, 1, 0, 1, 0, 0 },
+		{ 1, 1, 1, 1, 1, 0 },
+		{ 0, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 0 },
+		{ 0, 1, 1, 1, 1, 1 },
+		{ 0, 0, 1, 0, 1, 0 }
+	};
+
+	static constexpr int8 _initialStates[8][4] = {
+		{ 14, 20, 15, 21 }, // completed state
+		{  3,  6, 29, 32 },
+		{ 18, 15, 29, 14 },
+		{ 18, 26,  1, 17 },
+		{ 22, 20, 19, 21 },
+		{ 14, 15,  9, 21 },
+		{ 14, 20, 15, 17 },
+		{ 18, 26, 15, 13 }
+	};
+};
+
+constexpr int8 S2BakeryDoorPuzzleRoom::_layout[6][6];
+constexpr int8 S2BakeryDoorPuzzleRoom::_initialStates[8][4];
+
+#undef self
 #define self(name) this, &S2Room6000::name
 
 void S2Room6000::init(const int roomNo) {
@@ -141,11 +394,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6122:
-		room().drawPic(6122);
-		emplaceExit(true, 6120, 64, 0, 109, 384, S2Cursor::kBackCel);
-		emplaceExit(true, 6120, 495, 0, 575, S2Cursor::kBackCel);
-		phone().cancelCall();
-		initBakery();
+		setSubRoom<S2BakeryDoorPuzzleRoom>(roomNo);
 		break;
 
 	case 6130:
@@ -1112,10 +1361,6 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	if (addExit) {
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
-}
-
-void S2Room6000::initBakery() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2Room6000::initBank() {

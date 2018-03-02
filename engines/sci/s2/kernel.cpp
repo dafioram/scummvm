@@ -30,6 +30,7 @@
 #include "sci/s2/panorama_sprite.h"
 #include "sci/s2/system/glcycler.h"
 #include "sci/s2/system/glevent.h"
+#include "sci/s2/system/glmover.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glrobot.h"
 #include "sci/s2/system/glscreen_item.h"
@@ -54,6 +55,7 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	S2Bitmap::init(&graphicsManager._bitmap);
 	GLRobot::init(&graphicsManager);
 	GLCycler::init(&timeManager);
+	GLMover::init(&timeManager);
 	S2PanoramaCycler::init(&timeManager);
 	S2PanoramaImage::init(&resourceManager);
 	GLSoundTrack::init(&audioMixer);

@@ -49,6 +49,9 @@ public:
 	int getMoveSpeed() const { return _moveSpeed; }
 	void setMoveSpeed(const int numTicks) { _moveSpeed = numTicks; }
 
+	const GLPoint &getStepSize() const { return _stepSize; }
+	void setStepSize(const GLPoint &stepSize) { _stepSize = stepSize; }
+
 	void setCycler(GLCycler *cycler) { _cycler = cycler; }
 
 protected:

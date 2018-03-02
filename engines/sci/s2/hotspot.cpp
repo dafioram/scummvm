@@ -27,9 +27,7 @@
 namespace Sci {
 
 S2Hotspot::S2Hotspot(AbsGLPlane &plane, const int16 x1, const int16 y1, const int16 x2, const int16 y2) :
-	GLPoly(plane),
-	_isEnabled(false),
-	_mouseUpHandler(nullptr) {
+	GLPoly(plane) {
 	GLPoint points[] = { { x1, y1 }, { x2, y1 }, { x2, y2 }, { x1, y2 } };
 	setNeedsEvent(true);
 	setPoints({ points, ARRAYSIZE(points) });

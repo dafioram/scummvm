@@ -60,7 +60,10 @@ private:
 	static S2Cursor *_cursor;
 	static S2RoomManager *_roomManager;
 
-	static GLPoint _defaultPoly[10];
+	static constexpr GLPoint _defaultPoly[] = {
+		{  64,  0 }, { 575,   0 }, { 575, 383 }, {  64, 383 }, {  64,  0 },
+		{ 144, 80 }, { 144, 303 }, { 494, 303 }, { 494,  80 }, { 144, 80 }
+	};
 
 	static PointsList rectToPoints(const Common::Rect &rect) {
 		// In order to match the poly dimensions for rectangles in SSCI, the
