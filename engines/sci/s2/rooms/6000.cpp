@@ -26,35 +26,48 @@
 
 namespace Sci {
 
-#define self(name) this, &S2BakeryDoorPuzzleRoom::name
+#define self(name) this, &S2SliderDoorPuzzleRoom::name
 
-class S2BakeryDoorPuzzleRoom : public S2SubRoom {
-	static constexpr int16 calcX(const int x, const int y) {
-		return 198 + x * 39 + y * -3;
-	}
-
-	static constexpr int16 calcY(const int x, const int y) {
-		return 75 + x * 3 + y * 38;
-	}
-
-	static constexpr GLPoint calcPoint(const int x, const int y) {
-		return { calcX(x, y), calcY(x, y) };
-	}
-
+class S2SliderDoorPuzzleRoom : public S2SubRoom {
 public:
 	using S2SubRoom::S2SubRoom;
 
-	virtual void init(const int) override {
-		room().drawPic(6122);
-		emplaceExit(true, 6120, 64, 0, 109, 384, S2Cursor::kBackCel);
-		emplaceExit(true, 6120, 495, 0, 575, S2Cursor::kBackCel);
+	virtual void init(const int roomNo) override {
+		if (roomNo == 6122) {
+			_baseX = 198;
+			_baseY = 75;
+			_hXStep = 39;
+			_hYStep = 3;
+			_vXStep = -3;
+			_vYStep = 38;
+			_successFlag = kGameFlag133;
+			_successScore = kScore206;
+			_cancelRoomNo = 6120;
+			_successRoomNo = 6121;
+		} else {
+			_baseX = 252;
+			_baseY = 88;
+			_hXStep = 36;
+			_hYStep = 11;
+			_vXStep = -12;
+			_vYStep = 32;
+			_successFlag = kGameFlag134;
+			_successScore = kScore207;
+			_cancelRoomNo = 6279;
+			_successRoomNo = 6271;
+		}
+
+		_viewNo = roomNo;
+		room().drawPic(roomNo);
+		emplaceExit(true, _cancelRoomNo, 64, 0, 109, 384, S2Cursor::kBackCel);
+		emplaceExit(true, _cancelRoomNo, 495, 0, 575, S2Cursor::kBackCel);
 		phone().cancelCall();
 
 		const GLPoint handles[][4] = {
-			{ { 117, 107 }, { 234, 116 }, { 228, 192 }, { 111, 183 } },
-			{ { 111, 183 }, { 228, 192 }, { 222, 268 }, { 105, 259 } },
-			{ { 243,   2 }, { 321,   8 }, { 312, 122 }, { 234, 116 } },
-			{ { 321,   8 }, { 399,  14 }, { 390, 128 }, { 312, 122 } }
+			{ calcPoint(-2,  1), calcPoint(1,  1), calcPoint(1, 3), calcPoint(-2, 3) },
+			{ calcPoint(-2,  3), calcPoint(1,  3), calcPoint(1, 5), calcPoint(-2, 5) },
+			{ calcPoint( 1, -2), calcPoint(3, -2), calcPoint(3, 1), calcPoint( 1, 1) },
+			{ calcPoint( 3, -2), calcPoint(5, -2), calcPoint(5, 1), calcPoint( 3, 1) }
 		};
 
 		for (auto i = 0; i < ARRAYSIZE(handles); ++i) {
@@ -65,11 +78,11 @@ public:
 		}
 
 		const GLPoint gears[] = {
-			{ 153, 148 }, { 147, 224 }, { 279, 43 }, { 357, 49 }
+			calcPoint(-1, 2), calcPoint(-1, 4), calcPoint(2, -1), calcPoint(4, -1)
 		};
 
 		for (auto i = 0; i < _gears.size(); ++i) {
-			auto &gear = emplaceCel(false, 6122, 5, 0, gears[i]);
+			auto &gear = emplaceCel(false, _viewNo, 5, 0, gears[i]);
 			gear.setCycleSpeed(2);
 			gear.show();
 			_gears[i] = &gear;
@@ -81,13 +94,13 @@ public:
 				int16 loopNo;
 				GLPoint position;
 				if (!i) {
-					position = calcPoint(j % 2, j + 1) + GLPoint( 1, 9 );
+					position = calcPoint(j % 2, j + 1) + GLPoint(1, 9);
 					loopNo = 1 + j % 2;
 				} else {
-					position = calcPoint(j + 1, j % 2) + GLPoint( 9, 1 );
+					position = calcPoint(j + 1, j % 2) + GLPoint(9, 1);
 					loopNo = 3 + j % 2;
 				}
-				auto &cel = emplaceCel(false, 6122, loopNo, 0, position, 0);
+				auto &cel = emplaceCel(false, _viewNo, loopNo, 0, position, 0);
 				cel.show();
 				cel.setMoveSpeed(0);
 				cel.setStepSize({ 12, 12 });
@@ -100,7 +113,7 @@ public:
 			auto &row = _pieces[y];
 			for (auto x = 0; x < row.size(); ++x) {
 				if (_layout[y][x]) {
-					auto &cel = emplaceCel(false, 6122, 0, 0, calcPoint(x, y));
+					auto &cel = emplaceCel(false, _viewNo, 0, 0, calcPoint(x, y));
 					cel.show();
 					cel.setMoveSpeed(0);
 					cel.setStepSize({ 12, 12 });
@@ -133,12 +146,12 @@ private:
 		if (isHorizontal) {
 			pieceRow = gearIndex * 2 + 1;
 			pieceColumn = 0;
-			delta = { 39, 3 };
+			delta = { _hXStep, _hYStep };
 			cycleForward = false;
 		} else {
 			pieceRow = 0;
 			pieceColumn = gearIndex * 2 + 1;
-			delta = { -3, 38 };
+			delta = { _vXStep, _vYStep };
 			cycleForward = true;
 		}
 
@@ -239,10 +252,22 @@ private:
 			_circlePieces[2] == _pieces[x][y + 1] &&
 			_circlePieces[3] == _pieces[x + 1][y + 1]) {
 
-			flags().set(kGameFlag133);
-			score().doEvent(kScore206);
-			room().setNextRoomNo(6121);
+			flags().set(_successFlag);
+			score().doEvent(_successScore);
+			room().setNextRoomNo(_successRoomNo);
 		}
+	}
+
+	int16 calcX(const int x, const int y) const {
+		return _baseX + x * _hXStep + y * _vXStep;
+	}
+
+	int16 calcY(const int x, const int y) const {
+		return _baseY + x * _hYStep + y * _vYStep;
+	}
+
+	GLPoint calcPoint(const int x, const int y) const {
+		return { calcX(x, y), calcY(x, y) };
 	}
 
 	Common::ScopedPtr<GLCycler> _gearCycler;
@@ -252,6 +277,12 @@ private:
 	Common::FixedArray<Common::FixedArray<GLCel *, 6>, 2> _movingPieces;
 	Common::FixedArray<GLCel *, 4> _circlePieces;
 	Common::FixedArray<Common::FixedArray<Common::ScopedPtr<GLMover>, 6>, 2> _movers;
+	GameFlag _successFlag;
+	S2Score _successScore;
+	int _successRoomNo;
+	int _cancelRoomNo;
+	uint16 _viewNo;
+	int16 _baseX, _baseY, _hXStep, _hYStep, _vXStep, _vYStep;
 
 	static constexpr int8 _layout[6][6] = {
 		{ 0, 1, 0, 1, 0, 0 },
@@ -274,8 +305,8 @@ private:
 	};
 };
 
-constexpr int8 S2BakeryDoorPuzzleRoom::_layout[6][6];
-constexpr int8 S2BakeryDoorPuzzleRoom::_initialStates[8][4];
+constexpr int8 S2SliderDoorPuzzleRoom::_layout[6][6];
+constexpr int8 S2SliderDoorPuzzleRoom::_initialStates[8][4];
 
 #undef self
 #define self(name) this, &S2BankDoorPuzzle::name
@@ -540,7 +571,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6122:
-		setSubRoom<S2BakeryDoorPuzzleRoom>(roomNo);
+		setSubRoom<S2SliderDoorPuzzleRoom>(roomNo);
 		break;
 
 	case 6130:
@@ -827,11 +858,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6272:
-		room().drawPic(6272);
-		emplaceExit(true, 6279, 64, 0, 104, 383, S2Cursor::kBackCel);
-		exitBorder(6279, false, false);
-		phone().cancelCall();
-		initBarber();
+		setSubRoom<S2SliderDoorPuzzleRoom>(roomNo);
 		break;
 
 	case 6273:
@@ -1504,14 +1531,6 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	if (addExit) {
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
-}
-
-void S2Room6000::initBank() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
-void S2Room6000::initBarber() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2Room6000::initWarehouse() {

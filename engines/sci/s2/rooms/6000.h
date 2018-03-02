@@ -37,8 +37,6 @@ public:
 	virtual void dispose(const int roomNo) override;
 
 private:
-	void initBank();
-	void initBarber();
 	void initWarehouse();
 	void initToes();
 	void initMausoleum();
