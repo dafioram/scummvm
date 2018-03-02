@@ -34,6 +34,7 @@
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glplane.h"
 #include "sci/s2/system/glscript.h"
+#include "sci/s2/transparent_cel.h"
 
 namespace Sci {
 
@@ -153,6 +154,16 @@ protected:
 	template <typename ...Args>
 	GLCel &emplaceCel(const bool autoHighlight, Args && ...args) {
 		auto &cel = emplaceChild<GLCel>(args...);
+		if (autoHighlight) {
+			_cels.push_back(&cel);
+			_game.getRoomManager().addCel(cel);
+		}
+		return cel;
+	}
+
+	template <typename ...Args>
+	S2TransparentCel &emplaceTransparentCel(const bool autoHighlight, Args && ...args) {
+		auto &cel = emplaceChild<S2TransparentCel>(args...);
 		if (autoHighlight) {
 			_cels.push_back(&cel);
 			_game.getRoomManager().addCel(cel);

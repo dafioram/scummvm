@@ -51,6 +51,7 @@ public:
 	void setPosition(const GLPoint &position, const bool shouldUpdate = false);
 
 	void setCelRes(const GLCelRes &celInfo, const bool shouldUpdate = false);
+	uint16 getView() const { return _celInfo.resourceId; }
 	int16 getLoop() const { return _celInfo.loopNo; }
 	void setLoop(const int16 loopNo, const bool shouldUpdate = false);
 	int16 getCel() const { return _celInfo.celNo; }

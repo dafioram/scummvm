@@ -22,6 +22,7 @@
 
 #include "sci/s2/rooms/6000.h"
 #include "sci/s2/system/glmover.h"
+#include "sci/s2/transparent_cel.h"
 
 namespace Sci {
 
@@ -275,6 +276,158 @@ private:
 
 constexpr int8 S2BakeryDoorPuzzleRoom::_layout[6][6];
 constexpr int8 S2BakeryDoorPuzzleRoom::_initialStates[8][4];
+
+#undef self
+#define self(name) this, &S2BankDoorPuzzle::name
+
+class S2BankDoorPuzzle : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6222);
+		phone().cancelCall();
+		emplaceExit(true, 6220, S2Cursor::kBackCel);
+
+		for (auto i = 0; i < _cels.size(); ++i) {
+			auto &cel = emplaceTransparentCel(true, 6222, i, 0, GLPoint(318, 183));
+			cel.setSelectHandler([this, i](GLEvent &event, GLTarget &target) {
+				if (event.getType() == kSciEventMouseRelease) {
+					handleTabEvent(static_cast<S2TransparentCel &>(target), i);
+				}
+			});
+			cel.show();
+			cel.forceUpdate();
+			_cels[i] = &cel;
+		}
+
+		auto &reset = emplaceButton(true, true, 6222, 11, 0, roomBottom);
+		reset.setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			user().setIsHandsOn(false);
+			sound().play(10606, false, 100);
+			for (auto &cel : _cels) {
+				cel->setCel(0, true);
+				_numCorrect = _numDown = _targetNo = _currentNo = 0;
+			}
+			setScript(self(spin));
+		});
+		reset.show();
+		reset.forceUpdate();
+		room().addCel(reset);
+		_resetButton = &reset;
+
+		_dial1 = &emplaceCel(false, 6222, 9, 0, GLPoint(318, 183));
+		_dial1->setCycleSpeed(2);
+		_dial1->show();
+		_dial10 = &emplaceCel(false, 6222, 10, 0, GLPoint(318, 183));
+		_dial10->setCycleSpeed(2);
+		_dial10->show();
+	}
+
+	virtual void dispose(const int roomNo) override {
+		room().removeCel(*_resetButton);
+		S2SubRoom::dispose(roomNo);
+	}
+
+private:
+	void handleTabEvent(S2TransparentCel &cel, const int i) {
+		if (cel.getCel()) {
+			return;
+		}
+		user().setIsHandsOn(false);
+		if (_numDown == 3) {
+			_numDown = 1;
+			_targetNo = i;
+			cel.setCel(1, true);
+			setScript(self(spin));
+		} else {
+			++_numDown;
+			cel.setCel(1, true);
+
+			int initialState;
+			if (i) {
+				_targetNo = _currentNo + i;
+				initialState = 1;
+			} else {
+				initialState = 4;
+			}
+			setScript(self(spin), initialState);
+		}
+		sound().play(10605, false, 100);
+	}
+
+	void spin(GLScript &script, const int state) {
+		switch (state) {
+		case 0: {
+			const auto d1Cel = _dial1->getCel();
+			const auto d10Cel = _dial10->getCel();
+			_currentNo = 0;
+			if (d1Cel > 0) {
+				_dial1->setCel(d1Cel - 1, true);
+			}
+			if (d10Cel > 0) {
+				_dial10->setCel(d10Cel - 1, true);
+			}
+			if (d1Cel > 0 || d10Cel > 0) {
+				script.setState(-1);
+			} else if (_targetNo == 0) {
+				script.setState(2);
+			}
+			script.setTicks(4);
+			break;
+		}
+
+		case 1: {
+			const auto d1Cel = _currentNo % 10;
+			const auto d10Cel = _currentNo / 10;
+			if (d1Cel == 9) {
+				_dial10->setCel(d10Cel * 2 + 1, true);
+			}
+			_dial1->setCel(d1Cel * 2 + 1, true);
+			script.setTicks(4);
+			break;
+		}
+
+		case 2: {
+			++_currentNo;
+			const auto d1Cel = _currentNo % 10;
+			const auto d10Cel = _currentNo / 10;
+			if (d1Cel == 0) {
+				_dial10->setCel(d10Cel * 2, true);
+			}
+			_dial1->setCel(d1Cel * 2, true);
+			if (_currentNo < _targetNo) {
+				script.setState(0);
+			}
+			script.setTicks(4);
+			break;
+		}
+
+		case 3:
+			if (_numDown == 3 && _currentNo == (11 + _numCorrect) && ++_numCorrect == 3) {
+				flags().set(kGameFlag135);
+				sound().play(10607, false, 100);
+				room().setNextRoomNo(6221);
+			}
+
+			_script.reset();
+			user().setIsHandsOn(true);
+			break;
+
+		case 4:
+			script.setState(2);
+			script.setTicks(4);
+			break;
+		}
+	}
+
+	Common::FixedArray<S2TransparentCel *, 9> _cels;
+	S2Button *_resetButton;
+	GLCel *_dial1;
+	GLCel *_dial10;
+
+	int _numCorrect = 0, _numDown = 0, _targetNo = 0, _currentNo = 0;
+};
 
 #undef self
 #define self(name) this, &S2Room6000::name
@@ -564,10 +717,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6222:
-		room().drawPic(6222);
-		phone().cancelCall();
-		initBank();
-		emplaceExit(true, 6220, S2Cursor::kBackCel);
+		setSubRoom<S2BankDoorPuzzle>(roomNo);
 		break;
 
 	case 6230:

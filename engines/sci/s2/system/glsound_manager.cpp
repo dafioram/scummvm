@@ -83,7 +83,7 @@ void GLSoundManager::doIt() {
 		const auto state = sound->getState();
 		if (state == GLSound::State::Finished || state == GLSound::State::Fading) {
 			const auto resourceId = ResourceId(kResourceTypeAudio, sound->getResourceNo());
-			const auto volume = _mixer.getVolume(_mixer.findChannelById(resourceId));
+			const auto volume = _mixer.getVolume(resourceId, NULL_REG);
 			int16 finishedVolume;
 			if (state == GLSound::State::Fading) {
 				finishedVolume = sound->getVolume();

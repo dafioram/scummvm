@@ -141,6 +141,7 @@ MODULE_OBJS += \
 	s2/savegame.o \
 	s2/scoring_manager.o \
 	s2/sound_manager.o \
+	s2/transparent_cel.o \
 	s2/rooms/1000.o \
 	s2/rooms/6000.o \
 	s2/rooms/10000.o \
