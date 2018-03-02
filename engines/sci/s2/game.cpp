@@ -60,6 +60,7 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	GLCue::init(&_extras);
 	GLCycler::init(&_extras);
 	GLMover::init(&_extras);
+	GLJump::init(&_extras);
 	S2PanoramaCycler::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);

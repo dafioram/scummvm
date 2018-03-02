@@ -82,50 +82,70 @@ bool GLBresen::doMove() {
 	}
 }
 
-template <class CelT>
-TimeManager *AbsGLMover<CelT>::_timeManager = nullptr;
-template <class CelT>
-GLExtras *AbsGLMover<CelT>::_extras = nullptr;
-
-template <class CelT>
-AbsGLMover<CelT>::AbsGLMover(CelT &client, const GLPoint &target) :
-	_client(&client),
-	_position(client.getPosition()) {
-	start(target);
+GLArc::GLArc(GLPoint &start, const GLPoint &end, const GLPoint &step, const int gravity) :
+	_current(&start),
+	_end(end),
+	_gravity(0, gravity) {
+	const GLPoint delta = end - start;
+	int steps = sqrt(ABS(gravity)) * MAX(ABS(delta.x / step.x), ABS(delta.y / step.y)) + 0.5;
+	if (!steps) {
+		steps = 1;
+	}
+	_step.x = delta.x / steps;
+	_step.y = delta.y / steps - gravity * steps / 2;
+	_stepsLeft = steps + 1;
 }
 
-template <class CelT>
-AbsGLMover<CelT>::AbsGLMover(CelT &client, const GLPoint &target, GLObject &caller) :
-	_client(&client),
-	_position(client.getPosition()),
-	_caller(&caller) {
-	start(target);
+bool GLArc::doMove() {
+	if (--_stepsLeft) {
+		*_current += _step;
+		_step += _gravity;
+		return *_current == _end;
+	} else {
+		*_current = _end;
+		return true;
+	}
 }
 
-template <class CelT>
-AbsGLMover<CelT>::~AbsGLMover() {
+template <class CelT, class MoverT>
+TimeManager *AbsGLMover<CelT, MoverT>::_timeManager = nullptr;
+template <class CelT, class MoverT>
+GLExtras *AbsGLMover<CelT, MoverT>::_extras = nullptr;
+
+template <class CelT, class MoverT>
+AbsGLMover<CelT, MoverT>::~AbsGLMover() {
 	// SSCI did different stuff in its destructor, not including properly
 	// cleaning up the mover like this
 	stop();
 }
 
-template <class CelT>
-void AbsGLMover<CelT>::start(const GLPoint &target) {
+template <class CelT, class MoverT>
+template <class MT>
+void AbsGLMover<CelT, MoverT>::start(const GLPoint &target) {
 	_end = target;
-	_bresen = GLBresen(_position, target, _client->getStepSize());
+	_bresen = MT(_position, target, _client->getStepSize());
 	_nextTick = _timeManager->getTickCount() + _client->getMoveSpeed();
 	_extras->push_front(this);
 }
 
-template <class CelT>
-void AbsGLMover<CelT>::doIt() {
+template <class CelT, class MoverT>
+template <class MT>
+void AbsGLMover<CelT, MoverT>::start(const GLPoint &target, const int gravity) {
+	_end = target;
+	_bresen = MT(_position, target, _client->getStepSize(), gravity);
+	_nextTick = _timeManager->getTickCount() + _client->getMoveSpeed();
+	_extras->push_front(this);
+}
+
+template <class CelT, class MoverT>
+void AbsGLMover<CelT, MoverT>::doIt() {
 	if (_timeManager->getTickCount() >= _nextTick && doStep()) {
 		nextDest();
 	}
 }
 
-template <class CelT>
-bool AbsGLMover<CelT>::doStep() {
+template <class CelT, class MoverT>
+bool AbsGLMover<CelT, MoverT>::doStep() {
 	const auto done = _bresen.doMove();
 	// SSCI did not try to correct for lag in this calculation
 	const auto now = _timeManager->getTickCount();
@@ -135,13 +155,13 @@ bool AbsGLMover<CelT>::doStep() {
 	return done;
 }
 
-template <class CelT>
-void AbsGLMover<CelT>::nextDest() {
+template <class CelT, class MoverT>
+void AbsGLMover<CelT, MoverT>::nextDest() {
 	done();
 }
 
-template <class CelT>
-void AbsGLMover<CelT>::done() {
+template <class CelT, class MoverT>
+void AbsGLMover<CelT, MoverT>::done() {
 	stop();
 	if (_caller) {
 		new GLCue(_caller, this);
@@ -149,11 +169,14 @@ void AbsGLMover<CelT>::done() {
 	}
 }
 
-template <class CelT>
-void AbsGLMover<CelT>::stop() {
+template <class CelT, class MoverT>
+void AbsGLMover<CelT, MoverT>::stop() {
 	_extras->remove(this);
 }
 
-template class AbsGLMover<GLCel>;
+template class AbsGLMover<GLCel, GLBresen>;
+template void AbsGLMover<GLCel, GLBresen>::start<GLBresen>(const GLPoint &);
+template class AbsGLMover<GLCel, GLArc>;
+template void AbsGLMover<GLCel, GLArc>::start<GLArc>(const GLPoint &, const int);
 
 } // End of namespace Sci

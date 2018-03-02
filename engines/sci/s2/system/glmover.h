@@ -30,7 +30,8 @@ namespace Sci {
 
 class GLCel;
 
-class GLBresen : public GLObject {
+// In SSCI this extended GLObject
+class GLBresen {
 public:
 	GLBresen() : _current(nullptr) {}
 	GLBresen(GLPoint &start, const GLPoint &end, const GLPoint &step);
@@ -47,17 +48,62 @@ private:
 	int _stepsLeft;
 };
 
-template <class CelT>
+// In SSCI this extended GLObject
+class GLArc {
+public:
+	GLArc() : _current(nullptr) {}
+	GLArc(GLPoint &start, const GLPoint &end, const GLPoint &step, const int gravity);
+	bool doMove();
+
+private:
+	GLPoint *_current;
+	GLPoint _end;
+	GLPoint _step;
+	GLPoint _gravity;
+	int _stepsLeft;
+};
+
+template <class CelT, class MoverT>
 class AbsGLMover : public GLObject {
 public:
-	AbsGLMover(CelT &client, const GLPoint &target);
-	AbsGLMover(CelT &client, const GLPoint &target, GLObject &caller);
+	template <class MT = MoverT>
+	AbsGLMover(CelT &client, const GLPoint &target) :
+		_client(&client),
+		_position(client.getPosition()) {
+		start(target);
+	}
+	template <class MT = MoverT>
+	AbsGLMover(CelT &client, const GLPoint &target, GLObject &caller) :
+		_client(&client),
+		_position(client.getPosition()),
+		_caller(&caller) {
+		start(target);
+	}
+
+	template <class MT = MoverT>
+	AbsGLMover(CelT &client, const GLPoint &target, const int gravity) :
+		_client(&client),
+		_position(client.getPosition()) {
+		start(target, gravity);
+	}
+
+	template <class MT = MoverT>
+	AbsGLMover(CelT &client, const GLPoint &target, GLObject &caller, const int gravity) :
+		_client(&client),
+		_position(client.getPosition()),
+		_caller(&caller) {
+		start(target, gravity);
+	}
+
 	virtual ~AbsGLMover();
 
 	static void init(TimeManager *timeManager) { _timeManager = timeManager; }
 	static void init(GLExtras *extras) { _extras = extras; }
 
+	template <class MT = MoverT>
 	void start(const GLPoint &target);
+	template <class MT = MoverT>
+	void start(const GLPoint &target, const int gravity);
 
 	virtual void doIt() override;
 
@@ -75,11 +121,13 @@ private:
 	GLObject *_caller = nullptr;
 	GLPoint _position;
 	GLPoint _end;
-	GLBresen _bresen;
+	MoverT _bresen;
+	GLArc _arc;
 	uint32 _nextTick;
 };
 
-using GLMover = AbsGLMover<GLCel>;
+using GLMover = AbsGLMover<GLCel, GLBresen>;
+using GLJump = AbsGLMover<GLCel, GLArc>;
 
 } // End of namespace Sci
 

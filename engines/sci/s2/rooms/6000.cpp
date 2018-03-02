@@ -637,6 +637,218 @@ constexpr int S2WarehouseDoorPuzzle::_pY[];
 constexpr int S2WarehouseDoorPuzzle::_tY[];
 
 #undef self
+#define self(name) this, &S2MausoleumPuzzle::name
+
+class S2MausoleumPuzzle : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6371);
+		emplaceExit(true, 6375, 64, 0, 99, 180, S2Cursor::kBackCel);
+		emplaceExit(true, 6375, 544, 0, 575, 180, S2Cursor::kBackCel);
+		phone().cancelCall();
+
+		for (auto y = 0; y < _state.size(); ++y) {
+			auto &row = _state[y];
+			for (auto x = 0; x < row.size(); ++x) {
+				row[x] = _initial[y][x];
+				if (!row[x]) {
+					const auto point = calcPoint(x, y);
+					emplaceHotspot(true, point.x, point.y, point.x + 66, point.y + 66)
+						.setMouseUpHandler([this, x, y](GLEvent &, GLTarget &) {
+							handleClick(x, y);
+						});
+				}
+			}
+		}
+
+		for (int i = 0, position = _game.getRandomNumber(3, 34); i < _tiles.size(); ++i) {
+			int x, y;
+			do {
+				position = (position + 1) % (kHeight * kWidth);
+				x = position % 7;
+				y = position / 7;
+			} while (_state[y][x]);
+
+			_state[y][x] = i;
+			_tilePositions[i] = position;
+			const int16 celNo = 4 * _game.getRandomNumber(0, 1);
+			auto &tile = emplaceCel(false, 6371, i, celNo, calcPoint(x, y), 5);
+			tile.show();
+			tile.setMoveSpeed(1);
+			tile.setStepSize({ 12, 12 });
+			tile.forceUpdate();
+			getPlane().getCast().remove(tile);
+			_tiles[i] = &tile;
+		}
+
+		emplaceHotspot(false, 64, 0, 575, 383).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			for (auto i = 0; i < 2; ++i) {
+				if (_temp[i] != -1) {
+					const auto position = _tilePositions[_temp[i]];
+					const auto x = position % 7;
+					const auto y = position / 7;
+					_tiles[_temp[i]]->setPriority(5);
+					_tiles[_temp[i]]->setPosition(calcPoint(x, y), true);
+					sound().play(12126);
+					_temp[i] = -1;
+				}
+			}
+		});
+	}
+
+private:
+	enum { kWidth = 7, kHeight = 5 };
+
+	static constexpr GLPoint calcPoint(const int x, const int y) {
+		return GLPoint(94 + x * 66, 23 + y * 66);
+	}
+
+	void handleClick(int x, int y) {
+		int target = _state[y][x];
+		const auto position = calcPoint(x, y) + GLPoint(3, -5);
+		if (_temp[0] == -1) {
+			_temp[0] = target;
+			_tiles[target]->setPosition(position);
+			_tiles[target]->setPriority(400, true);
+			sound().play(12124);
+		} else if (target == _temp[0]) {
+			user().setIsHandsOn(false);
+			setScript(self(turnTile));
+		} else {
+			user().setIsHandsOn(false);
+			_temp[1] = target;
+			_tiles[target]->setPosition(position);
+			_tiles[target]->setPriority(400, true);
+			setScript(self(swapTiles));
+		}
+	}
+
+	void turnTile(GLScript &script, const int state) {
+		switch (state) {
+		case 0: {
+			const auto x = _tilePositions[_temp[0]] % 7;
+			const auto y = _tilePositions[_temp[0]] / 7;
+			const auto celNo = (_tiles[_temp[0]]->getCel() + 1) % 4;
+			_tiles[_temp[0]]->setCel(celNo, true);
+			sound().play(12125);
+			if (checkFinished()) {
+				_tiles[_temp[0]]->setPosition(calcPoint(x, y));
+				_tiles[_temp[0]]->setPriority(5, true);
+				_temp[0] = -1;
+				finished(script);
+			} else {
+				script.setCycles(1);
+			}
+			break;
+		}
+
+		case 1:
+			user().setIsHandsOn(true);
+			if (checkFinished()) {
+				room().setNextRoomNo(room().getPreviousRoomNo());
+			}
+			_script.reset();
+			break;
+		}
+	}
+
+	void swapTiles(GLScript &script, const int state) {
+		switch (state) {
+		case 0: {
+			int positions[2];
+			for (auto i = 0; i < 2; ++i) {
+				positions[i] = _tilePositions[_temp[1 - i]];
+				const auto x = positions[i] % 7;
+				const auto y = positions[i] / 7;
+				_movers[i].reset(new GLJump(*_tiles[_temp[i]], calcPoint(x, y), script, 1));
+			}
+			for (auto i = 0; i < 2; ++i) {
+				_tilePositions[_temp[i]] = positions[i];
+				const auto x = positions[i] % 7;
+				const auto y = positions[i] / 7;
+				_state[y][x] = _temp[i];
+			}
+			break;
+		}
+
+		case 1:
+			// This blank state is for the double-cueing of the jumps
+			break;
+
+		case 2:
+			for (auto i = 0; i < 2; ++i) {
+				_tiles[_temp[i]]->setPriority(5, true);
+				_temp[i] = -1;
+				_movers[i].reset();
+			}
+
+			if (checkFinished()) {
+				finished(script);
+			} else {
+				script.setCycles(1);
+			}
+			break;
+
+		case 3:
+			user().setIsHandsOn(true);
+			if (checkFinished()) {
+				room().setNextRoomNo(room().getPreviousRoomNo());
+			}
+			break;
+		}
+	}
+
+	bool checkFinished() {
+		for (auto y = 0; y < _state.size(); ++y) {
+			auto &row = _state[y];
+			for (auto x = 0; x < row.size(); ++x) {
+				const auto tileNo = row[x];
+				if (tileNo == -1) {
+					continue;
+				}
+				if (tileNo != _solution[y][x] || _tiles[tileNo]->getCel() != 0) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	void finished(GLScript &script) {
+		flags().set(kGameFlag218);
+		score().doEvent(kScore224);
+		script.setTicks(sound().play(12606));
+	}
+
+	Common::FixedArray<Common::FixedArray<int, kWidth>, kHeight> _state;
+	Common::FixedArray<GLCel *, kWidth * kHeight - 8> _tiles;
+	Common::FixedArray<int, kWidth * kHeight - 8> _tilePositions;
+	Common::FixedArray<int, 2> _temp = {{ -1, -1 }};
+	Common::FixedArray<Common::ScopedPtr<GLJump>, 2> _movers;
+
+	static constexpr int8 _solution[kHeight][kWidth] = {
+		{ -1, -1,  0,  1,  2, -1, -1 },
+		{ -1,  3,  4,  5,  6,  7, -1 },
+		{ -1,  8,  9, 10, 11, 12, -1 },
+		{ 13, 14, 15, 16, 17, 18, 19 },
+		{ 20, 21, 22, 23, 24, 25, 26 }
+	};
+
+	static constexpr int8 _initial[kHeight][kWidth] = {
+		{ -1, -1, 0, 0, 0, -1, -1 },
+		{ -1,  0, 0, 0, 0,  0, -1 },
+		{ -1,  0, 0, 0, 0,  0, -1 },
+		{  0,  0, 0, 0, 0,  0,  0 },
+		{  0,  0, 0, 0, 0,  0,  0 }
+	};
+};
+
+constexpr int8 S2MausoleumPuzzle::_solution[S2MausoleumPuzzle::kHeight][S2MausoleumPuzzle::kWidth];
+constexpr int8 S2MausoleumPuzzle::_initial[S2MausoleumPuzzle::kHeight][S2MausoleumPuzzle::kWidth];
+
+#undef self
 #define self(name) this, &S2StatuePuzzle::name
 
 class S2StatuePuzzle : public S2SubRoom {
@@ -1447,11 +1659,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6371:
-		room().drawPic(6371);
-		emplaceExit(true, 6375, 64, 0, 99, 180, S2Cursor::kBackCel);
-		emplaceExit(true, 6375, 544, 0, 575, 180, S2Cursor::kBackCel);
-		phone().cancelCall();
-		initMausoleum();
+		setSubRoom<S2MausoleumPuzzle>(roomNo);
 		break;
 
 	case 6372:
@@ -1777,10 +1985,6 @@ void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 e
 	if (addExit) {
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 	}
-}
-
-void S2Room6000::initMausoleum() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 void S2Room6000::initBook() {

@@ -46,6 +46,7 @@ public:
 	AbsGLPlane &getPlane() const { assert(_plane); return *_plane; }
 	bool getIsVisible() const { return _isVisible; }
 	int16 getPriority() const { return _screenItem->_priority; }
+	void setPriority(const int16 priority, const bool shouldUpdate = false);
 
 	const GLPoint &getPosition() const { return _screenItem->_position; }
 	void setPosition(const GLPoint &position, const bool shouldUpdate = false);

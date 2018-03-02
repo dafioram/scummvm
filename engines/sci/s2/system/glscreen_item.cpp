@@ -58,6 +58,14 @@ GLScreenItem::~GLScreenItem() {
 	_plane->getCast().remove(*this);
 }
 
+void GLScreenItem::setPriority(const int16 priority, const bool shouldUpdate) {
+	_screenItem->setPriority(priority);
+	_isDirty = true;
+	if (shouldUpdate) {
+		update();
+	}
+}
+
 void GLScreenItem::setPosition(const GLPoint &position, const bool shouldUpdate) {
 	_position = position;
 	_screenItem->_position = position;
