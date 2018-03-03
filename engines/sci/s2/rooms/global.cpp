@@ -807,9 +807,10 @@ public:
 			}
 		}));
 
-		_solveIt = false;
+		_solvedPuzzle = false;
 		auto &solver = emplaceCel(false, 4120, 5, 0, roomBottom, 201);
 		solver.setSelectHandler(self(solvePuzzle));
+		_solveButton = &solver;
 		_solverCycler.reset(new GLCycler());
 		_solverCycler->add(solver, true);
 	}
@@ -878,8 +879,176 @@ private:
 		script.setState(-1);
 	}
 
-	void solvePuzzle(GLEvent &, GLTarget &) {
-		warning("TODO: solve puzzle");
+	void solvePuzzle(GLEvent &event, GLTarget &) {
+		if (event.getType() != kSciEventMousePress || _solvedPuzzle) {
+			return;
+		}
+
+		_solvedPuzzle = false;
+		int nextRoomNo;
+
+		const auto currentRoomNo = room().getCurrentRoomNo();
+		switch (currentRoomNo) {
+		case 6122:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag133);
+			nextRoomNo = 6121;
+			break;
+
+		case 6222:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag135);
+			nextRoomNo = 6221;
+			break;
+
+		case 6272:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag134);
+			nextRoomNo = 6271;
+			break;
+
+		case 6350:
+		case 6351:
+		case 6353:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag219);
+			nextRoomNo = 6354;
+			inventory().removeAll(S2Inventory::kInv23);
+			inventory().setState(S2Inventory::kInv23, S2InventoryState::Used);
+			break;
+
+		case 6371:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag218);
+			nextRoomNo = 6375;
+			break;
+
+		case 14430:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag160);
+			nextRoomNo = flags().get(kGameFlag107) ? 14420 : 14431;
+			break;
+
+		case 15601:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag169);
+			flags().set(kGameFlag167);
+			nextRoomNo = flags().get(kGameFlag108) ? 15600 : 15605;
+			break;
+
+		case 17450:
+			_solvedPuzzle = true;
+			nextRoomNo = flags().get(kGameFlag175) ? 17410 : 17431;
+			flags().set(kGameFlag175);
+			break;
+
+		case 19450:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag182);
+			nextRoomNo = flags().get(kGameFlag109) ? 19420 : 19236;
+			break;
+
+		case 21113:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag188);
+			nextRoomNo = 21110;
+			break;
+
+		case 21321:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag69);
+			nextRoomNo = 21300;
+			break;
+
+		case 21390:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag186);
+			nextRoomNo = 21301;
+			break;
+
+		case 22730:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag190);
+			nextRoomNo = 22711;
+			break;
+
+		case 23150:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag192);
+			nextRoomNo = 23143;
+			break;
+
+		case 24531:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag194);
+			nextRoomNo = flags().get(kGameFlag104) ? 24530 : 24532;
+			break;
+
+		case 36132:
+			_solvedPuzzle = true;
+			flags().set(kGameFlag172);
+			nextRoomNo = 36100;
+			break;
+
+		case 48201:
+		case 48205:
+		case 48207:
+		case 48212:
+			_solvedPuzzle = true;
+			nextRoomNo = 48000;
+			flags().set(GameFlag(205 + currentRoomNo - 48201));
+			break;
+		case 48202:
+		case 48206:
+		case 48210:
+		case 48211:
+			_solvedPuzzle = true;
+			nextRoomNo = 28400;
+			flags().set(GameFlag(205 + currentRoomNo - 48201));
+			break;
+		case 48203:
+		case 48204:
+		case 48208:
+		case 48209:
+			_solvedPuzzle = true;
+			nextRoomNo = 28700;
+			flags().set(GameFlag(205 + currentRoomNo - 48201));
+			break;
+
+		default:
+			_solvedPuzzle = false;
+		}
+
+		if (_solvedPuzzle) {
+			user().setIsHandsOn(false);
+			for (auto i = 0; i < 30; ++i) {
+				score().doEvent(kScore6);
+			}
+			setScript(self(animateUnlock), 0, nextRoomNo);
+		}
+	}
+
+	void animateUnlock(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			_solverCycler.reset(new GLEndBackCycler());
+			_solverCycler->add(*_solveButton);
+			_solverCycler->start(script);
+			break;
+
+		case 1:
+			_solverCycler.reset(new GLEndCycler());
+			_solveButton->setLoop(6);
+			_solverCycler->add(*_solveButton);
+			_solverCycler->start(script);
+			break;
+
+		case 2:
+			user().setIsHandsOn(true);
+			interface().resetButtons();
+			room().setNextRoomNo(script.getData());
+			_solverCycler.reset();
+		}
 	}
 
 	Slider _sliderType;
@@ -888,7 +1057,8 @@ private:
 
 	Common::ScopedPtr<GLScript> _neonSign;
 
-	bool _solveIt;
+	bool _solvedPuzzle;
+	GLCel *_solveButton;
 	Common::ScopedPtr<GLCycler> _solverCycler;
 };
 

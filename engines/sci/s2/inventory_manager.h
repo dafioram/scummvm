@@ -71,6 +71,14 @@ public:
 	const GLCelRes &getSmallCel(S2Inventory item) const { return _inventory[int(item)].smallCel; }
 	const GLCelRes &getBigCel(S2Inventory item) const { return _inventory[int(item)].bigCel; }
 
+	void removeAll(const S2Inventory item) {
+		for (int slotNo = 0; slotNo < _itemSlots.size(); ++slotNo) {
+			if (_itemSlots[slotNo] == item) {
+				removeItem(slotNo);
+			}
+		}
+	}
+
 	bool isPlaced(const S2Inventory item) const {
 		return getState(item) == S2InventoryState::Placed;
 	}
