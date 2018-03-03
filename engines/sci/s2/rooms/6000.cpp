@@ -2414,12 +2414,15 @@ void S2Room6000::init(const int roomNo) {
 		if (inventory().isTaken(S2Inventory::kInv33)) {
 			flags().set(kGameFlag39);
 			inventory().addItem(S2Inventory::kInv33);
-			// TODO: A sprite was deleted here, figure out where it was created
-			// originally and record it
+			if (_panoramaSprite0) {
+				removeChild(*_panoramaSprite0);
+			}
 			sound().play(12506, false, 100);
 			room().newRoom(6370);
 		} else {
-			emplaceSprite(false, 6371, GLPoint(587, 388));
+			// In SSCI the wrong sprite number was used. However, this looks
+			// like it is probably cut content.
+			_panoramaSprite0 = &emplaceSprite(false, 6373, GLPoint(587, 388));
 			addPanoramaExit(6360, 907, 171, 1155, 500);
 		}
 		break;
@@ -2453,22 +2456,23 @@ void S2Room6000::init(const int roomNo) {
 		room().drawPic(6381);
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 
-		// TODO: Should this hotspot only be created when the key is not already
-		// used?
-		emplaceHotspot(true, 234, 162, 284, 211).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-			if (inventory().isInUse(S2Inventory::kInv4) || inventory().isUsed(S2Inventory::kInv4)) {
-				inventory().setState(S2Inventory::kInv4, S2InventoryState::Used);
-				sound().play(10615, false, 120);
-				enter(6381, 11535, 11536, false);
-				emplaceExit(true, 6420, 160, 57, 363, 299);
-			} else {
-				sound().play(10004, false, 120);
-			}
-		});
-
 		if (inventory().isUsed(S2Inventory::kInv4)) {
 			enter(6381, 11535, 11536, false);
 			emplaceExit(true, 6420, 160, 57, 363, 299);
+		} else {
+			// In SSCI this hotspot was placed unconditionally, even though
+			// it is unusable once the key is used, so we only add it when the
+			// key is unused instead
+			emplaceHotspot(true, 234, 162, 284, 211).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+				if (inventory().isInUse(S2Inventory::kInv4) || inventory().isUsed(S2Inventory::kInv4)) {
+					inventory().setState(S2Inventory::kInv4, S2InventoryState::Used);
+					sound().play(10615, false, 120);
+					enter(6381, 11535, 11536, false);
+					emplaceExit(true, 6420, 160, 57, 363, 299);
+				} else {
+					sound().play(10004, false, 120);
+				}
+			});
 		}
 
 		break;
@@ -2640,6 +2644,7 @@ void S2Room6000::dispose(const int roomNo) {
 	_shadow.reset();
 	_panoramaCycler1.reset();
 	_panoramaCycler.reset();
+	_panoramaSprite0 = nullptr;
 
 	S2Room::dispose(roomNo);
 
