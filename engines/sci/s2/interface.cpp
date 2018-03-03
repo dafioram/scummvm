@@ -356,7 +356,17 @@ void S2Interface::activateButton(GLEvent &event, GLTarget &target, const int roo
 			}
 		}
 		button.release();
-		_game.getSoundManager().play(10912, false, 100);
+
+		uint16 soundNo;
+		if (&button == _flashback.get()) {
+			soundNo = 10911;
+		} else if (&button == _options.get()) {
+			soundNo = 10912;
+		} else {
+			soundNo = 10905;
+		}
+
+		_game.getSoundManager().play(soundNo, false, 100);
 		event.claim();
 	}
 }
