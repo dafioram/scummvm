@@ -50,7 +50,12 @@ bool GLButton::handleEvent(GLEvent &event) {
 
 void GLButton::enable(const bool shouldUpdate) {
 	_isEnabled = true;
-	changeCel(_enabledCel, shouldUpdate);
+	// SSCI did not check/use the highlighted state here
+	if (_isHighlighted) {
+		changeCel(_highlightedCel, shouldUpdate);
+	} else {
+		changeCel(_enabledCel, shouldUpdate);
+	}
 }
 
 void GLButton::disable(const bool shouldUpdate) {
@@ -65,7 +70,12 @@ void GLButton::press(const bool shouldUpdate) {
 
 void GLButton::release(const bool shouldUpdate) {
 	_isDepressed = false;
-	changeCel(_enabledCel, shouldUpdate);
+	// SSCI did not check/use the highlighted state here
+	if (_isHighlighted) {
+		changeCel(_highlightedCel, shouldUpdate);
+	} else {
+		changeCel(_enabledCel, shouldUpdate);
+	}
 }
 
 void GLButton::highlight(const bool shouldUpdate) {

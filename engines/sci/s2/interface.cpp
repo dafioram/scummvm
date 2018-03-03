@@ -326,8 +326,25 @@ void S2Interface::activateButton(GLEvent &event, GLTarget &target, const int roo
 	if (button.getIsEnabled() && button.getIsVisible() &&
 		_game.getRoomManager().getCurrentRoomNo() != 1015 &&
 		_game.getRoomManager().getCurrentRoomNo() != 6667 &&
-		event.getType() == kSciEventMousePress &&
-		button.checkIsOnMe(event.getMousePosition())) {
+		(event.getType() & kSciEventMouse)) {
+
+		// SSCI did the button activation on mouse press and then tried to blast
+		// out a frame of the depressed frame to make it appear like it actually
+		// was pressed, but this made the buttons feel quite un-buttony. This
+		// is fixed here by showing the pressed state on mouse down and then
+		// clearing it and activating on mouse up.
+		if (!button.checkIsOnMe(event.getMousePosition())) {
+			if (event.getType() == kSciEventMouseRelease) {
+				button.release();
+			}
+			return;
+		}
+
+		if (event.getType() == kSciEventMousePress) {
+			button.press();
+			_kernel.graphicsManager.frameOut(true);
+			return;
+		}
 
 		S2Button *contraButton;
 		if (&button == _flashback.get()) {
@@ -336,8 +353,6 @@ void S2Interface::activateButton(GLEvent &event, GLTarget &target, const int roo
 			contraButton = _flashback.get();
 		}
 
-		button.press();
-		_kernel.graphicsManager.frameOut(true);
 		if (!contraButton->getIsEnabled()) {
 			_game.getRoomManager().unloadGlobalRoom();
 			if (&button != _flashback.get()) {
