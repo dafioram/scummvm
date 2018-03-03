@@ -82,6 +82,7 @@ protected:
 	S2Interface &interface() { return _game.getInterface(); }
 	GLUser &user() { return _game.getUser(); }
 	S2ScoringManager &score() { return _game.getScoringManager(); }
+	S2Cursor &cursor() { return _game.getCursor(); }
 
 	virtual GLPicturePlane &getPlane() const {
 		return _game.getRoomManager().getGamePlane();

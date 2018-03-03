@@ -155,6 +155,16 @@ void S2PhoneManager::resetPhone() {
 	setState(-1);
 }
 
+void S2PhoneManager::resetAnsweringMachine() {
+	if (!_isCalling) {
+		_game.getSoundManager().stop(_currentSoundNo);
+	}
+	_game.getInterface().putText(0);
+	auto &phone = getPhoneForRoom(_game.getRoomManager().getCurrentAmbientRoomNo());
+	phone.lastSavedMessageIndex = 0;
+	setState(-1);
+}
+
 void S2PhoneManager::cancelCall() {
 	if (_isCalling) {
 		_nextRoomEnterMessage = _incomingMessage;

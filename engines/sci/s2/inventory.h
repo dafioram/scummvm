@@ -94,6 +94,18 @@ enum class S2InventoryState : uint8 {
 
 enum class S2PrayerStick : uint8 {
 	None = 0,
+	Arrowhead,
+	Claw,
+	Bird,
+	Hourglass,
+	Jack,
+	Cow,
+	Star,
+	Spider,
+	Rain,
+	Butterfly,
+	Stairs,
+	Shield,
 	kNumPrayerSticks
 };
 

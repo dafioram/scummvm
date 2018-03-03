@@ -36,6 +36,10 @@ public:
 	virtual void doIt() override {}
 	virtual bool handleEvent(GLEvent &event) override;
 
+private:
+	void jackInBox(GLScript &, const int);
+	void openBible(GLEvent &, GLTarget &);
+	void closeDrawer(GLEvent &, GLTarget &);
 };
 
 } // End of namespace Sci

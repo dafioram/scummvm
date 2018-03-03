@@ -24,6 +24,72 @@
 
 namespace Sci {
 
+#define self(name) this, &S2VendingMachine::name
+
+class S2VendingMachine : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(11110);
+		emplaceExit(true, 11100, 64, 303, 575, 383, S2Cursor::kBackCel);
+		emplaceExit(true, 11100, 64, 0, 445, 80, S2Cursor::kBackCel);
+		if (inventory().isTaken(S2Inventory::Batteries) ||
+			inventory().isUsed(S2Inventory::Batteries)) {
+
+			auto &cel = emplaceCel(false, 11111, 0, 0, roomBottom);
+			cel.show();
+			getPlane().getCast().remove(cel);
+		} else {
+			GLPoint p = { 419, 105 };
+			for (auto i = 0; i < 9; ++i) {
+				emplaceHotspot(true, p.x, p.y, p.x + 29, p.y + 24).setMouseUpHandler([this, i](GLEvent &, GLTarget &) {
+					vend(i);
+				});
+				if (((i + 1) % 3) == 0) {
+					p.x = 419;
+					p.y += 27;
+				} else {
+					p.x += 30;
+				}
+			}
+			emplaceHotspot(true, 466, 5, 496, 61).setMouseUpHandler(self(useCoinSlot));
+			auto &coinReturn = emplaceHotspot(true, 441, 204, 477, 249);
+			coinReturn.setMouseUpHandler(self(useCoinReturn));
+
+			if (hasCoinInReturn()) {
+				emplaceCel(false, 11111, 1, 0, roomBottom);
+			} else {
+				coinReturn.disable();
+			}
+		}
+	}
+
+private:
+	void vend(const int button) {
+		warning("TODO: %s", __PRETTY_FUNCTION__);
+	}
+
+	void useCoinSlot(GLEvent &, GLTarget &) {
+		warning("TODO: %s", __PRETTY_FUNCTION__);
+	}
+
+	void useCoinReturn(GLEvent &, GLTarget &) {
+		warning("TODO: %s", __PRETTY_FUNCTION__);
+	}
+
+	bool hasCoinInReturn() {
+		return (flags().get(kGameFlag146) ||
+				flags().get(kGameFlag147) ||
+				flags().get(kGameFlag148));
+	}
+
+	bool _selected = false;
+};
+
+#undef self
+#define self(name) this, &S2Room11000::name
+
 void S2Room11000::init(const int roomNo) {
 	switch (roomNo) {
 	case 11100: {
@@ -59,15 +125,7 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11110:
-		room().drawPic(11110);
-		emplaceExit(true, 11100, 64, 303, 575, 383, S2Cursor::kBackCel);
-		emplaceExit(true, 11100, 64, 0, 445, 80, S2Cursor::kBackCel);
-		if (inventory().isTaken(S2Inventory::Batteries) ||
-			inventory().isUsed(S2Inventory::Batteries)) {
-		} else {
-
-		}
-		warning("TODO: Finish room 11110");
+		setSubRoom<S2VendingMachine>(roomNo);
 		break;
 
 	case 11120:
@@ -96,9 +154,36 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11141:
+		if (flags().get(kGameFlag144)) {
+			setScript(self(jackInBox));
+		} else if (!flags().get(kGameFlag28) &&
+				   inventory().hasPrayerStick(S2PrayerStick::Jack)) {
+
+			room().setNextRoomNo(11199);
+		} else {
+			room().newRoom(11100);
+		}
+		break;
+
 	case 11150:
+		room().drawPic(11150);
+		emplaceExit(true, 11100, S2Cursor::kBackCel);
+		emplaceHotspot(true, 203, 136, 271, 183).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			if (inventory().setState(S2Inventory::Batteries, S2InventoryState::Taken)) {
+				auto &cel = emplaceCel(false, 11150, 0, 0, roomBottom);
+				cel.show();
+				getPlane().getCast().remove(cel);
+				sound().play(11107, false, 120);
+				inventory().addItem(S2Inventory::Batteries);
+			}
+		});
+		break;
+
 	case 11199:
-		warning("TODO: Finish room %d", roomNo);
+		interface().changeLife(-5);
+		flags().set(kGameFlag28);
+		movie().play(5100, nullptr, roomTop);
+		room().newRoom(11100);
 		break;
 
 	case 11200:
@@ -112,8 +197,35 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11210:
+		room().drawPic(11210);
+		sound().createAmbient(11);
+		exitBorder(11200, false);
+		if (flags().get(kGameFlag145)) {
+			emplaceCel(false, 15342, 0, 0, GLPoint(259, 103), 202).show();
+		} else {
+			emplaceHotspot(true, 240, 90, 284, 123).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				if (inventory().isInUse(S2Inventory::kInv7)) {
+					score().doEvent(kScore167);
+					emplaceCel(false, 15342, 0, 0, GLPoint(259, 103), 202).show();
+					removeChild(static_cast<S2Hotspot &>(target));
+				}
+			});
+		}
+
+		emplaceHotspot(true, 214, 282, 431, 319).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			room().setNextRoomNo(11211);
+		});
+		break;
+
 	case 11211:
-		warning("TODO: Finish room %d", roomNo);
+		room().drawPic(15341);
+		sound().deleteAmbient(11);
+		if (flags().get(kGameFlag145)) {
+			emplaceCel(false, 15341, 0, 0, roomBottom, 202).show();
+		}
+
+		// SSCI delayed this call until the next doIt loop for some reason
+		movie().play(0, flags().get(kGameFlag145));
 		break;
 
 	case 11300:
@@ -142,15 +254,93 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11311:
+		room().drawPic(11311);
+		emplaceExit(true, 11300, S2Cursor::kBackCel);
+		sound().play(12304, false, 100);
+		score().doEvent(kScore80);
+		break;
+
 	case 11330:
+		room().drawPic(11330);
+		emplaceExit(true, 11300, S2Cursor::kBackCel);
+		emplaceExit(true, 11331, 90, 70, 465, 150, S2Cursor::kHighlightCel);
+		break;
+
 	case 11331:
+		room().drawPic(11330);
+		emplaceCel(false, 11330, 0, 0, roomBottom).show();
+		emplaceExit(true, 11300, 222, 0, 575, 80, S2Cursor::kBackCel);
+		emplaceExit(true, 11300, 494, 80, 575, 383, S2Cursor::kBackCel);
+		emplaceExit(true, 11300, 232, 303, 492, 380, S2Cursor::kBackCel);
+		emplaceExit(true, 11330, 94, 0, 212, 102, S2Cursor::kHighlightCel);
+		emplaceExit(true, 11330, 129, 101, 186, 245, S2Cursor::kHighlightCel);
+		emplaceExit(true, 11330, 64, 247, 223, 337, S2Cursor::kHighlightCel);
+		setUpPhone(11331);
+		break;
+
 	case 11332:
+		room().drawPic(11332);
+		exitBorder(11300);
+		setUpAnsweringMachine(11332);
+		phone().addAnsweringMachineLight(11332);
+		break;
+
 	case 11341:
+		room().drawPic(11341);
+		sound().play(11113, false, 80);
+		emplaceExit(true, 11300, S2Cursor::kBackCel);
+		score().doEvent(kScore81);
+		break;
+
 	case 11350:
+		room().drawPic(11350);
+		_exitSoundNo = 11100;
+		emplaceExit(true, 11999, 64, 0, 575, 80, S2Cursor::kBackCel);
+		emplaceHotspot(true, 94, 164, 307, 249);
+		warning("TODO: Finish room %d", roomNo);
+		break;
+
 	case 11351:
+		room().drawPic(11351);
+		emplaceExit(true, 11355, S2Cursor::kBackCel);
+		emplaceExit(true, 11352, 145, 26, 444, S2Cursor::kHighlightCel);
+		break;
+
 	case 11352:
+		room().drawPic(11352);
+		if (room().getPreviousRoomNo() == 11353) {
+			sound().play(11313, false, 100);
+		} else {
+			sound().play(11109, false, 80);
+		}
+
+		exitBorder(11355, false);
+		emplaceExit(true, 11355, 145, 303, 494, 383, S2Cursor::kBackCel);
+		emplaceExit(true, 11353, 378, 28, 548, 255, S2Cursor::kHighlightCel);
+		break;
+
 	case 11353:
-	case 11355:
+		room().drawPic(11353);
+		sound().play(11313, false, 100);
+		emplaceExit(true, 11352, S2Cursor::kBackCel);
+		break;
+
+	case 11355: {
+		room().drawPic(11350);
+		_exitSoundNo = 11100;
+		sound().play(11110, false, 80);
+		emplaceExit(true, 11999, 64, 0, 575, 80, S2Cursor::kBackCel);
+
+		// In SSCI this was off-by-one on the bottom axis
+		auto &cel = emplaceCel(true, 11350, 0, 3, roomBottom);
+		cel.show();
+		getPlane().getCast().remove(cel);
+
+		emplaceHotspot(true, 170, 231, 264, 337).setMouseUpHandler(self(openBible));
+		emplaceHotspot(true, 64, 340, 304, 383).setMouseUpHandler(self(closeDrawer));
+		break;
+   }
+
 	case 11999:
 		warning("TODO: Finish room %d", roomNo);
 		break;
@@ -161,6 +351,25 @@ void S2Room11000::init(const int roomNo) {
 }
 
 void S2Room11000::dispose(const int roomNo) {
+	switch (roomNo) {
+	case 11140:
+		interface().putText(0);
+		break;
+	case 11331:
+		phone().resetPhone();
+		break;
+	case 11332:
+		phone().resetAnsweringMachine();
+		phone().removeAnsweringMachineLight();
+		break;
+	case 11341:
+		sound().play(11114, false, 80);
+		break;
+	case 11350:
+		warning("TODO: dispose %d", roomNo);
+		break;
+	}
+
 	S2PhoneRoom::dispose(roomNo);
 }
 
@@ -169,6 +378,21 @@ bool S2Room11000::handleEvent(GLEvent &event) {
 		S2PhoneRoom::handleEvent(event);
 	}
 	return false;
+}
+
+void S2Room11000::jackInBox(GLScript &, const int) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2Room11000::openBible(GLEvent &, GLTarget &target) {
+	removeChild(static_cast<S2Hotspot &>(target));
+	score().doEvent(kScore78);
+	sound().play(11108, false, 80);
+	room().setNextRoomNo(11351);
+}
+
+void S2Room11000::closeDrawer(GLEvent &, GLTarget &) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 } // End of namespace Sci

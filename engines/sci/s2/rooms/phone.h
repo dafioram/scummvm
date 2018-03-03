@@ -34,6 +34,7 @@ public:
 
 protected:
 	void setUpPhone(const int roomNo);
+	void setUpAnsweringMachine(const int roomNo);
 
 	virtual bool handleEvent(GLEvent &event) override;
 
@@ -41,7 +42,22 @@ private:
 	void emplaceDigit(const int digit, const int16 x1, const int16 y1, const int16 x2, const int16 y2);
 	void pushButton(const int digit);
 
+	void playNewMessages(GLEvent &, GLTarget &);
+	void playSavedMessages(GLEvent &, GLTarget &);
+	void replayMessage(GLEvent &, GLTarget &);
+	void saveMessage(GLEvent &, GLTarget &);
+
+	void playMessages(const bool newMessages);
+
+	void scoreAnsweringMachine(const bool isNewMessage);
+
 	Common::String _number;
+	int _currentMessageType;
+
+	S2Hotspot *_playNewButton;
+	S2Hotspot *_playSavedButton;
+	S2Hotspot *_saveButton;
+	S2Hotspot *_replayButton;
 };
 
 } // End of namespace Sci

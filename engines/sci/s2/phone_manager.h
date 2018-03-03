@@ -44,6 +44,7 @@ public:
 	void addAnsweringMachineLight(const int viewNo);
 	void removeAnsweringMachineLight();
 	void resetPhone();
+	void resetAnsweringMachine();
 	void cancelCall();
 
 	void notifyRoomChange(const bool baseRoomChanged);
@@ -62,6 +63,8 @@ public:
 
 	bool getIsOffHook() const { return _isOffHook; }
 	void setIsOffHook(const bool isOffHook) { _isOffHook = isOffHook; }
+
+	bool messageExists(const int type);
 
 private:
 	struct RoomPhone {
@@ -82,8 +85,6 @@ private:
 			}
 		}
 	};
-
-	bool messageExists(const int type);
 
 	void changeState(GLScript &script, const int state);
 

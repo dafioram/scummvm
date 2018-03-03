@@ -25,6 +25,8 @@
 
 namespace Sci {
 
+#define self(name) this, &S2PhoneRoom::name
+
 void S2PhoneRoom::setUpPhone(const int roomNo) {
 	_game.getPhoneManager().setMotelState(0);
 	_number.clear();
@@ -190,6 +192,109 @@ void S2PhoneRoom::setUpPhone(const int roomNo) {
 	_game.getPhoneManager().setIsOffHook(true);
 }
 
+void S2PhoneRoom::setUpAnsweringMachine(const int roomNo) {
+	switch (roomNo) {
+	case 11332:
+		_playNewButton = &emplaceHotspot(true, 269, 267, 322, 322);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 328, 266, 386, 319);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 283, 189, 317, 212);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 335, 189, 373, 211);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 13322:
+		_playNewButton = &emplaceHotspot(true, 253, 238, 327, 301);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 330, 238, 408, 304);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 272, 148, 315, 173);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 340, 148, 387, 173);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 14210:
+		_playNewButton = &emplaceHotspot(true, 211, 158, 289, 248);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 291, 145, 384, 241);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 106, 165, 207, 251);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 387, 124, 475, 226);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 15372:
+		_playNewButton = &emplaceHotspot(true, 234, 269, 324, 388);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 327, 259, 422, 323);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 244, 171, 292, 207);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 317, 163, 366, 199);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 16921:
+		_playNewButton = &emplaceHotspot(true, 353, 267, 397, 318);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 400, 267, 448, 317);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 373, 161, 409, 192);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 376, 201, 412, 235);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 17142:
+		_playNewButton = &emplaceHotspot(true, 268, 256, 316, 313);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 320, 256, 373, 313);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 277, 185, 310, 207);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 325, 187, 362, 208);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+				break;
+
+	case 18412:
+		_playNewButton = &emplaceHotspot(true, 253, 241, 325, 312);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 329, 241, 410, 308);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 273, 157, 317, 183);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 341, 156, 387, 182);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 19213:
+		_playNewButton = &emplaceHotspot(true, 265, 223, 323, 271);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 327, 224, 383, 267);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 298, 135, 337, 159);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 298, 163, 341, 188);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+
+	case 21330:
+		_playNewButton = &emplaceHotspot(true, 217, 246, 312, 309);
+		_playNewButton->setMouseUpHandler(self(playNewMessages));
+		_playSavedButton = &emplaceHotspot(true, 319, 246, 426, 308);
+		_playSavedButton->setMouseUpHandler(self(playSavedMessages));
+		_saveButton = &emplaceHotspot(true, 252, 144, 298, 177);
+		_saveButton->setMouseUpHandler(self(saveMessage));
+		_replayButton = &emplaceHotspot(true, 332, 143, 379, 175);
+		_replayButton->setMouseUpHandler(self(replayMessage));
+		break;
+	}
+}
+
 bool S2PhoneRoom::handleEvent(GLEvent &event) {
 	// Event type check brought down here from callers since it was always the
 	// same in SSCI
@@ -273,6 +378,75 @@ void S2PhoneRoom::pushButton(const int digit) {
 		_game.getPhoneManager().callPhoneNumber(_number.asUint64());
 		_number += 'x';
 	}
+}
+
+void S2PhoneRoom::playNewMessages(GLEvent &, GLTarget &) {
+	playMessages(true);
+	_currentMessageType = 1;
+}
+
+void S2PhoneRoom::playSavedMessages(GLEvent &, GLTarget &) {
+	playMessages(false);
+	_currentMessageType = 2;
+}
+
+void S2PhoneRoom::playMessages(const bool newMessages) {
+	if (phone().getIsCalling()) {
+		return;
+	}
+
+	scoreAnsweringMachine(newMessages);
+	cursor().endHighlight();
+	sound().play(20016, false, 80);
+	if (phone().messageExists(newMessages ? 1 : 2)) {
+		_playNewButton->disable();
+		_playSavedButton->disable();
+		_saveButton->enable();
+		_replayButton->enable();
+	}
+
+	phone().processMessage(newMessages ? 1 : 2, 0);
+}
+
+void S2PhoneRoom::saveMessage(GLEvent &, GLTarget &) {
+	sound().play(20017, false, 80);
+	_playNewButton->enable();
+	_playSavedButton->enable();
+	_saveButton->disable();
+	_replayButton->disable();
+	phone().processMessage(_currentMessageType, 3);
+}
+
+void S2PhoneRoom::replayMessage(GLEvent &, GLTarget &) {
+	cursor().endHighlight();
+	sound().play(20018, false, 80);
+	_playNewButton->disable();
+	_playSavedButton->disable();
+	_saveButton->enable();
+	_replayButton->enable();
+	phone().processMessage(_currentMessageType, 0);
+}
+
+void S2PhoneRoom::scoreAnsweringMachine(const bool isNew) {
+	int event;
+	switch (room().getCurrentRoomNo()) {
+	case 11332: event = S2Score::kScore42; break;
+	case 13322: event = S2Score::kScore43; break;
+	case 14210: event = S2Score::kScore44; break;
+	case 15372: event = S2Score::kScore45; break;
+	case 16921: event = S2Score::kScore46; break;
+	case 17142: event = S2Score::kScore47; break;
+	case 18412: event = S2Score::kScore48; break;
+	case 19213: event = S2Score::kScore49; break;
+	case 21330: event = S2Score::kScore50; break;
+	default: error("Invalid answering machine score room %d", room().getCurrentRoomNo());
+	}
+
+	if (!isNew) {
+		event += 8;
+	}
+
+	score().doEvent(S2Score(event));
 }
 
 } // End of namespace Sci
