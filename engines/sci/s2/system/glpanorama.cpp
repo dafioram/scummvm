@@ -242,11 +242,30 @@ bool GLPanorama::handleEvent(GLEvent &event) {
 }
 
 void GLPanorama::attachSound(const uint16 soundNo, const int16 panX, const int16 volume) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	bool found = false;
+	for (auto &sound : _sounds) {
+		if (sound.getResourceNo() == soundNo) {
+			sound.setPan(panX);
+			sound.setVolume(volume);
+			found = true;
+		}
+	}
+
+	if (!found) {
+		auto &sound = _sounds.emplace_back(soundNo, GLSound::State::PlayingForever, volume);
+		sound.setPan(panX);
+	}
+
+	_isDirty = true;
 }
 
 void GLPanorama::detachSound(const uint16 soundNo) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	auto it = Common::find_if(_sounds.begin(), _sounds.end(), [soundNo](const GLSound &sound) {
+		return sound.getResourceNo() == soundNo;
+	});
+	if (it != _sounds.end()) {
+		_sounds.erase(it);
+	}
 }
 
 void GLPanorama::addSprite(S2PanoramaSprite &sprite, const bool willUpdate) {
@@ -368,7 +387,15 @@ bool GLPanorama::checkExits(GLEvent &event) {
 }
 
 void GLPanorama::panAudio() {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const auto originX = _panX + 256;
+	for (auto &sound : _sounds) {
+		auto value = sound.getPan() - originX;
+		while (value < 0) {
+			value += 2048;
+		}
+		_game->getSoundManager().pan(sound.getResourceNo(), _panTable[value]);
+		_game->getSoundManager().setVolume(sound.getResourceNo(), sound.getVolume() * _percentTable[value] / 100);
+	}
 }
 
 } // End of namespace Sci

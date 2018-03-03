@@ -1681,6 +1681,8 @@ private:
 #define self(name) this, &S2Room6000::name
 
 void S2Room6000::init(const int roomNo) {
+	_enterDelay = true;
+
 	if (room().getPreviousRoomNo() > 6999 && roomNo != 6666) {
 		if (flags().get(kGameFlag15) && !flags().get(kGameFlag36)) {
 			sound().createAmbient(6);
@@ -2659,39 +2661,6 @@ void S2Room6000::dispose(const int roomNo) {
 			room().drawPic(2);
 			movie().play(5020, nullptr, roomTop);
 		}
-		break;
-	}
-}
-
-void S2Room6000::enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit) {
-	_enterSoundNo = enterSound;
-	_exitSoundNo = exitSound;
-	setScript(self(enterScript), 0, roomNo);
-	if (addExit) {
-		emplaceExit(true, 6999, S2Cursor::kBackCel);
-	}
-}
-
-void S2Room6000::enterScript(GLScript &script, const int state) {
-	switch (state) {
-	case 0:
-		user().setIsHandsOn(false);
-		script.setSeconds(1);
-		break;
-
-	case 1:
-		_cel.reset(new GLCel(getPlane(), script.getData(), 0, 0, roomBottom));
-		_cel->show();
-		_cycler.reset(new GLEndCycler());
-		_cycler->add(*_cel);
-		_cycler->start(script);
-		sound().play(_enterSoundNo, false, 100);
-		break;
-
-	case 2:
-		getPlane().getCast().remove(*_cel);
-		_cycler.reset();
-		user().setIsHandsOn(true);
 		break;
 	}
 }

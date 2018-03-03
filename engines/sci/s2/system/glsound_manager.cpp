@@ -51,6 +51,11 @@ void GLSoundManager::pan(const uint16 soundNo, const int16 pan, const reg_t soun
 	_mixer.setPan(ResourceId(kResourceTypeAudio, soundNo), soundNode, pan);
 }
 
+void GLSoundManager::setVolume(const uint16 soundNo, const int16 volume, const reg_t soundNode) {
+	_mixer.setVolume(ResourceId(kResourceTypeAudio, soundNo), soundNode, volume);
+}
+
+
 void GLSoundManager::fade(const uint16 soundNo, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade, GLObject *const caller, const reg_t soundNode) {
 	_mixer.fadeChannel(ResourceId(kResourceTypeAudio, soundNo), soundNode, targetVolume, speed, steps, stopAfterFade);
 	if (caller) {

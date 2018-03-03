@@ -39,13 +39,7 @@ public:
 	void drawPole(const int roomNo);
 
 private:
-	void enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit);
-	void enterScript(GLScript &, const int);
 	void cancelAction(GLScript &, const int);
-	uint16 _enterSoundNo = 0;
-	uint16 _exitSoundNo = 0;
-	Common::ScopedPtr<GLCel> _cel;
-	Common::ScopedPtr<GLCycler> _cycler;
 
 	void goToEthereal(GLScript &, const int);
 	Common::ScopedPtr<GLScript> _ethereal;

@@ -71,7 +71,9 @@ public:
 	uint16 getResourceNo() const { return _resourceNo; }
 	State getState() const { return _state; }
 	int16 getVolume() const { return _volume; }
+	void setVolume(const int16 volume) { _volume = volume; }
 	int16 getPan() const { return _pan; }
+	void setPan(const int16 pan) { _pan = pan; }
 	GLObject *getCaller() const { return _caller; }
 	void setCaller(GLObject *caller) { _caller = caller; }
 	int16 getRandomness() const { return _randomness; }

@@ -73,6 +73,16 @@ public:
 	}
 
 protected:
+	S2RoomManager &room() { return _game.getRoomManager(); }
+	S2SoundManager &sound() { return _game.getSoundManager(); }
+	GameFlags &flags() { return _game.getFlags(); }
+	S2InventoryManager &inventory() { return _game.getInventoryManager(); }
+	S2MovieManager &movie() { return _game.getMovieManager(); }
+	S2PhoneManager &phone() { return _game.getPhoneManager(); }
+	S2Interface &interface() { return _game.getInterface(); }
+	GLUser &user() { return _game.getUser(); }
+	S2ScoringManager &score() { return _game.getScoringManager(); }
+
 	virtual GLPicturePlane &getPlane() const {
 		return _game.getRoomManager().getGamePlane();
 	}
@@ -263,23 +273,50 @@ protected:
 		_script.reset();
 	}
 
-	S2RoomManager &room() { return _game.getRoomManager(); }
-	S2SoundManager &sound() { return _game.getSoundManager(); }
-	GameFlags &flags() { return _game.getFlags(); }
-	S2InventoryManager &inventory() { return _game.getInventoryManager(); }
-	S2MovieManager &movie() { return _game.getMovieManager(); }
-	S2PhoneManager &phone() { return _game.getPhoneManager(); }
-	S2Interface &interface() { return _game.getInterface(); }
-	GLUser &user() { return _game.getUser(); }
-	S2ScoringManager &score() { return _game.getScoringManager(); }
+	void enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit) {
+		_enterSoundNo = enterSound;
+		_exitSoundNo = exitSound;
+		setScript(this, &S2Room::enterScript, 0, roomNo);
+		if (addExit) {
+			emplaceExit(true, room().getCurrentBaseRoomNo() + 999, S2Cursor::kBackCel);
+		}
+	}
+
+	virtual void enterScript(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			if (_enterDelay) {
+				script.setSeconds(1);
+			} else {
+				script.cue();
+			}
+			break;
+
+		case 1:
+			_cel.reset(new GLCel(getPlane(), script.getData(), 0, 0, roomBottom));
+			_cel->show();
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_cel);
+			_cycler->start(script);
+			sound().play(_enterSoundNo, false, 100);
+			break;
+
+		case 2:
+			getPlane().getCast().remove(*_cel);
+			_cycler.reset();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
 
 	void enterFrom(const int previousRoomNo, const int16 panX, const uint16 soundNo) {
-		if (_game.getRoomManager().getPreviousRoomNo() == previousRoomNo) {
+		if (room().getPreviousRoomNo() == previousRoomNo) {
 			if (panX >= 0) {
-				_game.getRoomManager().getPanorama().setPanX(panX);
+				room().getPanorama().setPanX(panX);
 			}
 			if (soundNo) {
-				_game.getSoundManager().play(soundNo);
+				sound().play(soundNo);
 			}
 		}
 	}
@@ -306,6 +343,18 @@ protected:
 	Common::Array<GLCel *> _cels;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<S2Exit *> _exits;
+
+	bool _enterDelay = false;
+	uint16 _enterSoundNo;
+	uint16 _exitSoundNo;
+
+	// Subclasses must clear these appropriately at the end of their lifecycles.
+	// They are not auto-disposed by this class when the room changes since they
+	// may need to persist across rooms in an implementation-specific manner
+	// (usually these persist to the 999 room, but sometimes they persist to
+	// other rooms too).
+	Common::ScopedPtr<GLCel> _cel;
+	Common::ScopedPtr<GLCycler> _cycler;
 
 	bool _keepPanoramaExits = false;
 
