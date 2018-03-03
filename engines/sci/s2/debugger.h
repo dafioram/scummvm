@@ -40,6 +40,8 @@ protected:
 private:
 	bool cmdBitmapInfo(int argc, const char **argv);
 	bool cmdRoom(int argc, const char **argv);
+	bool cmdFlag(int argc, const char **argv);
+	bool cmdGive(int argc, const char **argv);
 
 	S2Kernel &_kernel;
 	S2Game &_game;

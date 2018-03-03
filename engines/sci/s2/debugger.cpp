@@ -37,6 +37,8 @@ S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
 	registerCmd("go", WRAP_METHOD(S2Debugger, cmdExit));
 	registerCmd("bitmap_info", WRAP_METHOD(S2Debugger, cmdBitmapInfo));
 	registerCmd("room", WRAP_METHOD(S2Debugger, cmdRoom));
+	registerCmd("flag", WRAP_METHOD(S2Debugger, cmdFlag));
+	registerCmd("give", WRAP_METHOD(S2Debugger, cmdGive));
 
 	kernel.eventManager.attachDebugger(this);
 	kernel.graphicsManager.attachDebugger(this);
@@ -45,6 +47,8 @@ S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
 bool S2Debugger::cmdHelp(int argc, const char **argv) {
 	debugPrintf("Game:\n");
 	debugPrintf("room - Get or set the current room\n");
+	debugPrintf("flag - Get or set a game flag\n");
+	debugPrintf("give - Gives an inventory item\n");
 	debugPrintf("Resources:\n");
 	printResourcesHelp();
 	debugPrintf("\nGraphics:\n");
@@ -99,6 +103,53 @@ bool S2Debugger::cmdRoom(int argc, const char **argv) {
 	} else {
 		debugPrintf("Current room is %d\n", _game.getRoomManager().getCurrentRoomNo());
 	}
+	return true;
+}
+
+bool S2Debugger::cmdFlag(int argc, const char **argv) {
+	if (argc < 2 || argc > 3) {
+		debugPrintf("Usage: %s <flag #> [1/0]\n", argv[0]);
+		return true;
+	}
+
+	const auto flag = GameFlag(atoi(argv[1]));
+	if (argc == 2) {
+		debugPrintf("Flag %d is %s\n", flag, _game.getFlags().get(flag) ? "set" : "clear");
+	} else {
+		const auto state = _game.getFlags().get(flag);
+		const auto newState = atoi(argv[2]);
+		if (newState) {
+			_game.getFlags().set(flag);
+		} else {
+			_game.getFlags().clear(flag);
+		}
+		debugPrintf("Flag %d changed from %s to %s\n",
+					flag,
+					state ? "set" : "clear",
+					newState ? "set" : "clear");
+	}
+	return true;
+}
+
+bool S2Debugger::cmdGive(int argc, const char **argv) {
+	if (argc != 2) {
+		debugPrintf("Usage: %s <item #>\n", argv[0]);
+		return true;
+	}
+
+	const auto item = S2Inventory(atoi(argv[1]));
+	if (_game.getInventoryManager().isUsed(item)) {
+		debugPrintf("That item has already been used\n");
+		return true;
+	}
+
+	if (!_game.getInventoryManager().setState(item, S2InventoryState::Taken)) {
+		debugPrintf("No space for item in inventory\n");
+		return true;
+	}
+
+	_game.getInventoryManager().addItem(item);
+	debugPrintf("You now have item %hhu\n", item);
 	return true;
 }
 
