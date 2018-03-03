@@ -55,7 +55,13 @@ S2Button *S2Interface::makeButton(const int16 loopNo, const bool shouldEnable) c
 void S2Interface::init() {
 	_background.reset(new GLColoredPlane(Common::Rect(640, 480), 235, 1));
 	_game.getPlanes().add(*_background);
-	_main.reset(new GLTransparentPlane(Common::Rect(640, 480), 3));
+	// HACK: In SSCI, the interface plane was at the same priority and position
+	// as the non-fullscreen global plane, and happened to draw on top of the
+	// global plane. In our engine, they render in the opposite order since we
+	// tiebreak using insertion order, latest on top, and the global plane is
+	// always created later. To fix this, the interface plane's priority is set
+	// to 4 instead of 3.
+	_main.reset(new GLTransparentPlane(Common::Rect(640, 480), 4));
 	_game.getPlanes().add(*_main);
 	_captions.reset(new GLTransparentPlane(Common::Rect(640, 480), 250));
 	_game.getPlanes().add(*_captions);
