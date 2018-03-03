@@ -160,7 +160,7 @@ bool S2Interface::handleEvent(GLEvent &event) {
 			_flashback->disable();
 			_options->disable();
 			_game.getRoomManager().loadGlobalRoom(4130);
-		} else if (_game.getRoomManager().getCurrentGlobalRoomNo() == 4130){
+		} else if (_game.getRoomManager().getCurrentGlobalRoomNo() == 4130) {
 			_game.getRoomManager().unloadGlobalRoom();
 			resetButtons();
 		}
