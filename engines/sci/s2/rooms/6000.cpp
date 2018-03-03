@@ -1109,6 +1109,575 @@ private:
 constexpr GLPoint S2CaveDoorPuzzle::_positions[7];
 
 #undef self
+#define self(name) this, &S2CaveRockCloseUp::name
+
+class S2CaveRockCloseUp : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6381);
+
+		auto loopNo = inventory().isPlaced(S2Inventory::kInv4) ? 1 : 2;
+		_key = &emplaceCel(false, 6382, loopNo, 0, roomBottom);
+		_key->show();
+		getPlane().getCast().remove(*_key);
+
+		_cover = &emplaceCel(false, 6382, 0, 0, roomBottom);
+		_cover->show();
+		getPlane().getCast().remove(*_cover);
+
+		auto &cel = emplaceCel(false, 6382, 3, 0, roomBottom);
+		cel.show();
+		getPlane().getCast().remove(cel);
+
+		emplaceExit(true, 6380, S2Cursor::kBackCel);
+		setHotspot(true);
+	}
+
+private:
+	void setHotspot(const bool open) {
+		emplaceHotspot(true, 151, 121, 339, 215).setMouseUpHandler([this, open](GLEvent &, GLTarget &target) {
+			setScript(self(toggleCover), 0, open);
+			// SSCI waited until state 1 of openCaveRock to do this, but it is
+			// all hands-off until then so might as well avoid the need for an
+			// extra pointer and just get rid of it now
+			removeChild(static_cast<S2Hotspot &>(target));
+		});
+	}
+
+	void toggleCover(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			if (script.getData()) {
+				sound().play(10613, false, 100);
+				_cycler.reset(new GLEndCycler());
+			} else {
+				sound().play(10614, false, 100);
+				_cycler.reset(new GLEndBackCycler());
+			}
+			_cycler->add(*_cover);
+			_cycler->start(script);
+			break;
+
+		case 1:
+			// SSCI deleted a hotspot here; we do that in the event handler
+			if (inventory().isPlaced(S2Inventory::kInv4)) {
+				emplaceHotspot(true, 169, 135, 299, 226).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+					if (!inventory().setState(S2Inventory::kInv4, S2InventoryState::Taken)) {
+						return;
+					}
+
+					_key->setLoop(2, true);
+					inventory().addItem(S2Inventory::kInv4);
+					removeChild(static_cast<S2Hotspot &>(target));
+					setScript(self(toggleCover));
+				});
+			} else {
+				// SSCI did this same thing in a more convoluted manner which
+				// allowed the rock to only open and close once
+				setHotspot(!script.getData());
+			}
+			_script.reset();
+			_cycler.reset();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	GLCel *_cover;
+	GLCel *_key;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
+#undef self
+#define self(name) this, &S2BarberPoleCloseUp::name
+
+class S2BarberPoleCloseUp : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6273);
+		static_cast<S2Room6000 &>(_parent).drawPole(6273);
+		if (room().getPreviousRoomNo() == 6274) {
+			setScript(self(showPoleNote));
+		}
+		emplaceExit(true, 6279, 64, 0, 575, 80, S2Cursor::kBackCel);
+		emplaceExit(true, 6279, 64, 81, 144, 250, S2Cursor::kBackCel);
+		emplaceExit(true, 6279, 495, 0, 575, 383, S2Cursor::kBackCel);
+
+		emplaceHotspot(true, 346, 290, 430, 344).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+			removeChild(static_cast<S2Hotspot &>(target));
+			setScript(self(showPoleNote), 0, 1);
+		});
+	}
+
+private:
+	void showPoleNote(GLScript &script, const int state) {
+		const bool open = script.getData();
+		switch (state) {
+		case 0: {
+			user().setIsHandsOn(false);
+			_shelf = &emplaceCel(false, 6273, 1, open ? 0 : 10, roomBottom);
+			if (open) {
+				_cycler.reset(new GLEndCycler());
+				sound().play(12209, false, 120);
+				sound().play(11424, false, 120);
+			} else {
+				_cycler.reset(new GLEndBackCycler());
+				sound().play(10603, false, 120);
+			}
+			_shelf->show();
+			_cycler->add(*_shelf);
+			_cycler->start(script);
+			break;
+		}
+
+		case 1:
+			getPlane().getCast().remove(*_shelf);
+			_script.reset();
+			_cycler.reset();
+			if (open) {
+				emplaceHotspot(true, 348, 290, 430, 344).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+					room().setNextRoomNo(6274);
+				});
+			} else {
+				removeChild(*_shelf);
+			}
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	GLCel *_shelf;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
+#undef self
+#define self(name) this, &S2GasPump::name
+
+class S2GasPump : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6102);
+		exitBorder(6100);
+
+		if (!inventory().isUsed(S2Inventory::kInv49)) {
+			emplaceHotspot(true, 308, 146, 358, 220).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				if (inventory().isInUse(S2Inventory::kInv49)) {
+					inventory().setState(S2Inventory::kInv49, S2InventoryState::Used);
+					// SSCI removed the hotspot later
+					removeChild(static_cast<S2Hotspot &>(target));
+					setScript(self(useGasPump));
+				};
+			});
+		}
+
+		_pump = &emplaceCel(false, 6102, 2, 0, roomBottom, 400);
+		_pump->show();
+		getPlane().getCast().remove(*_pump);
+	}
+
+private:
+	void useGasPump(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			_can = &emplaceCel(false, 6102, 0, 0, roomBottom);
+			_can->show();
+
+			_lid = &emplaceCel(false, 6102, 1, 0, roomBottom);
+			_lid->show();
+
+			_cycler.reset(new GLEndForwardCycler());
+			_cycler->add(*_lid);
+			_lid->setCycleSpeed(8);
+			_cycler->start(script);
+			sound().play(10620, false, 100);
+			break;
+
+		case 1:
+			getPlane().getCast().remove(*_lid);
+			getPlane().getCast().remove(*_can);
+			_cycler.reset(new GLEndForwardCycler());
+			_cycler->add(*_pump);
+			_pump->setCycleSpeed(8);
+			_cycler->start(script);
+			sound().play(10619, false, 100);
+			break;
+
+		case 2:
+			script.setSeconds(2);
+			break;
+
+		case 3:
+			_cycler.reset(new GLEndBackCycler());
+			_cycler->add(*_pump);
+			_pump->setCycleSpeed(8);
+			_cycler->start(script);
+			break;
+
+		case 4:
+			_cycler.reset(new GLEndBackCycler());
+			_cycler->add(*_lid);
+			_lid->setCycleSpeed(8);
+			_cycler->start(script);
+			break;
+
+		case 5:
+			_cycler.reset();
+			removeChild(*_lid);
+			removeChild(*_can);
+			sound().play(10620, false, 120);
+			inventory().setState(S2Inventory::kInv50, S2InventoryState::Taken);
+			inventory().addItem(S2Inventory::kInv50);
+			script.setSeconds(2);
+			break;
+
+		case 6:
+			_script.reset();
+			flushEvents();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	GLCel *_can;
+	GLCel *_lid;
+	GLCel *_pump;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
+#undef self
+#define self(name) this, &S2MineLiftMotor::name
+
+class S2MineLiftMotor : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(6401);
+		exitBorder(6400);
+		int16 celNo;
+		if (!flags().get(kGameFlag131)) {
+			emplaceHotspot(true, 274, 143, 342, 218).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				if (!inventory().isInUse(S2Inventory::kInv50)) {
+					return;
+				}
+
+				inventory().setState(S2Inventory::kInv50, S2InventoryState::Used);
+				setScript(self(fillGas));
+				removeChild(static_cast<S2Hotspot &>(target));
+			});
+			celNo = 0;
+		} else {
+			celNo = 5;
+		}
+
+		_powerGauge = &emplaceCel(false, 6401, 2, celNo, roomBottom);
+		_powerGauge->show();
+		getPlane().getCast().remove(*_powerGauge);
+
+		if (flags().get(kGameFlag132)) {
+			setScript(self(startMotor), 6);
+		} else {
+			emplaceHotspot(true, 225, 275, 275, 316).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				const int state = inventory().isUsed(S2Inventory::kInv50) ? 0 : 4;
+				if (state == 0) {
+					// SSCI removed this later, in the script
+					removeChild(static_cast<S2Hotspot &>(target));
+				}
+				setScript(self(startMotor), state);
+			});
+		}
+	}
+
+private:
+	void fillGas(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			_can = &emplaceCel(false, 6401, 0, 0, roomBottom);
+			_can->show();
+			_can->setCycleSpeed(10);
+			_cycler.reset(new GLEndForwardCycler());
+			_cycler->add(*_can);
+			_cycler->start(script);
+			sound().play(10619, false, 100);
+			break;
+
+		case 1:
+			getPlane().getCast().remove(*_can);
+			_fuel = &emplaceCel(false, 6401, 1, 0, roomBottom);
+			_fuel->show();
+			_fuel->setCycleSpeed(20);
+			getPlane().getCast().remove(*_fuel);
+			_cycler.reset(new GLEndForwardCycler());
+			_cycler->add(*_fuel);
+			_cycler->start(script);
+			break;
+
+		case 2:
+			removeChild(*_fuel);
+			script.setSeconds(1);
+			break;
+
+		case 3:
+			_cycler.reset(new GLEndBackCycler());
+			_can->setCycleSpeed(10);
+			_cycler->add(*_can);
+			_cycler->start(script);
+			break;
+
+		case 4:
+			removeChild(*_can);
+			_cycler.reset();
+			_script.reset();
+			flags().set(kGameFlag131);
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	void startMotor(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			_switch = &emplaceCel(false, 6401, 3, 0, roomBottom);
+			_switch->show();
+			_switch->setCycleSpeed(8);
+			getPlane().getCast().remove(*_switch);
+			_gears = &emplaceCel(false, 6401, 4, 0, roomBottom);
+			_gears->show();
+			_gears->setCycleSpeed(8);
+			getPlane().getCast().remove(*_gears);
+			_wheels = &emplaceCel(false, 6401, 5, 0, roomBottom);
+			_wheels->show();
+			_wheels->setCycleSpeed(8);
+			getPlane().getCast().remove(*_wheels);
+			// SSCI deleted a hotspot here, we do that in the event handler
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_switch);
+			_cycler->start(script);
+			sound().play(11703, false, 100);
+			break;
+
+		case 1:
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_powerGauge);
+			_cycler->start(script);
+			sound().play(12707, true, 100);
+			break;
+
+		case 2:
+			_cycler.reset(new GLCycler());
+			_cycler->add(*_gears);
+			_cycler->add(*_wheels);
+			_script.reset();
+			flags().set(kGameFlag132);
+			user().setIsHandsOn(true);
+			_cycler->start();
+			break;
+
+		case 3:
+			_script.reset();
+			flags().set(kGameFlag132);
+			score().doEvent(kScore227);
+			user().setIsHandsOn(true);
+			break;
+
+		case 4:
+			user().setIsHandsOn(false);
+			_switch = &emplaceCel(false, 6401, 3, 0, roomBottom);
+			_switch->show();
+			_switch->setCycleSpeed(8);
+			_cycler.reset(new GLEndForwardBackwardCycler());
+			_cycler->add(*_switch);
+			_cycler->start(script);
+			sound().play(11703, false, 100);
+			break;
+
+		case 5:
+			removeChild(*_switch);
+			_script.reset();
+			_cycler.reset();
+			user().setIsHandsOn(true);
+			break;
+
+		case 6:
+			_switch = &emplaceCel(false, 6401, 3, 6, roomBottom);
+			_switch->show();
+			_switch->setCycleSpeed(10);
+			getPlane().getCast().remove(*_switch);
+			_gears = &emplaceCel(false, 6401, 4, 0, roomBottom);
+			_gears->show();
+			_gears->setCycleSpeed(8);
+			getPlane().getCast().remove(*_gears);
+			_wheels = &emplaceCel(false, 6401, 5, 0, roomBottom);
+			_wheels->show();
+			_wheels->setCycleSpeed(8);
+			getPlane().getCast().remove(*_wheels);
+
+			_cycler.reset(new GLCycler());
+			_cycler->add(*_gears);
+			_cycler->add(*_wheels);
+			_script.reset();
+			_cycler->start();
+			sound().play(12707, true, 100);
+			break;
+		}
+	}
+
+	GLCel *_powerGauge;
+	GLCel *_can;
+	GLCel *_fuel;
+	GLCel *_switch;
+	GLCel *_gears;
+	GLCel *_wheels;
+	Common::ScopedPtr<GLCycler> _cycler;
+};
+
+#undef self
+#define self(name) this, &S2ChooseEnemy::name
+
+class S2ChooseEnemy : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		room().drawPic(5000);
+		setScript(self(chooseEnemy));
+	}
+
+private:
+	void chooseEnemy(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			_cel.reset(new GLCel(getPlane(), 5001, 0, 0, GLPoint(250, 322)));
+			_cel->show();
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_cel);
+			_cycler->start(script);
+			interface().putText(room().getNorahSoundNo());
+			_norahDuration = sound().play(room().getNorahSoundNo(), false, 100);
+			break;
+
+		case 1:
+			_cycler.reset();
+			_cel.reset(new GLCel(getPlane(), 5003, 0, 0, GLPoint(250, 322)));
+			_cel->setCycleSpeed(10);
+			_cel->show();
+			_cycler.reset(new GLPingPongCycler());
+			_cycler->add(*_cel, true);
+			// SSCI used a duration lookup table and an extra loop checking the
+			// sound position on every tick
+			script.setTicks(_norahDuration - sound().getPosition(room().getNorahSoundNo()));
+			break;
+
+		case 2: {
+			user().setIsHandsOn(true);
+			_cycler.reset(new GLCycler());
+			_cel.reset();
+
+			room().drawPic(5130);
+
+			GLPoint position(128, 192);
+			for (int choice = 0; choice < 7; ++choice) {
+				auto &cel = emplaceCel(true, 5130, choice, 0, position, 205);
+				_choices[choice] = &cel;
+				cel.setCycleSpeed(10);
+				cel.setSelectHandler([this, choice](GLEvent &event, GLTarget &) {
+					if (event.getType() == kSciEventMousePress) {
+						makeChoice(choice);
+					}
+				});
+				cel.show();
+				cel.forceUpdate();
+				_cycler->add(cel, true);
+				position.x += 64;
+			}
+			break;
+		}
+
+		case 3:
+			user().setIsHandsOn(false);
+			_cycler.reset();
+			for (auto &&choice : _choices) {
+				removeChild(*choice);
+			}
+
+			room().drawPic(5000);
+			_cel.reset(new GLCel(getPlane(), 5003, 0, 0, GLPoint(250, 322)));
+			_cycler.reset(new GLPingPongCycler());
+			_cel->setCycleSpeed(10);
+			_cel->show();
+			_cycler->add(*_cel, true);
+			interface().putText(room().getNorahSoundNo());
+			// Same thing again with SSCI doing a LUT + loop instead of this
+			script.setTicks(sound().play(room().getNorahSoundNo(), false, 100) - 275);
+			break;
+
+		case 4:
+			_cycler.reset();
+			_cel.reset(new GLCel(getPlane(), 5002, 0, 0, GLPoint(250, 322)));
+			_cel->show();
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_cel);
+			_cycler->start(script);
+			break;
+
+		case 5:
+			user().setIsHandsOn(true);
+			_cycler.reset();
+			_cel.reset();
+			room().setNextRoomNo(room().getNorahNextRoomNo());
+			break;
+		}
+	}
+
+	void makeChoice(const int choice) {
+		uint16 soundNo;
+
+		// In SSCI these were 1-7 instead of 0-6, so for clarity we
+		// use the same numbering in this switch
+		switch (choice + 1) {
+		case 1:
+		case 3:
+			soundNo = _game.getRandomNumber(59008, 59010);
+			break;
+		case 2:
+			flags().set(kGameFlag14);
+			flags().set(kGameFlag54);
+			flags().set(kGameFlag129);
+			inventory().setState(S2Inventory::kInv4, S2InventoryState::Placed);
+			soundNo = 59016;
+			break;
+		case 4:
+			soundNo = 59011;
+			break;
+		case 5:
+		case 6:
+		case 7:
+			soundNo = _game.getRandomNumber(59012, 59015);
+			break;
+		}
+
+		room().setNorah(soundNo, room().getNorahNextRoomNo());
+		_script->cue();
+	}
+
+	Common::ScopedPtr<GLCel> _cel;
+	Common::ScopedPtr<GLCycler> _cycler;
+	Common::FixedArray<GLCel *, 7> _choices;
+	uint16 _norahDuration;
+};
+
+#undef self
 #define self(name) this, &S2Room6000::name
 
 void S2Room6000::init(const int roomNo) {
@@ -1157,21 +1726,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6102: {
-		room().drawPic(6102);
-		exitBorder(6100);
-
-		if (inventory().isUsed(S2Inventory::kInv49)) {
-			emplaceHotspot(true, 308, 146, 358, 220).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-				if (inventory().isInUse(S2Inventory::kInv49)) {
-					inventory().setState(S2Inventory::kInv49, S2InventoryState::Used);
-					setScript(self(useGasPump));
-				};
-			});
-		}
-
-		auto &cel = emplaceCel(false, 6102, 2, 0, roomBottom, 400);
-		cel.show();
-		getPlane().getCast().remove(cel);
+		setSubRoom<S2GasPump>(roomNo);
 		break;
 	}
 
@@ -1329,10 +1884,13 @@ void S2Room6000::init(const int roomNo) {
 	case 6202:
 		room().drawPic(6202);
 		emplaceExit(true, 6201, S2Cursor::kBackCel);
-		emplaceHotspot(true, 156, 105, 382, 248).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+		emplaceHotspot(true, 156, 105, 382, 248).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
 			if (inventory().isInUse(S2Inventory::kInv9)) {
 				inventory().setState(S2Inventory::kInv9, S2InventoryState::Used);
 				setScript(self(prySiding));
+				// SSCI waited until the end of the script to remove the
+				// hotspot; we do it immediately to avoid an extra pointer
+				removeChild(static_cast<S2Hotspot &>(target));
 			} else {
 				sound().play(10003, false, 120);
 			}
@@ -1348,8 +1906,11 @@ void S2Room6000::init(const int roomNo) {
 		getPlane().getCast().remove(cel);
 
 		if (inventory().isPlaced(S2Inventory::kInv24)) {
-			emplaceHotspot(true, 158, 174, 221, 222).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			emplaceHotspot(true, 158, 174, 221, 222).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
 				setScript(self(openKeyBox));
+				removeChild(cel);
+				// SSCI waited until the end of the script to remove the hotspot
+				removeChild(static_cast<S2Hotspot &>(target));
 			});
 		}
 
@@ -1517,20 +2078,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6273:
-		room().drawPic(6273);
-		drawPole(6273);
-		if (room().getPreviousRoomNo() == 6274) {
-			_pole2.reset(new GLScript(self(showPoleNote)));
-		}
-		emplaceExit(true, 6279, 64, 0, 575, 80, S2Cursor::kBackCel);
-		emplaceExit(true, 6279, 64, 81, 144, 250, S2Cursor::kBackCel);
-		emplaceExit(true, 6279, 495, 0, 575, 383, S2Cursor::kBackCel);
-
-		emplaceHotspot(true, 346, 290, 430, 344).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
-			auto &hotspot = static_cast<S2Hotspot &>(target);
-			removeChild(hotspot);
-			_pole2.reset(new GLScript(self(showPoleNote), 0, 1));
-		});
+		setSubRoom<S2BarberPoleCloseUp>(roomNo);
 		break;
 
 	case 6274:
@@ -1926,26 +2474,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6382: {
-		room().drawPic(6381);
-
-		auto loopNo = inventory().isPlaced(S2Inventory::kInv4) ? 1 : 2;
-		auto *cel = &emplaceCel(false, 6382, loopNo, 0, roomBottom);
-		cel->show();
-		getPlane().getCast().remove(*cel);
-
-		cel = &emplaceCel(false, 6382, 0, 0, roomBottom);
-		cel->show();
-		getPlane().getCast().remove(*cel);
-
-		cel = &emplaceCel(false, 6382, 3, 0, roomBottom);
-		cel->show();
-		getPlane().getCast().remove(*cel);
-
-		emplaceExit(true, 6380, S2Cursor::kBackCel);
-		emplaceHotspot(true, 151, 121, 339, 215).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-			setScript(self(openRock), 0, 1);
-		});
-
+		setSubRoom<S2CaveRockCloseUp>(roomNo);
 		break;
 	}
 
@@ -1972,37 +2501,7 @@ void S2Room6000::init(const int roomNo) {
 		break;
 
 	case 6401: {
-		room().drawPic(6401);
-		exitBorder(6400);
-		int16 celNo;
-		if (!flags().get(kGameFlag131)) {
-			emplaceHotspot(true, 274, 143, 342, 218).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
-				if (!inventory().isInUse(S2Inventory::kInv50)) {
-					return;
-				}
-
-				inventory().setState(S2Inventory::kInv50, S2InventoryState::Used);
-				setScript(self(fillGas));
-				removeChild(static_cast<S2Hotspot &>(target));
-			});
-			celNo = 0;
-		} else {
-			celNo = 5;
-		}
-
-		auto &cel = emplaceCel(false, 6401, 2, celNo, roomBottom);
-		cel.show();
-		getPlane().getCast().remove(cel);
-
-		if (flags().get(kGameFlag132)) {
-			setScript(self(startMotor), 6);
-		} else {
-			emplaceHotspot(true, 225, 275, 275, 316).setMouseUpHandler([&](GLEvent &, GLTarget &) {
-				const int state = inventory().isUsed(S2Inventory::kInv50) ? 0 : 4;
-				setScript(self(startMotor), state);
-			});
-		}
-
+		setSubRoom<S2MineLiftMotor>(roomNo);
 		break;
 	}
 
@@ -2074,8 +2573,9 @@ void S2Room6000::init(const int roomNo) {
 		_enterSoundNo = 11535;
 		_exitSoundNo = 11536;
 		room().drawPic(6423);
-		emplaceCel(false, 6423, 0, 0, roomBottom).show();
-		setScript(self(openGate));
+		_cel.reset(new GLCel(getPlane(), 6423, 0, 0, roomBottom));
+		_cel->show();
+		setScript(self(openCaveGate));
 		emplaceExit(true, 6999, S2Cursor::kBackCel);
 		emplaceExit(true, 6380, 217, 48, 363, 353);
 		break;
@@ -2094,18 +2594,17 @@ void S2Room6000::init(const int roomNo) {
 
 	case 6666:
 		room().drawPic(5000);
-		_norah.reset(new GLScript(self(showNorah)));
+		setScript(self(showNorah));
 		break;
 
 	case 6667:
-		room().drawPic(500);
-		_norah.reset(new GLScript(self(chooseEnemy)));
+		setSubRoom<S2ChooseEnemy>(roomNo);
 		break;
 
 	case 6999: {
 		const int previousRoomNo = room().getPreviousRoomNo();
 		if (previousRoomNo == 6423) {
-			setScript(self(openGate), 3);
+			setScript(self(openCaveGate), 3);
 		} else if (previousRoomNo == 6354 && _cel) {
 			setScript(self(openStatue));
 		} else if (!_cel) {
@@ -2136,13 +2635,11 @@ void S2Room6000::dispose(const int roomNo) {
 	_flag.reset();
 	_birds.reset();
 	_cafeLight.reset();
-	_pole2.reset();
 	_pole.reset();
 	_motor.reset();
 	_shadow.reset();
 	_panoramaCycler1.reset();
 	_panoramaCycler.reset();
-	_norah.reset();
 
 	S2Room::dispose(roomNo);
 
@@ -2466,8 +2963,25 @@ void S2Room6000::animatePole(GLScript &script, const int state) {
 	}
 }
 
-void S2Room6000::animateMotor(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::animateMotor(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		_panoramaSprite0 = &emplaceSprite(true, 6401, GLPoint(1126, 306), 0, 8);
+		_panoramaCycler.reset(new S2PanoramaCycler());
+		script.setCycles(1);
+		break;
+
+	case 1:
+		_panoramaCycler->add(*_panoramaSprite0);
+		_panoramaCycler->start(script);
+		sound().play(12707, true, 100);
+		break;
+
+	case 2:
+		script.setState(0);
+		script.setCycles(1);
+		break;
+	}
 }
 
 void S2Room6000::animateShadow(GLScript &script, const int state) {
@@ -2503,10 +3017,6 @@ void S2Room6000::drawPole(const int roomNo) {
 	_cycler2->start();
 }
 
-void S2Room6000::showPoleNote(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
-
 void S2Room6000::showShadow(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
@@ -2538,16 +3048,54 @@ void S2Room6000::addShadowRoomExits() {
 	addPanoramaExit(6192, 1103, 214, 1165, 309, S2Cursor::kHighlightCel);
 }
 
-void S2Room6000::useGasPump(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room6000::prySiding(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		_cel.reset(new GLCel(getPlane(), 6202, 0, 0, roomBottom));
+		_cel->show();
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(10610, false, 80);
+		break;
+
+	case 1:
+		getPlane().getCast().remove(*_cel);
+		_script.reset();
+		_cycler.reset();
+		flags().set(kGameFlag127);
+		room().setNextRoomNo(6203);
+		user().setIsHandsOn(true);
+	}
 }
 
-void S2Room6000::prySiding(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+void S2Room6000::openKeyBox(GLScript &script, const int state) {
+	switch (state) {
+	case 0: {
+		user().setIsHandsOn(false);
+		_cel.reset(new GLCel(getPlane(), 6203, 1, 0, roomBottom));
+		_cel->show();
+		getPlane().getCast().remove(*_cel);
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(10611, false, 100);
+		break;
+	}
 
-void S2Room6000::openKeyBox(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	case 1:
+		emplaceHotspot(true, 254, 286, 395, 302).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+			if (inventory().setState(S2Inventory::kInv24, S2InventoryState::Taken)) {
+				removeChild(static_cast<S2Hotspot &>(target));
+				_cel->setLoop(2, true);
+				inventory().addItem(S2Inventory::kInv24);
+			}
+		});
+		_script.reset();
+		_cycler.reset();
+		user().setIsHandsOn(true);
+	}
 }
 
 void S2Room6000::showMotelSign(GLScript &script, const int state) {
@@ -2624,20 +3172,47 @@ void S2Room6000::openStatue(GLScript &script, const int state) {
 	}
 }
 
-void S2Room6000::openRock(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+void S2Room6000::openCaveGate(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		script.setSeconds(1);
+		break;
 
-void S2Room6000::fillGas(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+	case 1:
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(_enterSoundNo, false, 100);
+		break;
 
-void S2Room6000::startMotor(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
-}
+	case 2:
+		getPlane().getCast().remove(*_cel);
+		_script.reset();
+		_cycler.reset();
+		user().setIsHandsOn(true);
+		break;
 
-void S2Room6000::openGate(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	case 3:
+		user().setIsHandsOn(false);
+		_cycler.reset(new GLEndBackCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().play(_exitSoundNo, false, 100);
+		break;
+
+	case 4:
+		script.setSeconds(1);
+		break;
+
+	case 5:
+		_cel.reset();
+		_script.reset();
+		_cycler.reset();
+		room().setNextRoomNo(6420);
+		user().setIsHandsOn(true);
+		break;
+	}
 }
 
 void S2Room6000::showNorah(GLScript &script, const int state) {
@@ -2690,10 +3265,6 @@ void S2Room6000::showNorah(GLScript &script, const int state) {
 		_script.reset();
 		break;
 	}
-}
-
-void S2Room6000::chooseEnemy(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 } // End of namespace Sci

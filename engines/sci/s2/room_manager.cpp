@@ -64,7 +64,7 @@ S2RoomManager::~S2RoomManager() {
 		// TODO: Dtor was called explicitly here regardless of visibility; make
 		// sure it has no side effects which are important
 	}
-	if (_panorama && _pictureIsVisible) {
+	if (_panorama && _panoramaIsVisible) {
 		_game.getUser().getOrphans().remove(_panorama.get());
 		_game.getExtras().remove(_panorama.get());
 		// TODO: Dtor was called explicitly here regardless of visibility; make
@@ -382,8 +382,12 @@ void S2RoomManager::unloadRoom() {
 void S2RoomManager::activateRoom() {
 	_roomIsActive = true;
 	if (_panoramaIsVisible) {
-		_game.getExtras().push_back(_panorama.get());
-		_game.getUser().getOrphans().push_back(_panorama.get());
+		if (!_game.getExtras().contains(_panorama.get())) {
+			_game.getExtras().push_back(_panorama.get());
+		}
+		if (!_game.getUser().getOrphans().contains(_panorama.get())) {
+			_game.getUser().getOrphans().push_back(_panorama.get());
+		}
 		_panorama->getPlane().setPriority(2, true);
 		_kernel.graphicsManager._palette.loadPalette(_panorama->getResourceNo());
 		_panorama->updatePanorama(true);
@@ -539,8 +543,12 @@ void S2RoomManager::drawPan(const uint16 resourceNo) {
 	if (_panoramaIsVisible) {
 		_panorama->getPlane().repaint();
 	} else {
-		_game.getExtras().push_back(_panorama.get());
-		_game.getUser().getOrphans().push_back(_panorama.get());
+		if (!_game.getExtras().contains(_panorama.get())) {
+			_game.getExtras().push_back(_panorama.get());
+		}
+		if (!_game.getUser().getOrphans().contains(_panorama.get())) {
+			_game.getUser().getOrphans().push_back(_panorama.get());
+		}
 		_panorama->getPlane().setPriority(2, true);
 		_panoramaIsVisible = true;
 	}

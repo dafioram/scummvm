@@ -36,6 +36,8 @@ public:
 	virtual void init(const int roomNo) override;
 	virtual void dispose(const int roomNo) override;
 
+	void drawPole(const int roomNo);
+
 private:
 	void enter(const int roomNo, const uint16 enterSound, const uint16 exitSound, const bool addExit);
 	void enterScript(GLScript &, const int);
@@ -64,7 +66,6 @@ private:
 	Common::ScopedPtr<GLScript> _cafeLight;
 	int _lightState;
 	Common::ScopedPtr<GLScript> _pole;
-	Common::ScopedPtr<GLScript> _pole2;
 	Common::ScopedPtr<GLScript> _motor;
 	Common::ScopedPtr<GLScript> _shadow;
 	S2PanoramaSprite *_panoramaSprite0;
@@ -74,13 +75,8 @@ private:
 	Common::ScopedPtr<S2PanoramaCycler> _panoramaCycler1;
 	Common::ScopedPtr<GLCycler> _cycler2;
 
-	void drawPole(const int roomNo);
-	void showPoleNote(GLScript &, const int);
-
 	void showShadow(GLScript &, const int);
 	void addShadowRoomExits();
-
-	void useGasPump(GLScript &, const int);
 
 	void prySiding(GLScript &, const int);
 
@@ -90,18 +86,10 @@ private:
 
 	void openStatue(GLScript &, const int);
 
-	void openRock(GLScript &, const int);
-
-	void fillGas(GLScript &, const int);
-	void startMotor(GLScript &, const int);
-
-	void openGate(GLScript &, const int);
+	void openCaveGate(GLScript &, const int);
 
 	void showNorah(GLScript &, const int);
 	uint16 _norahDuration;
-
-	void chooseEnemy(GLScript &, const int);
-	Common::ScopedPtr<GLScript> _norah;
 };
 
 } // End of namespace Sci

@@ -76,15 +76,19 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 void S2Game::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsByte(_panSpeed);
 	s.syncAsByte(_gamma);
-	getSoundManager().saveLoadWithSerializer(s);
-	getRoomManager().saveLoadWithSerializer(s);
+	// This is reordered vs SSCI to ensure that everything is set up before the
+	// room loads
+	if (s.isLoading()) {
+		_kernel.graphicsManager._palette.setGamma(_gamma);
+	}
+	getFlags().saveLoadWithSerializer(s);
 	getInventoryManager().saveLoadWithSerializer(s);
-	getInterface().saveLoadWithSerializer(s);
 	getMovieManager().saveLoadWithSerializer(s);
 	getScoringManager().saveLoadWithSerializer(s);
-	getFlags().saveLoadWithSerializer(s);
 	getPhoneManager().saveLoadWithSerializer(s);
-	_kernel.graphicsManager._palette.setGamma(_gamma);
+	getSoundManager().saveLoadWithSerializer(s);
+	getRoomManager().saveLoadWithSerializer(s);
+	getInterface().saveLoadWithSerializer(s);
 }
 
 void S2Game::run() {
