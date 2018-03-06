@@ -58,8 +58,8 @@ void S2InventoryManager::init() {
 		}
 	}
 
-	for (int itemNo = 0; itemNo < int(S2PrayerStick::kNumPrayerSticks); ++itemNo) {
-		const GLCelRes cel(910, 0, itemNo);
+	for (int itemNo = 1; itemNo < int(S2PrayerStick::kNumPrayerSticks); ++itemNo) {
+		const GLCelRes cel(910, 0, itemNo - 1);
 		_prayerSticks[itemNo] = S2InventoryItem(S2InventoryState::Normal, cel, cel);
 	}
 }
@@ -76,6 +76,24 @@ void S2InventoryManager::saveLoadWithSerializer(Common::Serializer &s) {
 	if (s.isLoading()) {
 		refresh();
 	}
+}
+
+bool S2InventoryManager::takePrayerStick(const S2PrayerStick id) {
+	if (_prayerStick != S2PrayerStick::None) {
+		_game.getPhoneManager().triggerDcCallNow(69062);
+		return false;
+	}
+
+	if (_currentItem != S2Inventory::None) {
+		unselectItem(true);
+	}
+
+	_prayerStick = id;
+	_currentItem = S2Inventory::None;
+	_game.getCursor().getPrayerStick(_prayerSticks[int(id)].smallCel);
+	_game.getScoringManager().doEvent(kScore2);
+	_game.getSoundManager().play(11007, false, 120);
+	return true;
 }
 
 void S2InventoryManager::setCurrentItem(const S2Inventory item) {

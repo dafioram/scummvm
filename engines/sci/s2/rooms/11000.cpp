@@ -150,7 +150,50 @@ void S2Room11000::init(const int roomNo) {
 		phone().cancelCall();
 		exitBorder(11141);
 
-		warning("TODO: Finish room 11140");
+		emplaceHotspot(true, 196, 329, 247, 363).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+			sound().play(11102, false, 80);
+			score().doEvent(kScore193);
+			removeChild(static_cast<S2Hotspot &>(target));
+			if (!_cel) {
+				setScript(self(openJackBox));
+				if (!flags().get(kGameFlag114)) {
+					emplaceHotspot(true, 257, 81, 336, 218).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+						takePrayerStick();
+					});
+				}
+			}
+		});
+
+		if (inventory().isTaken(S2Inventory::kInv7)) {
+			auto &cel = emplaceCel(false, 11140, 2, 0, roomBottom);
+			cel.show();
+			getPlane().getCast().remove(cel);
+		} else {
+			emplaceHotspot(true, 420, 303, 465, 345).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				if (inventory().setState(S2Inventory::kInv7, S2InventoryState::Taken)) {
+					sound().play(11115, false, 80);
+					inventory().addItem(S2Inventory::kInv7);
+					removeChild(static_cast<S2Hotspot &>(target));
+					auto &cel = emplaceCel(false, 11140, 2, 0, roomBottom);
+					cel.show();
+					getPlane().getCast().remove(cel);
+				}
+			});
+		}
+
+		if (flags().get(kGameFlag144)) {
+			emplaceHotspot(true, 270, 221, 379, 359).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				if (!flags().get(kGameFlag119)) {
+					// Replacement of hotspot moved up from callee
+					removeChild(static_cast<S2Hotspot &>(target));
+					emplaceHotspot(true, 270, 221, 379, 359).setMouseUpHandler([&](GLEvent &, GLTarget &) {
+						setScript(self(jackInBox));
+					});
+
+					setScript(self(openJackBox));
+				}
+			});
+		}
 		break;
 
 	case 11141:
@@ -205,6 +248,7 @@ void S2Room11000::init(const int roomNo) {
 		} else {
 			emplaceHotspot(true, 240, 90, 284, 123).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
 				if (inventory().isInUse(S2Inventory::kInv7)) {
+					flags().set(kGameFlag145);
 					score().doEvent(kScore167);
 					emplaceCel(false, 15342, 0, 0, GLPoint(259, 103), 202).show();
 					removeChild(static_cast<S2Hotspot &>(target));
@@ -224,8 +268,18 @@ void S2Room11000::init(const int roomNo) {
 			emplaceCel(false, 15341, 0, 0, roomBottom, 202).show();
 		}
 
-		// SSCI delayed this call until the next doIt loop for some reason
-		movie().play(0, flags().get(kGameFlag145));
+		setScript([&](GLScript &script, const int state) {
+			switch (state) {
+			case 0:
+				script.setTicks(1);
+				break;
+
+			case 1:
+				movie().play(0, flags().get(kGameFlag145));
+				break;
+			}
+		});
+
 		break;
 
 	case 11300:
@@ -342,7 +396,7 @@ void S2Room11000::init(const int roomNo) {
    }
 
 	case 11999:
-		warning("TODO: Finish room %d", roomNo);
+		setScript(self(cancelScript));
 		break;
 
 	default:
@@ -380,8 +434,134 @@ bool S2Room11000::handleEvent(GLEvent &event) {
 	return false;
 }
 
-void S2Room11000::jackInBox(GLScript &, const int) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+void S2Room11000::cancelScript(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		if (_cel) {
+			_cycler.reset(new GLEndBackCycler());
+			_cycler->add(*_cel);
+			_cycler->start(script);
+			sound().play(_exitSoundNo, false, 100);
+		} else {
+			script.setTicks(1);
+		}
+		break;
+
+	case 1:
+		if (_cel) {
+			getPlane().getCast().remove(*_cel);
+			_cel->hide();
+		}
+		script.setTicks(10);
+		break;
+
+	case 2:
+		_cel.reset();
+		_cycler.reset();
+		_script.reset();
+
+		switch (room().getPreviousRoomNo()) {
+		case 11101:
+			room().setNextRoomNo(11100);
+			user().setIsHandsOn(true);
+			break;
+
+		case 11350:
+		case 11355:
+			room().setNextRoomNo(11300);
+			user().setIsHandsOn(true);
+			break;
+
+		default:
+			error("Stuck in room 11999");
+		}
+	}
+}
+
+void S2Room11000::openJackBox(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		// Conditional removal of hotspot moved up to caller
+		if (!_cel) {
+			const auto loopNo = flags().get(kGameFlag114) ? 1 : 0;
+			_cel.reset(new GLCel(getPlane(), 11140, loopNo, 0, roomBottom));
+			_cel->show();
+		}
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		if (!flags().get(kGameFlag144) && !flags().get(kGameFlag106)) {
+			sound().play(41150);
+			interface().putText(41150);
+		} else {
+			sound().play(11116, false, 120);
+		}
+		break;
+
+	case 1:
+		getPlane().getCast().remove(*_cel);
+		if (!flags().get(kGameFlag114)) {
+			//hotspot 3
+			emplaceHotspot(true, 236, 117, 407, 183).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+				// Hotspot removal moved up from callee
+				removeChild(static_cast<S2Hotspot &>(target));
+				takePrayerStick();
+			});
+		}
+
+		flags().set(kGameFlag45);
+		flags().set(kGameFlag144);
+		_script.reset();
+		_cycler.reset();
+		user().setIsHandsOn(true);
+		break;
+	}
+}
+
+void S2Room11000::jackInBox(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		user().setIsHandsOn(false);
+		if (!_cel) {
+			const auto loopNo = flags().get(kGameFlag114) ? 1 : 0;
+			_cel.reset(new GLCel(getPlane(), 11140, loopNo, 10, roomBottom));
+		}
+		_cel->show();
+		_cycler.reset(new GLEndBackCycler());
+		_cycler->add(*_cel);
+		_cycler->start(script);
+		sound().stop(41150);
+		sound().play(11117, false, 120);
+		break;
+
+	case 1:
+		_cel.reset();
+		script.setSeconds(1);
+		break;
+
+	case 2:
+		_script.reset();
+		_cycler.reset();
+		flags().clear(kGameFlag144);
+		if (flags().get(kGameFlag106) && !flags().get(kGameFlag28)) {
+			room().setNextRoomNo(11199);
+		} else {
+			room().setNextRoomNo(11100);
+		}
+		user().setIsHandsOn(true);
+		break;
+	}
+}
+
+void S2Room11000::takePrayerStick() {
+	_cel->setLoop(1);
+	_cel->setCel(10, true);
+	_cel->show();
+	inventory().takePrayerStick(S2PrayerStick::Jack);
+	flags().set(kGameFlag106);
+	flags().set(kGameFlag114);
 }
 
 void S2Room11000::openBible(GLEvent &, GLTarget &target) {

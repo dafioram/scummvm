@@ -37,7 +37,10 @@ public:
 	virtual bool handleEvent(GLEvent &event) override;
 
 private:
+	void cancelScript(GLScript &, const int);
 	void jackInBox(GLScript &, const int);
+	void openJackBox(GLScript &, const int);
+	void takePrayerStick();
 	void openBible(GLEvent &, GLTarget &);
 	void closeDrawer(GLEvent &, GLTarget &);
 };

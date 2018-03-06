@@ -66,6 +66,8 @@ public:
 
 	bool messageExists(const int type);
 
+	void triggerDcCallNow(const uint16 soundNo) { _incomingMessage = soundNo; }
+
 private:
 	struct RoomPhone {
 		int roomNo = 0;

@@ -178,13 +178,17 @@ void S2PhoneManager::cancelCall() {
 	}
 }
 
+// In SSCI, the result of binarySearch was unconditionally assigned to _roomPan
+// even if the result was invalid, and then this invalid value was both tested
+// using a bogus range check (since the value is always in range) and also used
+// unconditionally outside of the bogus range check
 template <typename T, typename U>
-static int binarySearch(T array, U value) {
-	int min = 0, max = array.size() - 1, result;
+static bool binarySearch(T array, U value, U &result) {
+	int min = 0, max = array.size() - 1;
 	while (max >= min) {
 		result = (max - min) / 2 + min;
 		if (array[result].roomNo == value) {
-			return result;
+			return true;
 		}
 		if (array[result].roomNo > value) {
 			max = result - 1;
@@ -192,7 +196,7 @@ static int binarySearch(T array, U value) {
 			min = result + 1;
 		}
 	}
-	return array.size();
+	return false;
 }
 
 void S2PhoneManager::notifyRoomChange(const bool baseRoomChanged) {
@@ -208,8 +212,8 @@ void S2PhoneManager::notifyRoomChange(const bool baseRoomChanged) {
 
 	if (_isCalling) {
 		const auto roomNo = _game.getRoomManager().getCurrentRoomNo();
-		_roomPan = binarySearch(_panoramaSounds, roomNo);
-		if (_roomPan < _panoramaSounds.size()) {
+		const auto isValid = binarySearch(_panoramaSounds, roomNo, _roomPan);
+		if (isValid) {
 			const auto &sound = _panoramaSounds[_roomPan];
 			_game.getRoomManager().getPanorama().attachSound(_currentSoundNo, sound.panX, sound.volume);
 		}
@@ -662,9 +666,11 @@ void S2PhoneManager::changeState(GLScript &script, const int state) {
 void S2PhoneManager::playPanorama(const uint16 soundNo, GLScript &script, const int16 volumeAdjust) {
 		_game.getRoomManager().getPanorama().detachSound(_currentSoundNo);
 		_currentSoundNo = 0;
-		// SSCI checked if _roomPan was in bounds of _phonePan here, but then it
-		// went ahead and used it unconditionally later, so the bounds check is
-		// omitted here
+		// SSCI checked if _roomPan was in bounds of _phonePan here, but (1)
+		// this value will never be out-of-bounds even when a valid value does
+		// not exist (see binarySearch for more information), and (2) it used
+		// the value unconditionally in the second statement, so the bounds
+		// check is omitted entirely
 		const auto &panSounds = _panoramaSounds[_roomPan];
 		_game.getRoomManager().getPanorama().attachSound(soundNo, panSounds.panX, panSounds.volume);
 		playMessage(soundNo, script, panSounds.volume + volumeAdjust);

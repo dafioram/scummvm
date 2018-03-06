@@ -44,6 +44,8 @@ public:
 	bool hasPrayerStick() const { return !hasPrayerStick(S2PrayerStick::None); }
 	bool hasPrayerStick(const S2PrayerStick id) const { return _prayerStick == id; }
 	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
+	bool takePrayerStick(const S2PrayerStick id);
+
 	S2Inventory getCurrentItem() const { return _currentItem; }
 	void setCurrentItem(const S2Inventory item);
 

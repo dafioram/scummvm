@@ -63,6 +63,7 @@ void S2Cursor::dropItem() {
 void S2Cursor::getPrayerStick(const GLCelRes &celInfo) {
 	if (!hasPrayerStick()) {
 		endHighlight();
+		_prayerStickNormalCel = celInfo;
 		if (!hasInventory()) {
 			_noInventoryCel = getNormalCelRes();
 		}
