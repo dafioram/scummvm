@@ -131,7 +131,10 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 
 		int playFlags = VMDPlayer::kEventFlagNone;
 		if (!_preventSkip) {
-			playFlags |= VMDPlayer::kEventFlagMouseDown;
+			// SSCI used mouse down, which did not correctly flush the mouse up
+			// event (and the game mostly uses mouse up events for action
+			// triggering)
+			playFlags |= VMDPlayer::kEventFlagMouseUp;
 		}
 
 		if (captioner && _game.getInterface().getIsCaptioningOn()) {

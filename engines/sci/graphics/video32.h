@@ -65,6 +65,13 @@ public:
 		kEventFlagToFrame      = 0x10,
 		kEventFlagYieldToVM    = 0x20,
 		kEventFlagReverse      = 0x80
+#ifdef ENABLE_SCI32S2
+		,
+		// This did not exist in SSCI, but is needed in order to avoid
+		// triggering actions on mouseup since flushing the event queue on a
+		// mousedown will not flush the mouseup since it does not exist yet
+		kEventFlagMouseUp      = 0x100
+#endif
 	};
 
 	friend EventFlags operator|(const EventFlags a, const EventFlags b) {

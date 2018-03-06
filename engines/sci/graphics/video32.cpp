@@ -174,6 +174,13 @@ VideoPlayer::EventFlags VideoPlayer::checkForEvent(const EventFlags flags) {
 		return kEventFlagMouseDown;
 	}
 
+#ifdef ENABLE_SCI32S2
+	event = _eventMan->getSciEvent(kSciEventMouseRelease | kSciEventPeek);
+	if ((flags & kEventFlagMouseUp) && event.type == kSciEventMouseRelease) {
+		return kEventFlagMouseUp;
+	}
+#endif
+
 	event = _eventMan->getSciEvent(kSciEventKeyDown | kSciEventPeek);
 	if ((flags & kEventFlagEscapeKey) && event.type == kSciEventKeyDown) {
 		if (getSciVersion() < SCI_VERSION_3) {
