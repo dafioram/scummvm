@@ -39,7 +39,7 @@ void GLSoundTrack::addSoundNode(const uint16 soundNo, const int16 volume, const 
 
 void GLSoundTrack::addPRSNode(const uint16 soundNo, const int somePercent, const int16 volume, const int16 pan) {
 	GLPRSNode *node;
-	if (_nodes.back()->getType() == GLNode::Type::PRS) {
+	if (!_nodes.empty() && _nodes.back()->getType() == GLNode::Type::PRS) {
 		node = static_cast<GLPRSNode *>(_nodes.back().get());
 	} else {
 		node = new GLPRSNode();
@@ -62,10 +62,14 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 		break;
 
 	case 1: {
-		auto iterator = _currentNode;
+		auto iterator = ++_currentNode;
+		if (iterator == _nodes.end()) {
+			iterator = _currentNode = _nodes.begin();
+		}
 		auto *node = iterator->get();
 		if (node->getType() == GLNode::Type::Header) {
 			++iterator;
+			++_currentNode;
 			node = iterator->get();
 		}
 		switch (node->getType()) {
@@ -97,12 +101,29 @@ void GLSoundTrack::changeState(GLScript &script, const int state) {
 			} else {
 				numSecondsToWait = wait.getMinimum();
 			}
+
 			setSeconds(numSecondsToWait);
 			break;
 		}
 		case GLNode::Type::PRS: {
-			warning("TODO: PRS");
+			auto &prs = static_cast<GLPRSNode &>(*node);
+			auto &sound = prs.getSound(_game->getRandomNumber(0, prs.size() - 1));
+			_currentSoundNo = sound.getResourceNo();
+			if (_game->getRandomNumber(0, 99) > sound.getRandomness()) {
+				break;
+			}
+
+			auto resourceId = ResourceId(kResourceTypeAudio, _currentSoundNo);
+			if (sound.getPan() != 50) {
+				_mixer->setPan(resourceId, NULL_REG, sound.getPan());
+			}
+			_mixer->restart(resourceId, true, false, sound.getVolume(), NULL_REG, false);
+			break;
 		}
+		}
+
+		if ((*iterator)->getType() != GLNode::Type::Wait) {
+			script.setCycles(1);
 		}
 		break;
 	}

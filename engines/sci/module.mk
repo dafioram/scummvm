@@ -147,6 +147,7 @@ MODULE_OBJS += \
 	s2/rooms/10000.o \
 	s2/rooms/11000.o \
 	s2/rooms/28000.o \
+	s2/rooms/50000.o \
 	s2/rooms/global.o \
 	s2/rooms/phone.o \
 	s2/system/glbutton.o \

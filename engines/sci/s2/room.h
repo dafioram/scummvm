@@ -279,7 +279,10 @@ protected:
 		_exitSoundNo = exitSound;
 		setScript(this, &S2Room::enterScript, 0, roomNo);
 		if (addExit) {
-			emplaceExit(true, room().getCurrentBaseRoomNo() + 999, S2Cursor::kBackCel);
+			// cannot use getCurrentBaseRoomNo because the base room for rooms
+			// 50000-50999 is actually 30000 for whatever reason
+			auto exitNo = room().getCurrentRoomNo() / 1000 * 1000 + 999;
+			emplaceExit(true, exitNo, S2Cursor::kBackCel);
 		}
 	}
 

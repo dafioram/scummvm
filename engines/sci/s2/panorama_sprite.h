@@ -45,9 +45,11 @@ class S2PanoramaSprite;
 
 using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardCycler = AbsGLEndForwardCycler<S2PanoramaSprite>;
+using S2PanoramaEndBackCycler = AbsGLEndBackCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
 using S2PanoramaStartResetCycler = AbsGLStartResetCycler<S2PanoramaSprite>;
 using S2PanoramaEndResetCycler = AbsGLEndResetCycler<S2PanoramaSprite>;
+using S2PanoramaCycleToCycler = AbsGLCycleToCycler<S2PanoramaSprite>;
 
 class S2PanoramaSprite : public S2PanoramaImage {
 public:

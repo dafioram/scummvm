@@ -70,7 +70,6 @@ private:
 	GLObject *_caller = nullptr;
 	bool _isCycling = false;
 	bool _isFinished = false;
-	int _targetCel;
 	GLSetAsArray<CelT> _cels;
 	Common::Array<int> _timings;
 	int _direction = 1;
@@ -130,6 +129,20 @@ public:
 
 private:
 	virtual int16 nextCel(CelT &client) override;
+};
+
+// SSCI did not accept the target cel in the constructor and put the target cel
+// property on GLCycler even though it is specific to this cycler only
+template <class CelT>
+class AbsGLCycleToCycler : public AbsGLCycler<CelT> {
+public:
+	AbsGLCycleToCycler(const int16 targetCel) :
+		AbsGLCycler<CelT>(),
+		_targetCel(targetCel) {}
+
+private:
+	virtual int16 nextCel(CelT &client) override;
+	int16 _targetCel;
 };
 
 using GLCycler = AbsGLCycler<GLCel>;

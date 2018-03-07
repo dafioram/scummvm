@@ -103,8 +103,22 @@ private:
 };
 
 class GLPRSNode : public GLNode {
+	using NodeList = Common::List<Common::ScopedPtr<GLNode>>;
 public:
 	GLPRSNode() : GLNode(GLNode::Type::PRS) {}
+
+	GLSound &getSound(int index) {
+		auto it = _nodes.begin();
+		while (index-- > 0 && it != _nodes.end()) {
+			++it;
+		}
+		assert(it != _nodes.end() && *it);
+		return static_cast<GLSound &>(**it);
+	}
+
+	NodeList::size_type size() {
+		return _nodes.size();
+	}
 
 	template <typename ... Args>
 	void addSound(Args && ...args) {
@@ -112,7 +126,7 @@ public:
 	}
 
 private:
-	Common::List<Common::ScopedPtr<GLNode>> _nodes;
+	NodeList _nodes;
 };
 
 class GLHeaderNode : public GLNode {
@@ -124,7 +138,9 @@ class GLSoundTrack : public GLScript {
 public:
 	GLSoundTrack(const int trackId) :
 		GLScript(),
-		_trackId(trackId) {}
+		_trackId(trackId) {
+		_nodes.emplace_front(new GLHeaderNode());
+	}
 
 	void init() {
 		GLScript::init(this, &GLSoundTrack::changeState);
