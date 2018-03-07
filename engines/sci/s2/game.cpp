@@ -62,6 +62,8 @@ S2Game::S2Game(S2Engine &engine, S2Kernel &kernel) :
 	GLMover::init(&_extras);
 	GLJump::init(&_extras);
 	S2PanoramaCycler::init(&_extras);
+	S2PanoramaMover::init(&_extras);
+	S2PanoramaJump::init(&_extras);
 	GLTarget::init(&_user);
 	S2Button::init(&_soundManager);
 	S2Control::init(&_user);
@@ -89,6 +91,7 @@ void S2Game::saveLoadWithSerializer(Common::Serializer &s) {
 	getSoundManager().saveLoadWithSerializer(s);
 	getRoomManager().saveLoadWithSerializer(s);
 	getInterface().saveLoadWithSerializer(s);
+	getUser().setIsHandsOn(true);
 }
 
 void S2Game::run() {

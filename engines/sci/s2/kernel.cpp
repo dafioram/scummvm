@@ -58,6 +58,8 @@ S2Kernel::S2Kernel(OSystem &system, Engine &engine, const GameMetadata &metadata
 	GLMover::init(&timeManager);
 	GLJump::init(&timeManager);
 	S2PanoramaCycler::init(&timeManager);
+	S2PanoramaMover::init(&timeManager);
+	S2PanoramaJump::init(&timeManager);
 	S2PanoramaImage::init(&resourceManager);
 	GLSoundTrack::init(&audioMixer);
 }

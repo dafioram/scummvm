@@ -111,9 +111,7 @@ void GLPanorama::updateSprites() {
 	}
 
 	for (auto &&sprite : _image.getSprites()) {
-		// There was a sprite update call here which did nothing and always
-		// returned true
-
+		sprite->update();
 		if (sprite->getIsVisible()) {
 			_image.draw(*sprite);
 		}

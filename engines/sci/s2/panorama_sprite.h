@@ -37,6 +37,7 @@
 #include <functional>
 #include "sci/s2/panorama_image.h"
 #include "sci/s2/system/glcycler.h"
+#include "sci/s2/system/glmover.h"
 #include "sci/s2/system/types.h"
 
 namespace Sci {
@@ -50,6 +51,8 @@ using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2Panor
 using S2PanoramaStartResetCycler = AbsGLStartResetCycler<S2PanoramaSprite>;
 using S2PanoramaEndResetCycler = AbsGLEndResetCycler<S2PanoramaSprite>;
 using S2PanoramaCycleToCycler = AbsGLCycleToCycler<S2PanoramaSprite>;
+using S2PanoramaMover = AbsGLMover<S2PanoramaSprite, GLBresen>;
+using S2PanoramaJump = AbsGLMover<S2PanoramaSprite, GLArc>;
 
 class S2PanoramaSprite : public S2PanoramaImage {
 public:
@@ -68,10 +71,15 @@ public:
 	const Common::Rect &getRect() { return _bounds; }
 	void setBounds(const Common::Rect &bounds);
 
+	void setPosition(const GLPoint &position, const bool);
+
 	int getCycleSpeed() const { return _cycleSpeed; }
 	void setCycleSpeed(const int cycleSpeed) { _cycleSpeed = cycleSpeed; }
 
+	int getMoveSpeed() const { return _moveSpeed; }
 	void setMoveSpeed(const int moveSpeed) { _moveSpeed = moveSpeed; }
+
+	const GLPoint &getStepSize() const { return _stepSize; }
 
 	void setCycler(S2PanoramaCycler *cycler) { _cycler = cycler; }
 
@@ -89,9 +97,11 @@ public:
 
 	void hide() { _isVisible = false; }
 	void show() { _isVisible = true; }
+	void update();
 
 private:
 	Common::Rect _bounds;
+	GLPoint _nextPosition;
 	EventHandler _mouseDownHandler;
 
 	Common::Array<byte> _savedPixels;

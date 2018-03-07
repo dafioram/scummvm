@@ -332,7 +332,20 @@ private:
 	int _selectedSlot = -1;
 };
 
+template <typename T>
+void renderScore(T &room, const GLPoint &position) {
+	room._scoreBitmap.reset(new S2Bitmap(252, 22, 255, 255));
+	auto &textBox = room.template emplaceChild<GLScreenItem>(*room._scoreBitmap, position, 202);
+	using S = Common::String;
+	const S score(S::format("%d", room._game.getScoringManager().getCurrentScore()));
+	room._scoreBitmap->drawText(score, { 2, 2, 251, 21 }, 202, 255, 255, 503, kTextAlignLeft, 255);
+	textBox.forceUpdate();
+}
+
 class S2OptionsRoom : public S2GlobalSubRoom {
+	template <typename T>
+	friend void renderScore(T &, const GLPoint &);
+
 	auto &addButton(const int16 loopNo, const bool enable = true) {
 		auto &button = emplaceButton(true, enable, 4100, loopNo, 0, roomBottom, 202);
 		button.setHighlightedFace(4100, loopNo, 2);
@@ -376,13 +389,7 @@ public:
 
 		button = &addButton(4);
 		button->setMouseUpHandler(global(quitGame));
-
-		_scoreBitmap.reset(new S2Bitmap(252, 22, 255, 255));
-		auto &textBox = emplaceChild<GLScreenItem>(*_scoreBitmap, GLPoint(139, 357), 202);
-		using S = Common::String;
-		const S score(S::format("%d", _game.getScoringManager().getCurrentScore()));
-		_scoreBitmap->drawText(score, { 2, 2, 251, 21 }, 202, 255, 255, 503, kTextAlignLeft, 255);
-		textBox.forceUpdate();
+		renderScore(*this, { 139, 357 });
 	}
 
 private:
@@ -1373,6 +1380,33 @@ private:
 	Common::ScopedPtr<GLCycler> _cycler;
 };
 
+class S2EndGameRoom : public S2SubRoom {
+	template <typename T>
+	friend void renderScore(T &, const GLPoint &);
+
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int) override {
+		sound().deleteAmbient(0);
+
+		auto *button = &emplaceButton(true, true, 4230, 0, 0, absBottom, 202);
+		button->setHighlightedFace(4230, 0, 1);
+		button->setMouseUpHandler(global(quitGame));
+
+		button = &emplaceButton(true, _game.hasSaveGames(), 4230, 1, 0, absBottom, 202);
+		button->setHighlightedFace(4230, 1, 1);
+		button->setMouseUpHandler(global(showOldGames));
+
+		emplaceCel(false, 4240, 3, 4, absBottom, 201).show();
+
+		renderScore(*this, { 78, 448 });
+	}
+
+private:
+	Common::ScopedPtr<S2Bitmap> _scoreBitmap;
+};
+
 void S2GlobalRoom::init(const int roomNo) {
 	_game.getInterface().putText(0);
 	flushEvents();
@@ -1389,6 +1423,9 @@ void S2GlobalRoom::init(const int roomNo) {
 		break;
 	case 4100:
 		setSubRoom<S2OptionsRoom>(roomNo);
+		break;
+	case 4240:
+		setSubRoom<S2EndGameRoom>(roomNo);
 		break;
 	case 2:
 	case 1920:

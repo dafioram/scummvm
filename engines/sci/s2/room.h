@@ -107,13 +107,13 @@ protected:
 	}
 
 	void removeChild(S2PanoramaSprite &sprite) {
-		auto it = Common::find(_sprites.begin(), _sprites.end(), &sprite);
+		auto it = Common::find_if(_sprites.begin(), _sprites.end(), [&](Common::ScopedPtr<S2PanoramaSprite> &ptr) {
+			return ptr.get() == &sprite;
+		});
 		if (it != _sprites.end()) {
 			_game.getRoomManager().getPanorama().removeSprite(sprite);
 			_sprites.erase(it);
 		}
-
-		removeChild(static_cast<GLObject &>(sprite));
 	}
 
 	void removeChild(S2Exit &exit) {
@@ -210,8 +210,7 @@ protected:
 	template <typename ...Args>
 	S2PanoramaSprite &emplaceSprite(const bool willUpdate, Args && ...args) {
 		S2PanoramaSprite *sprite = new S2PanoramaSprite(args...);
-		_children.emplace_back(sprite);
-		_sprites.push_back(sprite);
+		_sprites.emplace_back(sprite);
 		_game.getRoomManager().getPanorama().addSprite(*sprite, willUpdate);
 		return *sprite;
 	}
@@ -245,10 +244,11 @@ protected:
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}
 
-		for (auto &&sprite : _sprites) {
-			if (sprite) {
+		if (!_keepPanoramaSprites) {
+			for (auto &&sprite : _sprites) {
 				_game.getRoomManager().getPanorama().removeSprite(*sprite);
 			}
+			_sprites.clear();
 		}
 
 		for (auto &&hotspot : _hotspots) {
@@ -266,7 +266,6 @@ protected:
 				_game.getRoomManager().removeExit(*exit);
 			}
 		}
-		_sprites.clear();
 		_exits.clear();
 		_hotspots.clear();
 		_cels.clear();
@@ -343,7 +342,7 @@ protected:
 	Common::ScopedPtr<S2SubRoom> _activeSubRoom;
 	Common::ScopedPtr<GLScript> _script;
 	Common::Array<Common::ScopedPtr<GLObject>> _children;
-	Common::Array<S2PanoramaSprite *> _sprites;
+	Common::Array<Common::ScopedPtr<S2PanoramaSprite>> _sprites;
 	Common::Array<GLCel *> _cels;
 	Common::Array<S2Hotspot *> _hotspots;
 	Common::Array<S2Exit *> _exits;
@@ -361,6 +360,7 @@ protected:
 	Common::ScopedPtr<GLCycler> _cycler;
 
 	bool _keepPanoramaExits = false;
+	bool _keepPanoramaSprites = false;
 
 private:
 	void initSubRoom(const int roomNo);

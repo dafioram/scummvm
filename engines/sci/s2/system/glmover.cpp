@@ -20,6 +20,7 @@
  *
  */
 
+#include "sci/s2/panorama_sprite.h"
 #include "sci/s2/system/glcel.h"
 #include "sci/s2/system/glcue.h"
 #include "sci/s2/system/glmover.h"
@@ -178,5 +179,9 @@ template class AbsGLMover<GLCel, GLBresen>;
 template void AbsGLMover<GLCel, GLBresen>::start<GLBresen>(const GLPoint &);
 template class AbsGLMover<GLCel, GLArc>;
 template void AbsGLMover<GLCel, GLArc>::start<GLArc>(const GLPoint &, const int);
+template class AbsGLMover<S2PanoramaSprite, GLBresen>;
+template void AbsGLMover<S2PanoramaSprite, GLBresen>::start<GLBresen>(const GLPoint &);
+template class AbsGLMover<S2PanoramaSprite, GLArc>;
+template void AbsGLMover<S2PanoramaSprite, GLArc>::start<GLArc>(const GLPoint &, const int);
 
 } // End of namespace Sci

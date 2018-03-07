@@ -45,6 +45,7 @@ public:
 	bool hasPrayerStick(const S2PrayerStick id) const { return _prayerStick == id; }
 	S2PrayerStick getPrayerStickId() const { return _prayerStick; }
 	bool takePrayerStick(const S2PrayerStick id);
+	void dropPrayerStick();
 
 	S2Inventory getCurrentItem() const { return _currentItem; }
 	void setCurrentItem(const S2Inventory item);
@@ -80,6 +81,10 @@ public:
 				removeItem(slotNo);
 			}
 		}
+	}
+
+	bool isNormal(const S2Inventory item) const {
+		return getState(item) == S2InventoryState::Normal;
 	}
 
 	bool isPlaced(const S2Inventory item) const {

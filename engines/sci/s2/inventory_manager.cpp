@@ -96,6 +96,13 @@ bool S2InventoryManager::takePrayerStick(const S2PrayerStick id) {
 	return true;
 }
 
+void S2InventoryManager::dropPrayerStick() {
+	_game.getCursor().dropPrayerStick();
+	_prayerStick = S2PrayerStick::None;
+	_currentItem = S2Inventory::None;
+	_game.getScoringManager().doEvent(kScore3);
+}
+
 void S2InventoryManager::setCurrentItem(const S2Inventory item) {
 	if (_currentItem == item) {
 		return;

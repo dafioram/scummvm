@@ -36,7 +36,7 @@ S2PanoramaSprite::S2PanoramaSprite(const uint16 resourceNo, const GLPoint &posit
 	_cycleSpeed(6),
 	_moveSpeed(2),
 	_stepSize(30, 10) {
-	_position = position;
+	_position = _nextPosition = position;
 	_isSprite = true;
 	setBounds(Common::Rect(position.x, position.y, position.x + _celWidth, position.y + _celHeight));
 	// SSCI allocated memory for the saved back rect of the sprite here; this
@@ -54,6 +54,27 @@ void S2PanoramaSprite::setBounds(const Common::Rect &bounds) {
 	} else {
 		_bounds = bounds;
 	}
+}
+
+void S2PanoramaSprite::setPosition(const GLPoint &position, const bool) {
+	if (position.x > 2048) {
+		_nextPosition.x = position.x - 2048;
+	} else if (position.x < 0) {
+		_nextPosition.x = position.x + 2048;
+	} else {
+		_nextPosition.x = position.x;
+	}
+	_nextPosition.y = position.y;
+}
+
+void S2PanoramaSprite::update() {
+	_position = _nextPosition;
+	Common::Rect bounds;
+	bounds.left = _position.x;
+	bounds.top = _position.y;
+	bounds.setWidth(_celWidth);
+	bounds.setHeight(_celHeight);
+	setBounds(bounds);
 }
 
 } // End of namespace Sci
