@@ -28,6 +28,7 @@
 #include "sci/s2/rooms/6000.h"
 #include "sci/s2/rooms/10000.h"
 #include "sci/s2/rooms/11000.h"
+#include "sci/s2/rooms/28000.h"
 #include "sci/s2/rooms/global.h"
 #include "sci/s2/system/glpanorama.h"
 #include "sci/s2/system/glplane.h"
@@ -337,6 +338,9 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	case 11000:
 		_currentRoom.reset(new S2Room11000(_kernel, _game));
 		break;
+	case 28000:
+		_currentRoom.reset(new S2Room28000(_kernel, _game));
+		break;
 	case 12000:
 	case 13000:
 	case 14000:
@@ -353,7 +357,6 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	case 25000:
 	case 26000:
 	case 27000:
-	case 28000:
 	case 30000:
 	default:
 		error("Invalid room %d", roomNo);

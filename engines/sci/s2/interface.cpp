@@ -36,7 +36,7 @@ S2Interface::S2Interface(S2Kernel &kernel, S2Game &game) :
 	_kernel(kernel),
 	_game(game),
 	_isVisible(false),
-	_healthRemaining(100),
+	_lifeRemaining(100),
 	_isCaptioningOn(false),
 	_hasCaptioningFinished(false) {}
 
@@ -126,11 +126,11 @@ void S2Interface::init() {
 
 void S2Interface::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsByte(_isCaptioningOn);
-	s.syncAsSint32LE(_healthRemaining);
+	s.syncAsSint32LE(_lifeRemaining);
 
 	// This was originally in S2Game::Load in SSCI
 	if (s.isLoading()) {
-		changeLife(_healthRemaining, true);
+		changeLife(_lifeRemaining, true);
 		resetButtons();
 		_eye->enable();
 	}
@@ -294,21 +294,21 @@ void S2Interface::resetButtons() {
 
 void S2Interface::changeLife(const int amount, const bool isAbsolute) {
 	if (isAbsolute) {
-		_healthRemaining = amount;
+		_lifeRemaining = amount;
 	} else {
-		_healthRemaining += amount;
+		_lifeRemaining += amount;
 	}
 
-	if (_healthRemaining < 0) {
-		_healthRemaining = 0;
-	} else if (_healthRemaining > 100) {
-		_healthRemaining = 100;
+	if (_lifeRemaining < 0) {
+		_lifeRemaining = 0;
+	} else if (_lifeRemaining > 100) {
+		_lifeRemaining = 100;
 	}
 
-	if (_healthRemaining == 0) {
+	if (_lifeRemaining == 0) {
 		_game.getRoomManager().loadGlobalRoom(4200, true);
 	} else {
-		_healthMask->setPosition(GLPoint(_healthRemaining * 5, 479), true);
+		_healthMask->setPosition(GLPoint(_lifeRemaining * 5, 479), true);
 	}
 }
 

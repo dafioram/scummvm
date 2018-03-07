@@ -123,6 +123,15 @@ private:
 	virtual int16 nextCel(CelT &client) override;
 };
 
+template <class CelT>
+class AbsGLEndResetCycler : public AbsGLCycler<CelT> {
+public:
+	using AbsGLCycler<CelT>::AbsGLCycler;
+
+private:
+	virtual int16 nextCel(CelT &client) override;
+};
+
 using GLCycler = AbsGLCycler<GLCel>;
 using GLEndCycler = AbsGLEndCycler<GLCel>;
 using GLEndBackCycler = AbsGLEndBackCycler<GLCel>;

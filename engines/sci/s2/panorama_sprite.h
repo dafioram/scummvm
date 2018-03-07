@@ -47,14 +47,20 @@ using S2PanoramaCycler = AbsGLCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardCycler = AbsGLEndForwardCycler<S2PanoramaSprite>;
 using S2PanoramaEndForwardBackwardCycler = AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
 using S2PanoramaStartResetCycler = AbsGLStartResetCycler<S2PanoramaSprite>;
+using S2PanoramaEndResetCycler = AbsGLEndResetCycler<S2PanoramaSprite>;
 
 class S2PanoramaSprite : public S2PanoramaImage {
 public:
-	using EventHandler = std::function<void()>;
+	using EventHandler = std::function<void(S2PanoramaSprite &)>;
 
 	S2PanoramaSprite(const uint16 resourceNo, const GLPoint &position, const int16 celNo = 0, const int16 numCels = 1, const bool transparent = false, const bool visible = true);
 
 	const EventHandler &getMouseDownHandler() const { return _mouseDownHandler; }
+	template <typename T, typename U>
+	EventHandler setMouseDownHandler(T object, U fn) {
+		using namespace std::placeholders;
+		return std::bind(object, fn, _1);
+	}
 	void setMouseDownHandler(const EventHandler &handler) { _mouseDownHandler = handler; }
 
 	const Common::Rect &getRect() { return _bounds; }

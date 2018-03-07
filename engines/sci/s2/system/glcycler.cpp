@@ -212,6 +212,17 @@ int16 AbsGLStartResetCycler<CelT>::nextCel(CelT &client) {
 	}
 }
 
+template <class CelT>
+int16 AbsGLEndResetCycler<CelT>::nextCel(CelT &client) {
+	auto cel = client.getCel();
+	if (cel == client.getLastCel()) {
+		this->incrementCycle();
+		return 0;
+	} else {
+		return cel + this->getDirection();
+	}
+}
+
 template class AbsGLCycler<GLCel>;
 template class AbsGLEndCycler<GLCel>;
 template class AbsGLEndBackCycler<GLCel>;
@@ -223,5 +234,6 @@ template class AbsGLCycler<S2PanoramaSprite>;
 template class AbsGLEndForwardCycler<S2PanoramaSprite>;
 template class AbsGLEndForwardBackwardCycler<S2PanoramaSprite>;
 template class AbsGLStartResetCycler<S2PanoramaSprite>;
+template class AbsGLEndResetCycler<S2PanoramaSprite>;
 
 } // End of namespace Sci

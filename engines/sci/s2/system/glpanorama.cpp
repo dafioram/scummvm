@@ -357,7 +357,7 @@ bool GLPanorama::checkSprites(GLEvent &event) {
 
 	for (auto &sprite : _image.getSprites()) {
 		if (sprite->getRect().contains(projectedPoint) && sprite->getMouseDownHandler()) {
-			sprite->getMouseDownHandler()();
+			sprite->getMouseDownHandler()(*sprite);
 			event.claim();
 			return true;
 		}

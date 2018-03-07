@@ -66,6 +66,7 @@ public:
 	void disableButtons();
 	void resetButtons();
 
+	int getLife() const { return _lifeRemaining; }
 	void changeLife(const int amount, const bool isAbsolute = false);
 
 	void drawInventoryItem(const int slotNo, const S2Inventory item);
@@ -87,7 +88,7 @@ private:
 	// In SSCI this was inverted
 	bool _isVisible;
 
-	int _healthRemaining;
+	int _lifeRemaining;
 
 	S2Kernel &_kernel;
 	S2Game &_game;
