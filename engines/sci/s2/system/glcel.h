@@ -52,14 +52,11 @@ public:
 	const GLPoint &getStepSize() const { return _stepSize; }
 	void setStepSize(const GLPoint &stepSize) { _stepSize = stepSize; }
 
-	void setCycler(GLCycler *cycler) { _cycler = cycler; }
-
 protected:
 	virtual void update() override;
 	void setBounds();
 
 private:
-	GLCycler *_cycler;
 	int _cycleSpeed;
 	int _moveSpeed;
 	GLPoint _stepSize;

@@ -46,7 +46,6 @@ template <class CelT>
 int AbsGLCycler<CelT>::add(CelT &cel, const bool shouldStart) {
 	_cels.push_back(&cel);
 	_timings.push_back(_timeManager->getTickCount() + cel.getCycleSpeed());
-	cel.setCycler(this);
 	if (_cels.size() == 1 && shouldStart) {
 		start();
 	}
@@ -122,9 +121,6 @@ void AbsGLCycler<CelT>::done() {
 
 template <class CelT>
 void AbsGLCycler<CelT>::release() {
-	for (auto &cel : _cels) {
-		cel->setCycler(nullptr);
-	}
 	_cels.clear();
 	_timings.clear();
 }

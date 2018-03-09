@@ -81,8 +81,6 @@ public:
 
 	const GLPoint &getStepSize() const { return _stepSize; }
 
-	void setCycler(S2PanoramaCycler *cycler) { _cycler = cycler; }
-
 	int16 getCel() const { return _celNo; }
 	void setCel(const int16 celNo, const bool = false) { _celNo = celNo; }
 	int16 getLastCel() const { return _numCels - 1; }
@@ -115,7 +113,6 @@ private:
 	GLPoint _stepSize;
 	bool _isVisible;
 	bool _hasTransparency;
-	S2PanoramaCycler *_cycler;
 };
 
 } // End of namespace Sci

@@ -29,7 +29,6 @@ namespace Sci {
 GLCel::GLCel(AbsGLPlane &plane, const uint16 viewNo, const int16 loopNo, const int16 celNo, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
 	GLScreenItem(plane, viewNo, loopNo, celNo, position, priority, scaleInfo),
 	GLFeature(plane),
-	_cycler(nullptr),
 	_cycleSpeed(6),
 	_moveSpeed(6),
 	_stepSize(3, 3) {
