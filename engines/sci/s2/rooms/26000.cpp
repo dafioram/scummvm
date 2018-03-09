@@ -27,13 +27,351 @@ namespace Sci {
 #define self(name) this, &S2FinalPuzzle::name
 
 class S2FinalPuzzle : public S2SubRoom {
+	constexpr GLPoint calcPoint(const int x, const int y) {
+		return GLPoint(157 + 26 * x, 263 + 26 * y);
+	}
+
 public:
 	using S2SubRoom::S2SubRoom;
 
 	void init(const int) override {
 		room().drawPic(5999);
-		warning("TODO: Final puzzle");
+
+		_outerRing = &emplaceCel(false, 5999, 0, 0, roomBottom, 500);
+		_outerRing->setCycleSpeed(1);
+		_outerRing->show();
+		_innerRing = &emplaceCel(false, 5999, 1, 0, roomBottom, 500);
+		_innerRing->setCycleSpeed(1);
+		_innerRing->show();
+		GLPoint position(157, 263);
+		for (auto y = 0; y < _grid.size(); ++y) {
+			auto &row = _grid[y];
+			for (auto x = 0; x < row.size(); ++x) {
+				if (row[x]) {
+					_cels[y][x] = nullptr;
+				} else {
+					const auto state = _game.getRandomNumber(0, 1);
+					_grid[y][x] = state;
+					auto &cel = emplaceCel(false, 5999, 3, state * 2, position);
+					cel.show();
+					cel.setSelectHandler([this, x, y](GLEvent &event, GLTarget &target) {
+						if (event.getType() == kSciEventMouseRelease) {
+							toggleMirror(static_cast<GLCel &>(target), x, y);
+						}
+					});
+					cel.forceUpdate();
+					_cels[y][x] = &cel;
+				}
+				position.x += 26;
+			}
+			position.x = 157;
+			position.y += 26;
+		}
+
+		for (auto i = 0; i < 3; ++i) {
+			_crystals[i] = &emplaceChild<GLScreenItem>(5999, 5, i, roomBottom, 450);
+		}
+
+		_someLifeMultiple = interface().getLife() / 16;
+		user().setIsHandsOn(true);
+		setScript(self(start));
+		// SSCI used an extra boolean to pass state into drawBeam even though
+		// that state was only ever triggered from this caller, so the
+		// consequent is moved up to here instead
+		sound().play(12626, false, 100);
+		drawBeam();
 	}
+
+private:
+	void start(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_outerRing);
+			_cycler->start(script);
+			sound().play(12625, false, 100);
+			break;
+
+		case 1:
+			_cycler.reset(new GLEndCycler());
+			_cycler->add(*_innerRing);
+			_cycler->start(script);
+			sound().play(12627, true, 100);
+			break;
+
+		case 2:
+			sound().stop(12627);
+			_cycler.reset();
+			getPlane().getCast().removeEventHandler(*_outerRing);
+			getPlane().getCast().removeEventHandler(*_innerRing);
+			_innerRing->setLoop(6);
+			_innerRing->setPriority(400, true);
+			user().setIsHandsOn(true);
+			sound().play(12609);
+			sound().play(_soundNo, false, Audio32::kMaxVolume, false, &script);
+			interface().putText(_soundNo);
+			break;
+
+		case 3:
+		case 5:
+		case 6:
+		case 7:
+		case 9:
+		case 10:
+		case 11:
+		case 13:
+		case 14:
+		case 15:
+			sound().stop(12609);
+			sound().play(12609);
+			interface().changeLife(-_someLifeMultiple);
+			script.setTicks(245 - state * 15);
+			break;
+
+		case 4:
+		case 8:
+		case 12:
+		case 16:
+			_soundNo += 2;
+			sound().play(_soundNo, false, Audio32::kMaxVolume, false, &script);
+			interface().putText(_soundNo);
+			interface().changeLife(-_someLifeMultiple);
+			break;
+
+		case 17:
+			sound().stop(_soundNo);
+			sound().play(12609);
+			_script.reset();
+			static_cast<S2Room26000 &>(_parent).setFinalSequence(80);
+			break;
+		}
+	}
+
+	void drawBeam() {
+		enum Direction { kLeft, kUp, kRight, kDown };
+
+		for (auto &crystal : _crystals) {
+			crystal->hide();
+		}
+
+		Direction currentDirection = kRight;
+		int segmentNo = 0, y = 3, x = -1;
+		for (bool isDone = false; !isDone; ) {
+			if (segmentNo >= _beam.size()) {
+				_beam.emplace_back(getPlane(), 5999, 4, 0);
+			}
+			auto &segment = _beam[segmentNo++];
+			switch (currentDirection) {
+			case kLeft:
+				--x;
+				break;
+			case kUp:
+				--y;
+				break;
+			case kRight:
+				++x;
+				break;
+			case kDown:
+				++y;
+				break;
+			}
+
+			if (x < 0 || x >= _grid[0].size() || y < 0 || y >= _grid.size() ||
+				_grid[y][x] == -1) {
+
+				isDone = true;
+				switch (currentDirection) {
+				case kLeft:
+				case kRight:
+					segment.setCel(9);
+					break;
+				case kUp:
+				case kDown:
+					segment.setCel(8);
+					break;
+				}
+			} else {
+				switch (_grid[y][x]) {
+				case 0:
+					switch (currentDirection) {
+					case kLeft:
+						currentDirection = kDown;
+						segment.setCel(2);
+						break;
+					case kUp:
+						currentDirection = kRight;
+						segment.setCel(2);
+						break;
+					case kRight:
+						currentDirection = kUp;
+						segment.setCel(6);
+						break;
+					case kDown:
+						currentDirection = kLeft;
+						segment.setCel(6);
+						break;
+					}
+					break;
+
+				case 1:
+					switch (currentDirection) {
+					case kLeft:
+						currentDirection = kUp;
+						segment.setCel(0);
+						break;
+					case kUp:
+						currentDirection = kLeft;
+						segment.setCel(4);
+						break;
+					case kRight:
+						currentDirection = kDown;
+						segment.setCel(4);
+						break;
+					case kDown:
+						currentDirection = kRight;
+						segment.setCel(0);
+						break;
+					}
+					break;
+
+				case 2:
+				case 3:
+				case 4: {
+					auto i = _grid[y][x] - 2;
+					_crystals[i]->show();
+				}
+					// fall through
+				case 5:
+					switch (currentDirection) {
+					case kLeft:
+					case kRight:
+						segment.setCel(9);
+						break;
+					case kUp:
+					case kDown:
+						segment.setCel(8);
+						break;
+					}
+					break;
+				}
+			}
+
+			segment.setPriority(100);
+			segment.setPosition(calcPoint(x, y), true);
+			segment.show();
+		}
+
+		if (y == 3 && x == 4 && currentDirection == kRight) {
+			if (segmentNo >= _beam.size()) {
+				_beam.emplace_back(getPlane(), 5999, 4, 0);
+			}
+			auto &segment = _beam[segmentNo++];
+			segment.setPriority(550);
+			segment.setCel(5);
+			if (!_crystals[0]->getIsVisible()) {
+				segment.setPosition(GLPoint(252, 263 + 26 * y), true);
+				segment.show();
+			} else if (!_crystals[1]->getIsVisible()) {
+				segment.setPosition(GLPoint(262, 263 + 26 * y), true);
+				segment.show();
+			} else if (!_crystals[2]->getIsVisible()) {
+				segment.setPosition(GLPoint(272, 263 + 26 * y), true);
+				segment.show();
+			} else {
+				segment.setCel(9);
+				segment.setPosition(calcPoint(x, y), true);
+				segment.show();
+
+				{
+					if (segmentNo >= _beam.size()) {
+						_beam.emplace_back(getPlane(), 5999, 4, 0);
+					}
+					auto &nextSegment = _beam[segmentNo++];
+					++x;
+					nextSegment.setCel(9);
+					nextSegment.setPriority(550);
+					nextSegment.setPosition(calcPoint(x, y), true);
+					nextSegment.show();
+				}
+
+				{
+					if (segmentNo >= _beam.size()) {
+						_beam.emplace_back(getPlane(), 5999, 4, 0);
+					}
+					auto &nextSegment = _beam[segmentNo];
+					++x;
+					nextSegment.setCel(4);
+					nextSegment.setPriority(550);
+					nextSegment.setPosition(calcPoint(x, y), true);
+				}
+
+				user().setIsHandsOn(false);
+				sound().stop(_soundNo);
+				sound().play(12608, false, Audio32::kMaxVolume, false, nullptr, make_reg(0, 1));
+				setScript(self(finished));
+			}
+		}
+
+		for (; segmentNo < _beam.size(); ++segmentNo) {
+			_beam[segmentNo].hide();
+		}
+	}
+
+	void finished(GLScript &script, const int state) {
+		switch (state) {
+		case 0: {
+			auto &cel = emplaceCel(false, 5999, 2, 0, roomBottom, 600);
+			cel.setCycleSpeed(1);
+			cel.show();
+			_cycler.reset(new GLCycler());
+			_cycler->add(cel, true);
+			// SSCI stopped the _soundNo sound here, but it was already stopped
+			// by the caller, so is omitted
+			score().doEvent(kScore228);
+			// SSCI passed a soundNode for this sound, but it will never be
+			// playing already, so this is omitted
+			sound().play(12628);
+			script.setSeconds(3);
+			break;
+		}
+
+		case 1:
+			sound().play(12628);
+			_cycler.reset();
+			user().setIsHandsOn(true);
+			_script.reset();
+			room().setNextRoomNo(26901);
+			break;
+		}
+	}
+
+	void toggleMirror(GLCel &cel, const int x, const int y) {
+		if (_grid[y][x]) {
+			cel.setCel(0, true);
+			_grid[y][x] = 0;
+		} else {
+			cel.setCel(2, true);
+			_grid[y][x] = 1;
+		}
+
+		drawBeam();
+	}
+
+	GLCel *_outerRing;
+	GLCel *_innerRing;
+
+	uint16 _soundNo = 42658;
+	int _someLifeMultiple;
+
+	Common::Array<GLScreenItem> _beam;
+	Common::FixedArray<GLScreenItem *, 3> _crystals;
+	Common::FixedArray<Common::FixedArray<GLCel *, 13>, 4> _cels;
+	Common::FixedArray<Common::FixedArray<int8, 13>, 4> _grid = {{
+		{{ -1, -1, -1, 0,  0,  2,  2, 0, 0, -1, -1, -1, -1 }},
+		{{ -1,  0,  0, 0,  0,  0,  0, 5, 0,  3,  0, -1, -1 }},
+		{{  0,  0,  0, 0,  5,  0,  0, 0, 0,  0,  0,  0, -1 }},
+		{{  0,  0,  0, 0, -1, -1, -1, 0, 4,  0,  0,  0,  0 }}
+	}};
 };
 
 #undef self
@@ -318,7 +656,7 @@ void S2Room26000::init(const int roomNo) {
 		_cel->show();
 		_cel->setCycleSpeed(18);
 		_cycler.reset(new GLPingPongCycler());
-		_cycler->add(*_cel);
+		_cycler->add(*_cel, true);
 		setScript(self(takeIanyi));
 		break;
 	}

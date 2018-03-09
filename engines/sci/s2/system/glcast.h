@@ -36,6 +36,7 @@ class GLScreenItem;
 class GLCast {
 public:
 	void add(GLObject &object);
+	void replace(GLObject &oldObject, GLObject &newObject);
 	// TODO: GLCel is added here to avoid UB-triggering behaviour when trying to
 	// remove a GLCel from the cast, but virtual inheritance is probably more
 	// appropriate

@@ -35,6 +35,10 @@ public:
 	virtual void dispose(const int) override;
 	virtual void doIt() override;
 
+	void setFinalSequence(const int state) {
+		setScript(this, &S2Room26000::finalSequence, state);
+	}
+
 private:
 	void enterFromRelative(const int roomNo, const int16 panXDelta, const int16 elseDelta) {
 		if (room().getPreviousRoomNo() == roomNo) {

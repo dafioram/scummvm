@@ -1389,11 +1389,15 @@ public:
 
 	virtual void init(const int) override {
 		sound().deleteAmbient(0);
+		cursor().goHandsOn();
+		user().setIsHandsOn(true);
 
+		// quit
 		auto *button = &emplaceButton(true, true, 4230, 0, 0, absBottom, 202);
 		button->setHighlightedFace(4230, 0, 1);
 		button->setMouseUpHandler(global(quitGame));
 
+		// load game
 		button = &emplaceButton(true, _game.hasSaveGames(), 4230, 1, 0, absBottom, 202);
 		button->setHighlightedFace(4230, 1, 1);
 		button->setMouseUpHandler(global(showOldGames));

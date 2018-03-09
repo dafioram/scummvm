@@ -240,6 +240,8 @@ protected:
 	}
 
 	void clear() {
+		_cycler.reset();
+
 		if (!_keepPanoramaExits) {
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}

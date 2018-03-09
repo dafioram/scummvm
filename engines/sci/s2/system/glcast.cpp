@@ -42,6 +42,28 @@ void GLCast::add(GLObject &object) {
 	}
 }
 
+void GLCast::replace(GLObject &oldObject, GLObject &newObject) {
+	auto *newPointer = &newObject;
+	{
+		auto it = Common::find(_screenItems.begin(), _screenItems.end(), &oldObject);
+		if (it != _screenItems.end()) {
+			*it = dynamic_cast<GLScreenItem *>(newPointer);
+		}
+	}
+	{
+		auto it = Common::find(_doIts.begin(), _doIts.end(), &oldObject);
+		if (it != _doIts.end()) {
+			*it = dynamic_cast<GLTarget *>(newPointer);
+		}
+	}
+	{
+		auto it = Common::find(_eventHandlers.begin(), _eventHandlers.end(), &oldObject);
+		if (it != _eventHandlers.end()) {
+			*it = dynamic_cast<GLTarget *>(newPointer);
+		}
+	}
+}
+
 void GLCast::remove(GLCel &object) {
 	if (static_cast<GLScreenItem &>(object).getIsScreenItem()) {
 		_screenItems.remove(&object);

@@ -51,11 +51,26 @@ GLScreenItem::GLScreenItem(AbsGLPlane &plane, const uint16 viewNo, const int16 l
 GLScreenItem::GLScreenItem(AbsGLPlane &plane, S2Bitmap &bitmap, const GLPoint &position, const int16 priority, const ScaleInfo &scaleInfo) :
 	GLScreenItem(plane, GLCelRes(bitmap.getHandle()), position, priority, scaleInfo) {}
 
+GLScreenItem::GLScreenItem(GLScreenItem &&other) :
+	GLObject(other),
+	_celInfo(other._celInfo),
+	_position(other._position),
+	_plane(other._plane),
+	_screenItem(other._screenItem.release()),
+	_isDirty(other._isDirty),
+	_isVisible(other._isVisible) {
+	_plane->getCast().remove(other);
+	_plane->getCast().add(*this);
+	other._plane = nullptr;
+}
+
 GLScreenItem::~GLScreenItem() {
 	if (_screenItem && _isVisible) {
 		_graphicsManager->deleteScreenItem(*_screenItem.release());
 	}
-	_plane->getCast().remove(*this);
+	if (_plane) {
+		_plane->getCast().remove(*this);
+	}
 }
 
 void GLScreenItem::setPriority(const int16 priority, const bool shouldUpdate) {
