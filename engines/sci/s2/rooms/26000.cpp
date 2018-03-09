@@ -1126,8 +1126,109 @@ void S2Room26000::endgame(GLScript &script, const int state) {
 }
 
 void S2Room26000::finalSequence(GLScript &script, const int state) {
+	switch (state) {
+	case 0:
+		room().drawPic(55555);
+		// In SSCI the placement of the cel is off
+		_robot = &emplaceCel(false, 55555, 0, 5, GLPoint(436, 290));
+		_robot->show();
+		getPlane().getCast().removeEventHandler(*_robot);
+		user().setIsHandsOn(false);
+		playRobot(script, 52131, 52650);
+		_clickedRobot = false;
+		break;
+
+	case 1:
+		user().setIsHandsOn(false);
+		_pool = &emplaceCel(false, 64002, 0, 0, GLPoint(250, 383));
+		_pool->show();
+		getPlane().getCast().removeEventHandler(*_pool);
+		_cycler.reset(new GLEndCycler());
+		_cycler->add(*_pool);
+		_cycler->start(script);
+		sound().play(12613);
+		break;
+
+	case 2:
+		user().setIsHandsOn(false);
+		_cycler.reset();
+		removeChild(*_pool);
+		_pool = nullptr;
+		_spirit = &emplaceCel(false, 64003, 0, 0, GLPoint(250, 383));
+		_spirit->show();
+		getPlane().getCast().removeEventHandler(*_spirit);
+		_cycler.reset(new GLPingPongCycler());
+		_cycler->add(*_spirit, true);
+		playRobot(script, 52251, 52630);
+		break;
+
+	case 3:
+		user().setIsHandsOn(false);
+		_norah = &emplaceCel(false, 60000, 0, 0, GLPoint(96, 287));
+		_norah->show();
+		getPlane().getCast().removeEventHandler(*_norah);
+		_norahCycler.reset(new GLEndCycler());
+		_norahCycler->add(*_norah);
+		_norahCycler->start(script);
+		playRobot(script, 52371, 52601);
+		break;
+
+	case 4:
+		user().setIsHandsOn(false);
+		// SSCI recreated the entire cel object instead of just resetting its
+		// view state
+		_norah->setCelRes(GLCelRes(60002, 0, 0), true);
+		_norahCycler.reset(new GLPingPongCycler());
+		_norahCycler->add(*_norah, true);
+		break;
+
+	case 5:
+		user().setIsHandsOn(false);
+		_robot->setCel(0);
+		movie().play(52531, nullptr, roomTop);
+		script.setCycles(1);
+		break;
+
+	case 6:
+		user().setIsHandsOn(false);
+		playRobot(script, 52671, 52653);
+		script.setState(211);
+
+		_maxHotspot = &emplaceHotspot(true, 433, 28, 534, 295);
+		_maxHotspot->setMouseUpHandler(self(clickedMax));
+		_spiritHotspot = &emplaceHotspot(true, 274, 63, 381, 288);
+		_spiritHotspot->setMouseUpHandler(self(clickedSpirit));
+		_norahHotspot = &emplaceHotspot(true, 96, 36, 216, 290);
+		_norahHotspot->setMouseUpHandler(self(clickedNorah));
+		break;
+
+	case 212:
+		script.setSeconds(7);
+		// fall through
+	case 12:
+		user().setIsHandsOn(true);
+	}
+}
+
+void S2Room26000::playRobot(GLScript &script, const uint16 robotNo, const uint16 textNo) {
+	movie().initRobot(robotNo, getPlane(), 100, roomTop);
+	movie().setRobotClient(*_robot);
+	movie().setRobotCaller(script);
+	movie().playRobot();
+	interface().putText(textNo);
+}
+
+
+void S2Room26000::clickedMax(GLEvent &, GLTarget &) {
 	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
+void S2Room26000::clickedSpirit(GLEvent &, GLTarget &) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
+
+void S2Room26000::clickedNorah(GLEvent &, GLTarget &) {
+	warning("TODO: %s", __PRETTY_FUNCTION__);
+}
 
 } // End of namespace Sci

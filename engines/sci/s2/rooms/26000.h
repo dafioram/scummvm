@@ -79,6 +79,19 @@ private:
 	int _globalRoomNo;
 
 	void finalSequence(GLScript &, const int);
+	void playRobot(GLScript &, const uint16 robotNo, const uint16 textNo);
+	void clickedMax(GLEvent &, GLTarget &);
+	void clickedSpirit(GLEvent &, GLTarget &);
+	void clickedNorah(GLEvent &, GLTarget &);
+	GLCel *_robot;
+	GLCel *_pool;
+	GLCel *_spirit;
+	GLCel *_norah;
+	Common::ScopedPtr<GLCycler> _norahCycler;
+	S2Hotspot *_maxHotspot;
+	S2Hotspot *_spiritHotspot;
+	S2Hotspot *_norahHotspot;
+	bool _clickedRobot;
 };
 
 } // End of namespace Sci
