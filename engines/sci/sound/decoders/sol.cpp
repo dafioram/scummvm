@@ -247,7 +247,7 @@ Audio::SeekableAudioStream *makeSOLStream(Common::SeekableReadStream *stream, Di
 	const uint8 headerSize = header[1] + kResourceHeaderSize;
 	const uint16 sampleRate = stream->readUint16LE();
 	const byte flags = stream->readByte();
-	const uint32 dataSize = stream->readUint32LE();
+	uint32 dataSize = stream->readUint32LE();
 
 	initialPosition += headerSize;
 
@@ -274,6 +274,11 @@ Audio::SeekableAudioStream *makeSOLStream(Common::SeekableReadStream *stream, Di
 	byte rawFlags = Audio::FLAG_LITTLE_ENDIAN;
 	if (flags & k16Bit) {
 		rawFlags |= Audio::FLAG_16BITS;
+		// At least Shivers 2 42658.AUD is uncompressed 16-bit SOL audio
+		// containing an odd number of sample bytes; SSCI always truncated the
+		// last 3 bytes, so we will do the same, but only for these raw samples
+		// to avoid losing any valid samples at the end of other audio files
+		dataSize &= ~3;
 	} else {
 		rawFlags |= Audio::FLAG_UNSIGNED;
 	}
