@@ -819,7 +819,7 @@ private:
 	void finished(GLScript &script) {
 		flags().set(kGameFlag218);
 		score().doEvent(kScore224);
-		script.setTicks(sound().play(12606));
+		sound().play(12606, false, Audio32::kMaxVolume, false, &script);
 	}
 
 	Common::FixedArray<Common::FixedArray<int, kWidth>, kHeight> _state;
