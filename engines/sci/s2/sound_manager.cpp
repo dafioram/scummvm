@@ -39,7 +39,17 @@ void S2SoundManager::saveLoadWithSerializer(Common::Serializer &s) {
 
 void S2SoundManager::stopAllSounds() {
 	deleteAmbient(_roomNo);
-	stop();
+	// SSCI stopped all sounds immediately in the kernel mixer but this would
+	// also cause the menu sound to stop abruptly when jumping using the map,
+	// so instead we iterate all the sounds and stop everything except for the
+	// menu sound. (This is not perfect since soundNode is not recorded & used,
+	// but should work out OK since generally only short sound effects use an
+	// explicit soundNode.)
+	for (auto &sound : getSounds()) {
+		if (sound.getResourceNo() != 30004) {
+			stop(sound.getResourceNo());
+		}
+	}
 }
 
 void S2SoundManager::createAmbient(const int roomNo) {

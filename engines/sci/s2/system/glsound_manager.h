@@ -56,6 +56,8 @@ public:
 	void deleteSoundTrack(const int trackId);
 
 protected:
+	Common::List<GLSound> &getSounds() { return _sounds; }
+
 	S2Game &_game;
 
 private:
