@@ -44,6 +44,12 @@ void S2Button::setAutoHighlight(const bool set) {
 }
 
 void S2Button::doIt() {
+	// SSCI did not check the hands-on state so would highlight buttons even
+	// when they could not be interacted with
+	if (!_user->getIsHandsOn()) {
+		return;
+	}
+
 	if (!_autoHighlight || !getIsEnabled() || getIsDepressed() || !getIsVisible()) {
 		return;
 	}
