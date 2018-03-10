@@ -72,6 +72,8 @@ public:
 	void drawInventoryItem(const int slotNo, const S2Inventory item);
 	void eraseInventoryItem(const int slotNo);
 
+	bool getOptionsButtonEnabled() const { return _options && _options->getIsEnabled(); }
+
 private:
 	S2Button *makeButton(const int16 loopNo, const bool shouldEnable = true) const;
 	void activateButton(GLEvent &event, GLTarget &target, const int roomNo);
