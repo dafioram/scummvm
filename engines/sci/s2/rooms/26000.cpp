@@ -1378,8 +1378,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 
 	case 23:
 		user().setIsHandsOn(false);
-		_norahCycler.reset();
-		movie().stopRobot(false);
+		clearFinalScreen();
 		room().drawPic(2);
 		movie().play(53431);
 		interface().changeLife(1, true);
@@ -1413,7 +1412,10 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		removeFinalHotspots();
 		_norah->setCelRes({ 60020, 0, 0 }, true);
 		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
-		_spirit->setCelRes({ 64002, 0, 0 }, true);
+		assert(!_spirit);
+		_spirit = &emplaceCel(false, 64002, 0, 0, GLPoint(250, 383));
+		_spirit->show();
+		getPlane().getCast().remove(*_spirit);
 		_cycler.reset(new GLEndCycler(*_spirit, script));
 		sound().play(12613);
 		break;
@@ -1429,7 +1431,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		movie().play(53861);
 		_norah->setCelRes({ 60001, 0, 0 }, true);
 		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
-		script.setState(12);
+		script.setState(132);
 		script.setSeconds(5);
 		break;
 
@@ -1447,9 +1449,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		break;
 
 	case 34:
-		movie().stopRobot(false);
-		_cycler.reset();
-		_norahCycler.reset();
+		clearFinalScreen();
 		room().drawPic(2);
 		movie().play(54171);
 		movie().play(54371, nullptr, GLPoint(154, 75), true, true);
@@ -1492,7 +1492,11 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		sound().play(12124);
 		getPlane().getCast().remove(*_amulet);
 		user().setIsHandsOn(false);
-		playRobot(script, 55261, -1);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 55261, -1);
+		}
 		script.setState(51);
 		_max->setCel(4);
 		_maxHotspot->setPoints(278, 67, 381, 288);
@@ -1502,7 +1506,11 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 
 	case 51:
 		user().setIsHandsOn(false);
-		playRobot(script, 55361, 52674);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 55361, 52674);
+		}
 		break;
 
 	case 52:
@@ -1704,6 +1712,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 
 	case 72:
 		clearFinalScreen();
+		room().drawPic(5999);
 		_max = &emplaceCel(false, 59999, 0, 0, GLPoint(436, 290));
 		_max->show();
 		getPlane().getCast().remove(*_max);
