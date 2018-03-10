@@ -54,7 +54,6 @@ public:
 
 	int _flashbackPageNo;
 	int _flashbackMovieNo;
-	S2MovieManager::Captioner *_flashbackMovieCaptioner;
 
 private:
 	virtual GLPicturePlane &getPlane() const override {

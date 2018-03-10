@@ -1067,7 +1067,7 @@ void S2Room26000::endgame(GLScript &script, const int state) {
 
 	case 2:
 		room().drawPic(2);
-		movie().play(54172, nullptr, roomTop);
+		movie().play(54172);
 		script.setCycles(1);
 		break;
 
@@ -1118,7 +1118,7 @@ void S2Room26000::endgame(GLScript &script, const int state) {
 		_cel.reset();
 		room().drawPic(2);
 		interface().changeLife(100, true);
-		movie().play(54371, nullptr, GLPoint(154, 75), true, true);
+		movie().play(54371, { 154, 75 }, true, true);
 		user().setIsHandsOn(true);
 		_globalRoomNo = 4240;
 		_script.reset();
@@ -1206,7 +1206,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		if (_debugFastForward) {
 			_max->forceUpdate();
 		} else {
-			movie().play(52531, nullptr, roomTop);
+			movie().play(52531);
 		}
 		script.setCycles(1);
 		break;
@@ -1452,7 +1452,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		clearFinalScreen();
 		room().drawPic(2);
 		movie().play(54171);
-		movie().play(54371, nullptr, GLPoint(154, 75), true, true);
+		movie().play(54371, { 154, 75 }, true, true);
 		_globalRoomNo = 4220;
 		script.setState(999);
 		script.setCycles(1);
@@ -1834,7 +1834,7 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		room().drawPic(2);
 		interface().changeLife(100, true);
 		movie().play(54171);
-		movie().play(54371, nullptr, { 154, 75 }, true, true);
+		movie().play(54371, { 154, 75 }, true, true);
 		_globalRoomNo = 4240;
 		script.setState(999);
 		script.setCycles(1);

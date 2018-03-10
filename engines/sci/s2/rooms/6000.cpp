@@ -1736,7 +1736,7 @@ void S2Room6000::init(const int roomNo) {
 		if (!flags().get(kGameFlag29) && inventory().hasPrayerStick()) {
 			flags().set(kGameFlag29);
 			room().drawPic(2);
-			movie().play(5110, nullptr, roomTop);
+			movie().play(5110);
 		}
 
 		room().drawPan(6110);
@@ -2231,7 +2231,7 @@ void S2Room6000::init(const int roomNo) {
 		if (flags().get(kGameFlag28) && !flags().get(kGameFlag23)) {
 			flags().set(kGameFlag23);
 			room().drawPic(2);
-			movie().play(5050, nullptr, roomTop);
+			movie().play(5050);
 			room().getPanorama().setPanX(1814);
 		}
 		room().drawPan(6330);
@@ -2264,7 +2264,7 @@ void S2Room6000::init(const int roomNo) {
 		if (room().getPreviousRoomNo() == 6340 && !flags().get(kGameFlag24)) {
 			flags().set(kGameFlag24);
 			room().drawPic(2);
-			movie().play(5060, nullptr, roomTop);
+			movie().play(5060);
 			room().getPanorama().setPanX(62);
 		}
 		room().drawPan(6350);
@@ -2659,7 +2659,7 @@ void S2Room6000::dispose(const int roomNo) {
 		if (room().getNextRoomNo() == 6260 && !flags().get(kGameFlag20) && inventory().hasPrayerStick()) {
 			flags().set(kGameFlag20);
 			room().drawPic(2);
-			movie().play(5020, nullptr, roomTop);
+			movie().play(5020);
 		}
 		break;
 	}

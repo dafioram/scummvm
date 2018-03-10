@@ -192,7 +192,7 @@ void S2Room50000::openBox(GLScript &script, const int state) {
 		if (!flags().get(kGameFlag19) && flags().get(kGameFlag220)) {
 			flags().set(kGameFlag19);
 			room().drawPic(2);
-			movie().play(5010, nullptr, roomTop);
+			movie().play(5010);
 			flags().set(kGameFlag62);
 		}
 		_script.reset();

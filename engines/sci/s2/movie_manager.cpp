@@ -89,7 +89,7 @@ void S2MovieManager::setRobotClient(GLCel &cel) {
 	}
 }
 
-void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoint &position, const bool forceDoublePixels, const bool keepRoom) {
+void S2MovieManager::play(const uint16 movieNo, const GLPoint &position, const bool forceDoublePixels, const bool keepRoom) {
 	_game.getPhoneManager().cancelCall();
 	auto roomNo = _game.getSoundManager().getRoomNo();
 	_game.getRoomManager().setLastSoundRoomNo(roomNo);
@@ -100,19 +100,19 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 		_game.getRoomManager().deactivateRoom();
 	}
 
-	if (!captioner) {
-		warning("TODO: Captioning selection");
-	}
+	auto captioner = S2Captions::get(movieNo);
 
 	_movie = GLVmdMovie(movieNo);
 
 	{
 		GLTransparentPlane plane(Common::Rect(_kernel.graphicsManager.getScriptWidth(), _kernel.graphicsManager.getScriptHeight()), 4);
 
+		const bool isCaptioned = captioner && _game.getInterface().getIsCaptioningOn();
+
 		// HACK: Allow HQ video as long as there is no captioning (since the
 		// captions need to composite on top of the video); normally this was
 		// always 200
-		const int16 planePriority = captioner ? 200 : 0;
+		const int16 planePriority = isCaptioned ? 200 : 0;
 
 		_kernel.graphicsManager._video.getVMDPlayer().setPlane(planePriority, plane.getId());
 
@@ -137,11 +137,11 @@ void S2MovieManager::play(const uint16 movieNo, Captioner captioner, const GLPoi
 			playFlags |= VMDPlayer::kEventFlagMouseUp;
 		}
 
-		if (captioner && _game.getInterface().getIsCaptioningOn()) {
+		if (isCaptioned) {
 			VMDPlayer::EventFlags result;
 			playFlags |= VMDPlayer::kEventFlagToFrame;
 			do {
-				captioner(*this);
+				captioner(*this, _game.getInterface());
 				_movie.setMovieEvent(VMDPlayer::EventFlags(playFlags), _frameNo);
 				result = _player.play(_movie);
 			} while (result == VMDPlayer::kEventFlagEnd && _frameNo != 9999);
@@ -183,24 +183,20 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 					_game.getFlags().set(kGameFlag32);
 				}
 				movieNo = 3002;
-				warning("TODO: Captioning function for %d", movieNo);
 			} else if (!_game.getFlags().get(kGameFlag33)) {
 				_game.getFlags().set(kGameFlag33);
 				_game.getFlags().set(kGameFlag32);
 				movieNo = 3003;
-				warning("TODO: Captioning function for %d", movieNo);
 			} else if (!_game.getFlags().get(kGameFlag34)) {
 				_game.getFlags().set(kGameFlag34);
 				if (_game.getInventoryManager().hasPrayerStick()) {
 					_game.getFlags().set(kGameFlag35);
 				}
 				movieNo = 3001;
-				warning("TODO: Captioning function for %d", movieNo);
 			} else {
 				_game.getFlags().set(kGameFlag34);
 				_game.getFlags().set(kGameFlag35);
 				movieNo = 3001;
-				warning("TODO: Captioning function for %d", movieNo);
 			}
 		} else if (!_game.getFlags().get(kGameFlag75)) {
 			movieNo = 2003;
@@ -235,7 +231,8 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 			}
 		}
 
-		warning("TODO: Movie captions for %d", movieNo);
+		// SSCI also selected captioner here but there is no reason to do this
+		// since it can be selected in the main video playback function
 		switch (movieNo) {
 		case 2000:
 			_game.getFlags().set(kGameFlag79);
@@ -264,24 +261,17 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 		case 2008:
 			_game.getFlags().set(kGameFlag73);
 			break;
-		case 2009:
-		case 2010:
-		case 2011:
-		case 2012:
-			break;
 		}
 		break;
 	case 1:
 		_game.getFlags().set(kGameFlag81);
 		_shouldHypnotise = false;
 		movieNo = 4000;
-		warning("TODO: Video caption for %d", movieNo);
 		break;
 	case 2:
 		_game.getFlags().set(kGameFlag82);
 		_shouldHypnotise = false;
 		movieNo = 4010;
-		warning("TODO: Video caption for %d", movieNo);
 		break;
 	default:
 		error("Unknown video tape ID %d", tapeId);
@@ -292,8 +282,7 @@ void S2MovieManager::play(const uint16 tapeId, const bool blockHypnotism) {
 		_kernel.graphicsManager._palette.doCycle(195, 1);
 	}
 
-	warning("TODO: Captioning selection for tapes");
-	play(movieNo, nullptr, GLPoint(159, 70), true, true);
+	play(movieNo, GLPoint(159, 70), true, true);
 
 	if (_shouldHypnotise) {
 		_kernel.graphicsManager._palette.cycleOff(195);

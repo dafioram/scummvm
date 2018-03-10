@@ -299,7 +299,7 @@ void S2Room1000::init(const int roomNo) {
 void S2Room1000::logoScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1000, nullptr, absTop);
+		movie().play(1000, absTop);
 		script.setTicks(1);
 		break;
 	case 1:
@@ -311,7 +311,7 @@ void S2Room1000::logoScript(GLScript &script, const int state) {
 void S2Room1000::openingScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1010, nullptr, roomTop);
+		movie().play(1010);
 		script.setTicks(1);
 		break;
 	case 1:
@@ -323,7 +323,7 @@ void S2Room1000::openingScript(GLScript &script, const int state) {
 void S2Room1000::dreamMovieScript(GLScript &script, const int state) {
 	switch (state) {
 	case 0:
-		movie().play(1020, nullptr, roomTop);
+		movie().play(1020);
 		script.setTicks(1);
 		break;
 	case 1:

@@ -429,8 +429,7 @@ public:
 		case 5010:
 		case 5120:
 			_game.getSoundManager().stop(30004);
-			warning("TODO: caption %d", roomNo);
-			_game.getMovieManager().play(roomNo, nullptr, roomTop, false, true);
+			_game.getMovieManager().play(roomNo, roomTop, false, true);
 			_game.getSoundManager().play(30004, true, 0);
 			_game.getSoundManager().fade(30004, 80, 15, 12);
 			_game.getRoomManager().loadGlobalRoom(4110);
@@ -627,16 +626,13 @@ private:
 	void showMovie(GLEvent &, GLTarget &target) {
 		auto &button = static_cast<S2Button &>(target);
 		const Movie &movie = _loopToMovie[button.getLoop() - 29];
-		warning("TODO: Captions in _loopToMovie");
 		getParent()._flashbackMovieNo = movie.movieNo;
-		getParent()._flashbackMovieCaptioner = movie.captioner;
 		_game.getRoomManager().loadGlobalRoom(movie.roomNo);
 	}
 
 	void playMovie(const bool specialPlayback) {
 		_game.getSoundManager().stop(30004);
 		const auto movieNo = getParent()._flashbackMovieNo;
-		const auto captioner = getParent()._flashbackMovieCaptioner;
 		GLPoint position;
 		bool forceDouble;
 		if (specialPlayback && movieNo == 1020) {
@@ -650,7 +646,7 @@ private:
 			forceDouble = true;
 		}
 
-		_game.getMovieManager().play(movieNo, captioner ? *captioner : nullptr, position, forceDouble, true);
+		_game.getMovieManager().play(movieNo, position, forceDouble, true);
 		_game.getSoundManager().play(30004, true, 0);
 		_game.getSoundManager().fade(30004, 80, 15, 12);
 		_game.getRoomManager().loadGlobalRoom(4111);
@@ -668,28 +664,27 @@ private:
 
 	struct Movie {
 		int movieNo;
-		S2MovieManager::Captioner *captioner;
 		int roomNo;
 	};
 
 	static constexpr Movie _loopToMovie[] = {
 		// starts at 29
-		{ 1020, nullptr, 2 },
-		{ 2002, nullptr, 15341 },
-		{ 2008, nullptr, 15341 },
-		{ 2004, nullptr, 15341 },
-		{ 2003, nullptr, 15341 },
-		{ 2006, nullptr, 15341 },
-		{ 2001, nullptr, 15341 },
-		{ 2005, nullptr, 15341 },
-		{ 2000, nullptr, 15341 },
-		{ 2007, nullptr, 15341 },
-		{ 4000, nullptr, 2 },
-		{ 4010, nullptr, 2 },
-		{ 0, nullptr, 0 },
-		{ 4020, nullptr, 2 },
-		{ 5120, nullptr, 2 },
-		{ 5010, nullptr, 2 }
+		{ 1020, 2 },
+		{ 2002, 15341 },
+		{ 2008, 15341 },
+		{ 2004, 15341 },
+		{ 2003, 15341 },
+		{ 2006, 15341 },
+		{ 2001, 15341 },
+		{ 2005, 15341 },
+		{ 2000, 15341 },
+		{ 2007, 15341 },
+		{ 4000, 2 },
+		{ 4010, 2 },
+		{ 0, 0 },
+		{ 4020, 2 },
+		{ 5120, 2 },
+		{ 5010, 2 }
 	};
 
 	static constexpr int _loopToRoom[] = {

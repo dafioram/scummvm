@@ -225,7 +225,7 @@ void S2Room11000::init(const int roomNo) {
 	case 11199:
 		interface().changeLife(-5);
 		flags().set(kGameFlag28);
-		movie().play(5100, nullptr, roomTop);
+		movie().play(5100);
 		room().newRoom(11100);
 		break;
 

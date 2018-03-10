@@ -23,19 +23,8 @@
 #ifndef SCI_S2_MOVIE_MANAGER_H
 #define SCI_S2_MOVIE_MANAGER_H
 
-#undef abort
-#undef FILE
-#undef time
-#undef mktime
-#undef localtime
-#undef gmtime
-#undef getdate
-#undef asctime
-#undef difftime
-#undef ctime
-#undef clock
-#include <functional>
 #include "common/serializer.h"
+#include "sci/s2/movie_captions.h"
 #include "sci/s2/system/glmovie.h"
 #include "sci/s2/system/glmovie_player.h"
 #include "sci/s2/system/globject.h"
@@ -49,8 +38,6 @@ class S2Kernel;
 
 class S2MovieManager : public GLObject, public Common::Serializable {
 public:
-	using Captioner = std::function<void(S2MovieManager &)>;
-
 	S2MovieManager(S2Kernel &kernel, S2Game &game);
 
 	virtual void saveLoadWithSerializer(Common::Serializer &) override;
@@ -63,11 +50,17 @@ public:
 	void setRobotCaller(GLObject &caller);
 	void setRobotClient(GLCel &cel);
 
-	void play(const uint16 movieNo, Captioner captioner = nullptr, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
+	// SSCI accepted a captioner as a parameter, but whenever this was null
+	// it would just be determined by the play call internally, so it is omitted
+	void play(const uint16 movieNo, const GLPoint &position = GLPoint(64, 0), const bool forceDoublePixels = false, const bool keepRoom = false);
+
 	void play(const uint16 tapeId, const bool blockHypnotism);
 
 	bool getUseHalfScreen() const { return _useHalfScreen; }
 	void toggleUseHalfScreen() { _useHalfScreen = !_useHalfScreen; }
+
+	int getFrameNo() const { return _frameNo; }
+	void setFrameNo(const int frameNo) { _frameNo = frameNo; }
 
 private:
 	S2Kernel &_kernel;

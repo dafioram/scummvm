@@ -132,6 +132,7 @@ MODULE_OBJS += \
 	s2/inventory_object.o \
 	s2/kernel.o \
 	s2/message_box.o \
+	s2/movie_captions.o \
 	s2/movie_manager.o \
 	s2/panorama_image.o \
 	s2/panorama_sprite.o \

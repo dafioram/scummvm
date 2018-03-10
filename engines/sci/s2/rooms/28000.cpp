@@ -883,7 +883,7 @@ void S2Room28000::init(const int roomNo) {
 			flags().set(kGameFlag30);
 			flags().set(kGameFlag67);
 			room().drawPic(2);
-			movie().play(5120, nullptr, roomTop);
+			movie().play(5120);
 		}
 
 		if (_game.getRandomNumber(1, 100) < 30) {

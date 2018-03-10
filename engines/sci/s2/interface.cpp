@@ -60,8 +60,9 @@ void S2Interface::init() {
 	// global plane. In our engine, they render in the opposite order since we
 	// tiebreak using insertion order, latest on top, and the global plane is
 	// always created later. To fix this, the interface plane's priority is set
-	// to 4 instead of 3.
-	_main.reset(new GLTransparentPlane(Common::Rect(640, 480), 4));
+	// to 5 instead of 3 (since it also needs to draw on top of the blackout
+	// plane written by the movie manager).
+	_main.reset(new GLTransparentPlane(Common::Rect(640, 480), 5));
 	_game.getPlanes().add(*_main);
 	_captions.reset(new GLTransparentPlane(Common::Rect(640, 480), 250));
 	_game.getPlanes().add(*_captions);
