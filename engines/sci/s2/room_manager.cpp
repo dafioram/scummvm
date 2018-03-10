@@ -250,12 +250,20 @@ void S2RoomManager::doIt() {
 		newRoom(_nextRoomNo);
 		_nextRoomNo = 0;
 	} else {
-		if (_pictureIsVisible && !_game.getCursor().hasInventory()) {
+		// In SSCI, the cursor state would not be changed if inventory was held,
+		// but this is confusing since it is impossible to tell that the cursor
+		// is non-interactive during a scripted sequence, so we instead allow
+		// the hands-off cursor to be shown when inventory is held and just
+		// don't run checks for the cursor hover state when inventory is held
+		// instead
+		if (_pictureIsVisible) {
 			if (_game.getUser().getIsHandsOn()) {
 				if (_game.getCursor().isHandsOff()) {
 					_game.getCursor().goHandsOn();
 				}
-				checkMouse();
+				if (!_game.getCursor().hasInventory()) {
+					checkMouse();
+				}
 			} else if (!_game.getCursor().isHandsOff()) {
 				_game.getCursor().endHighlight();
 				_game.getCursor().goHandsOff();
