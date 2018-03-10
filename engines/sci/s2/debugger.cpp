@@ -26,6 +26,7 @@
 #include "sci/s2/debugger.h"
 #include "sci/s2/game.h"
 #include "sci/s2/kernel.h"
+#include "sci/s2/room.h"
 
 namespace Sci {
 
@@ -39,6 +40,7 @@ S2Debugger::S2Debugger(S2Kernel &kernel, S2Game &game) :
 	registerCmd("room", WRAP_METHOD(S2Debugger, cmdRoom));
 	registerCmd("flag", WRAP_METHOD(S2Debugger, cmdFlag));
 	registerCmd("give", WRAP_METHOD(S2Debugger, cmdGive));
+	registerCmd("ss", WRAP_METHOD(S2Debugger, cmdRoomState));
 
 	kernel.eventManager.attachDebugger(this);
 	kernel.graphicsManager.attachDebugger(this);
@@ -49,6 +51,7 @@ bool S2Debugger::cmdHelp(int argc, const char **argv) {
 	debugPrintf("room - Get or set the current room\n");
 	debugPrintf("flag - Get or set a game flag\n");
 	debugPrintf("give - Gives an inventory item\n");
+	debugPrintf("ss - Get or set the active room's script state\n");
 	debugPrintf("Resources:\n");
 	printResourcesHelp();
 	debugPrintf("\nGraphics:\n");
@@ -150,6 +153,31 @@ bool S2Debugger::cmdGive(int argc, const char **argv) {
 
 	_game.getInventoryManager().addItem(item);
 	debugPrintf("You now have item %hhu\n", item);
+	return true;
+}
+
+bool S2Debugger::cmdRoomState(int argc, const char **argv) {
+	if (argc > 2) {
+		debugPrintf("Usage: %s [<new state>]\n", argv[0]);
+		return true;
+	}
+
+	auto *room = _game.getRoomManager().getCurrentRoom();
+	if (!room) {
+		debugPrintf("No current room\n");
+		return true;
+	}
+
+	auto state = room->debugScriptState();
+	if (state == -2) {
+		debugPrintf("No active script\n");
+	} else if (argc > 1) {
+		auto newState = atoi(argv[1]);
+		room->debugScriptState(newState);
+		debugPrintf("State changed from %d to %d\n", state, newState);
+	} else {
+		debugPrintf("State is %d\n", state);
+	}
 	return true;
 }
 

@@ -72,6 +72,22 @@ public:
 		init(roomNo);
 	}
 
+	int debugScriptState() const {
+		if (!_script) {
+			return -2;
+		}
+
+		return _script->getState();
+	}
+
+	void debugScriptState(const int state) {
+		if (!_script) {
+			return;
+		}
+
+		resetState(state);
+	}
+
 protected:
 	S2RoomManager &room() { return _game.getRoomManager(); }
 	S2SoundManager &sound() { return _game.getSoundManager(); }

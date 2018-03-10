@@ -35,8 +35,12 @@ template <class CelT>
 class AbsGLCycler : public GLObject {
 public:
 	AbsGLCycler() : GLObject() {}
-	AbsGLCycler(CelT &cel) : GLObject() {
+	AbsGLCycler(CelT &cel, const bool shouldStart = false) : GLObject() {
+		add(cel, shouldStart);
+	}
+	AbsGLCycler(CelT &cel, GLObject &caller) : GLObject() {
 		add(cel);
+		start(caller);
 	}
 	virtual ~AbsGLCycler();
 

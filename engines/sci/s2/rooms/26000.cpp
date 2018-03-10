@@ -559,7 +559,7 @@ void S2Room26000::init(const int roomNo) {
 				if (!flags().get(kGameFlag18) ||
 					!flags().get(kGameFlag199) ||
 					!inventory().isInUse(S2Inventory::kInv29) ||
-					!inventory().isTaken(S2Inventory::kInv40)) {
+					!inventory().isTaken(S2Inventory::Amulet)) {
 
 					return;
 				}
@@ -619,7 +619,7 @@ void S2Room26000::init(const int roomNo) {
 		room().drawPic(55555);
 		// SSCI used two scripts with everything the same except the sound
 		// number, so we pass the sound number as data instead to one script
-		if (inventory().isInUse(S2Inventory::kInv40)) {
+		if (inventory().isInUse(S2Inventory::Amulet)) {
 			setScript(self(amuletSandMismatch), 0, 42641);
 		} else {
 			emplaceHotspot(true, 302, 98, 358, 162).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
@@ -631,7 +631,7 @@ void S2Room26000::init(const int roomNo) {
 		break;
 
 	case 26850:
-		_gaveFakeAmulet = false;
+		_numTimesFakeGiven = 0;
 		_fakeIsInAltar = false;
 		setScript(self(finalSequence));
 		break;
@@ -645,7 +645,7 @@ void S2Room26000::init(const int roomNo) {
 		user().setIsHandsOn(true);
 		score().doEvent(kScore228);
 		emplaceHotspot(true, 236, 150, 381, 294).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
-			if (inventory().isInUse(S2Inventory::kInv51)) {
+			if (inventory().isInUse(S2Inventory::Ianyi)) {
 				inventory().unselectItem(false);
 				removeChild(static_cast<S2Hotspot &>(target));
 				setScript(self(endgame));
@@ -685,6 +685,8 @@ void S2Room26000::dispose(const int roomNo) {
 		_sticks = {};
 	}
 
+	_norahCycler.reset();
+
 	switch (roomNo) {
 	case 26600:
 		_mover.reset();
@@ -703,7 +705,7 @@ void S2Room26000::dispose(const int roomNo) {
 }
 
 void S2Room26000::doIt() {
-	if (room().getCurrentRoomNo() != 26850 || !_script || !_cel) {
+	if (room().getCurrentRoomNo() != 26850 || !_script || !_spirit) {
 		return;
 	}
 
@@ -713,7 +715,7 @@ void S2Room26000::doIt() {
 	}
 
 	const auto currentItem = inventory().getCurrentItem();
-	if (currentItem != S2Inventory::kInv40 && currentItem != S2Inventory::kInv37) {
+	if (currentItem != S2Inventory::Amulet && currentItem != S2Inventory::FakeAmulet) {
 		return;
 	}
 
@@ -766,8 +768,8 @@ void S2Room26000::takeIanyi(GLScript &script, const int state) {
 	case 1:
 		cursor().endHighlight();
 		user().setIsHandsOn(true);
-		cursor().getItem(inventory().getSmallCel(S2Inventory::kInv51));
-		inventory().setCurrentItem(S2Inventory::kInv51);
+		cursor().getItem(inventory().getSmallCel(S2Inventory::Ianyi));
+		inventory().setCurrentItem(S2Inventory::Ianyi);
 		_script.reset();
 		break;
 	}
@@ -1126,16 +1128,21 @@ void S2Room26000::endgame(GLScript &script, const int state) {
 }
 
 void S2Room26000::finalSequence(GLScript &script, const int state) {
+	user().setIsHandsOn(true);
 	switch (state) {
 	case 0:
 		room().drawPic(55555);
 		// In SSCI the placement of the cel is off
-		_robot = &emplaceCel(false, 55555, 0, 5, GLPoint(436, 290));
-		_robot->show();
-		getPlane().getCast().removeEventHandler(*_robot);
+		_max = &emplaceCel(false, 55555, 0, 5, GLPoint(436, 290));
+		_max->show();
+		getPlane().getCast().removeEventHandler(*_max);
 		user().setIsHandsOn(false);
-		playRobot(script, 52131, 52650);
-		_clickedRobot = false;
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 52131, 52650);
+		}
+		_clickedMaxOnce = false;
 		break;
 
 	case 1:
@@ -1143,10 +1150,13 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		_pool = &emplaceCel(false, 64002, 0, 0, GLPoint(250, 383));
 		_pool->show();
 		getPlane().getCast().removeEventHandler(*_pool);
-		_cycler.reset(new GLEndCycler());
-		_cycler->add(*_pool);
-		_cycler->start(script);
-		sound().play(12613);
+		if (_debugFastForward) {
+			_pool->setCel(_pool->getLastCel(), true);
+			script.setCycles(1);
+		} else {
+			_cycler.reset(new GLEndCycler(*_pool, script));
+			sound().play(12613);
+		}
 		break;
 
 	case 2:
@@ -1157,9 +1167,12 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		_spirit = &emplaceCel(false, 64003, 0, 0, GLPoint(250, 383));
 		_spirit->show();
 		getPlane().getCast().removeEventHandler(*_spirit);
-		_cycler.reset(new GLPingPongCycler());
-		_cycler->add(*_spirit, true);
-		playRobot(script, 52251, 52630);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 52251, 52630);
+		}
 		break;
 
 	case 3:
@@ -1167,68 +1180,888 @@ void S2Room26000::finalSequence(GLScript &script, const int state) {
 		_norah = &emplaceCel(false, 60000, 0, 0, GLPoint(96, 287));
 		_norah->show();
 		getPlane().getCast().removeEventHandler(*_norah);
-		_norahCycler.reset(new GLEndCycler());
-		_norahCycler->add(*_norah);
-		_norahCycler->start(script);
-		playRobot(script, 52371, 52601);
+		if (_debugFastForward) {
+			_norah->setCel(_norah->getLastCel(), true);
+			script.setCycles(1);
+		} else {
+			_norahCycler.reset(new GLEndCycler(*_norah, script));
+			playRobot(script, 52371, 52601);
+		}
 		break;
 
 	case 4:
 		user().setIsHandsOn(false);
 		// SSCI recreated the entire cel object instead of just resetting its
 		// view state
-		_norah->setCelRes(GLCelRes(60002, 0, 0), true);
-		_norahCycler.reset(new GLPingPongCycler());
-		_norahCycler->add(*_norah, true);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		if (_debugFastForward) {
+			script.setCycles(1);
+		}
 		break;
 
 	case 5:
 		user().setIsHandsOn(false);
-		_robot->setCel(0);
-		movie().play(52531, nullptr, roomTop);
+		_max->setCel(0);
+		if (_debugFastForward) {
+			_max->forceUpdate();
+		} else {
+			movie().play(52531, nullptr, roomTop);
+		}
 		script.setCycles(1);
 		break;
 
 	case 6:
 		user().setIsHandsOn(false);
-		playRobot(script, 52671, 52653);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 52671, 52653);
+		}
+		addFinalHotspots();
 		script.setState(211);
-
-		_maxHotspot = &emplaceHotspot(true, 433, 28, 534, 295);
-		_maxHotspot->setMouseUpHandler(self(clickedMax));
-		_spiritHotspot = &emplaceHotspot(true, 274, 63, 381, 288);
-		_spiritHotspot->setMouseUpHandler(self(clickedSpirit));
-		_norahHotspot = &emplaceHotspot(true, 96, 36, 216, 290);
-		_norahHotspot->setMouseUpHandler(self(clickedNorah));
 		break;
 
 	case 212:
-		script.setSeconds(7);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			script.setSeconds(7);
+		}
 		// fall through
 	case 12:
 		user().setIsHandsOn(true);
+		break;
+
+	case 213:
+		user().setIsHandsOn(false);
+		_norahCycler.reset();
+		_norah->setCelRes({ 60011, 0, 0 }, true);
+		if (_debugFastForward) {
+			_norah->setCel(_norah->getLastCel(), true);
+			script.setCycles(1);
+		} else {
+			_norahCycler.reset(new GLEndCycler(*_norah, script));
+			playRobot(script, 52871, 52603);
+		}
+		break;
+
+	case 214:
+		user().setIsHandsOn(false);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		if (_debugFastForward) {
+			script.setCycles(1);
+		}
+		break;
+
+	case 215:
+		user().setIsHandsOn(true);
+		getPlane().getCast().remove(*_max);
+		getPlane().getCast().remove(*_spirit);
+		getPlane().getCast().remove(*_norah);
+		script.setState(9);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			script.setSeconds(10);
+		}
+		break;
+
+	case 10:
+		user().setIsHandsOn(false);
+		_norah->setCelRes({ 60013, 0, 0 }, true);
+		if (_debugFastForward) {
+			_norah->setCel(_norah->getLastCel(), true);
+			script.setCycles(1);
+		} else {
+			_norahCycler.reset(new GLEndCycler(*_norah, script));
+			playRobot(script, 52971, 52604);
+		}
+		break;
+
+	case 11:
+		user().setIsHandsOn(false);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		if (_debugFastForward) {
+			script.setCycles(1);
+		}
+		break;
+
+	case 13:
+		user().setIsHandsOn(false);
+		_norah->setCelRes({ 60010, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		_spiritSoundNo = _game.getRandomNumber(52605, 52607);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			sound().play(_spiritSoundNo, false, Audio32::kMaxVolume, false, &script);
+			interface().putText(_spiritSoundNo);
+		}
+		break;
+
+	case 14:
+		user().setIsHandsOn(false);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		script.setState(11);
+		script.setCycles(1);
+		break;
+
+	case 15:
+		user().setIsHandsOn(false);
+		_spirit->setCelRes({ 64014, 0, 0 }, true);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		_spiritSoundNo = _game.getRandomNumber(42645, 42647);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			sound().play(_spiritSoundNo, false, Audio32::kMaxVolume, false, &script);
+			interface().putText(_spiritSoundNo);
+		}
+		break;
+
+	case 16:
+		user().setIsHandsOn(false);
+		_spirit->setCelRes({ 64003, 0, 0 }, true);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		script.setState(11);
+		script.setCycles(1);
+		break;
+
+	case 17:
+		user().setIsHandsOn(false);
+		if (_debugFastForward) {
+			script.setCycles(1);
+		} else {
+			playRobot(script, 53171, 52656);
+		}
+		script.setState(11);
+		break;
+
+	case 20:
+		user().setIsHandsOn(true);
+		_altarHotspot = &emplaceHotspot(true, 302, 95, 362, 168);
+		_altarHotspot->setMouseUpHandler(self(clickedAltar));
+		removeChild(*_spiritHotspot);
+		_spiritHotspot = nullptr;
+		_spirit->setCelRes({ 64002, 0, 0 });
+		_spirit->setCel(_spirit->getLastCel(), true);
+		if (_debugFastForward) {
+			_spirit->setCel(0, true);
+			script.setCycles(1);
+		} else {
+			_cycler.reset(new GLEndBackCycler(*_spirit, script));
+			sound().play(12614);
+		}
+		script.setState(200);
+		break;
+
+	case 21:
+		user().setIsHandsOn(true);
+		if (!_altarHotspot) {
+			_altarHotspot = &emplaceHotspot(true, 302, 95, 362, 168);
+			_altarHotspot->setMouseUpHandler(self(clickedAltar));
+		}
+		if (!_maxHotspot) {
+			_maxHotspot = &emplaceHotspot(true, 433, 28, 534, 295);
+			_maxHotspot->setMouseUpHandler(self(clickedMax));
+		}
+		break;
+
+	case 22:
+		user().setIsHandsOn(false);
+		playRobot(script, 55371, 52608);
+		break;
+
+	case 23:
+		user().setIsHandsOn(false);
+		_norahCycler.reset();
+		movie().stopRobot(false);
+		room().drawPic(2);
+		movie().play(53431);
+		interface().changeLife(1, true);
+		movie().play(53511);
+		_globalRoomNo = 4210;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 24:
+		user().setIsHandsOn(true);
+		break;
+
+	case 25:
+		user().setIsHandsOn(false);
+		playRobot(script, 55471, 52668);
+		script.setState(199);
+		break;
+
+	case 26:
+		user().setIsHandsOn(false);
+		playRobot(script, 54571, 52669);
+		script.setState(20);
+		break;
+
+	case 30:
+		if (_amulet) {
+			removeChild(*_amulet);
+			_amulet = nullptr;
+		}
+		removeFinalHotspots();
+		_norah->setCelRes({ 60020, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		_spirit->setCelRes({ 64002, 0, 0 }, true);
+		_cycler.reset(new GLEndCycler(*_spirit, script));
+		sound().play(12613);
+		break;
+
+	case 31:
+		_spirit->setCelRes({ 64003, 0, 0 }, true);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		user().setIsHandsOn(false);
+		playRobot(script, 53671, 52661);
+		break;
+
+	case 32:
+		movie().play(53861);
+		_norah->setCelRes({ 60001, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		script.setState(12);
+		script.setSeconds(5);
+		break;
+
+	case 133:
+		user().setIsHandsOn(false);
+		_norahCycler.reset();
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		playRobot(script, 53971, 52612, _norah);
+		script.setState(32);
+		break;
+
+	case 33:
+		_spirit->setCelRes({ 64002, 0, 0 }, true);
+		_cycler.reset(new GLEndBackCycler(*_spirit, script));
+		break;
+
+	case 34:
+		movie().stopRobot(false);
+		_cycler.reset();
+		_norahCycler.reset();
+		room().drawPic(2);
+		movie().play(54171);
+		movie().play(54371, nullptr, GLPoint(154, 75), true, true);
+		_globalRoomNo = 4220;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 35:
+		_norah->setCelRes({ 60001, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		_spiritSoundNo = _game.getRandomNumber(52616, 52617);
+		sound().play(_spiritSoundNo, false, Audio32::kMaxVolume, false, &script);
+		interface().putText(_spiritSoundNo);
+		break;
+
+	case 36:
+		inventory().addItem(S2Inventory::FakeAmulet);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		script.setState(20);
+		script.setCycles(1);
+		break;
+
+	case 40:
+		clearFinalScreen();
+		room().drawPic(2);
+		movie().play(54771);
+		movie().play(54971);
+		interface().changeLife(1, true);
+		movie().play(55171);
+		_globalRoomNo = 4230;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 50:
+		_amulet = &emplaceCel(false, 55555, 2, 0, roomBottom, 20);
+		_amulet->show();
+		sound().play(12124);
+		getPlane().getCast().remove(*_amulet);
+		user().setIsHandsOn(false);
+		playRobot(script, 55261, -1);
+		script.setState(51);
+		_max->setCel(4);
+		_maxHotspot->setPoints(278, 67, 381, 288);
+		removeChild(*_altarHotspot);
+		_altarHotspot = nullptr;
+		break;
+
+	case 51:
+		user().setIsHandsOn(false);
+		playRobot(script, 55361, 52674);
+		break;
+
+	case 52:
+		_amulet->setLoop(2);
+		_amulet->setCel(1, true);
+		user().setIsHandsOn(false);
+		playRobot(script, 54671, 52675);
+		_poolHotspot = &emplaceHotspot(true, 257, 339, 408, 383);
+		_poolHotspot->setMouseUpHandler(self(clickedPool));
+		break;
+
+	case 53:
+		getPlane().getCast().removeEventHandler(*_max);
+		script.setState(59);
+		script.setSeconds(_clickedMaxOnce ? 3 : 5);
+		break;
+
+	case 253:
+		_spirit->setCelRes({ 64001, 0, 0 }, true);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		script.setSeconds(2);
+		break;
+
+	case 254:
+		_cycler.reset();
+		removeChild(*_spirit);
+		_spirit = nullptr;
+		script.setState(52);
+		script.setCycles(1);
+		break;
+
+	case 55:
+		sound().play(52619, false, Audio32::kMaxVolume, false, &script);
+		interface().putText(52619);
+		script.setState(52);
+		break;
+
+	case 56:
+		user().setIsHandsOn(false);
+		playRobot(script, 55561, 52676);
+		script.setState(52);
+		break;
+
+	case 60:
+		_max->setCel(3);
+		user().setIsHandsOn(false);
+		playRobot(script, 55761, 52677);
+
+		if (_altarHotspot) {
+			removeChild(*_altarHotspot);
+			_altarHotspot = nullptr;
+		}
+
+		removeChild(*_maxHotspot);
+		_maxHotspot = nullptr;
+
+		_altarHotspot = &emplaceHotspot(true, 297, 90, 367, 173);
+		_altarHotspot->setMouseUpHandler(self(clickedAltar));
+		script.setState(260);
+		break;
+
+	case 261:
+	case 263:
+	case 265:
+	case 267:
+		script.setSeconds(5);
+		break;
+
+	case 262:
+		if (!inventory().isTaken(S2Inventory::FakeAmulet)) {
+			user().setIsHandsOn(false);
+			playRobot(script, 55861, 52678);
+		}
+		break;
+
+	case 264:
+		if (!inventory().isTaken(S2Inventory::FakeAmulet)) {
+			user().setIsHandsOn(false);
+			playRobot(script, 55961, 11072);
+		}
+		break;
+
+	case 266:
+		if (inventory().isTaken(S2Inventory::FakeAmulet)) {
+			script.setState(65);
+			script.setCycles(1);
+		} else {
+			auto robotNo = _game.getRandomNumber(56061, 56063);
+			if (robotNo == 56063) {
+				robotNo = 56066;
+			}
+			user().setIsHandsOn(false);
+			playRobot(script, robotNo, robotNo - 3381);
+		}
+		break;
+
+	case 268:
+		script.setState(66);
+		script.setCycles(1);
+		break;
+
+	case 65:
+		_max->setCel(0);
+		user().setIsHandsOn(false);
+		playRobot(script, 56161, 56161);
+		if (_maxHotspot) {
+			removeChild(*_maxHotspot);
+		}
+		_maxHotspot = &emplaceHotspot(true, 433, 28, 634, 295);
+		_maxHotspot->setMouseUpHandler(self(clickedMax));
+		if (_norahHotspot) {
+			removeChild(*_norahHotspot);
+		}
+		_norahHotspot = &emplaceHotspot(true, 96, 36, 216, 290);
+		_norahHotspot->setMouseUpHandler(self(clickedNorah));
+		if (_altarHotspot) {
+			removeChild(*_altarHotspot);
+		}
+		_altarHotspot = &emplaceHotspot(true, 302, 95, 362, 168);
+		_altarHotspot->setMouseUpHandler(self(clickedAltar));
+		if (_poolHotspot) {
+			removeChild(*_poolHotspot);
+			_poolHotspot = nullptr;
+		}
+		script.setState(165);
+		script.setSeconds(10);
+		break;
+
+	case 166:
+		removeChild(*_amulet);
+		_amulet = nullptr;
+		user().setIsHandsOn(false);
+		script.setState(20);
+		break;
+
+	case 66:
+		_max->setCel(0);
+		user().setIsHandsOn(false);
+		playRobot(script, 56661, 52692);
+		if (_poolHotspot) {
+			removeChild(*_poolHotspot);
+			_poolHotspot = nullptr;
+		}
+		script.setState(166);
+		script.setSeconds(6);
+		break;
+
+	case 167:
+		removeChild(*_amulet);
+		_amulet = nullptr;
+		script.setState(20);
+		break;
+
+	case 67:
+		_amulet->setLoop(2);
+		_amulet->setCel(1, true);
+		user().setIsHandsOn(false);
+		playRobot(script, 56861, 52694);
+		if (_poolHotspot) {
+			removeChild(*_poolHotspot);
+			_poolHotspot = nullptr;
+		}
+		script.setSeconds(5);
+		break;
+
+	case 68:
+		user().setIsHandsOn(true);
+		removeChild(*_amulet);
+		_amulet = nullptr;
+		_max->setCel(0);
+		_fakeIsInAltar = false;
+		break;
+
+	case 69:
+		user().setIsHandsOn(false);
+		script.setState(20);
+		script.setCycles(1);
+		break;
+
+	case 70:
+		score().doEvent(kScore229);
+		if (_cycler) {
+			_cycler.reset();
+			removeChild(*_spirit);
+			_spirit = nullptr;
+		}
+		_max->setCel(0);
+		user().setIsHandsOn(false);
+		playRobot(script, 57061, -1);
+		break;
+
+	case 71:
+		_spirit = &emplaceCel(false, 64002, 0, 0, GLPoint(250, 383));
+		_spirit->show();
+		getPlane().getCast().remove(*_spirit);
+		_cycler.reset(new GLEndCycler(*_spirit, script));
+		sound().play(12613);
+		break;
+
+	case 72:
+		clearFinalScreen();
+		_max = &emplaceCel(false, 59999, 0, 0, GLPoint(436, 290));
+		_max->show();
+		getPlane().getCast().remove(*_max);
+		_spirit = &emplaceCel(false, 59999, 1, 0, GLPoint(250, 383));
+		_spirit->show();
+		getPlane().getCast().remove(*_spirit);
+		_norah = &emplaceCel(false, 59999, 2, 0, GLPoint(96, 287));
+		_norah->show();
+		getPlane().getCast().remove(*_norah);
+		setSubRoom<S2FinalPuzzle>(26850);
+		break;
+
+	case 73:
+		break;
+
+	case 80:
+		sound().stop(_spiritSoundNo);
+		clearFinalScreen();
+		room().drawPic(2);
+		movie().play(57471);
+		movie().play(54971);
+		interface().changeLife(1, true);
+		movie().play(55171);
+		_globalRoomNo = 4230;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 85:
+		sound().stop(_spiritSoundNo);
+		_activeSubRoom.reset();
+		room().drawPic(55555);
+		inventory().addItem(S2Inventory::Ianyi);
+		_max->setCelRes({ 55555, 0, 0 }, true);
+		_spirit->setCelRes({ 64003, 0, 0 }, true);
+		_norah->setCelRes({ 60002, 0, 0 }, true);
+		_cycler.reset(new GLPingPongCycler(*_spirit, true));
+		_norahCycler.reset(new GLPingPongCycler(*_norah, true));
+		addFinalHotspots();
+		_poolHotspot = &emplaceHotspot(true, 257, 339, 408, 383);
+		_poolHotspot->setMouseUpHandler(self(clickedPool));
+		script.setCycles(1);
+		break;
+
+	case 86:
+		script.setSeconds(5);
+		break;
+
+	case 87:
+		script.setState(89);
+		script.setCycles(1);
+		break;
+
+	case 90:
+		script.setState(_game.getRandomNumber(90, 92));
+		script.setCycles(1);
+		break;
+
+	case 91: {
+		const auto soundNo = _game.getRandomNumber(42667, 42669);
+		sound().play(soundNo, false, Audio32::kMaxVolume, false, &script);
+		interface().putText(soundNo);
+		script.setState(85);
+		break;
+	}
+
+	case 92: {
+		const auto robotNo = _game.getRandomNumber(57771, 57772);
+		_max->setCel(0);
+		user().setIsHandsOn(false);
+		playRobot(script, robotNo, robotNo - 5074);
+		script.setState(85);
+		break;
+	}
+
+	case 93: {
+		const auto soundNo = _game.getRandomNumber(52622, 52623);
+		sound().play(soundNo, false, Audio32::kMaxVolume, false, &script);
+		interface().putText(soundNo);
+		script.setState(85);
+		break;
+	}
+
+	case 94:
+		sound().play(52625, false, Audio32::kMaxVolume, false, &script);
+		interface().putText(52625);
+		break;
+
+	case 95:
+		clearFinalScreen();
+		room().drawPic(2);
+		movie().play(57471);
+		movie().play(54971);
+		interface().changeLife(1, true);
+		movie().play(55171);
+		_globalRoomNo = 4230;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 96:
+		clearFinalScreen();
+		room().drawPic(2);
+		movie().play(53431);
+		interface().changeLife(1, true);
+		movie().play(53511);
+		_globalRoomNo = 4210;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 97:
+		_spirit->setCelRes({ 64002, 0, 0 }, true);
+		_cycler.reset(new GLEndBackCycler(*_spirit, script));
+		break;
+
+	case 98:
+		clearFinalScreen();
+		room().drawPic(2);
+		interface().changeLife(100, true);
+		movie().play(54171);
+		movie().play(54371, nullptr, { 154, 75 }, true, true);
+		_globalRoomNo = 4240;
+		script.setState(999);
+		script.setCycles(1);
+		break;
+
+	case 200:
+		inventory().addItem(S2Inventory::FakeAmulet);
+		script.setState(20);
+		script.setCycles(1);
+		break;
+
+	case 201:
+		if (_spirit) {
+			_cycler.reset();
+			removeChild(*_spirit);
+			_spirit = nullptr;
+		}
+		script.setState(20);
+		script.setCycles(1);
+		break;
+
+	case 367:
+		user().setIsHandsOn(false);
+		assert(!_spirit);
+		_spirit = &emplaceCel(false, 64002, 0, 0, GLPoint(250, 383));
+		_spirit->show();
+		getPlane().getCast().removeEventHandler(*_spirit);
+		_cycler.reset(new GLEndCycler(*_spirit, script));
+		sound().play(12613);
+		break;
+
+	case 368:
+		user().setIsHandsOn(false);
+		removeChild(*_amulet);
+		_amulet = nullptr;
+		_cycler.reset(new GLEndBackCycler(*_spirit, script));
+		sound().play(12614);
+		break;
+
+	case 369:
+		user().setIsHandsOn(false);
+		script.setState(20);
+		script.setCycles(1);
+		break;
+
+	case 1000:
+		user().setIsHandsOn(true);
+		cursor().goHandsOn();
+		_script.reset();
+		room().loadGlobalRoom(_globalRoomNo, true);
+		break;
+
+	default:
+		warning("Empty state %d", state);
 	}
 }
 
-void S2Room26000::playRobot(GLScript &script, const uint16 robotNo, const uint16 textNo) {
-	movie().initRobot(robotNo, getPlane(), 100, roomTop);
-	movie().setRobotClient(*_robot);
-	movie().setRobotCaller(script);
-	movie().playRobot();
-	interface().putText(textNo);
+void S2Room26000::addFinalHotspots() {
+	_maxHotspot = &emplaceHotspot(true, 433, 28, 534, 295);
+	_maxHotspot->setMouseUpHandler(self(clickedMax));
+	_spiritHotspot = &emplaceHotspot(true, 274, 63, 381, 288);
+	_spiritHotspot->setMouseUpHandler(self(clickedSpirit));
+	_norahHotspot = &emplaceHotspot(true, 96, 36, 216, 290);
+	_norahHotspot->setMouseUpHandler(self(clickedNorah));
 }
 
+void S2Room26000::removeFinalHotspots() {
+	if (_maxHotspot) {
+		removeChild(*_maxHotspot);
+		_maxHotspot = nullptr;
+	}
+	if (_altarHotspot) {
+		removeChild(*_altarHotspot);
+		_altarHotspot = nullptr;
+	}
+	if (_spiritHotspot) {
+		removeChild(*_spiritHotspot);
+		_spiritHotspot = nullptr;
+	}
+	if (_norahHotspot) {
+		removeChild(*_norahHotspot);
+		_norahHotspot = nullptr;
+	}
+	if (_poolHotspot) {
+		removeChild(*_poolHotspot);
+		_poolHotspot = nullptr;
+	}
+}
+
+void S2Room26000::clearFinalScreen() {
+	_activeSubRoom.reset();
+	_cycler.reset();
+	_norahCycler.reset();
+	removeFinalHotspots();
+	movie().stopRobot(false);
+
+	if (_max) {
+		removeChild(*_max);
+		_max = nullptr;
+	}
+	if (_spirit) {
+		removeChild(*_spirit);
+		_spirit = nullptr;
+	}
+	if (_norah) {
+		removeChild(*_norah);
+		_norah = nullptr;
+	}
+	if (_amulet) {
+		removeChild(*_amulet);
+		_amulet = nullptr;
+	}
+}
+
+void S2Room26000::playRobot(GLScript &script, const uint16 robotNo, const int textNo, GLCel *client) {
+	movie().initRobot(robotNo, getPlane(), 100, roomTop);
+	movie().setRobotClient(client ? *client : *_max);
+	movie().setRobotCaller(script);
+	movie().playRobot();
+	if (textNo != -1) {
+		interface().putText(textNo);
+	}
+}
 
 void S2Room26000::clickedMax(GLEvent &, GLTarget &) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const auto state = _script->getState();
+	if (state == 9 || state == 12 || state == 212) {
+		resetState(17);
+	} else if (state == 21) {
+		if (inventory().getCurrentItem() == S2Inventory::Amulet) {
+			inventory().setState(S2Inventory::Amulet, S2InventoryState::Used);
+			resetState(22);
+		} else if (inventory().getCurrentItem() == S2Inventory::FakeAmulet) {
+			inventory().setState(S2Inventory::FakeAmulet, S2InventoryState::Used);
+			if (++_numTimesFakeGiven > 3) {
+				resetState(26);
+			} else {
+				resetState(25);
+			}
+		}
+	} else if (state == 53 || state == 59) {
+		if (_clickedMaxOnce) {
+			resetState(60);
+		} else {
+			_clickedMaxOnce = true;
+			resetState(56);
+		}
+	} else if (state == 86 && inventory().getCurrentItem() == S2Inventory::Ianyi) {
+		inventory().setState(S2Inventory::Ianyi, S2InventoryState::Used);
+		_script->setState(95);
+	}
 }
 
 void S2Room26000::clickedSpirit(GLEvent &, GLTarget &) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const auto state = _script->getState();
+	if (state == 9 || state == 12 || state == 212) {
+		resetState(15);
+	} else if (state == 86 && inventory().getCurrentItem() == S2Inventory::Ianyi) {
+		inventory().setState(S2Inventory::Ianyi, S2InventoryState::Used);
+		_script->setState(94);
+	}
 }
 
 void S2Room26000::clickedNorah(GLEvent &, GLTarget &) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
+	const auto state = _script->getState();
+	if (state == 9 || state == 12 || state == 212) {
+		resetState(13);
+	} else if (state == 21) {
+		if (inventory().getCurrentItem() == S2Inventory::Amulet) {
+			inventory().setState(S2Inventory::Amulet, S2InventoryState::Used);
+			resetState(30);
+		} else if (inventory().getCurrentItem() == S2Inventory::FakeAmulet) {
+			inventory().setState(S2Inventory::FakeAmulet, S2InventoryState::Used);
+			resetState(35);
+		}
+	} else if (state == 53) {
+		if (inventory().getCurrentItem() == S2Inventory::Amulet) {
+			resetState(55);
+		}
+	} else if (state == 86 && inventory().getCurrentItem() == S2Inventory::Ianyi) {
+		_script->setState(93);
+	}
+}
+
+void S2Room26000::clickedAltar(GLEvent &, GLTarget &) {
+	const auto state = _script->getState();
+	if (state == 21) {
+		if (inventory().getCurrentItem() == S2Inventory::FakeAmulet) {
+			if (_placedFakeAmulet) {
+				inventory().unselectItem(false);
+				_amulet = &emplaceCel(false, 55555, 1, 0, roomBottom);
+				_amulet->show();
+				inventory().setState(S2Inventory::FakeAmulet, S2InventoryState::Normal);
+				resetState(367);
+			} else {
+				_placedFakeAmulet = _fakeIsInAltar = true;
+				inventory().setState(S2Inventory::FakeAmulet, S2InventoryState::Used);
+				resetState(50);
+			}
+		} else if (inventory().getCurrentItem() == S2Inventory::Amulet) {
+			inventory().setState(S2Inventory::Amulet, S2InventoryState::Used);
+			_amulet = &emplaceCel(false, 55555, 1, 1, roomBottom);
+			_amulet->show();
+			getPlane().getCast().remove(*_amulet);
+			resetState(40);
+		}
+	} else if (state >= 261 && state <= 268) {
+		if (inventory().getCurrentItem() == S2Inventory::Amulet && !_fakeIsInAltar) {
+			inventory().setState(S2Inventory::Amulet, S2InventoryState::Used);
+			_amulet->setLoop(1);
+			_amulet->setCel(2, true);
+			resetState(70);
+		} else if (inventory().getCurrentItem() == S2Inventory::FakeAmulet) {
+			inventory().setState(S2Inventory::FakeAmulet, S2InventoryState::Used);
+			_placedFakeAmulet = _fakeIsInAltar = true;
+			resetState(67);
+		} else if (!inventory().isTaken(S2Inventory::FakeAmulet) && _fakeIsInAltar) {
+			inventory().addItem(S2Inventory::FakeAmulet);
+			_amulet->setLoop(2);
+			_amulet->setCel(2, true);
+			_fakeIsInAltar = false;
+		} else {
+			sound().play(52620);
+			interface().putText(52620);
+		}
+	}
+}
+
+void S2Room26000::clickedPool(GLEvent &, GLTarget &) {
+	const auto state = _script->getState();
+	if (state == 53) {
+		resetState(253);
+	} else if (state == 86 && inventory().getCurrentItem() == S2Inventory::Ianyi) {
+		inventory().setState(S2Inventory::Ianyi, S2InventoryState::Used);
+		_script->setState(96);
+	}
 }
 
 } // End of namespace Sci

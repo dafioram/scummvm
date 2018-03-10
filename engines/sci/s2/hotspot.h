@@ -37,7 +37,7 @@ public:
 	S2Hotspot(AbsGLPlane &plane, const GLPoint (&hotspots)[N]) :
 		GLPoly(plane) {
 		setNeedsEvent(true);
-		setPoints({ hotspots, N });
+		GLPoly::setPoints({ hotspots, N });
 		enable();
 	}
 
@@ -55,6 +55,11 @@ public:
 	template <typename T, typename U>
 	void setMouseUpHandler(T object, U fn) {
 		_mouseUpHandler = makeHandler(object, fn);
+	}
+
+	void setPoints(const int16 x1, const int16 y1, const int16 x2, const int16 y2) {
+		GLPoint points[] = { { x1, y1 }, { x2, y1 }, { x2, y2 }, { x1, y2 } };
+		GLPoly::setPoints({ points, ARRAYSIZE(points) });
 	}
 
 private:

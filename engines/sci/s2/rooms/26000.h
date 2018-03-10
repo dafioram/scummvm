@@ -70,8 +70,6 @@ private:
 	uint16 _spiritSoundNo;
 
 	GameFlag _flag;
-	bool _gaveFakeAmulet = false;
-	bool _fakeIsInAltar = false;
 
 	void endgame(GLScript &, const int);
 	Common::FixedArray<Common::ScopedPtr<GLEndCycler>, 5> _endCyclers;
@@ -79,19 +77,31 @@ private:
 	int _globalRoomNo;
 
 	void finalSequence(GLScript &, const int);
-	void playRobot(GLScript &, const uint16 robotNo, const uint16 textNo);
+	void playRobot(GLScript &, const uint16 robotNo, const int textNo, GLCel *client = nullptr);
 	void clickedMax(GLEvent &, GLTarget &);
 	void clickedSpirit(GLEvent &, GLTarget &);
 	void clickedNorah(GLEvent &, GLTarget &);
-	GLCel *_robot;
-	GLCel *_pool;
-	GLCel *_spirit;
-	GLCel *_norah;
+	void clickedAltar(GLEvent &, GLTarget &);
+	void clickedPool(GLEvent &, GLTarget &);
+	void addFinalHotspots();
+	void removeFinalHotspots();
+	void clearFinalScreen();
+	GLCel *_max = nullptr;
+	GLCel *_pool = nullptr;
+	GLCel *_spirit = nullptr;
+	GLCel *_norah = nullptr;
+	GLCel *_amulet = nullptr;
 	Common::ScopedPtr<GLCycler> _norahCycler;
-	S2Hotspot *_maxHotspot;
-	S2Hotspot *_spiritHotspot;
-	S2Hotspot *_norahHotspot;
-	bool _clickedRobot;
+	S2Hotspot *_maxHotspot = nullptr;
+	S2Hotspot *_spiritHotspot = nullptr;
+	S2Hotspot *_norahHotspot = nullptr;
+	S2Hotspot *_altarHotspot = nullptr;
+	S2Hotspot *_poolHotspot = nullptr;
+	bool _clickedMaxOnce = false;
+	bool _placedFakeAmulet = false;
+	bool _fakeIsInAltar = false;
+	int _numTimesFakeGiven = 0;
+	bool _debugFastForward = true;
 };
 
 } // End of namespace Sci

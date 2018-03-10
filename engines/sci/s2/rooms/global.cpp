@@ -1387,22 +1387,26 @@ class S2EndGameRoom : public S2SubRoom {
 public:
 	using S2SubRoom::S2SubRoom;
 
-	virtual void init(const int) override {
+	virtual void init(const int roomNo) override {
 		sound().deleteAmbient(0);
 		cursor().goHandsOn();
 		user().setIsHandsOn(true);
 
 		// quit
-		auto *button = &emplaceButton(true, true, 4230, 0, 0, absBottom, 202);
-		button->setHighlightedFace(4230, 0, 1);
+		auto *button = &emplaceButton(true, true, roomNo, 0, 0, absBottom, 202);
+		button->setHighlightedFace(roomNo, 0, 1);
 		button->setMouseUpHandler(global(quitGame));
 
 		// load game
-		button = &emplaceButton(true, _game.hasSaveGames(), 4230, 1, 0, absBottom, 202);
-		button->setHighlightedFace(4230, 1, 1);
+		button = &emplaceButton(true, _game.hasSaveGames(), roomNo, 1, 0, absBottom, 202);
+		button->setHighlightedFace(roomNo, 1, 1);
 		button->setMouseUpHandler(global(showOldGames));
 
-		emplaceCel(false, 4240, 3, 4, absBottom, 201).show();
+		int16 loopNo = 2;
+		if (roomNo == 4240) {
+			loopNo = 3;
+		}
+		emplaceCel(false, roomNo, loopNo, 4, absBottom, 201).show();
 
 		renderScore(*this, { 78, 448 });
 	}
@@ -1428,6 +1432,10 @@ void S2GlobalRoom::init(const int roomNo) {
 	case 4100:
 		setSubRoom<S2OptionsRoom>(roomNo);
 		break;
+	case 4200:
+	case 4210:
+	case 4220:
+	case 4230:
 	case 4240:
 		setSubRoom<S2EndGameRoom>(roomNo);
 		break;

@@ -66,10 +66,10 @@ enum class S2Inventory : uint8 {
 	kInv34,
 	kInv35,
 	kInv36,
-	kInv37,
+	FakeAmulet,
 	TapePlayer,
 	kInv39,
-	kInv40,
+	Amulet,
 	kInv41,
 	Change2_50,
 	Change2_75,
@@ -80,7 +80,7 @@ enum class S2Inventory : uint8 {
 	kInv48,
 	kInv49,
 	kInv50,
-	kInv51,
+	Ianyi,
 	kNumInventory
 };
 

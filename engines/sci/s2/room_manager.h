@@ -66,6 +66,7 @@ public:
 	int getCurrentBaseRoomNo() const { return getBaseRoomNumber(_currentRoomNo); }
 	int getCurrentRoomNo() const { return _currentRoomNo; }
 	int getCurrentAmbientRoomNo() const { return getCurrentBaseRoomNo() / 1000; }
+	S2Room *getCurrentRoom() const { return _currentRoom.get(); }
 
 	bool getIsSaved() const { return _isSaved; }
 	void setIsSaved(const bool saved) { _isSaved = saved; }
