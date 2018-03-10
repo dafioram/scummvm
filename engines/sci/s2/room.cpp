@@ -29,6 +29,14 @@ constexpr GLPoint S2Room::absBottom;
 constexpr GLPoint S2Room::roomTop;
 constexpr GLPoint S2Room::roomBottom;
 
+void S2Room::dispose(const int roomNo) {
+	if (_activeSubRoom) {
+		_activeSubRoom->dispose(roomNo);
+		_activeSubRoom.reset();
+	}
+	clear();
+}
+
 void S2Room::doIt() {
 	if (_activeSubRoom) {
 		_activeSubRoom->doIt();

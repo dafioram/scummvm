@@ -58,10 +58,7 @@ public:
 
 	virtual void init(const int roomNo) = 0;
 
-	virtual void dispose(const int roomNo) {
-		_activeSubRoom.reset();
-		clear();
-	}
+	virtual void dispose(const int roomNo);
 
 	virtual void doIt();
 

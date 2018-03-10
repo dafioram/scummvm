@@ -523,14 +523,22 @@ public:
 	}
 
 	virtual void dispose(const int roomNo) override {
+		uint16 soundNo = 0;
+
 		switch (roomNo) {
 		case 5011:
-			_game.getInterface().putText(0);
-			_game.getSoundManager().stop();
+			soundNo = 59016;
 			break;
 		case 11140:
-			_game.getSoundManager().stop(41150);
+			soundNo = 41150;
 			break;
+		}
+
+		// SSCI did not fade the sounds, it just abruptly stopped them, which
+		// is weird since other flashback audio fades out
+		if (soundNo) {
+			_game.getInterface().putText(0);
+			_game.getSoundManager().fade(soundNo, 0, 15, 12, true);
 		}
 	}
 
