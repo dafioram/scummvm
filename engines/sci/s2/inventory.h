@@ -36,7 +36,7 @@ enum class S2Inventory : uint8 {
 	kInv4,
 	kInv5,
 	kInv6,
-	kInv7,
+	Gum,
 	Batteries,
 	kInv9,
 	kInv10,

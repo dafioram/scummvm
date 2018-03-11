@@ -31,13 +31,13 @@ GLSoundManager::GLSoundManager(S2Game &game, Audio32 &mixer) :
 	_game(game),
 	_mixer(mixer) {}
 
-uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const reg_t soundNode) {
+uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 volume, const bool paused, GLObject *const caller, const int16 soundNode) {
 	if (isPlaying(soundNo, soundNode)) {
 		return 0;
 	}
 
 	const ResourceId resourceId(kResourceTypeAudio, soundNo);
-	const uint16 length = _mixer.restart(resourceId, !paused, loop, volume, soundNode, false);
+	const uint16 length = _mixer.restart(resourceId, !paused, loop, volume, make_reg(0, soundNode), false);
 
 	GLSound sound(soundNo, GLSound::State::Finished, volume, caller);
 	_sounds.push_front(sound);
@@ -47,17 +47,17 @@ uint16 GLSoundManager::play(const uint16 soundNo, const bool loop, const int16 v
 	return length;
 }
 
-void GLSoundManager::pan(const uint16 soundNo, const int16 pan, const reg_t soundNode) {
-	_mixer.setPan(ResourceId(kResourceTypeAudio, soundNo), soundNode, pan);
+void GLSoundManager::pan(const uint16 soundNo, const int16 pan, const int16 soundNode) {
+	_mixer.setPan(ResourceId(kResourceTypeAudio, soundNo), make_reg(0, soundNode), pan);
 }
 
-void GLSoundManager::setVolume(const uint16 soundNo, const int16 volume, const reg_t soundNode) {
-	_mixer.setVolume(ResourceId(kResourceTypeAudio, soundNo), soundNode, volume);
+void GLSoundManager::setVolume(const uint16 soundNo, const int16 volume, const int16 soundNode) {
+	_mixer.setVolume(ResourceId(kResourceTypeAudio, soundNo), make_reg(0, soundNode), volume);
 }
 
 
-void GLSoundManager::fade(const uint16 soundNo, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade, GLObject *const caller, const reg_t soundNode) {
-	_mixer.fadeChannel(ResourceId(kResourceTypeAudio, soundNo), soundNode, targetVolume, speed, steps, stopAfterFade);
+void GLSoundManager::fade(const uint16 soundNo, const int16 targetVolume, const int16 speed, const int16 steps, const bool stopAfterFade, GLObject *const caller, const int16 soundNode) {
+	_mixer.fadeChannel(ResourceId(kResourceTypeAudio, soundNo), make_reg(0, soundNode), targetVolume, speed, steps, stopAfterFade);
 	if (caller) {
 		GLSound sound(soundNo, GLSound::State::Fading, targetVolume, caller);
 		_sounds.push_front(sound);
@@ -68,7 +68,7 @@ void GLSoundManager::stop() {
 	_mixer.stop(kAllChannels);
 }
 
-void GLSoundManager::stop(const int soundNo, const reg_t soundNode) {
+void GLSoundManager::stop(const int soundNo, const int16 soundNode) {
 	if (soundNo == kAllChannels) {
 		_mixer.stop(kAllChannels);
 	} else {
@@ -80,7 +80,7 @@ void GLSoundManager::stop(const int soundNo, const reg_t soundNode) {
 		}
 	}
 
-	_mixer.stop(ResourceId(kResourceTypeAudio, soundNo), soundNode);
+	_mixer.stop(ResourceId(kResourceTypeAudio, soundNo), make_reg(0, soundNode));
 }
 
 void GLSoundManager::doIt() {
@@ -109,12 +109,12 @@ void GLSoundManager::doIt() {
 	}
 }
 
-bool GLSoundManager::isPlaying(const uint16 soundNo, const reg_t soundNode) const {
+bool GLSoundManager::isPlaying(const uint16 soundNo, const int16 soundNode) const {
 	return getPosition(soundNo, soundNode) != -1;
 }
 
-int GLSoundManager::getPosition(const uint16 soundNo, const reg_t soundNode) const {
-	return _mixer.getPosition(ResourceId(kResourceTypeAudio, soundNo), soundNode);
+int GLSoundManager::getPosition(const uint16 soundNo, const int16 soundNode) const {
+	return _mixer.getPosition(ResourceId(kResourceTypeAudio, soundNo), make_reg(0, soundNode));
 }
 
 GLSoundTrack &GLSoundManager::createSoundTrack() {

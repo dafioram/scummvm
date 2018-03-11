@@ -40,9 +40,11 @@ namespace Sci {
 
 class GLEvent;
 class S2SubRoom;
+class S2MotelDesk;
 
 class S2Room {
 	friend class S2SubRoom;
+	friend class S2MotelDesk;
 
 public:
 	static constexpr GLPoint absTop     = {  0,   0 };
@@ -253,8 +255,6 @@ protected:
 	}
 
 	void clear() {
-		_cycler.reset();
-
 		if (!_keepPanoramaExits) {
 			_game.getRoomManager().getPanorama().removeAllExits();
 		}

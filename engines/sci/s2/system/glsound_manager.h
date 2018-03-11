@@ -37,19 +37,19 @@ class GLSoundManager : public GLObject {
 public:
 	GLSoundManager(S2Game &game, Audio32 &mixer);
 
-	uint16 play(const uint16 soundNo, const bool loop = false, const int16 volume = Audio32::kMaxVolume, const bool paused = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
-	void pan(const uint16 soundNo, const int16 pan, const reg_t soundNode = NULL_REG);
-	void setVolume(const uint16 soundNo, const int16 volume, const reg_t soundNode = NULL_REG);
-	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopAfterFade = false, GLObject *const caller = nullptr, const reg_t soundNode = NULL_REG);
+	uint16 play(const uint16 soundNo, const bool loop = false, const int16 volume = Audio32::kMaxVolume, const bool paused = false, GLObject *const caller = nullptr, const int16 soundNode = 0);
+	void pan(const uint16 soundNo, const int16 pan, const int16 soundNode = 0);
+	void setVolume(const uint16 soundNo, const int16 volume, const int16 soundNode = 0);
+	void fade(const uint16 soundNo, const int16 volume, const int16 speed, const int16 steps, const bool stopAfterFade = false, GLObject *const caller = nullptr, const int16 soundNode = 0);
 	void stop();
-	void stop(const int soundNo, const reg_t soundNode = NULL_REG);
+	void stop(const int soundNo, const int16 soundNode = 0);
 	void doIt();
 
 	// SSCI used GetSampleVolume to decide if something was playing without ever
 	// actually caring about the volume
-	bool isPlaying(const uint16 soundNo, const reg_t soundNode = NULL_REG) const;
+	bool isPlaying(const uint16 soundNo, const int16 soundNode = 0) const;
 
-	int getPosition(const uint16 soundNo, const reg_t soundNode = NULL_REG) const;
+	int getPosition(const uint16 soundNo, const int16 soundNode = 0) const;
 
 	// Merged CreateSndTrack and AttachSndTrack
 	GLSoundTrack &createSoundTrack();

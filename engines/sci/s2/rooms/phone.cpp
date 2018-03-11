@@ -316,7 +316,7 @@ void S2PhoneRoom::pushButton(const int digit) {
 	_game.getSoundManager().stop(20003);
 
 	uint16 soundNo;
-	const reg_t soundNode = make_reg(0, _number.size());
+	const int16 soundNode = _number.size();
 
 	switch (digit) {
 	case 0:

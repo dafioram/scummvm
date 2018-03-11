@@ -307,7 +307,7 @@ private:
 
 				user().setIsHandsOn(false);
 				sound().stop(_soundNo);
-				sound().play(12608, false, Audio32::kMaxVolume, false, nullptr, make_reg(0, 1));
+				sound().play(12608, false, Audio32::kMaxVolume, false, nullptr, 1);
 				setScript(self(finished));
 			}
 		}
@@ -672,6 +672,9 @@ void S2Room26000::init(const int roomNo) {
 }
 
 void S2Room26000::dispose(const int roomNo) {
+	_cycler.reset();
+	_norahCycler.reset();
+
 	const auto nextRoomNo = room().getNextRoomNo();
 	if (nextRoomNo != 26999) {
 		_cel.reset();
@@ -684,8 +687,6 @@ void S2Room26000::dispose(const int roomNo) {
 	if (!_keepPanoramaSprites) {
 		_sticks = {};
 	}
-
-	_norahCycler.reset();
 
 	switch (roomNo) {
 	case 26600:
@@ -1089,7 +1090,7 @@ void S2Room26000::endgame(GLScript &script, const int state) {
 		cycler.reset(new GLEndCycler());
 		cycler->add(*_endCels[state - 3]);
 		cycler->start(script);
-		sound().play(12631, false, Audio32::kMaxVolume, false, nullptr, make_reg(0, state - 2));
+		sound().play(12631, false, Audio32::kMaxVolume, false, nullptr, state - 2);
 		break;
 	}
 

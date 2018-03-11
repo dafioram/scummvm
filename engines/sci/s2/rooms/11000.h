@@ -41,8 +41,6 @@ private:
 	void jackInBox(GLScript &, const int);
 	void openJackBox(GLScript &, const int);
 	void takePrayerStick();
-	void openBible(GLEvent &, GLTarget &);
-	void closeDrawer(GLEvent &, GLTarget &);
 };
 
 } // End of namespace Sci

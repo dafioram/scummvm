@@ -54,28 +54,186 @@ public:
 				}
 			}
 			emplaceHotspot(true, 466, 5, 496, 61).setMouseUpHandler(self(useCoinSlot));
-			auto &coinReturn = emplaceHotspot(true, 441, 204, 477, 249);
-			coinReturn.setMouseUpHandler(self(useCoinReturn));
+			_coinReturn = &emplaceHotspot(true, 441, 204, 477, 249);
+			_coinReturn->setMouseUpHandler(self(useCoinReturn));
 
 			if (hasCoinInReturn()) {
 				emplaceCel(false, 11111, 1, 0, roomBottom);
 			} else {
-				coinReturn.disable();
+				_coinReturn->disable();
 			}
 		}
 	}
 
 private:
 	void vend(const int button) {
-		warning("TODO: %s", __PRETTY_FUNCTION__);
+		if (_secondSelection) {
+			removeChild(*_firstSelection);
+			removeChild(*_secondSelection);
+			if (_amount) {
+				removeChild(*_amount);
+			}
+			_batteriesSelected = _buttonCOn = _button2On = false;
+			_selection = 0;
+			_firstSelection = _secondSelection = _amount = nullptr;
+		}
+
+		GLCel *&target = !_firstSelection ? _firstSelection : _secondSelection;
+
+		sound().play(11103, false, 80);
+		target = &emplaceCel(false, 11110, button, 0, roomBottom);
+		target->show();
+		if (button == 2) {
+			_buttonCOn = true;
+		}
+		if (button == 5) {
+			_button2On = true;
+		}
+		if (target == _firstSelection) {
+			_selection += button * 10;
+		} else {
+			_selection += button;
+
+			if (_button2On && _buttonCOn) {
+				_batteriesSelected = true;
+			}
+
+			// SSCI did not do this, this just avoids needing twice the cases
+			if (_selection / 10 > _selection % 10) {
+				_selection = (_selection % 10) * 10 + _selection / 10;
+			}
+
+			int16 loopNo = 0;
+			switch (_selection) {
+			case 4:
+			case 28:
+				loopNo = 3;
+				break;
+			case 6: loopNo = 17; break;
+			case 8: loopNo = 7; break;
+			case 15: loopNo = 15; break;
+			case 16: loopNo = 14; break;
+			case 18: loopNo = 12; break;
+			case 24: loopNo = 11; break;
+			case 25: loopNo = 10; break;
+			case 35:
+			case 37:
+				loopNo = 4;
+				break;
+			case 38: loopNo = 13; break;
+			}
+
+			if (loopNo) {
+				_amount = &emplaceCel(false, 11112, loopNo, 0, roomBottom);
+				_amount->show();
+			}
+		}
 	}
 
 	void useCoinSlot(GLEvent &, GLTarget &) {
-		warning("TODO: %s", __PRETTY_FUNCTION__);
+		const auto item = inventory().getCurrentItem();
+		if (item != S2Inventory::Change2_50 &&
+			item != S2Inventory::Change2_75 &&
+			item != S2Inventory::Quarter) {
+			return;
+		}
+
+		inventory().unselectItem(false);
+		switch (item) {
+		case S2Inventory::Quarter:
+			flags().set(kGameFlag146);
+			sound().play(11408, false, 80);
+			break;
+
+		case S2Inventory::Change2_50:
+			flags().set(kGameFlag147);
+			for (auto i = 1; i <= 3; ++i) {
+				sound().play(11408, false, 80, false, nullptr, i);
+			}
+			break;
+
+		case S2Inventory::Change2_75:
+			flags().set(kGameFlag148);
+			for (auto i = 1; i <= 5; ++i) {
+				sound().play(11408, false, 80, false, nullptr, i);
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		if (item == S2Inventory::Change2_75 && _batteriesSelected) {
+			inventory().setState(S2Inventory::Change2_75, S2InventoryState::Used);
+			flags().clear(kGameFlag148);
+			setScript(self(dispenseBatteries));
+		} else {
+			if (!_coin) {
+				_coin = &emplaceCel(false, 11111, 1, 0, roomBottom);
+				_coin->show();
+				getPlane().getCast().removeEventHandler(*_coin);
+			}
+			_coinReturn->enable();
+		}
+	}
+
+	void dispenseBatteries(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			script.setSeconds(2);
+			break;
+
+		case 1: {
+			user().setIsHandsOn(false);
+			inventory().setState(S2Inventory::Batteries, S2InventoryState::Placed);
+			auto &cel = emplaceCel(false, 11111, 0, 0, roomBottom);
+			cel.show();
+			_cycler.reset(new GLEndCycler(cel, script));
+			break;
+		}
+
+		case 2:
+			script.setSeconds(2);
+			break;
+
+		case 3:
+			_cycler.reset();
+			_script.reset();
+			user().setIsHandsOn(true);
+			room().setNextRoomNo(11150);
+			break;
+		}
 	}
 
 	void useCoinReturn(GLEvent &, GLTarget &) {
-		warning("TODO: %s", __PRETTY_FUNCTION__);
+		if (cursor().hasInventory()) {
+			return;
+		}
+
+		if (flags().get(kGameFlag147)) {
+			getCoins(kGameFlag147, S2Inventory::Change2_50);
+		} else if (flags().get(kGameFlag148)) {
+			getCoins(kGameFlag148, S2Inventory::Change2_75);
+		} else if (flags().get(kGameFlag146)) {
+			getCoins(kGameFlag146, S2Inventory::Quarter);
+		}
+	}
+
+	void getCoins(const GameFlag flag, const S2Inventory item) {
+		flags().clear(flag);
+		sound().play(11106, false, 80);
+		cursor().endHighlight();
+		cursor().getItem(inventory().getSmallCel(item));
+		inventory().setCurrentItem(item);
+
+		if (!flags().get(kGameFlag146) &&
+			!flags().get(kGameFlag147) &&
+			!flags().get(kGameFlag148)) {
+
+			removeChild(*_coin);
+			_coin = nullptr;
+			_coinReturn->disable();
+		}
 	}
 
 	bool hasCoinInReturn() {
@@ -84,7 +242,216 @@ private:
 				flags().get(kGameFlag148));
 	}
 
-	bool _selected = false;
+	bool _batteriesSelected = false;
+	bool _buttonCOn = false;
+	bool _button2On = false;
+	int _selection = 0;
+	GLCel *_firstSelection = nullptr;
+	GLCel *_secondSelection = nullptr;
+	GLCel *_amount = nullptr;
+	GLCel *_coin = nullptr;
+	S2Hotspot *_coinReturn = nullptr;
+};
+
+#undef self
+#define self(name) this, &S2MotelDesk::name
+
+class S2MotelDesk : public S2SubRoom {
+public:
+	using S2SubRoom::S2SubRoom;
+
+	virtual void init(const int roomNo) override {
+		_parent._exitSoundNo = 11100;
+		room().drawPic(11350);
+		emplaceExit(true, 11999, 64, 0, 575, 80, S2Cursor::kBackCel);
+		_topLeft = &emplaceHotspot(true, 94, 164, 307, 249);
+		_topLeft->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			disableDrawers();
+			_leftDrawerIndex = 1;
+			setScript(self(leftDrawer));
+		});
+		_bottomLeft = &emplaceHotspot(true, 141, 260, 308, 310);
+		_bottomLeft->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			disableDrawers();
+			_leftDrawerIndex = 2;
+			setScript(self(leftDrawer));
+		});
+		_topRight = &emplaceHotspot(true, 337, 163, 551, 250);
+		_topRight->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			disableDrawers();
+			_rightDrawerIndex = 1;
+			score().doEvent(kScore77);
+			setScript(self(rightDrawer));
+		});
+		_bottomRight = &emplaceHotspot(true, 334, 257, 494, 308);
+		_bottomRight->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			disableDrawers();
+			_rightDrawerIndex = 2;
+			setScript(self(rightDrawer));
+		});
+
+		_bible = &emplaceHotspot(true, 170, 231, 264, 337);
+		_bible->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			_bible->disable();
+			score().doEvent(kScore78);
+			sound().play(11108, false, 80);
+			room().setNextRoomNo(11351);
+		});
+		_bible->disable();
+
+		_closeLeft = &emplaceHotspot(true, 144, 310, 304, 383);
+		_closeLeft->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			setScript(self(leftDrawer));
+		});
+		_closeLeft->disable();
+		_closeTopRight = &emplaceHotspot(true, 339, 285, 444, 350);
+		_closeTopRight->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			setScript(self(rightDrawer));
+		});
+		_closeTopRight->disable();
+		_closeBottomRight = &emplaceHotspot(true, 339, 347, 507, 371);
+		_closeBottomRight->setMouseUpHandler([&](GLEvent &, GLTarget &) {
+			setScript(self(rightDrawer));
+		});
+		_closeBottomRight->disable();
+
+		_key = &emplaceHotspot(true, 376, 309, 429, 334);
+		_key->setMouseUpHandler([&](GLEvent &, GLTarget &target) {
+			if (inventory().setState(S2Inventory::kInv6, S2InventoryState::Taken)) {
+				_key->disable();
+				sound().play(12107, false, 100);
+				inventory().addItem(S2Inventory::kInv6);
+				_parent._cel->setLoop(4);
+				_parent._cel->setCel(3, true);
+			}
+		});
+		_key->disable();
+
+		if (roomNo == 11355) {
+			_parent._cel.reset(new GLCel(getPlane(), 11350, 0, 3, { 64, 384 }));
+			_parent._cel->show();
+			disableDrawers();
+			_bible->enable();
+			_closeLeft->enable();
+		}
+	}
+
+private:
+	S2Hotspot *_topLeft;
+	S2Hotspot *_topRight;
+	S2Hotspot *_bottomLeft;
+	S2Hotspot *_bottomRight;
+	S2Hotspot *_bible;
+	S2Hotspot *_closeLeft;
+	S2Hotspot *_closeTopRight;
+	S2Hotspot *_closeBottomRight;
+	S2Hotspot *_key;
+
+	int _leftDrawerIndex;
+	int _rightDrawerIndex;
+
+	void enableDrawers() {
+		_topLeft->enable();
+		_topRight->enable();
+		_bottomLeft->enable();
+		_bottomRight->enable();
+	}
+
+	void disableDrawers() {
+		_topLeft->disable();
+		_topRight->disable();
+		_bottomLeft->disable();
+		_bottomRight->disable();
+	}
+
+	void leftDrawer(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			if (_parent._cel) {
+				_leftDrawerIndex = 0;
+				_cycler.reset(new GLEndBackCycler(*_parent._cel, script));
+				sound().play(11100, false, 80);
+				_closeLeft->disable();
+				_bible->disable();
+			} else if (_leftDrawerIndex) {
+				int16 loopNo = _leftDrawerIndex == 1 ? 0 : 2;
+				_parent._cel.reset(new GLCel(getPlane(), 11350, loopNo, 0, { 64, 384 }));
+				_parent._cel->show();
+				_cycler.reset(new GLEndCycler(*_parent._cel, script));
+				sound().play(11101, false, 80);
+			}
+			break;
+
+		case 1:
+			getPlane().getCast().removeEventHandler(*_parent._cel);
+			if (!_leftDrawerIndex) {
+				_parent._cel.reset();
+				enableDrawers();
+				user().setIsHandsOn(true);
+			} else if (_leftDrawerIndex == 1) {
+				_bible->enable();
+				_closeLeft->enable();
+			} else {
+				_closeLeft->enable();
+			}
+
+			_cycler.reset();
+			_script.reset();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
+
+	void rightDrawer(GLScript &script, const int state) {
+		switch (state) {
+		case 0:
+			user().setIsHandsOn(false);
+			if (_parent._cel) {
+				_rightDrawerIndex = 0;
+				_cycler.reset(new GLEndBackCycler(*_parent._cel, script));
+				sound().play(11100, false, 80);
+				_closeTopRight->disable();
+				_closeBottomRight->disable();
+				_key->disable();
+			} else if (_rightDrawerIndex) {
+				int16 loopNo;
+				if (_rightDrawerIndex == 2) {
+					loopNo = inventory().isPlaced(S2Inventory::kInv6) ? 3 : 4;
+				} else {
+					loopNo = 1;
+				}
+
+				_parent._cel.reset(new GLCel(getPlane(), 11350, loopNo, 0, roomBottom));
+				_cycler.reset(new GLEndCycler(*_parent._cel, script));
+				sound().play(11101, false, 80);
+			}
+			break;
+
+		case 1:
+			getPlane().getCast().removeEventHandler(*_parent._cel);
+			if (!_rightDrawerIndex) {
+				_parent._cel.reset();
+				enableDrawers();
+			} else if (_rightDrawerIndex == 1) {
+				_closeTopRight->enable();
+			} else {
+				if (inventory().isPlaced(S2Inventory::kInv6)) {
+					_key->enable();
+
+					// There was an extra hotspot here for some reason for
+					// closing the drawer, it is omitted since the drawer can
+					// be closed just fine without it
+				}
+				_closeBottomRight->enable();
+			}
+
+			_cycler.reset();
+			_script.reset();
+			user().setIsHandsOn(true);
+			break;
+		}
+	}
 };
 
 #undef self
@@ -98,7 +465,7 @@ void S2Room11000::init(const int roomNo) {
 		sound().createAmbient(11);
 		flags().set(kGameFlag91);
 
-		if (inventory().isPlaced(S2Inventory::kInv7)) {
+		if (inventory().isPlaced(S2Inventory::Gum)) {
 			emplaceSprite(false, 11101, GLPoint(1814, 245));
 		}
 
@@ -164,15 +531,15 @@ void S2Room11000::init(const int roomNo) {
 			}
 		});
 
-		if (inventory().isTaken(S2Inventory::kInv7)) {
+		if (inventory().isTaken(S2Inventory::Gum)) {
 			auto &cel = emplaceCel(false, 11140, 2, 0, roomBottom);
 			cel.show();
 			getPlane().getCast().remove(cel);
 		} else {
 			emplaceHotspot(true, 420, 303, 465, 345).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
-				if (inventory().setState(S2Inventory::kInv7, S2InventoryState::Taken)) {
+				if (inventory().setState(S2Inventory::Gum, S2InventoryState::Taken)) {
 					sound().play(11115, false, 80);
-					inventory().addItem(S2Inventory::kInv7);
+					inventory().addItem(S2Inventory::Gum);
 					removeChild(static_cast<S2Hotspot &>(target));
 					auto &cel = emplaceCel(false, 11140, 2, 0, roomBottom);
 					cel.show();
@@ -231,7 +598,7 @@ void S2Room11000::init(const int roomNo) {
 
 	case 11200:
 		room().drawPan(11200);
-		if (inventory().isPlaced(S2Inventory::kInv7)) {
+		if (inventory().isPlaced(S2Inventory::Gum)) {
 			emplaceSprite(false, 11201, GLPoint(1349, 246));
 		}
 		addPanoramaExit(11100, 1084, 211, 1170, 360);
@@ -247,7 +614,7 @@ void S2Room11000::init(const int roomNo) {
 			emplaceCel(false, 15342, 0, 0, GLPoint(259, 103), 202).show();
 		} else {
 			emplaceHotspot(true, 240, 90, 284, 123).setMouseUpHandler([&](GLEvent &, GLTarget &target) {
-				if (inventory().isInUse(S2Inventory::kInv7)) {
+				if (inventory().isInUse(S2Inventory::Gum)) {
 					flags().set(kGameFlag145);
 					score().doEvent(kScore167);
 					emplaceCel(false, 15342, 0, 0, GLPoint(259, 103), 202).show();
@@ -288,19 +655,20 @@ void S2Room11000::init(const int roomNo) {
 		addPanoramaExit(11200, 186, 183, 320, 508);
 		addPanoramaExit(11330, 666, 308, 755, 363, S2Cursor::kHighlightCel);
 		addPanoramaExit(11341, 378, 316, 453, 372, S2Cursor::kHighlightCel);
+		addPanoramaExit(11350, 362, 413, 625, 510, S2Cursor::kHighlightCel);
 		addPanoramaExit(11332, 778, 331, 821, 369, S2Cursor::kHighlightCel);
 		addPanoramaExit(11311, 1713, 279, 1739, 311, S2Cursor::kHighlightCel);
 
-		if (inventory().isPlaced(S2Inventory::kInv7)) {
+		if (inventory().isPlaced(S2Inventory::Gum)) {
 			emplaceSprite(false, 11301, GLPoint(1172, 331));
 			addPanoramaExit(11301, 1170, 333, 1241, 365, S2Cursor::kHighlightCel);
 		}
 		break;
 
 	case 11301:
-		if (inventory().setState(S2Inventory::kInv7, S2InventoryState::Taken)) {
+		if (inventory().setState(S2Inventory::Gum, S2InventoryState::Taken)) {
 			sound().play(11115, false, 80);
-			inventory().addItem(S2Inventory::kInv7);
+			inventory().addItem(S2Inventory::Gum);
 		} else {
 			emplaceSprite(false, 11301, GLPoint(1171, 330));
 		}
@@ -347,17 +715,13 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11350:
-		room().drawPic(11350);
-		_exitSoundNo = 11100;
-		emplaceExit(true, 11999, 64, 0, 575, 80, S2Cursor::kBackCel);
-		emplaceHotspot(true, 94, 164, 307, 249);
-		warning("TODO: Finish room %d", roomNo);
+		setSubRoom<S2MotelDesk>(roomNo);
 		break;
 
 	case 11351:
 		room().drawPic(11351);
 		emplaceExit(true, 11355, S2Cursor::kBackCel);
-		emplaceExit(true, 11352, 145, 26, 444, S2Cursor::kHighlightCel);
+		emplaceExit(true, 11352, 145, 26, 444, 349, S2Cursor::kHighlightCel);
 		break;
 
 	case 11352:
@@ -380,18 +744,7 @@ void S2Room11000::init(const int roomNo) {
 		break;
 
 	case 11355: {
-		room().drawPic(11350);
-		_exitSoundNo = 11100;
-		sound().play(11110, false, 80);
-		emplaceExit(true, 11999, 64, 0, 575, 80, S2Cursor::kBackCel);
-
-		// In SSCI this was off-by-one on the bottom axis
-		auto &cel = emplaceCel(true, 11350, 0, 3, roomBottom);
-		cel.show();
-		getPlane().getCast().remove(cel);
-
-		emplaceHotspot(true, 170, 231, 264, 337).setMouseUpHandler(self(openBible));
-		emplaceHotspot(true, 64, 340, 304, 383).setMouseUpHandler(self(closeDrawer));
+		setSubRoom<S2MotelDesk>(roomNo);
 		break;
    }
 
@@ -405,6 +758,12 @@ void S2Room11000::init(const int roomNo) {
 }
 
 void S2Room11000::dispose(const int roomNo) {
+	if (room().getNextRoomNo() != 11999) {
+		_cel.reset();
+	}
+
+	_cycler.reset();
+
 	switch (roomNo) {
 	case 11140:
 		interface().putText(0);
@@ -418,9 +777,6 @@ void S2Room11000::dispose(const int roomNo) {
 		break;
 	case 11341:
 		sound().play(11114, false, 80);
-		break;
-	case 11350:
-		warning("TODO: dispose %d", roomNo);
 		break;
 	}
 
@@ -562,17 +918,6 @@ void S2Room11000::takePrayerStick() {
 	inventory().takePrayerStick(S2PrayerStick::Jack);
 	flags().set(kGameFlag106);
 	flags().set(kGameFlag114);
-}
-
-void S2Room11000::openBible(GLEvent &, GLTarget &target) {
-	removeChild(static_cast<S2Hotspot &>(target));
-	score().doEvent(kScore78);
-	sound().play(11108, false, 80);
-	room().setNextRoomNo(11351);
-}
-
-void S2Room11000::closeDrawer(GLEvent &, GLTarget &) {
-	warning("TODO: %s", __PRETTY_FUNCTION__);
 }
 
 } // End of namespace Sci

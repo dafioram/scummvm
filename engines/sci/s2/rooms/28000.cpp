@@ -1402,7 +1402,7 @@ void S2Room28000::fightScript(GLScript &script, const int state) {
 	case 2:
 		cycler->add(sprite);
 		cycler->start(script);
-		sound().play(12801, false, Audio32::kMaxVolume, false, nullptr, make_reg(0, script.getData()));
+		sound().play(12801, false, Audio32::kMaxVolume, false, nullptr, script.getData());
 		break;
 
 	case 3: {
@@ -1412,7 +1412,7 @@ void S2Room28000::fightScript(GLScript &script, const int state) {
 			break;
 		}
 
-		sound().play(12802, false, Audio32::kMaxVolume, false, nullptr, make_reg(0, script.getData()));
+		sound().play(12802, false, Audio32::kMaxVolume, false, nullptr, script.getData());
 
 		int damage;
 		if (!inventory().hasPrayerStick()) {
