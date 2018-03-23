@@ -734,7 +734,7 @@ void S2Room26000::cancelScript(GLScript &script, const int state) {
 		break;
 
 	case 1:
-		// Cycler was not reset until state 2, which would result in UAF
+		// Cycler was not reset until state 2 in SSCI for no reason
 		_cycler.reset();
 		_cel.reset();
 		script.setTicks(10);
