@@ -53,7 +53,7 @@ enum MidiMessage {
 	 * A flag indicating that the current byte starts a new command
 	 * sequence.
 	 */
-	kStartOfMessageFlag = 0x80,
+	kStatusByteFlag = 0x80,
 
 	/**
 	 * A standard MIDI message indicating the termination of a System

@@ -1361,7 +1361,7 @@ void Sci1SoundManager::parseCommand(Sci1Sound &sound, const uint8 playlistIndex,
 	byte message; // dl
 	do {
 		message = sound.peek(trackNo);
-		if (message & kStartOfMessageFlag) {
+		if (message & kStatusByteFlag) {
 			track.command = message;
 			sound.advance(trackNo);
 		} else {

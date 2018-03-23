@@ -192,7 +192,7 @@ void Sci0SoundManager::advancePlayback(Sci0Sound &sound, const bool restoring) {
 		_state.state = kStateBlocked;
 
 		uint8 message = sound.peek();
-		if (message & kStartOfMessageFlag) {
+		if (message & kStatusByteFlag) {
 			sound.advance();
 			_state.lastCommand = message;
 		} else {
