@@ -150,9 +150,10 @@ void GeneralMidiDriver::controllerChange(const uint8 channelNo, const uint8 cont
 		if (value > kMaxVolume) {
 			value = channel.volumeShift > 0 ? kMaxVolume : 1;
 		}
-		const uint16 result = value * _masterVolume / kMaxMasterVolume;
-		value = result & 0xFF;
-		if (!value || (result & 0xFF00)) {
+		const uint16 multipliedValue = value * _masterVolume;
+		value = multipliedValue / kMaxMasterVolume;
+		const uint8 remainder = multipliedValue % kMaxMasterVolume;
+		if (!value && remainder) {
 			++value;
 		}
 		break;
@@ -192,7 +193,7 @@ void GeneralMidiDriver::programChange(const uint8 channelNo, const uint8 program
 	channel.program = programNo;
 	channel.velocityMap = _programVelocityMap[programNo];
 
-	bool needsControllerUpdate = channel.outProgram != kUnmapped;
+	bool needsControllerUpdate = channel.outProgram == kUnmapped;
 	channel.outProgram = _programMap[programNo];
 
 	if (channel.outProgram == kUnmapped) {
