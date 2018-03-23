@@ -131,6 +131,9 @@ void GeneralMidiDriver::noteOff(const uint8 channelNo, uint8 note, uint8 velocit
 	Channel &channel = _channels[channelNo];
 	const uint8 origNote = note;
 	if (remapNote(channelNo, note)) {
+		// SSCI sent a note on message with velocity of 0; we avoid destroying
+		// the musician's recorded release velocity by sending a normal note off
+		// instead
 		channel.hw->noteOff(note, velocity);
 		debugC(kDebugLevelSound, "Off %2d n %3d -> %3d v %3d", channelNo, origNote, note, velocity);
 	} else {
