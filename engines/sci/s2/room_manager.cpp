@@ -28,6 +28,7 @@
 #include "sci/s2/rooms/6000.h"
 #include "sci/s2/rooms/10000.h"
 #include "sci/s2/rooms/11000.h"
+#include "sci/s2/rooms/20000.h"
 #include "sci/s2/rooms/26000.h"
 #include "sci/s2/rooms/28000.h"
 #include "sci/s2/rooms/50000.h"
@@ -348,6 +349,9 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	case 11000:
 		_currentRoom.reset(new S2Room11000(_kernel, _game));
 		break;
+	case 20000:
+		_currentRoom.reset(new S2Room20000(_kernel, _game));
+		break;
 	case 26000:
 		_currentRoom.reset(new S2Room26000(_kernel, _game));
 		break;
@@ -365,7 +369,6 @@ bool S2RoomManager::loadRoom(const int roomNo) {
 	case 17000:
 	case 18000:
 	case 19000:
-	case 20000:
 	case 21000:
 	case 22000:
 	case 23000:

@@ -147,6 +147,7 @@ MODULE_OBJS += \
 	s2/rooms/6000.o \
 	s2/rooms/10000.o \
 	s2/rooms/11000.o \
+	s2/rooms/20000.o \
 	s2/rooms/26000.o \
 	s2/rooms/28000.o \
 	s2/rooms/50000.o \
