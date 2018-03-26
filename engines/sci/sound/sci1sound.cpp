@@ -1919,7 +1919,7 @@ void Sci1SoundManager::kernelPlay(const reg_t soundObj, const bool exclusive) {
 		sound->resource = _resMan.findResource(id, true);
 	}
 
-	if (_soundVersion >= SCI_VERSION_1_1 && !sound->resource) {
+	if (!sound->resource) {
 		writeSelectorValue(_segMan, soundObj, SELECTOR(signal), Kernel::kFinished);
 		return;
 	}
