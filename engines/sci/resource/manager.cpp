@@ -1105,7 +1105,6 @@ const ResourceSource *ResourceManager::findVolumeForMap(const ResourceSource *ma
 
 Common::SeekableReadStream *ResourceManager::getVolumeFile(const ResourceSource *source) const {
 	VolumeFiles::iterator it = _volumeFiles.begin();
-	Common::File *file;
 
 #ifdef ENABLE_SCI32
 	if (source->getSourceType() == kSourceChunk) {
@@ -1119,12 +1118,11 @@ Common::SeekableReadStream *ResourceManager::getVolumeFile(const ResourceSource 
 		return source->_resourceFile->createReadStream();
 
 	const char *filename = source->getLocationName().c_str();
+	Common::File *file;
 
-	// check if file is already opened
 	while (it != _volumeFiles.end()) {
 		file = *it;
 		if (scumm_stricmp(file->getName(), filename) == 0) {
-			// move file to top
 			if (it != _volumeFiles.begin()) {
 				_volumeFiles.erase(it);
 				_volumeFiles.push_front(file);
@@ -1133,18 +1131,17 @@ Common::SeekableReadStream *ResourceManager::getVolumeFile(const ResourceSource 
 		}
 		++it;
 	}
-	// adding a new file
+
 	file = new Common::File;
 	if (file->open(filename)) {
 		if (_volumeFiles.size() == kMaxOpenVolumes) {
-			it = --_volumeFiles.end();
-			delete *it;
-			_volumeFiles.erase(it);
+			delete _volumeFiles.back();
+			_volumeFiles.pop_back();
 		}
 		_volumeFiles.push_front(file);
 		return file;
 	}
-	// failed
+
 	delete file;
 	return nullptr;
 }
