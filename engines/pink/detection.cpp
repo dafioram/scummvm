@@ -46,8 +46,12 @@ public:
 		_directoryGlobs = directoryGlobs;
 	}
 
+	virtual const char *getEngineId() const {
+		return "pink";
+	}
+
 	virtual const char *getName() const {
-		return "Pink Panther Engine";
+		return "Pink Panther";
 	}
 
 	virtual const char *getOriginalCopyright() const {
