@@ -93,9 +93,13 @@ static const char * const directoryGlobs[] = {
 class IllusionsMetaEngine : public AdvancedMetaEngine {
 public:
 	IllusionsMetaEngine() : AdvancedMetaEngine(Illusions::gameDescriptions, sizeof(Illusions::IllusionsGameDescription), illusionsGames) {
-		_singleId = "illusions";
+		_gameIds = illusionsGames;
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
+	}
+
+	virtual const char *getEngineId() const {
+		return "illusions";
 	}
 
 	virtual const char *getName() const {
