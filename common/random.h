@@ -73,6 +73,13 @@ public:
 	 * @return	a random number in the interval [min, max]
 	 */
 	uint getRandomNumberRng(uint min, uint max);
+
+	/**
+	 * Generates a random bool that is true 1 / nOutcomes of the time
+	 * @param nOutcomes	the Number of faces on the dice
+	 * @return true or false
+	 */
+	bool getRandomBool(uint nOutcomes);
 };
 
 } // End of namespace Common

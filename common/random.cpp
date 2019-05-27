@@ -59,4 +59,11 @@ uint RandomSource::getRandomNumberRng(uint min, uint max) {
 	return getRandomNumber(max - min) + min;
 }
 
+bool RandomSource::getRandomBool(uint nOutcomes) {
+	if (nOutcomes <= 0) // Can never succeed
+		return false;
+	else // nOutcomes == 1 (always returns true) case also works here
+		return getRandomNumber(nOutcomes - 1) == 0;
+}
+
 } // End of namespace Common
