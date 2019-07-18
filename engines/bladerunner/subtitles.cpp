@@ -147,11 +147,12 @@ void Subtitles::init(void) {
 		       _subtitlesInfo.languageMode.c_str(),
 		       _subtitlesInfo.credits.c_str());
 
-		delete versionTxtResource;
-		versionTxtResource = nullptr;
 	} else {
 		debug("Subtitles version info: N/A");
 	}
+
+	delete versionTxtResource;
+	versionTxtResource = nullptr;
 
 	//
 	// Initializing/Loading Subtitles Fonts
