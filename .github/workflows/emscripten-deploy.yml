@@ -1,0 +1,69 @@
+name: Emscripten deploy
+on:
+  push:
+    branches: [browser]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build cache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: emscripten-deploy
+          max-size: 1G
+          create-symlink: true
+      - name: Restore emsdk cache
+        uses: actions/cache@v4
+        with:
+          key: emsdk-4.0.10
+          path: |
+            dists/emscripten/emsdk-4.0.10/
+      - name: Build scummvm
+        run: |
+          CXX='ccache emcc' dists/emscripten/build.sh build --verbose --disable-all-engines --enable-plugins --default-dynamic --enable-engine=mohawk,riven,myst,mystme,testbed --enable-gif --enable-jpeg --enable-ogg --enable-png --enable-vorbis --enable-zlib --enable-freetype2
+          cp dists/emscripten/build-make_http_index.py build-emscripten/
+      - name: Package
+        run: tar -C build-emscripten -czf scummvm-web.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scummvm-web
+          path: scummvm-web.tar.gz
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment: vps
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PATH: ${{ secrets.VPS_PATH }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+    steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -n "$VPS_HOST" ] && [ -n "$VPS_USER" ] && [ -n "$VPS_PATH" ] && [ -n "$VPS_SSH_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "VPS secrets not set, skipping deploy"
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: scummvm-web
+      - name: Deploy
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          mkdir site && tar -C site -xzf scummvm-web.tar.gz
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          SSH="ssh -i $HOME/.ssh/id_deploy"
+          rsync -rlz --delete --exclude 'data/games/' -e "$SSH" site/ "$VPS_USER@$VPS_HOST:$VPS_PATH/"
+          $SSH "$VPS_USER@$VPS_HOST" "cd '$VPS_PATH' && python3 build-make_http_index.py data"

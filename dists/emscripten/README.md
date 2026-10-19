@@ -56,6 +56,11 @@ See e.g. [chkuendig/scummvm-demo/.github/workflows/main.yml](https://github.com/
 ./dists/emscripten/build.sh build --verbose --disable-all-engines --enable-plugins --default-dynamic  --enable-engine=adl,testbed,scumm,scumm_7_8,grim,monkey4,mohawk,myst,riven,sci32,agos2,sword2,drascula,sky,lure,queen,testbed,director,stark --bundle-games=testbed,comi/comi-win-large-demo-en.zip,warlock,sky/BASS-Floppy-1.3.zip,drascula/drascula-audio-mp3-2.0.zip,monkey4,feeble,queen/FOTAQ_Floppy.zip,ft,grim/grim-win-demo2-en.zip,lsl7,lure,myst,phantasmagoria,riven,hires1,tlj,sword2
 ```
 
+## Deploying with GitHub Actions
+`.github/workflows/emscripten-deploy.yml` builds ScummVM with the Mohawk, Riven, Myst, Myst ME and Testbed plugins on every push to the `browser` branch and uploads the result as the `scummvm-web` artifact. If the `vps` environment defines the secrets `VPS_HOST`, `VPS_USER`, `VPS_PATH` and `VPS_SSH_KEY`, the result is also rsynced to `$VPS_PATH` and `data/*/index.json` is regenerated.
+
+The browser has no way to upload games: they are fetched over HTTP from `/data/games/` on the same origin as the page, so the VPS has to serve the whole site over HTTPS. Copy your game files to `$VPS_PATH/data/games/<target>/` (the deploy never touches that folder) and run `python3 build-make_http_index.py data` in `$VPS_PATH` once to index them.
+
 ## Current Status of Port
 In general, ScummVM runs in the browser sufficiently to run all demos and freeware games.
 
